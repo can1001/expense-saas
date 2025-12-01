@@ -1,6 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 
-const prisma = new PrismaClient();
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('🌱 Starting seed...');
@@ -2265,7 +2269,7 @@ async function main() {
         data: item,
       });
       successCount++;
-    } catch (error) {
+    } catch (error: any) {
       // 중복 키 에러는 무시 (unique constraint)
       if (error.code !== 'P2002') {
         console.error('Error inserting item:', item, error);
