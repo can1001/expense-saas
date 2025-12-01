@@ -5,11 +5,12 @@ import { updateExpenseSchema, calculateAmount, calculateTotal } from '@/lib/vali
 // GET /api/expenses/[id] - 지출결의서 상세 조회
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const expense = await prisma.expense.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         items: {
           orderBy: {
@@ -39,9 +40,10 @@ export async function GET(
 // PUT /api/expenses/[id] - 지출결의서 수정
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // 유효성 검증
@@ -49,7 +51,7 @@ export async function PUT(
 
     // 기존 항목 삭제
     await prisma.expenseItem.deleteMany({
-      where: { expenseId: params.id },
+      where: { expenseId: id },
     });
 
     // 항목별 금액 계산 및 순서 할당
@@ -66,7 +68,7 @@ export async function PUT(
 
     // 데이터베이스 업데이트
     const expense = await prisma.expense.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(validatedData.committee && { committee: validatedData.committee }),
         ...(validatedData.department && { department: validatedData.department }),
@@ -117,11 +119,12 @@ export async function PUT(
 // DELETE /api/expenses/[id] - 지출결의서 삭제
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await prisma.expense.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });
