@@ -5,12 +5,17 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p $PORT",
+    "postinstall": "prisma generate",
     "lint": "eslint",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "db:migrate": "prisma migrate dev"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
