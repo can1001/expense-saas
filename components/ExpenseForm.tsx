@@ -245,8 +245,11 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
     try {
       setLoading(true);
 
-      const response = await fetch('/api/expenses', {
-        method: 'POST',
+      const url = expenseId ? `/api/expenses/${expenseId}` : '/api/expenses';
+      const method = expenseId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
@@ -260,7 +263,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       }
 
       const result = await response.json();
-      alert('지출결의서가 성공적으로 등록되었습니다.');
+      alert(expenseId ? '지출결의서가 성공적으로 수정되었습니다.' : '지출결의서가 성공적으로 등록되었습니다.');
       router.push(`/expenses/${result.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
@@ -272,6 +275,18 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   const totalAmount = formData.items.reduce((sum, item) => sum + item.amount, 0);
 
   const inputClasses = 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none';
+
+  // 수정 모드 데이터 로딩 중
+  if (fetchLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <p className="mt-4 text-gray-600">데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
