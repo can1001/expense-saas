@@ -115,11 +115,13 @@ export default function BudgetSelector({ value, onChange, disabled = false }: Bu
   };
 
   const handleChange = (field: string, selectedValue: string) => {
+    // 빈 값을 선택한 경우 undefined로 처리
+    const actualValue = selectedValue === '' ? undefined : selectedValue;
     const newValue = { ...value };
 
     switch (field) {
       case 'committee':
-        newValue.committee = selectedValue;
+        newValue.committee = actualValue;
         newValue.department = undefined;
         newValue.category = undefined;
         newValue.subcategory = undefined;
@@ -130,7 +132,7 @@ export default function BudgetSelector({ value, onChange, disabled = false }: Bu
         setDetails([]);
         break;
       case 'department':
-        newValue.department = selectedValue;
+        newValue.department = actualValue;
         newValue.category = undefined;
         newValue.subcategory = undefined;
         newValue.detail = undefined;
@@ -139,22 +141,23 @@ export default function BudgetSelector({ value, onChange, disabled = false }: Bu
         setDetails([]);
         break;
       case 'category':
-        newValue.category = selectedValue;
+        newValue.category = actualValue;
         newValue.subcategory = undefined;
         newValue.detail = undefined;
         setSubcategories([]);
         setDetails([]);
         break;
       case 'subcategory':
-        newValue.subcategory = selectedValue;
+        newValue.subcategory = actualValue;
         newValue.detail = undefined;
         setDetails([]);
         break;
       case 'detail':
-        newValue.detail = selectedValue;
+        newValue.detail = actualValue;
         break;
     }
 
+    console.log('BudgetSelector handleChange:', field, actualValue, newValue);
     onChange(newValue);
   };
 
@@ -259,26 +262,31 @@ export default function BudgetSelector({ value, onChange, disabled = false }: Bu
       )}
 
       {/* 예산(세목) - 항목별로 선택 */}
-      {value.subcategory && details.length > 0 && (
+      {value.subcategory && (
         <div>
           <label htmlFor="detail" className="block text-sm font-medium text-gray-700 mb-2">
-            예산(세목) <span className="text-red-500">*</span>
+            예산(세목) (선택사항)
           </label>
-          <select
-            id="detail"
-            value={value.detail || ''}
-            onChange={(e) => handleChange('detail', e.target.value)}
-            disabled={disabled}
-            className={selectClasses}
-            required
-          >
-            <option value="">선택하세요</option>
-            {details.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
+          {details.length === 0 ? (
+            <div className="px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 text-sm">
+              해당 예산(목)에는 세목이 없습니다. 세부 항목에 직접 입력해주세요.
+            </div>
+          ) : (
+            <select
+              id="detail"
+              value={value.detail || ''}
+              onChange={(e) => handleChange('detail', e.target.value)}
+              disabled={disabled}
+              className={selectClasses}
+            >
+              <option value="">선택하세요</option>
+              {details.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       )}
 

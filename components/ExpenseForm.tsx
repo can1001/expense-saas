@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BudgetSelector from './BudgetSelector';
 
@@ -28,10 +28,16 @@ interface ExpenseFormData {
   items: ExpenseItem[];
 }
 
-export default function ExpenseForm() {
+interface ExpenseFormProps {
+  expenseId?: string;
+  initialData?: any;
+}
+
+export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fetchLoading, setFetchLoading] = useState(!!expenseId);
 
   const [formData, setFormData] = useState<ExpenseFormData>({
     requestDate: new Date().toISOString().split('T')[0],
@@ -51,6 +57,53 @@ export default function ExpenseForm() {
     ],
   });
 
+  // 수정 모드일 때 데이터 로드
+  useEffect(() => {
+    if (expenseId && !initialData) {
+      fetchExpenseData();
+    } else if (initialData) {
+      loadInitialData(initialData);
+    }
+  }, [expenseId, initialData]);
+
+  const fetchExpenseData = async () => {
+    try {
+      setFetchLoading(true);
+      const response = await fetch(`/api/expenses/${expenseId}`);
+      if (!response.ok) throw new Error('데이터를 불러오는데 실패했습니다.');
+      const data = await response.json();
+      loadInitialData(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+    } finally {
+      setFetchLoading(false);
+    }
+  };
+
+  const loadInitialData = (data: any) => {
+    setFormData({
+      committee: data.committee,
+      department: data.department,
+      budgetCategory: data.budgetCategory,
+      budgetSubcategory: data.budgetSubcategory,
+      expenseDate: data.expenseDate ? new Date(data.expenseDate).toISOString().split('T')[0] : '',
+      requestDate: new Date(data.requestDate).toISOString().split('T')[0],
+      requestTeam: data.requestTeam,
+      applicantName: data.applicantName,
+      applicantTitle: data.applicantTitle || '',
+      bankName: data.bankName,
+      accountNumber: data.accountNumber,
+      accountHolder: data.accountHolder,
+      items: data.items.map((item: any) => ({
+        budgetDetail: item.budgetDetail,
+        description: item.description,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        amount: item.amount,
+      })),
+    });
+  };
+
   // 금액 계산 함수 (단가 × 수량 ÷ 10, 내림)
   const calculateAmount = (unitPrice: number, quantity: number): number => {
     return Math.floor((unitPrice * quantity) / 10) * 10;
@@ -63,13 +116,24 @@ export default function ExpenseForm() {
     subcategory?: string;
     detail?: string;
   }) => {
-    setFormData({
+    const newFormData = {
       ...formData,
       committee: budget.committee,
       department: budget.department,
       budgetCategory: budget.category,
       budgetSubcategory: budget.subcategory,
-    });
+    };
+
+    // 예산(세목)이 선택되면 첫 번째 항목에 자동 입력
+    if (budget.detail && formData.items.length > 0 && !formData.items[0].budgetDetail) {
+      newFormData.items = [...formData.items];
+      newFormData.items[0] = {
+        ...newFormData.items[0],
+        budgetDetail: budget.detail,
+      };
+    }
+
+    setFormData(newFormData);
   };
 
   const handleInputChange = (field: keyof ExpenseFormData, value: any) => {
