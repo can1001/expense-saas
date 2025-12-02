@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { format } from 'date-fns';
+import { pdf } from '@react-pdf/renderer';
+import { ExpensePDFDocument } from '@/components/PDFDocument';
 
 interface ExpenseItem {
   id: string;
@@ -93,6 +95,23 @@ export default function ExpenseDetailPage() {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    if (!expense) return;
+
+    try {
+      const blob = await pdf(<ExpensePDFDocument expense={expense} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `지출결의서_${expense.applicantName}_${format(new Date(expense.requestDate), 'yyyyMMdd')}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('PDF 생성 중 오류가 발생했습니다.');
+      console.error('PDF generation error:', err);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ko-KR', {
       style: 'currency',
@@ -142,6 +161,25 @@ export default function ExpenseDetailPage() {
           </div>
 
           <div className="flex gap-2">
+            <button
+              onClick={handleDownloadPDF}
+              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              PDF 다운로드
+            </button>
             <button
               onClick={() => router.push(`/expenses/${id}/edit`)}
               disabled={deleteLoading}

@@ -30,6 +30,18 @@ export default function ExpensesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
 
+  // 고급 필터
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    committee: '',
+    department: '',
+    budgetCategory: '',
+    startDate: '',
+    endDate: '',
+    minAmount: '',
+    maxAmount: '',
+  });
+
   useEffect(() => {
     fetchExpenses();
   }, []);
@@ -53,10 +65,58 @@ export default function ExpensesPage() {
     }
   };
 
-  // 검색 필터링
+  // 검색 및 필터링
   const filteredExpenses = expenses.filter(expense => {
-    if (!searchQuery) return true;
-    return expense.applicantName.toLowerCase().includes(searchQuery.toLowerCase());
+    // 텍스트 검색
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        expense.applicantName.toLowerCase().includes(query) ||
+        expense.committee.toLowerCase().includes(query) ||
+        expense.department.toLowerCase().includes(query) ||
+        expense.budgetCategory.toLowerCase().includes(query);
+
+      if (!matchesSearch) return false;
+    }
+
+    // 위원회 필터
+    if (filters.committee && expense.committee !== filters.committee) {
+      return false;
+    }
+
+    // 사역팀 필터
+    if (filters.department && expense.department !== filters.department) {
+      return false;
+    }
+
+    // 예산항목 필터
+    if (filters.budgetCategory && expense.budgetCategory !== filters.budgetCategory) {
+      return false;
+    }
+
+    // 날짜 범위 필터
+    if (filters.startDate) {
+      const expenseDate = new Date(expense.requestDate);
+      const startDate = new Date(filters.startDate);
+      if (expenseDate < startDate) return false;
+    }
+
+    if (filters.endDate) {
+      const expenseDate = new Date(expense.requestDate);
+      const endDate = new Date(filters.endDate);
+      if (expenseDate > endDate) return false;
+    }
+
+    // 금액 범위 필터
+    if (filters.minAmount && expense.requestAmount < Number(filters.minAmount)) {
+      return false;
+    }
+
+    if (filters.maxAmount && expense.requestAmount > Number(filters.maxAmount)) {
+      return false;
+    }
+
+    return true;
   });
 
   // 페이지네이션
@@ -68,7 +128,29 @@ export default function ExpensesPage() {
   // 페이지 변경 시 첫 페이지로 리셋
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, itemsPerPage]);
+  }, [searchQuery, itemsPerPage, filters]);
+
+  // 필터 옵션 추출
+  const uniqueCommittees = Array.from(new Set(expenses.map(e => e.committee))).sort();
+  const uniqueDepartments = Array.from(new Set(expenses.map(e => e.department))).sort();
+  const uniqueCategories = Array.from(new Set(expenses.map(e => e.budgetCategory))).sort();
+
+  const handleFilterChange = (field: string, value: string) => {
+    setFilters({ ...filters, [field]: value });
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      committee: '',
+      department: '',
+      budgetCategory: '',
+      startDate: '',
+      endDate: '',
+      minAmount: '',
+      maxAmount: '',
+    });
+    setSearchQuery('');
+  };
 
   const handleRowClick = (id: string) => {
     router.push(`/expenses/${id}`);
@@ -123,36 +205,166 @@ export default function ExpensesPage() {
 
         {/* 검색 및 필터 */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="w-full sm:w-96">
-              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-                청구인 검색
-              </label>
-              <input
-                id="search"
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="청구인 이름으로 검색..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              />
+          <div className="flex flex-col gap-4">
+            {/* 기본 검색 */}
+            <div className="flex flex-col sm:flex-row gap-4 items-end justify-between">
+              <div className="w-full sm:flex-1">
+                <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+                  통합 검색
+                </label>
+                <input
+                  id="search"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="청구인, 위원회, 사역팀, 예산항목 검색..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                    />
+                  </svg>
+                  고급 필터
+                  {showAdvancedFilters ? ' 닫기' : ' 열기'}
+                </button>
+
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                >
+                  <option value={10}>10개씩</option>
+                  <option value={20}>20개씩</option>
+                  <option value={50}>50개씩</option>
+                </select>
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="itemsPerPage" className="block text-sm font-medium text-gray-700 mb-2">
-                표시 개수
-              </label>
-              <select
-                id="itemsPerPage"
-                value={itemsPerPage}
-                onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-              >
-                <option value={10}>10개씩 보기</option>
-                <option value={20}>20개씩 보기</option>
-                <option value={50}>50개씩 보기</option>
-              </select>
-            </div>
+            {/* 고급 필터 */}
+            {showAdvancedFilters && (
+              <div className="pt-4 border-t border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      위원회
+                    </label>
+                    <select
+                      value={filters.committee}
+                      onChange={(e) => handleFilterChange('committee', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                    >
+                      <option value="">전체</option>
+                      {uniqueCommittees.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      사역팀(부)
+                    </label>
+                    <select
+                      value={filters.department}
+                      onChange={(e) => handleFilterChange('department', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                    >
+                      <option value="">전체</option>
+                      {uniqueDepartments.map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      예산(항)
+                    </label>
+                    <select
+                      value={filters.budgetCategory}
+                      onChange={(e) => handleFilterChange('budgetCategory', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                    >
+                      <option value="">전체</option>
+                      {uniqueCategories.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      날짜 범위
+                    </label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="date"
+                        value={filters.startDate}
+                        onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      />
+                      <span className="text-gray-500">~</span>
+                      <input
+                        type="date"
+                        value={filters.endDate}
+                        onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      금액 범위 (원)
+                    </label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="number"
+                        value={filters.minAmount}
+                        onChange={(e) => handleFilterChange('minAmount', e.target.value)}
+                        placeholder="최소"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      />
+                      <span className="text-gray-500">~</span>
+                      <input
+                        type="number"
+                        value={filters.maxAmount}
+                        onChange={(e) => handleFilterChange('maxAmount', e.target.value)}
+                        placeholder="최대"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={clearFilters}
+                    className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    필터 초기화
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
