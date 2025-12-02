@@ -99,18 +99,26 @@ export async function PUT(
     });
 
     return NextResponse.json(expense);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating expense:', error);
 
-    if (error instanceof Error && error.name === 'ZodError') {
+    if (error.name === 'ZodError' && error.errors) {
+      const errorMessages = error.errors.map((err: any) =>
+        `${err.path.join('.')}: ${err.message}`
+      ).join(', ');
+
       return NextResponse.json(
-        { error: '입력 데이터가 유효하지 않습니다.', details: error },
+        {
+          error: '입력 데이터가 유효하지 않습니다.',
+          details: errorMessages,
+          validationErrors: error.errors
+        },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: '지출결의서 수정에 실패했습니다.' },
+      { error: '지출결의서 수정에 실패했습니다.', message: error.message || String(error) },
       { status: 500 }
     );
   }

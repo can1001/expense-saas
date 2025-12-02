@@ -218,7 +218,7 @@ export default function ExpensesPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="청구인, 위원회, 사역팀, 예산항목 검색..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white placeholder-gray-400"
                 />
               </div>
 
@@ -267,7 +267,7 @@ export default function ExpensesPage() {
                     <select
                       value={filters.committee}
                       onChange={(e) => handleFilterChange('committee', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
                     >
                       <option value="">전체</option>
                       {uniqueCommittees.map(c => (
@@ -283,7 +283,7 @@ export default function ExpensesPage() {
                     <select
                       value={filters.department}
                       onChange={(e) => handleFilterChange('department', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
                     >
                       <option value="">전체</option>
                       {uniqueDepartments.map(d => (
@@ -299,7 +299,7 @@ export default function ExpensesPage() {
                     <select
                       value={filters.budgetCategory}
                       onChange={(e) => handleFilterChange('budgetCategory', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
                     >
                       <option value="">전체</option>
                       {uniqueCategories.map(c => (
@@ -319,14 +319,14 @@ export default function ExpensesPage() {
                         type="date"
                         value={filters.startDate}
                         onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white"
                       />
                       <span className="text-gray-500">~</span>
                       <input
                         type="date"
                         value={filters.endDate}
                         onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white"
                       />
                     </div>
                   </div>
@@ -341,7 +341,7 @@ export default function ExpensesPage() {
                         value={filters.minAmount}
                         onChange={(e) => handleFilterChange('minAmount', e.target.value)}
                         placeholder="최소"
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white placeholder-gray-400"
                       />
                       <span className="text-gray-500">~</span>
                       <input
@@ -349,7 +349,7 @@ export default function ExpensesPage() {
                         value={filters.maxAmount}
                         onChange={(e) => handleFilterChange('maxAmount', e.target.value)}
                         placeholder="최대"
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white placeholder-gray-400"
                       />
                     </div>
                   </div>

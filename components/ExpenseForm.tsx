@@ -125,13 +125,16 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
     };
 
     // 예산(세목)이 선택되면 첫 번째 항목에 자동 입력
-    if (budget.detail && formData.items.length > 0 && !formData.items[0].budgetDetail) {
+    if (budget.detail && formData.items.length > 0) {
       newFormData.items = [...formData.items];
       newFormData.items[0] = {
         ...newFormData.items[0],
         budgetDetail: budget.detail,
       };
     }
+
+    console.log('handleBudgetChange - budget.detail:', budget.detail);
+    console.log('handleBudgetChange - newFormData:', newFormData);
 
     setFormData(newFormData);
   };
@@ -248,6 +251,11 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       const url = expenseId ? `/api/expenses/${expenseId}` : '/api/expenses';
       const method = expenseId ? 'PUT' : 'POST';
 
+      console.log('Submitting data:', {
+        ...formData,
+        expenseDate: formData.expenseDate || null,
+      });
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -257,12 +265,32 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         }),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '저장에 실패했습니다.');
+        let errorMsg = '저장에 실패했습니다.';
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMsg = errorData.details
+            ? `${errorData.error}: ${errorData.details}`
+            : errorData.error || '저장에 실패했습니다.';
+        } catch (e) {
+          errorMsg = `서버 오류 (${response.status}): ${responseText || '응답 없음'}`;
+        }
+        throw new Error(errorMsg);
       }
 
-      const result = await response.json();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error('서버 응답을 파싱할 수 없습니다: ' + responseText);
+      }
+
       alert(expenseId ? '지출결의서가 성공적으로 수정되었습니다.' : '지출결의서가 성공적으로 등록되었습니다.');
       router.push(`/expenses/${result.id}`);
     } catch (err) {
@@ -274,7 +302,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
 
   const totalAmount = formData.items.reduce((sum, item) => sum + item.amount, 0);
 
-  const inputClasses = 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none';
+  const inputClasses = 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white placeholder-gray-400';
 
   // 수정 모드 데이터 로딩 중
   if (fetchLoading) {

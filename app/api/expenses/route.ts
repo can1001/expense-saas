@@ -50,9 +50,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('Received POST data:', JSON.stringify(body, null, 2));
 
     // 유효성 검증
     const validatedData = createExpenseSchema.parse(body);
+    console.log('Validated data:', JSON.stringify(validatedData, null, 2));
 
     // 항목별 금액 계산 및 순서 할당
     const itemsWithCalculatedAmount = validatedData.items.map((item, index) => ({
@@ -94,18 +96,26 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(expense, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating expense:', error);
-    
-    if (error instanceof Error && error.name === 'ZodError') {
+
+    if (error.name === 'ZodError' && error.errors) {
+      const errorMessages = error.errors.map((err: any) =>
+        `${err.path.join('.')}: ${err.message}`
+      ).join(', ');
+
       return NextResponse.json(
-        { error: '입력 데이터가 유효하지 않습니다.', details: error },
+        {
+          error: '입력 데이터가 유효하지 않습니다.',
+          details: errorMessages,
+          validationErrors: error.errors
+        },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: '지출결의서 생성에 실패했습니다.' },
+      { error: '지출결의서 생성에 실패했습니다.', message: error.message || String(error) },
       { status: 500 }
     );
   }
