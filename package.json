@@ -33,6 +33,7 @@
     "pg": "^8.16.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.67.0",
     "tailwind-merge": "^3.4.0",
     "zod": "^4.1.13"
@@ -43,6 +44,7 @@
     "@types/pg": "^8.15.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-dropzone": "^4.2.2",
     "eslint": "^9",
     "eslint-config-next": "16.0.5",
     "prisma": "^7.0.1",
