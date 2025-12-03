@@ -142,7 +142,7 @@ export default function FileUpload({
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'],
     },
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: 5 * 1024 * 1024, // 5MB
     disabled: disabled || uploading || files.length >= maxFiles,
     multiple: true,
   });
@@ -229,7 +229,7 @@ export default function FileUpload({
                 파일을 드래그하여 놓거나 클릭하여 선택하세요
               </p>
               <p className="text-sm text-gray-500">
-                이미지 파일만 업로드 가능 (최대 10MB, {maxFiles}개까지)
+                이미지 파일만 업로드 가능 (최대 5MB, {maxFiles}개까지)
               </p>
             </>
           )}

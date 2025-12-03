@@ -16,8 +16,8 @@ const ALLOWED_MIME_TYPES = [
 // 허용되는 파일 확장자
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
-// 파일 크기 제한 (10MB)
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// 파일 크기 제한 (5MB)
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 // POST /api/upload - 파일 업로드
 export async function POST(request: NextRequest) {
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { 
-          error: '파일 크기는 10MB를 초과할 수 없습니다.',
+          error: '파일 크기는 5MB를 초과할 수 없습니다.',
           maxSize: MAX_FILE_SIZE,
           actualSize: file.size
         },
