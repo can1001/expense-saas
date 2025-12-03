@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BudgetSelector from './BudgetSelector';
+import FileUpload, { UploadedFile } from './FileUpload';
 
 interface ExpenseItem {
   budgetDetail: string;
@@ -38,6 +39,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchLoading, setFetchLoading] = useState(!!expenseId);
+  const [attachments, setAttachments] = useState<UploadedFile[]>([]);
 
   const [formData, setFormData] = useState<ExpenseFormData>({
     requestDate: new Date().toISOString().split('T')[0],
@@ -102,6 +104,23 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         amount: item.amount,
       })),
     });
+
+    // 첨부파일 로드
+    if (data.attachments && data.attachments.length > 0) {
+      setAttachments(
+        data.attachments.map((att: any) => ({
+          id: att.id,
+          publicId: att.publicId,
+          url: att.url,
+          secureUrl: att.secureUrl,
+          format: att.format,
+          fileName: att.fileName,
+          fileSize: att.fileSize,
+          width: att.width,
+          height: att.height,
+        }))
+      );
+    }
   };
 
   // 금액 계산 함수 (단가 × 수량 ÷ 10, 내림)
@@ -593,6 +612,18 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
             />
           </div>
         </div>
+      </div>
+
+      {/* 첨부파일 */}
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">첨부파일</h2>
+        <FileUpload
+          expenseId={expenseId}
+          initialFiles={attachments}
+          onChange={setAttachments}
+          maxFiles={10}
+          disabled={loading}
+        />
       </div>
 
       {/* 버튼 */}

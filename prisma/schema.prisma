@@ -11,39 +11,42 @@ datasource db {
 
 // 지출결의서 메인 테이블
 model Expense {
-  id                String        @id @default(cuid())
-  
+  id                String               @id @default(cuid())
+
   // 기본 정보
-  committee         String        // 위원회
-  department        String        // 사역팀(부)
-  budgetCategory    String        // 예산(항)
-  budgetSubcategory String        // 예산(목)
-  
+  committee         String               // 위원회
+  department        String               // 사역팀(부)
+  budgetCategory    String               // 예산(항)
+  budgetSubcategory String               // 예산(목)
+
   // 지출일자 (재정팀 입력)
   expenseDate       DateTime?
-  
+
   // 청구금액 (자동 계산)
   requestAmount     Int
-  
+
   // 세부 항목들
   items             ExpenseItem[]
-  
+
+  // 첨부파일들
+  attachments       ExpenseAttachment[]
+
   // 신청 정보
-  requestDate       DateTime      // 청구 일자
-  requestTeam       String        @default("출납팀")
-  applicantName     String        // 청구인
-  applicantTitle    String?       // 직책
-  
+  requestDate       DateTime             // 청구 일자
+  requestTeam       String               @default("출납팀")
+  applicantName     String               // 청구인
+  applicantTitle    String?              // 직책
+
   // 은행 정보
-  bankName          String        // 은행명
-  accountNumber     String        // 계좌번호
-  accountHolder     String        // 예금주
-  
+  bankName          String               // 은행명
+  accountNumber     String               // 계좌번호
+  accountHolder     String               // 예금주
+
   // 메타
-  version           String        @default("4.1.3")
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  
+  version           String               @default("4.1.3")
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
   @@index([committee])
   @@index([department])
   @@index([budgetCategory, budgetSubcategory])
@@ -69,28 +72,52 @@ model ExpenseItem {
   @@index([expenseId])
 }
 
+// 첨부파일 (영수증 이미지 등)
+model ExpenseAttachment {
+  id          String   @id @default(cuid())
+  expenseId   String
+  expense     Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  // Cloudinary 정보
+  publicId    String   // Cloudinary public_id
+  url         String   // 이미지 URL
+  secureUrl   String   // HTTPS URL
+  format      String   // 파일 포맷 (jpg, png 등)
+
+  // 파일 정보
+  fileName    String   // 원본 파일명
+  fileSize    Int      // 파일 크기 (bytes)
+  width       Int?     // 이미지 너비
+  height      Int?     // 이미지 높이
+
+  // 메타
+  createdAt   DateTime @default(now())
+
+  @@index([expenseId])
+}
+
 // 예산 마스터 데이터 (드롭다운 옵션)
 model BudgetMaster {
   id           String   @id @default(cuid())
-  
+
   // 계층 구조
   committee    String   // 위원회
   department   String   // 사역팀(부)
   category     String   // 예산(항)
   subcategory  String   // 예산(목)
   detail       String   // 예산(세목)
-  
+
   // 추가 정보
   manager      String?  // 승인권자
   accountCode  String?  // 계정코드
   description  String?  // 항목 내역
-  
+
   // 활성 상태
   isActive     Boolean  @default(true)
-  
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
+
   @@unique([committee, department, category, subcategory, detail])
   @@index([category, subcategory, detail])
   @@index([committee])

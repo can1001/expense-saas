@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { updateExpenseSchema, calculateAmount, calculateTotal } from '@/lib/validators';
+import { deleteImages } from '@/lib/cloudinary';
 
 // GET /api/expenses/[id] - 지출결의서 상세 조회
 export async function GET(
@@ -15,6 +16,11 @@ export async function GET(
         items: {
           orderBy: {
             order: 'asc',
+          },
+        },
+        attachments: {
+          orderBy: {
+            createdAt: 'asc',
           },
         },
       },
@@ -131,6 +137,25 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+
+    // 첨부파일 정보 가져오기
+    const attachments = await prisma.expenseAttachment.findMany({
+      where: { expenseId: id },
+      select: { publicId: true },
+    });
+
+    // Cloudinary에서 이미지 삭제
+    if (attachments.length > 0) {
+      const publicIds = attachments.map(att => att.publicId);
+      try {
+        await deleteImages(publicIds);
+      } catch (cloudinaryError) {
+        console.error('Error deleting images from Cloudinary:', cloudinaryError);
+        // Cloudinary 삭제 실패해도 DB는 삭제 진행
+      }
+    }
+
+    // 데이터베이스에서 지출결의서 삭제 (Cascade로 첨부파일도 함께 삭제됨)
     await prisma.expense.delete({
       where: { id },
     });

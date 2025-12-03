@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { pdf } from '@react-pdf/renderer';
 import { ExpensePDFDocument } from '@/components/PDFDocument';
+import Image from 'next/image';
 
 interface ExpenseItem {
   id: string;
@@ -14,6 +15,19 @@ interface ExpenseItem {
   quantity: number;
   amount: number;
   order: number;
+}
+
+interface ExpenseAttachment {
+  id: string;
+  publicId: string;
+  url: string;
+  secureUrl: string;
+  format: string;
+  fileName: string;
+  fileSize: number;
+  width?: number;
+  height?: number;
+  createdAt: string;
 }
 
 interface Expense {
@@ -32,6 +46,7 @@ interface Expense {
   accountNumber: string;
   accountHolder: string;
   items: ExpenseItem[];
+  attachments?: ExpenseAttachment[];
   createdAt: string;
   updatedAt: string;
 }
@@ -340,6 +355,63 @@ export default function ExpenseDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* 첨부파일 */}
+        {expense.attachments && expense.attachments.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">첨부파일</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {expense.attachments.map((attachment) => (
+                <div
+                  key={attachment.id}
+                  className="relative border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow group"
+                >
+                  {/* 이미지 미리보기 */}
+                  <a
+                    href={attachment.secureUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block relative w-full h-40 bg-gray-100"
+                  >
+                    <Image
+                      src={attachment.secureUrl}
+                      alt={attachment.fileName}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    />
+                    {/* 호버 시 확대 아이콘 */}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
+                      <svg
+                        className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                        />
+                      </svg>
+                    </div>
+                  </a>
+
+                  {/* 파일 정보 */}
+                  <div className="p-2">
+                    <p className="text-xs text-gray-700 truncate" title={attachment.fileName}>
+                      {attachment.fileName}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {(attachment.fileSize / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 버튼 */}
         <div className="flex justify-end gap-4">
