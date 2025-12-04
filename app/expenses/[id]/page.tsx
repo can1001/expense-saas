@@ -7,6 +7,7 @@ import { pdf } from '@react-pdf/renderer';
 import { ExpensePDFDocument } from '@/components/PDFDocument';
 import { generateExpenseExcel } from '@/lib/excel';
 import Image from 'next/image';
+import Header from '@/components/Header';
 
 interface ExpenseItem {
   id: string;
@@ -177,6 +178,7 @@ export default function ExpenseDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Header />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 헤더 */}
         <div className="mb-8 flex justify-between items-start">
@@ -188,7 +190,8 @@ export default function ExpenseDetailPage() {
           </div>
 
           <div className="flex gap-2">
-            <button
+            {/* PDF 다운로드 버튼 숨김 */}
+            {/* <button
               onClick={handleDownloadPDF}
               className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
             >
@@ -206,7 +209,7 @@ export default function ExpenseDetailPage() {
                 />
               </svg>
               PDF 다운로드
-            </button>
+            </button> */}
             <button
               onClick={handleDownloadExcel}
               className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2"
