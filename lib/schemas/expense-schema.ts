@@ -149,9 +149,10 @@ export const defaultExpenseFormData: Partial<ExpenseFormData> = {
 
 /**
  * 금액 계산 함수 (단가 × 수량 ÷ 10, 내림)
+ * 결과를 10의 배수로 내림 처리
  */
 export function calculateAmount(unitPrice: number, quantity: number): number {
-  return Math.floor((unitPrice * quantity) / 10) * 10;
+  return Math.floor((unitPrice * quantity) / 100) * 10;
 }
 
 /**
