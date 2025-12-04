@@ -68,6 +68,22 @@ export async function generateExpenseExcel(expense: Expense) {
   // 3. 첫 번째 시트 가져오기
   const sheet = workbook.worksheets[0];
 
+  // 4. Shared Formula 문제 해결: 모든 수식을 값으로 변환
+  sheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      // 수식이 있는 셀은 값으로 변환
+      if (cell.type === ExcelJS.ValueType.Formula) {
+        const cellValue: any = cell.value;
+        if (cellValue && typeof cellValue === 'object' && 'result' in cellValue) {
+          cell.value = cellValue.result;
+        } else {
+          // 수식만 있고 결과가 없으면 빈 값으로
+          cell.value = null;
+        }
+      }
+    });
+  });
+
   // 4. 데이터 매핑 (셀 위치에 값 채우기)
 
   // 예산 정보
