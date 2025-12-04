@@ -129,11 +129,11 @@ export default function ExpenseDetailPage() {
     }
   };
 
-  const handleDownloadExcel = () => {
+  const handleDownloadExcel = async () => {
     if (!expense) return;
 
     try {
-      generateExpenseExcel(expense);
+      await generateExpenseExcel(expense);
     } catch (err) {
       alert('엑셀 생성 중 오류가 발생했습니다.');
       console.error('Excel generation error:', err);
