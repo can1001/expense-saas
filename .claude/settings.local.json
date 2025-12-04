@@ -6,7 +6,12 @@
       "Bash(npm run dev:*)",
       "Bash(lsof:*)",
       "Bash(xargs kill -9)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "WebFetch(domain:claude.ai)",
+      "Bash(python3 -c:*)",
+      "Bash(node scripts/analyze-excel.js:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

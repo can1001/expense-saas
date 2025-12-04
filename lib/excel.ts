@@ -64,7 +64,7 @@ const thinBorder: Partial<ExcelJS.Borders> = {
 export async function generateExpenseExcel(expense: Expense) {
   const workbook = new ExcelJS.Workbook();
 
-  // ===== 첫 번째 시트: 지출결의서 양식 =====
+  // ===== 첫 번째 페이지: 지출결의서 양식 =====
   const sheet = workbook.addWorksheet('지출결의서', {
     pageSetup: {
       paperSize: 9, // A4
@@ -81,373 +81,453 @@ export async function generateExpenseExcel(expense: Expense) {
     },
   });
 
-  // 열 너비 설정
+  // 열 너비 설정 (A~I, 9열)
   sheet.columns = [
-    { width: 15 },  // A
-    { width: 20 },  // B
-    { width: 35 },  // C
-    { width: 15 },  // D
-    { width: 10 },  // E
-    { width: 15 },  // F
+    { width: 4 },   // A
+    { width: 7 },   // B
+    { width: 7 },   // C
+    { width: 13 },  // D
+    { width: 26 },  // E
+    { width: 10 },  // F
+    { width: 7 },   // G
+    { width: 9 },   // H
+    { width: 11 },  // I
   ];
 
-  let currentRow = 1;
+  let row = 1;
 
-  // 제목
-  sheet.mergeCells(`A${currentRow}:F${currentRow}`);
-  const titleCell = sheet.getCell(`A${currentRow}`);
+  // ===== 행 1-3: 헤더 영역 =====
+
+  // A1:B3 - 로고 영역 (3개 원 아이콘)
+  sheet.mergeCells('A1:B3');
+  const logoCell = sheet.getCell('A1');
+  logoCell.value = '';
+  logoCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  logoCell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF5B9BD5' }, // 파란색 배경
+  };
+  logoCell.border = thinBorder;
+
+  // C1:G1 - 제목 "지 출 결 의 서"
+  sheet.mergeCells('C1:G1');
+  const titleCell = sheet.getCell('C1');
   titleCell.value = '지  출  결  의  서';
   titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
   titleCell.font = { size: 18, bold: true };
-  sheet.getRow(currentRow).height = 35;
-  currentRow++;
+  titleCell.border = thinBorder;
+  sheet.getRow(1).height = 25;
 
-  // 빈 행
-  currentRow++;
+  // H1:I1 - "재정팀장"
+  sheet.mergeCells('H1:I1');
+  const managerLabelCell = sheet.getCell('H1');
+  managerLabelCell.value = '재정팀장';
+  managerLabelCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  managerLabelCell.font = { size: 10 };
+  managerLabelCell.border = thinBorder;
 
-  // 예산 정보 헤더
-  sheet.mergeCells(`A${currentRow}:F${currentRow}`);
-  const budgetHeaderCell = sheet.getCell(`A${currentRow}`);
-  budgetHeaderCell.value = '■ 예산 정보';
-  budgetHeaderCell.font = { size: 12, bold: true };
-  budgetHeaderCell.fill = {
+  // 행 2
+  sheet.mergeCells('C2:G2');
+  const c2Cell = sheet.getCell('C2');
+  c2Cell.border = thinBorder;
+
+  sheet.mergeCells('H2:I2');
+  const h2Cell = sheet.getCell('H2');
+  h2Cell.border = thinBorder;
+
+  // 행 3
+  // C3:D3 - "예산항목(계정과목)"
+  sheet.mergeCells('C3:D3');
+  const budgetLabelCell = sheet.getCell('C3');
+  budgetLabelCell.value = '예산항목\n(계정과목)';
+  budgetLabelCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  budgetLabelCell.font = { size: 9 };
+  budgetLabelCell.border = thinBorder;
+
+  // E3:G3 - 예산항목 값
+  sheet.mergeCells('E3:G3');
+  const budgetValueCell = sheet.getCell('E3');
+  budgetValueCell.value = `${expense.budgetCategory} / ${expense.budgetSubcategory}`;
+  budgetValueCell.alignment = { vertical: 'middle', horizontal: 'left' };
+  budgetValueCell.font = { size: 9 };
+  budgetValueCell.border = thinBorder;
+
+  // H3:I3 - 신창국
+  sheet.mergeCells('H3:I3');
+  const nameCell = sheet.getCell('H3');
+  nameCell.value = '';
+  nameCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  nameCell.border = thinBorder;
+
+  row = 4;
+
+  // ===== 행 4: 사역팀/지출일자/회계 =====
+
+  // A4:B4 - "사역팀(부)장"
+  sheet.mergeCells('A4:B4');
+  const deptLabelCell = sheet.getCell('A4');
+  deptLabelCell.value = '사역팀(부)장';
+  deptLabelCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  deptLabelCell.font = { size: 9 };
+  deptLabelCell.border = thinBorder;
+
+  // C4:D4 - "지출일자"
+  sheet.mergeCells('C4:D4');
+  const dateLabelCell = sheet.getCell('C4');
+  dateLabelCell.value = '지출일자';
+  dateLabelCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  dateLabelCell.font = { size: 10 };
+  dateLabelCell.border = thinBorder;
+
+  // E4:G4 - 지출일자 값
+  sheet.mergeCells('E4:G4');
+  const dateValueCell = sheet.getCell('E4');
+  const expenseYear = expense.expenseDate ? format(new Date(expense.expenseDate), 'yyyy') : '2025';
+  const expenseMonth = expense.expenseDate ? format(new Date(expense.expenseDate), 'M') : '';
+  const expenseDay = expense.expenseDate ? format(new Date(expense.expenseDate), 'd') : '';
+  dateValueCell.value = `${expenseYear} 년        ${expenseMonth ? expenseMonth + ' 월' : '월'}        ${expenseDay ? expenseDay + ' 일' : '일'}`;
+  dateValueCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  dateValueCell.font = { size: 10 };
+  dateValueCell.border = thinBorder;
+
+  // H4:I4 - "회  계"
+  sheet.mergeCells('H4:I4');
+  const accountLabelCell = sheet.getCell('H4');
+  accountLabelCell.value = '회  계';
+  accountLabelCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  accountLabelCell.font = { size: 10 };
+  accountLabelCell.border = thinBorder;
+
+  row = 5;
+
+  // ===== 행 5: 빈 행 =====
+  sheet.mergeCells('A5:I5');
+  const a5Cell = sheet.getCell('A5');
+  a5Cell.border = thinBorder;
+
+  row = 6;
+
+  // ===== 행 6: 청구금액 =====
+
+  // C6:D6 - "청구금액"
+  sheet.mergeCells('C6:D6');
+  const amountLabelCell = sheet.getCell('C6');
+  amountLabelCell.value = '청구금액';
+  amountLabelCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  amountLabelCell.font = { size: 11, bold: true };
+  amountLabelCell.border = thinBorder;
+
+  // E6:G6 - 청구금액 값
+  sheet.mergeCells('E6:G6');
+  const amountValueCell = sheet.getCell('E6');
+  amountValueCell.value = `\\ ${expense.requestAmount.toLocaleString('ko-KR')} 원`;
+  amountValueCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  amountValueCell.font = { size: 14, bold: true };
+  amountValueCell.border = thinBorder;
+  sheet.getRow(6).height = 25;
+
+  // H6:I6
+  sheet.mergeCells('H6:I6');
+  const h6Cell = sheet.getCell('H6');
+  h6Cell.border = thinBorder;
+
+  row = 7;
+
+  // ===== 행 7: 빈 행 =====
+  sheet.mergeCells('A7:I7');
+  const a7Cell = sheet.getCell('A7');
+  a7Cell.border = thinBorder;
+
+  row = 8;
+
+  // ===== 행 8: 예시 설명 =====
+  sheet.mergeCells('A8:I8');
+  const exampleCell = sheet.getCell('A8');
+  exampleCell.value = '※ 아래 예시 참조하여 【세목, 행사일자, 행사명과 내용, 단가, 인원(수량)】 등 자세하게 기록하여 주세요.';
+  exampleCell.alignment = { vertical: 'middle', horizontal: 'left' };
+  exampleCell.font = { size: 8, color: { argb: 'FF0000FF' } };
+  exampleCell.border = thinBorder;
+
+  row = 9;
+
+  // ===== 행 9: 예시 데이터 =====
+  sheet.mergeCells('A9:I9');
+  const exampleDataCell = sheet.getCell('A9');
+  exampleDataCell.value = '행사비(리더세미나)     2/8 유치부 교사 성경학교 준비 다과비            3,000     35     105,000';
+  exampleDataCell.alignment = { vertical: 'middle', horizontal: 'left' };
+  exampleDataCell.font = { size: 8, color: { argb: 'FF0000FF' } };
+  exampleDataCell.border = thinBorder;
+
+  row = 10;
+
+  // ===== 행 10: 빈 행 =====
+  sheet.mergeCells('A10:I10');
+  const a10Cell = sheet.getCell('A10');
+  a10Cell.border = thinBorder;
+
+  row = 11;
+
+  // ===== 행 11: 테이블 헤더 =====
+
+  // A11 빈 셀
+  const a11Cell = sheet.getCell('A11');
+  a11Cell.border = thinBorder;
+
+  // B11:C11 - "세 목"
+  sheet.mergeCells('B11:C11');
+  const h1Cell = sheet.getCell('B11');
+  h1Cell.value = '세  목';
+  h1Cell.alignment = { vertical: 'middle', horizontal: 'center' };
+  h1Cell.font = { bold: true, size: 10 };
+  h1Cell.fill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: 'FFE0E0E0' },
+    fgColor: { argb: 'FFD9D9D9' },
   };
-  currentRow++;
+  h1Cell.border = thinBorder;
 
-  // 위원회
-  sheet.getCell(`A${currentRow}`).value = '위원회';
-  sheet.getCell(`A${currentRow}`).font = { bold: true };
-  sheet.mergeCells(`B${currentRow}:F${currentRow}`);
-  sheet.getCell(`B${currentRow}`).value = expense.committee;
-  currentRow++;
-
-  // 사역팀(부)
-  sheet.getCell(`A${currentRow}`).value = '사역팀(부)';
-  sheet.getCell(`A${currentRow}`).font = { bold: true };
-  sheet.mergeCells(`B${currentRow}:F${currentRow}`);
-  sheet.getCell(`B${currentRow}`).value = expense.department;
-  currentRow++;
-
-  // 예산(항)
-  sheet.getCell(`A${currentRow}`).value = '예산(항)';
-  sheet.getCell(`A${currentRow}`).font = { bold: true };
-  sheet.mergeCells(`B${currentRow}:F${currentRow}`);
-  sheet.getCell(`B${currentRow}`).value = expense.budgetCategory;
-  currentRow++;
-
-  // 예산(목)
-  sheet.getCell(`A${currentRow}`).value = '예산(목)';
-  sheet.getCell(`A${currentRow}`).font = { bold: true };
-  sheet.mergeCells(`B${currentRow}:F${currentRow}`);
-  sheet.getCell(`B${currentRow}`).value = expense.budgetSubcategory;
-  currentRow++;
-
-  // 빈 행
-  currentRow++;
-
-  // 지출 정보 헤더
-  sheet.mergeCells(`A${currentRow}:F${currentRow}`);
-  const expenseHeaderCell = sheet.getCell(`A${currentRow}`);
-  expenseHeaderCell.value = '■ 지출 정보';
-  expenseHeaderCell.font = { size: 12, bold: true };
-  expenseHeaderCell.fill = {
+  // D11:E11 - "적 요"
+  sheet.mergeCells('D11:E11');
+  const h2CellValue = sheet.getCell('D11');
+  h2CellValue.value = '적  요';
+  h2CellValue.alignment = { vertical: 'middle', horizontal: 'center' };
+  h2CellValue.font = { bold: true, size: 10 };
+  h2CellValue.fill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: 'FFE0E0E0' },
+    fgColor: { argb: 'FFD9D9D9' },
   };
-  currentRow++;
+  h2CellValue.border = thinBorder;
 
-  // 지출일자
-  sheet.getCell(`A${currentRow}`).value = '지출일자';
-  sheet.getCell(`A${currentRow}`).font = { bold: true };
-  sheet.mergeCells(`B${currentRow}:F${currentRow}`);
-  sheet.getCell(`B${currentRow}`).value = expense.expenseDate
-    ? format(new Date(expense.expenseDate), 'yyyy년 MM월 dd일')
-    : '미정';
-  currentRow++;
-
-  // 청구금액
-  sheet.getCell(`A${currentRow}`).value = '청구금액';
-  sheet.getCell(`A${currentRow}`).font = { bold: true, size: 14 };
-  sheet.mergeCells(`B${currentRow}:F${currentRow}`);
-  const amountCell = sheet.getCell(`B${currentRow}`);
-  amountCell.value = expense.requestAmount;
-  amountCell.numFmt = '\\ #,##0 "원"';
-  amountCell.font = { bold: true, size: 14 };
-  sheet.getRow(currentRow).height = 25;
-  currentRow++;
-
-  // 빈 행
-  currentRow++;
-
-  // 세부 항목 헤더
-  sheet.mergeCells(`A${currentRow}:F${currentRow}`);
-  const itemsHeaderCell = sheet.getCell(`A${currentRow}`);
-  itemsHeaderCell.value = '■ 세부 항목';
-  itemsHeaderCell.font = { size: 12, bold: true };
-  itemsHeaderCell.fill = {
+  // F11:G11 - "단가"
+  sheet.mergeCells('F11:G11');
+  const h3Cell = sheet.getCell('F11');
+  h3Cell.value = '단가';
+  h3Cell.alignment = { vertical: 'middle', horizontal: 'center' };
+  h3Cell.font = { bold: true, size: 10 };
+  h3Cell.fill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: 'FFE0E0E0' },
+    fgColor: { argb: 'FFD9D9D9' },
   };
-  currentRow++;
+  h3Cell.border = thinBorder;
 
-  // 테이블 헤더
-  const headers = ['순서', '예산(세목)', '적요', '단가', '수량', '금액'];
-  const headerRow = sheet.getRow(currentRow);
-  headers.forEach((header, index) => {
-    const cell = headerRow.getCell(index + 1);
-    cell.value = header;
-    cell.font = { bold: true };
-    cell.alignment = { vertical: 'middle', horizontal: 'center' };
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFD9D9D9' },
-    };
-    cell.border = thinBorder;
-  });
-  currentRow++;
+  // H11 - "인원(수량)"
+  const h4Cell = sheet.getCell('H11');
+  h4Cell.value = '인원\n(수량)';
+  h4Cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  h4Cell.font = { bold: true, size: 9 };
+  h4Cell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFD9D9D9' },
+  };
+  h4Cell.border = thinBorder;
 
-  // 데이터 행 (최대 10개)
+  // I11 - "금액"
+  const h5Cell = sheet.getCell('I11');
+  h5Cell.value = '금액';
+  h5Cell.alignment = { vertical: 'middle', horizontal: 'center' };
+  h5Cell.font = { bold: true, size: 10 };
+  h5Cell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFD9D9D9' },
+  };
+  h5Cell.border = thinBorder;
+
+  row = 12;
+
+  // ===== 행 12-21: 데이터 행 (10개) =====
   for (let i = 0; i < 10; i++) {
+    const currentRowNum = row + i;
     const item = expense.items[i];
-    const row = sheet.getRow(currentRow);
+
+    // A열 빈 셀
+    const aCell = sheet.getCell(`A${currentRowNum}`);
+    aCell.border = thinBorder;
 
     if (item) {
-      row.getCell(1).value = item.order;
-      row.getCell(1).alignment = { horizontal: 'center' };
+      // B:C - 예산(세목)
+      sheet.mergeCells(`B${currentRowNum}:C${currentRowNum}`);
+      const budgetCell = sheet.getCell(`B${currentRowNum}`);
+      budgetCell.value = item.budgetDetail;
+      budgetCell.alignment = { vertical: 'middle', horizontal: 'left' };
+      budgetCell.font = { size: 9 };
+      budgetCell.border = thinBorder;
 
-      row.getCell(2).value = item.budgetDetail;
+      // D:E - 적요
+      sheet.mergeCells(`D${currentRowNum}:E${currentRowNum}`);
+      const descCell = sheet.getCell(`D${currentRowNum}`);
+      descCell.value = item.description;
+      descCell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+      descCell.font = { size: 9 };
+      descCell.border = thinBorder;
 
-      row.getCell(3).value = item.description;
-      row.getCell(3).alignment = { wrapText: true };
+      // F:G - 단가
+      sheet.mergeCells(`F${currentRowNum}:G${currentRowNum}`);
+      const priceCell = sheet.getCell(`F${currentRowNum}`);
+      priceCell.value = item.unitPrice;
+      priceCell.numFmt = '#,##0';
+      priceCell.alignment = { vertical: 'middle', horizontal: 'right' };
+      priceCell.font = { size: 9 };
+      priceCell.border = thinBorder;
 
-      row.getCell(4).value = item.unitPrice;
-      row.getCell(4).numFmt = '#,##0';
-      row.getCell(4).alignment = { horizontal: 'right' };
+      // H - 수량
+      const qtyCell = sheet.getCell(`H${currentRowNum}`);
+      qtyCell.value = item.quantity;
+      qtyCell.alignment = { vertical: 'middle', horizontal: 'right' };
+      qtyCell.font = { size: 9 };
+      qtyCell.border = thinBorder;
 
-      row.getCell(5).value = item.quantity;
-      row.getCell(5).alignment = { horizontal: 'right' };
-
-      row.getCell(6).value = item.amount;
-      row.getCell(6).numFmt = '#,##0';
-      row.getCell(6).alignment = { horizontal: 'right' };
+      // I - 금액
+      const amtCell = sheet.getCell(`I${currentRowNum}`);
+      amtCell.value = item.amount;
+      amtCell.numFmt = '#,##0';
+      amtCell.alignment = { vertical: 'middle', horizontal: 'right' };
+      amtCell.font = { size: 9 };
+      amtCell.border = thinBorder;
     } else {
-      // 빈 행
-      for (let j = 1; j <= 6; j++) {
-        row.getCell(j).value = '';
-      }
-    }
+      // 빈 행 - "0" 표시
+      sheet.mergeCells(`B${currentRowNum}:C${currentRowNum}`);
+      const b = sheet.getCell(`B${currentRowNum}`);
+      b.value = '0';
+      b.alignment = { vertical: 'middle', horizontal: 'center' };
+      b.font = { size: 9 };
+      b.border = thinBorder;
 
-    // 테두리 적용
-    for (let j = 1; j <= 6; j++) {
-      row.getCell(j).border = thinBorder;
-    }
+      sheet.mergeCells(`D${currentRowNum}:E${currentRowNum}`);
+      const d = sheet.getCell(`D${currentRowNum}`);
+      d.border = thinBorder;
 
-    currentRow++;
+      sheet.mergeCells(`F${currentRowNum}:G${currentRowNum}`);
+      const f = sheet.getCell(`F${currentRowNum}`);
+      f.border = thinBorder;
+
+      const h = sheet.getCell(`H${currentRowNum}`);
+      h.border = thinBorder;
+
+      const iCell = sheet.getCell(`I${currentRowNum}`);
+      iCell.value = '0';
+      iCell.alignment = { vertical: 'middle', horizontal: 'right' };
+      iCell.font = { size: 9 };
+      iCell.border = thinBorder;
+    }
   }
 
-  // 합계 행
-  const totalRow = sheet.getRow(currentRow);
-  sheet.mergeCells(`A${currentRow}:E${currentRow}`);
-  totalRow.getCell(1).value = '합  계';
-  totalRow.getCell(1).font = { bold: true, size: 12 };
-  totalRow.getCell(1).alignment = { horizontal: 'center' };
-  totalRow.getCell(1).fill = {
+  row = 22;
+
+  // ===== 행 22: 빈 행 =====
+  sheet.mergeCells('A22:I22');
+  const a22Cell = sheet.getCell('A22');
+  a22Cell.border = thinBorder;
+
+  row = 23;
+
+  // ===== 행 23: 합계 =====
+
+  // A23:E23 빈 셀
+  for (let col of ['A', 'B', 'C', 'D', 'E']) {
+    const cell = sheet.getCell(`${col}23`);
+    cell.border = thinBorder;
+  }
+
+  // F23:H23 - "합 계"
+  sheet.mergeCells('F23:H23');
+  const totalLabelCell = sheet.getCell('F23');
+  totalLabelCell.value = '합  계';
+  totalLabelCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  totalLabelCell.font = { size: 12, bold: true };
+  totalLabelCell.fill = {
     type: 'pattern',
     pattern: 'solid',
     fgColor: { argb: 'FFD9D9D9' },
   };
+  totalLabelCell.border = thinBorder;
 
-  totalRow.getCell(6).value = expense.requestAmount;
-  totalRow.getCell(6).numFmt = '#,##0';
-  totalRow.getCell(6).font = { bold: true, size: 12 };
-  totalRow.getCell(6).alignment = { horizontal: 'right' };
-  totalRow.getCell(6).fill = {
+  // I23 - 합계 값
+  const totalValueCell = sheet.getCell('I23');
+  totalValueCell.value = expense.requestAmount;
+  totalValueCell.numFmt = '#,##0';
+  totalValueCell.alignment = { vertical: 'middle', horizontal: 'right' };
+  totalValueCell.font = { size: 12, bold: true };
+  totalValueCell.fill = {
     type: 'pattern',
     pattern: 'solid',
     fgColor: { argb: 'FFD9D9D9' },
   };
+  totalValueCell.border = thinBorder;
 
-  for (let j = 1; j <= 6; j++) {
-    totalRow.getCell(j).border = thinBorder;
-  }
-  currentRow++;
+  row = 24;
 
-  // 빈 행
-  currentRow++;
+  // ===== 행 24: 빈 행 =====
+  sheet.mergeCells('A24:I24');
+  const a24Cell = sheet.getCell('A24');
+  a24Cell.border = thinBorder;
 
-  // 신청 정보 헤더
-  sheet.mergeCells(`A${currentRow}:F${currentRow}`);
-  const applicantHeaderCell = sheet.getCell(`A${currentRow}`);
-  applicantHeaderCell.value = '■ 신청 정보';
-  applicantHeaderCell.font = { size: 12, bold: true };
-  applicantHeaderCell.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FFE0E0E0' },
-  };
-  currentRow++;
+  row = 25;
 
-  // 청구일자
-  sheet.getCell(`A${currentRow}`).value = '청구일자';
-  sheet.getCell(`A${currentRow}`).font = { bold: true };
-  sheet.mergeCells(`B${currentRow}:F${currentRow}`);
-  sheet.getCell(`B${currentRow}`).value = format(new Date(expense.requestDate), 'yyyy년 MM월 dd일');
-  currentRow++;
+  // ===== 행 25-28: 청구내역 =====
 
-  // 청구팀
-  sheet.getCell(`A${currentRow}`).value = '청구팀';
-  sheet.getCell(`A${currentRow}`).font = { bold: true };
-  sheet.mergeCells(`B${currentRow}:F${currentRow}`);
-  sheet.getCell(`B${currentRow}`).value = expense.requestTeam;
-  currentRow++;
+  // 청구내역 헤더
+  const claimHeaderCell = sheet.getCell('A25');
+  claimHeaderCell.value = '청구내역';
+  claimHeaderCell.font = { bold: true, size: 10 };
 
-  // 청구인
-  sheet.getCell(`A${currentRow}`).value = '청구인';
-  sheet.getCell(`A${currentRow}`).font = { bold: true };
-  sheet.mergeCells(`B${currentRow}:F${currentRow}`);
-  sheet.getCell(`B${currentRow}`).value = expense.applicantName;
-  currentRow++;
+  row = 26;
 
-  // 직책
-  if (expense.applicantTitle) {
-    sheet.getCell(`A${currentRow}`).value = '직책';
-    sheet.getCell(`A${currentRow}`).font = { bold: true };
-    sheet.mergeCells(`B${currentRow}:F${currentRow}`);
-    sheet.getCell(`B${currentRow}`).value = expense.applicantTitle;
-    currentRow++;
-  }
+  // 청구 일자
+  const requestYear = format(new Date(expense.requestDate), 'yyyy');
+  const requestMonth = format(new Date(expense.requestDate), 'M');
+  const requestDay = format(new Date(expense.requestDate), 'd');
 
-  // 빈 행
-  currentRow++;
+  sheet.mergeCells('A26:I26');
+  const dateRow = sheet.getCell('A26');
+  dateRow.value = `○ 청구 일자 :    ${requestYear} 년         ${requestMonth} 월         ${requestDay} 일             (재정팀) 출납필   (인)`;
+  dateRow.alignment = { vertical: 'middle', horizontal: 'left' };
+  dateRow.font = { size: 9 };
 
-  // 은행 정보 헤더
-  sheet.mergeCells(`A${currentRow}:F${currentRow}`);
-  const bankHeaderCell = sheet.getCell(`A${currentRow}`);
-  bankHeaderCell.value = '■ 은행 정보';
-  bankHeaderCell.font = { size: 12, bold: true };
-  bankHeaderCell.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FFE0E0E0' },
-  };
-  currentRow++;
+  row = 27;
 
-  // 은행명
-  sheet.getCell(`A${currentRow}`).value = '은행명';
-  sheet.getCell(`A${currentRow}`).font = { bold: true };
-  sheet.mergeCells(`B${currentRow}:F${currentRow}`);
-  sheet.getCell(`B${currentRow}`).value = expense.bankName;
-  currentRow++;
+  // 청구팀/청구인
+  sheet.mergeCells('A27:I27');
+  const teamRow = sheet.getCell('A27');
+  teamRow.value = `○ 청구팀(부) :    ${expense.committee}    ${expense.department}    ○ 청구인 :    ${expense.applicantName}        (인)`;
+  teamRow.alignment = { vertical: 'middle', horizontal: 'left' };
+  teamRow.font = { size: 9 };
 
-  // 계좌번호
-  sheet.getCell(`A${currentRow}`).value = '계좌번호';
-  sheet.getCell(`A${currentRow}`).font = { bold: true };
-  sheet.mergeCells(`B${currentRow}:F${currentRow}`);
-  sheet.getCell(`B${currentRow}`).value = expense.accountNumber;
-  currentRow++;
+  row = 28;
 
-  // 예금주
-  sheet.getCell(`A${currentRow}`).value = '예금주';
-  sheet.getCell(`A${currentRow}`).font = { bold: true };
-  sheet.mergeCells(`B${currentRow}:F${currentRow}`);
-  sheet.getCell(`B${currentRow}`).value = expense.accountHolder;
-  currentRow++;
+  // 은행 정보
+  sheet.mergeCells('A28:I28');
+  const bankRow = sheet.getCell('A28');
+  bankRow.value = ` ○    ${expense.bankName}     ○ 계좌번호 :    ${expense.accountNumber}        ○ 예금주 :        ${expense.accountHolder}`;
+  bankRow.alignment = { vertical: 'middle', horizontal: 'left' };
+  bankRow.font = { size: 9 };
 
-  // 첨부파일 섹션 (이미지 썸네일 포함)
-  if (expense.attachments && expense.attachments.length > 0) {
-    // 빈 행
-    currentRow++;
-
-    // 첨부파일 헤더
-    sheet.mergeCells(`A${currentRow}:F${currentRow}`);
-    const attachmentHeaderCell = sheet.getCell(`A${currentRow}`);
-    attachmentHeaderCell.value = '■ 첨부파일';
-    attachmentHeaderCell.font = { size: 12, bold: true };
-    attachmentHeaderCell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFE0E0E0' },
-    };
-    currentRow++;
-
-    // 첨부파일 목록과 썸네일
-    for (let i = 0; i < expense.attachments.length; i++) {
-      const attachment = expense.attachments[i];
-
-      try {
-        // 이미지 다운로드
-        const imageBuffer = await fetchImageAsBuffer(attachment.secureUrl);
-
-        let extension: 'jpeg' | 'png' | 'gif' = 'png';
-        if (attachment.format) {
-          const fmt = attachment.format.toLowerCase();
-          if (fmt === 'jpg' || fmt === 'jpeg') {
-            extension = 'jpeg';
-          } else if (fmt === 'png') {
-            extension = 'png';
-          } else if (fmt === 'gif') {
-            extension = 'gif';
-          }
-        }
-
-        const imageId = workbook.addImage({
-          buffer: imageBuffer,
-          extension: extension,
-        });
-
-        // 이미지를 셀에 추가 (썸네일 크기)
-        sheet.addImage(imageId, {
-          tl: { col: 0, row: currentRow - 1 },
-          ext: { width: 100, height: 100 },
-        });
-
-        // 행 높이 설정 (이미지 크기에 맞춤)
-        sheet.getRow(currentRow).height = 75;
-
-        // 파일명과 크기 정보
-        sheet.getCell(`B${currentRow}`).value = attachment.fileName;
-        sheet.getCell(`B${currentRow}`).alignment = { vertical: 'middle' };
-
-        sheet.mergeCells(`C${currentRow}:D${currentRow}`);
-        sheet.getCell(`C${currentRow}`).value = `크기: ${(attachment.fileSize / 1024).toFixed(1)} KB`;
-        sheet.getCell(`C${currentRow}`).alignment = { vertical: 'middle' };
-
-        sheet.mergeCells(`E${currentRow}:F${currentRow}`);
-        if (attachment.width && attachment.height) {
-          sheet.getCell(`E${currentRow}`).value = `${attachment.width} x ${attachment.height}`;
-          sheet.getCell(`E${currentRow}`).alignment = { vertical: 'middle' };
-        }
-
-        currentRow++;
-      } catch (error) {
-        console.error(`Failed to add thumbnail for ${attachment.fileName}:`, error);
-        // 이미지 로드 실패 시 파일명만 표시
-        sheet.getCell(`A${currentRow}`).value = `[이미지 로드 실패]`;
-        sheet.getCell(`A${currentRow}`).font = { color: { argb: 'FFFF0000' } };
-        sheet.mergeCells(`B${currentRow}:F${currentRow}`);
-        sheet.getCell(`B${currentRow}`).value = attachment.fileName;
-        currentRow++;
-      }
-    }
-  }
+  row = 29;
 
   // 빈 행
-  currentRow++;
+  sheet.getRow(29).height = 10;
+
+  row = 30;
 
   // 버전 정보
-  sheet.mergeCells(`A${currentRow}:F${currentRow}`);
-  const versionCell = sheet.getCell(`A${currentRow}`);
+  sheet.mergeCells('H30:I30');
+  const versionCell = sheet.getCell('H30');
   versionCell.value = '지출결의서 Ver.4.1.3';
-  versionCell.alignment = { horizontal: 'right' };
-  versionCell.font = { size: 9, color: { argb: 'FF808080' } };
+  versionCell.alignment = { vertical: 'middle', horizontal: 'right' };
+  versionCell.font = { size: 8, color: { argb: 'FF808080' } };
 
-  // ===== 두 번째 시트 이후: 영수증 이미지 (2x2 배치) =====
+  row = 31;
+
+  // 영수증 라벨
+  const receiptLabelCell = sheet.getCell('A31');
+  receiptLabelCell.value = '영수증';
+  receiptLabelCell.font = { bold: true, size: 10 };
+
+  // ===== 두 번째 페이지 이후: 영수증 이미지 (2x2 배치) =====
   if (expense.attachments && expense.attachments.length > 0) {
     const imagesPerPage = 4;
     const totalPages = Math.ceil(expense.attachments.length / imagesPerPage);
