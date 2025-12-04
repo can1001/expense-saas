@@ -25,19 +25,19 @@ export default function BudgetSection({
       <Controller
         name="committee"
         control={control}
-        render={({ field, fieldState }) => (
+        render={({ field, fieldState: committeeFieldState }) => (
           <Controller
             name="department"
             control={control}
-            render={({ field: departmentField }) => (
+            render={({ field: departmentField, fieldState: departmentFieldState }) => (
               <Controller
                 name="budgetCategory"
                 control={control}
-                render={({ field: categoryField }) => (
+                render={({ field: categoryField, fieldState: categoryFieldState }) => (
                   <Controller
                     name="budgetSubcategory"
                     control={control}
-                    render={({ field: subcategoryField }) => (
+                    render={({ field: subcategoryField, fieldState: subcategoryFieldState }) => (
                       <div>
                         <BudgetSelector
                           value={{
@@ -59,15 +59,15 @@ export default function BudgetSection({
                           }}
                           disabled={disabled}
                         />
-                        {(fieldState.error ||
-                          departmentField.fieldState.error ||
-                          categoryField.fieldState.error ||
-                          subcategoryField.fieldState.error) && (
+                        {(committeeFieldState.error ||
+                          departmentFieldState.error ||
+                          categoryFieldState.error ||
+                          subcategoryFieldState.error) && (
                           <p className="mt-2 text-sm text-red-600">
-                            {fieldState.error?.message ||
-                              departmentField.fieldState.error?.message ||
-                              categoryField.fieldState.error?.message ||
-                              subcategoryField.fieldState.error?.message}
+                            {committeeFieldState.error?.message ||
+                              departmentFieldState.error?.message ||
+                              categoryFieldState.error?.message ||
+                              subcategoryFieldState.error?.message}
                           </p>
                         )}
                       </div>
