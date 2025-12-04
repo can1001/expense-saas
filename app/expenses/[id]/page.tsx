@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { pdf } from '@react-pdf/renderer';
 import { ExpensePDFDocument } from '@/components/PDFDocument';
+import { generateExpenseExcel } from '@/lib/excel';
 import Image from 'next/image';
 
 interface ExpenseItem {
@@ -127,6 +128,17 @@ export default function ExpenseDetailPage() {
     }
   };
 
+  const handleDownloadExcel = () => {
+    if (!expense) return;
+
+    try {
+      generateExpenseExcel(expense);
+    } catch (err) {
+      alert('엑셀 생성 중 오류가 발생했습니다.');
+      console.error('Excel generation error:', err);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ko-KR', {
       style: 'currency',
@@ -194,6 +206,25 @@ export default function ExpenseDetailPage() {
                 />
               </svg>
               PDF 다운로드
+            </button>
+            <button
+              onClick={handleDownloadExcel}
+              className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                />
+              </svg>
+              엑셀 다운로드
             </button>
             <button
               onClick={() => router.push(`/expenses/${id}/edit`)}
