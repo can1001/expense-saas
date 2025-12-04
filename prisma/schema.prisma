@@ -29,7 +29,7 @@ model Expense {
   items             ExpenseItem[]
 
   // 첨부파일들
-  attachments       ExpenseAttachment[]
+  attachments       ExpenseAttachment[] @relation("ExpenseAttachments")
 
   // 신청 정보
   requestDate       DateTime             // 청구 일자
@@ -76,7 +76,7 @@ model ExpenseItem {
 model ExpenseAttachment {
   id          String   @id @default(cuid())
   expenseId   String
-  expense     Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  expense     Expense  @relation("ExpenseAttachments", fields: [expenseId], references: [id], onDelete: Cascade)
 
   // Cloudinary 정보
   publicId    String   // Cloudinary public_id

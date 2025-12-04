@@ -1,8 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
+/**
+ * 첨부파일 삭제 API
+ *
+ * DELETE /api/expenses/[id]/attachments/[attachmentId] - 첨부파일 삭제
+ */
+
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { deleteImage } from '@/lib/cloudinary';
+import {
+  handleApiError,
+  ApiError,
+  successMessageResponse,
+} from '@/lib/api/error-handler';
+import { validateExpenseId, validateAttachmentId } from '@/lib/validators/id-validator';
+import { ERROR_MESSAGES } from '@/lib/constants/error-messages';
 
-// DELETE /api/expenses/[id]/attachments/[attachmentId] - 첨부파일 삭제
+/**
+ * DELETE /api/expenses/[id]/attachments/[attachmentId] - 첨부파일 삭제
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; attachmentId: string }> }
@@ -10,20 +25,9 @@ export async function DELETE(
   try {
     const { id, attachmentId } = await params;
 
-    // ID 형식 검증
-    if (!id || typeof id !== 'string' || id.trim().length === 0) {
-      return NextResponse.json(
-        { error: '유효하지 않은 지출결의서 ID입니다.' },
-        { status: 400 }
-      );
-    }
-
-    if (!attachmentId || typeof attachmentId !== 'string' || attachmentId.trim().length === 0) {
-      return NextResponse.json(
-        { error: '유효하지 않은 첨부파일 ID입니다.' },
-        { status: 400 }
-      );
-    }
+    // ID 검증
+    validateExpenseId(id);
+    validateAttachmentId(attachmentId);
 
     // 지출결의서 존재 여부 확인
     const expense = await prisma.expense.findUnique({
@@ -32,10 +36,7 @@ export async function DELETE(
     });
 
     if (!expense) {
-      return NextResponse.json(
-        { error: '지출결의서를 찾을 수 없습니다.' },
-        { status: 404 }
-      );
+      throw new ApiError(ERROR_MESSAGES.EXPENSE_NOT_FOUND, 404);
     }
 
     // 첨부파일 정보 가져오기 및 소유권 확인
@@ -44,18 +45,12 @@ export async function DELETE(
     });
 
     if (!attachment) {
-      return NextResponse.json(
-        { error: '첨부파일을 찾을 수 없습니다.' },
-        { status: 404 }
-      );
+      throw new ApiError(ERROR_MESSAGES.ATTACHMENT_NOT_FOUND, 404);
     }
 
     // 첨부파일이 해당 지출결의서에 속하는지 확인
     if (attachment.expenseId !== id) {
-      return NextResponse.json(
-        { error: '이 첨부파일은 해당 지출결의서에 속하지 않습니다.' },
-        { status: 403 }
-      );
+      throw new ApiError(ERROR_MESSAGES.ATTACHMENT_NOT_OWNED, 403);
     }
 
     // Cloudinary에서 이미지 삭제
@@ -75,29 +70,11 @@ export async function DELETE(
       where: { id: attachmentId },
     });
 
-    return NextResponse.json({ 
-      success: true,
-      message: '첨부파일이 성공적으로 삭제되었습니다.',
-      cloudinaryDeleted,
-      attachmentId,
-    });
-  } catch (error: any) {
-    console.error('Error deleting attachment:', error);
-
-    // Prisma 에러 처리
-    if (error.code === 'P2025') {
-      return NextResponse.json(
-        { error: '삭제할 첨부파일을 찾을 수 없습니다.' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(
-      { 
-        error: '첨부파일 삭제에 실패했습니다.',
-        details: error.message || '알 수 없는 오류가 발생했습니다.'
-      },
-      { status: 500 }
+    return successMessageResponse(
+      '첨부파일이 성공적으로 삭제되었습니다.',
+      { cloudinaryDeleted, attachmentId }
     );
+  } catch (error: any) {
+    return handleApiError(error);
   }
 }

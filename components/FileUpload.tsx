@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import ImagePreview, { ImagePreviewFile } from './ImagePreview';
+import { uploadFiles, removeFile, FileServiceError } from '@/lib/services/file-service';
+import { FILE_VALIDATION } from '@/lib/constants/file-validation';
 
 export interface UploadedFile {
   id?: string; // DB에 저장된 경우 ID
@@ -28,7 +30,7 @@ export default function FileUpload({
   expenseId,
   initialFiles = [],
   onChange,
-  maxFiles = 10,
+  maxFiles = FILE_VALIDATION.MAX_FILES,
   disabled = false,
 }: FileUploadProps) {
   const [files, setFiles] = useState<UploadedFile[]>(initialFiles);
@@ -39,51 +41,6 @@ export default function FileUpload({
   useEffect(() => {
     setFiles(initialFiles);
   }, [initialFiles]);
-
-  const uploadFile = async (file: File): Promise<UploadedFile> => {
-    // 파일을 Cloudinary에 업로드
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const uploadResponse = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!uploadResponse.ok) {
-      const error = await uploadResponse.json();
-      throw new Error(error.error || '파일 업로드 실패');
-    }
-
-    const uploadData = await uploadResponse.json();
-
-    const uploadedFile: UploadedFile = {
-      publicId: uploadData.data.publicId,
-      url: uploadData.data.url,
-      secureUrl: uploadData.data.secureUrl,
-      format: uploadData.data.format,
-      fileName: uploadData.data.fileName,
-      fileSize: uploadData.data.bytes,
-      width: uploadData.data.width,
-      height: uploadData.data.height,
-    };
-
-    // expenseId가 있으면 DB에도 저장
-    if (expenseId) {
-      const attachResponse = await fetch(`/api/expenses/${expenseId}/attachments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(uploadedFile),
-      });
-
-      if (attachResponse.ok) {
-        const savedAttachment = await attachResponse.json();
-        uploadedFile.id = savedAttachment.id;
-      }
-    }
-
-    return uploadedFile;
-  };
 
   const handleFiles = useCallback(
     async (acceptedFiles: File[]) => {
@@ -96,38 +53,51 @@ export default function FileUpload({
       }
 
       setUploading(true);
-      setUploadProgress(`0 / ${acceptedFiles.length} 업로드 중...`);
+      setUploadProgress(`${acceptedFiles.length}개 파일 업로드 중...`);
 
       try {
-        const uploadedFiles: UploadedFile[] = [];
+        // 병렬 업로드 실행
+        const { succeeded, failed } = await uploadFiles(acceptedFiles, expenseId);
 
-        for (let i = 0; i < acceptedFiles.length; i++) {
-          const file = acceptedFiles[i];
-          setUploadProgress(`${i + 1} / ${acceptedFiles.length} 업로드 중...`);
-
-          try {
-            const uploadedFile = await uploadFile(file);
-            uploadedFiles.push(uploadedFile);
-          } catch (error: any) {
-            console.error(`Failed to upload ${file.name}:`, error);
-            alert(`${file.name} 업로드 실패: ${error.message}`);
-          }
-        }
-
-        if (uploadedFiles.length > 0) {
-          const newFiles = [...files, ...uploadedFiles];
+        // 성공한 파일들을 상태에 추가
+        if (succeeded.length > 0) {
+          const newFiles = [...files, ...succeeded];
           setFiles(newFiles);
           onChange?.(newFiles);
+        }
+
+        // 실패한 파일들에 대한 알림
+        if (failed.length > 0) {
+          const failedFileNames = failed.map(f => f.file.name).join(', ');
+          const errorMessages = failed
+            .map(f => {
+              const error = f.error;
+              if (error instanceof FileServiceError) {
+                return `${f.file.name}: ${error.message}`;
+              }
+              return `${f.file.name}: 업로드 실패`;
+            })
+            .join('\n');
+
+          alert(`다음 파일 업로드에 실패했습니다:\n${errorMessages}`);
+        }
+
+        // 성공 메시지
+        if (succeeded.length > 0 && failed.length === 0) {
+          setUploadProgress(`${succeeded.length}개 파일 업로드 완료`);
+          setTimeout(() => setUploadProgress(''), 2000);
         }
       } catch (error: any) {
         console.error('Upload error:', error);
         alert(error.message || '파일 업로드에 실패했습니다.');
       } finally {
         setUploading(false);
-        setUploadProgress('');
+        if (uploadProgress.includes('중...')) {
+          setUploadProgress('');
+        }
       }
     },
-    [files, maxFiles, expenseId, onChange]
+    [files, maxFiles, expenseId, onChange, uploadProgress]
   );
 
   const onDrop = useCallback(
@@ -140,9 +110,9 @@ export default function FileUpload({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'],
+      'image/*': FILE_VALIDATION.ALLOWED_EXTENSIONS,
     },
-    maxSize: 5 * 1024 * 1024, // 5MB
+    maxSize: FILE_VALIDATION.MAX_FILE_SIZE,
     disabled: disabled || uploading || files.length >= maxFiles,
     multiple: true,
   });
@@ -155,35 +125,17 @@ export default function FileUpload({
     }
 
     try {
-      // expenseId가 있고 DB에 저장된 파일이면 DB에서도 삭제
-      if (expenseId && fileToRemove.id) {
-        const deleteResponse = await fetch(
-          `/api/expenses/${expenseId}/attachments/${fileToRemove.id}`,
-          { method: 'DELETE' }
-        );
-
-        if (!deleteResponse.ok) {
-          throw new Error('파일 삭제 실패');
-        }
-      } else {
-        // DB에 저장되지 않은 파일은 Cloudinary에서만 삭제
-        const deleteResponse = await fetch('/api/upload/delete', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ publicId: fileToRemove.publicId }),
-        });
-
-        if (!deleteResponse.ok) {
-          throw new Error('파일 삭제 실패');
-        }
-      }
+      // 파일 서비스를 사용하여 삭제
+      await removeFile(fileToRemove, expenseId);
 
       const newFiles = files.filter((_, i) => i !== index);
       setFiles(newFiles);
       onChange?.(newFiles);
     } catch (error: any) {
       console.error('Delete error:', error);
-      alert(error.message || '파일 삭제에 실패했습니다.');
+      const errorMessage =
+        error instanceof FileServiceError ? error.message : '파일 삭제에 실패했습니다.';
+      alert(errorMessage);
     }
   };
 
@@ -229,7 +181,7 @@ export default function FileUpload({
                 파일을 드래그하여 놓거나 클릭하여 선택하세요
               </p>
               <p className="text-sm text-gray-500">
-                이미지 파일만 업로드 가능 (최대 5MB, {maxFiles}개까지)
+                이미지 파일만 업로드 가능 (최대 {FILE_VALIDATION.MAX_FILE_SIZE / 1024 / 1024}MB, {maxFiles}개까지)
               </p>
             </>
           )}
