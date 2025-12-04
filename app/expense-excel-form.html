@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>지출결의서</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "맑은 고딕", "Malgun Gothic", sans-serif;
+      font-size: 12px;
+      background: #f5f5f5;
+    }
+
+    .page {
+      width: 210mm;            /* A4 폭 */
+      min-height: 297mm;       /* A4 높이 */
+      margin: 10mm auto;
+      padding: 6mm 6mm 10mm;
+      box-sizing: border-box;
+      background: #fff;
+      border: 1px solid #000;
+    }
+
+    .sheet {
+      width: 100%;
+      border-collapse: collapse;
+      border-spacing: 0;
+      table-layout: fixed;
+    }
+
+    .sheet th,
+    .sheet td {
+      border: 1px solid #000;
+      padding: 4px 4px;
+      box-sizing: border-box;
+    }
+
+    .sheet th {
+      background: #f0f0f0;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .no-border { border: none !important; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-left  { text-align: left; }
+    .small      { font-size: 10px; }
+
+    .title {
+      font-size: 18px;
+      letter-spacing: 4px;
+    }
+
+    .vertical {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      text-align: center;
+      font-size: 11px;
+    }
+
+    .logo-cell {
+      text-align: center;
+      font-size: 11px;
+    }
+
+    .logo-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid #ccc;
+      margin: 4px auto 2px;
+      line-height: 40px;
+      font-size: 10px;
+      background: #e0f5ff;
+    }
+
+    .blue-note {
+      background: #e9f4ff;
+      border: 1px solid #1d5fd4;
+      font-size: 10px;
+      padding: 4px 6px;
+      margin-top: 6px;
+      margin-bottom: 0;
+    }
+
+    .detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      border-spacing: 0;
+      table-layout: fixed;
+      margin-top: 2px;
+    }
+
+    .detail-table th,
+    .detail-table td {
+      border: 1px solid #000;
+      padding: 3px 4px;
+      font-size: 11px;
+    }
+
+    .footer-table {
+      width: 100%;
+      border-collapse: collapse;
+      border-spacing: 0;
+      table-layout: fixed;
+      margin-top: 6px;
+      font-size: 11px;
+    }
+
+    .footer-table th,
+    .footer-table td {
+      border: 1px solid #000;
+      padding: 3px 4px;
+    }
+
+    .bottom-logo {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 11px;
+    }
+
+    @page {
+      size: A4;
+      margin: 10mm 10mm 10mm 10mm;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ===== 상단 큰 표 ===== -->
+  <table class="sheet">
+    <colgroup>
+      <col style="width: 18%;">
+      <col style="width: 22%;">
+      <col style="width: 30%;">
+      <col style="width: 10%;">
+      <col style="width: 10%;">
+      <col style="width: 10%;">
+    </colgroup>
+
+    <!-- 1행: 제목 / 재정팀장 -->
+    <tr>
+      <td rowspan="4" class="logo-cell">
+        <div class="logo-circle">사역</div>
+        사역팀(부)장
+      </td>
+      <th colspan="4" class="title">지 출 결 의 서</th>
+      <td class="vertical">재정팀장</td>
+    </tr>
+
+    <!-- 2행: 예산항목 / 신청국 -->
+    <tr>
+      <th class="small">예산항목<br/>(계정과목)</th>
+      <td colspan="3">사무행정비 / 사무_회의및접대비</td>
+      <td class="vertical">신청국</td>
+    </tr>
+
+    <!-- 3행: 지출일자 / 회계 -->
+    <tr>
+      <th>지출일자</th>
+      <td colspan="3" class="text-center">
+        2025 년&nbsp;&nbsp;&nbsp;&nbsp;월&nbsp;&nbsp;&nbsp;&nbsp;일
+      </td>
+      <td class="vertical">회 계</td>
+    </tr>
+
+    <!-- 4행: 청구금액 / 담당자명 -->
+    <tr>
+      <th>청구금액</th>
+      <td colspan="3" class="text-center">￦ 57,400 원</td>
+      <td class="vertical">윤운문</td>
+    </tr>
+  </table>
+
+  <!-- ===== 안내 문구 & 예시 ===== -->
+  <p class="blue-note">
+    ※ 아래 예시 참조하여 【세목, 행사일자, 행사명과 내용, 단가, 인원(수량)】 등 자세하게 기록하여 주세요.<br/>
+    (행사비예시)&nbsp;리더세미나&nbsp;&nbsp;2/8 유치부 교사 성경학교 준비 다과비&nbsp;&nbsp;&nbsp;3,000&nbsp;&nbsp;35&nbsp;&nbsp;105,000
+  </p>
+
+  <!-- ===== 지출 내역 상세 테이블 ===== -->
+  <table class="detail-table">
+    <colgroup>
+      <col style="width: 16%;">
+      <col style="width: 44%;">
+      <col style="width: 12%;">
+      <col style="width: 10%;">
+      <col style="width: 18%;">
+    </colgroup>
+    <thead>
+    <tr>
+      <th>세 목</th>
+      <th>적 요</th>
+      <th>단가</th>
+      <th>인원<br/>(수량)</th>
+      <th>금액</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td>아웃팅비_재정팀</td>
+      <td>재정팀 회의 후 식사 및 다과(5인)</td>
+      <td class="text-right">11,480</td>
+      <td class="text-center">5</td>
+      <td class="text-right">57,400</td>
+    </tr>
+    <!-- 빈 행들 (0행) -->
+    <tr><td>0</td><td></td><td class="text-right">0</td><td class="text-center"></td><td class="text-right">0</td></tr>
+    <tr><td>0</td><td></td><td class="text-right">0</td><td class="text-center"></td><td class="text-right">0</td></tr>
+    <tr><td>0</td><td></td><td class="text-right">0</td><td class="text-center"></td><td class="text-right">0</td></tr>
+    <tr><td>0</td><td></td><td class="text-right">0</td><td class="text-center"></td><td class="text-right">0</td></tr>
+    <tr><td>0</td><td></td><td class="text-right">0</td><td class="text-center"></td><td class="text-right">0</td></tr>
+    <tr><td>0</td><td></td><td class="text-right">0</td><td class="text-center"></td><td class="text-right">0</td></tr>
+    <tr><td>0</td><td></td><td class="text-right">0</td><td class="text-center"></td><td class="text-right">0</td></tr>
+    <tr><td>0</td><td></td><td class="text-right">0</td><td class="text-center"></td><td class="text-right">0</td></tr>
+    </tbody>
+    <tfoot>
+    <tr>
+      <th colspan="4" class="text-center">합 계</th>
+      <td class="text-right">57,400</td>
+    </tr>
+    </tfoot>
+  </table>
+
+  <!-- ===== 청구내역 / 계좌 정보 ===== -->
+  <table class="footer-table" style="margin-top:8px;">
+    <colgroup>
+      <col style="width: 14%;">
+      <col style="width: 22%;">
+      <col style="width: 12%;">
+      <col style="width: 22%;">
+      <col style="width: 10%;">
+      <col style="width: 20%;">
+    </colgroup>
+    <tr>
+      <th rowspan="2">청구내역</th>
+      <td>○ 청구 일자 :</td>
+      <td colspan="2">
+        2025 년&nbsp;&nbsp;&nbsp;월&nbsp;&nbsp;&nbsp;일
+      </td>
+      <td colspan="2" class="text-center">
+        (재정팀) 출납필 (인)
+      </td>
+    </tr>
+    <tr>
+      <td>○ 청구팀(부) :</td>
+      <td>기획위원회</td>
+      <td>재정팀</td>
+      <td>○ 청구인 :</td>
+      <td class="text-center">정혜종 (인)</td>
+    </tr>
+    <tr>
+      <td>○</td>
+      <td>우리은행</td>
+      <td colspan="3">○ 계좌번호 : 529-124781-02-101</td>
+      <td>○ 예금주 : 정혜종</td>
+    </tr>
+  </table>
+
+  <div class="bottom-logo">
+    <div>창연교회</div>
+    <div>지출결의서 Ver.4.1.3&nbsp;&nbsp;&nbsp;영수증</div>
+  </div>
+</div>
+</body>
+</html>
