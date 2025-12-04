@@ -21,13 +21,13 @@ export const expenseItemSchema = z.object({
     .max(200, '적요는 200자를 초과할 수 없습니다.'),
 
   unitPrice: z
-    .number({ invalid_type_error: '단가는 숫자여야 합니다.' })
+    .number()
     .positive('단가는 0보다 커야 합니다.')
     .int('단가는 정수여야 합니다.')
     .max(1000000000, '단가가 너무 큽니다.'),
 
   quantity: z
-    .number({ invalid_type_error: '수량은 숫자여야 합니다.' })
+    .number()
     .positive('수량은 0보다 커야 합니다.')
     .int('수량은 정수여야 합니다.')
     .max(100000, '수량이 너무 큽니다.'),
