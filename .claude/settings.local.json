@@ -11,7 +11,9 @@
       "Bash(python3 -c:*)",
       "Bash(node scripts/analyze-excel.js:*)",
       "Bash(ls:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm run test:*)",
+      "Bash(npm run test:coverage:*)"
     ],
     "deny": [],
     "ask": []
