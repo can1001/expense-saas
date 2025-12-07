@@ -13,7 +13,8 @@
       "Bash(ls:*)",
       "Bash(find:*)",
       "Bash(npm run test:*)",
-      "Bash(npm run test:coverage:*)"
+      "Bash(npm run test:coverage:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

@@ -62,6 +62,8 @@ export default function ExpenseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [excelLoading, setExcelLoading] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -115,29 +117,41 @@ export default function ExpenseDetailPage() {
   const handleDownloadPDF = async () => {
     if (!expense) return;
 
+    setPdfLoading(true);
     try {
       const blob = await pdf(<ExpensePDFDocument expense={expense} />).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `지출결의서_${expense.applicantName}_${format(new Date(expense.requestDate), 'yyyyMMdd')}.pdf`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (err) {
-      alert('PDF 생성 중 오류가 발생했습니다.');
+      alert('PDF 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
       console.error('PDF generation error:', err);
+    } finally {
+      setPdfLoading(false);
     }
   };
 
   const handleDownloadExcel = async () => {
     if (!expense) return;
 
+    setExcelLoading(true);
     try {
       await generateExpenseExcel(expense);
     } catch (err) {
-      alert('엑셀 생성 중 오류가 발생했습니다.');
+      alert('엑셀 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
       console.error('Excel generation error:', err);
+    } finally {
+      setExcelLoading(false);
     }
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const formatCurrency = (amount: number) => {
@@ -189,11 +203,12 @@ export default function ExpenseDetailPage() {
             </p>
           </div>
 
-          <div className="flex gap-2">
-            {/* PDF 다운로드 버튼 숨김 */}
-            {/* <button
-              onClick={handleDownloadPDF}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
+          <div className="flex gap-2 no-print">
+            {/* 프린트 버튼 */}
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+              title="페이지 프린트"
             >
               <svg
                 className="w-5 h-5"
@@ -205,34 +220,77 @@ export default function ExpenseDetailPage() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
                 />
               </svg>
-              PDF 다운로드
-            </button> */}
+              프린트
+            </button>
+            {/* PDF 다운로드 버튼 */}
+            <button
+              onClick={handleDownloadPDF}
+              disabled={pdfLoading}
+              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 transition-colors flex items-center gap-2"
+              title="PDF 파일로 다운로드"
+            >
+              {pdfLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  생성 중...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  PDF
+                </>
+              )}
+            </button>
+            {/* 엑셀 다운로드 버튼 */}
             <button
               onClick={handleDownloadExcel}
-              className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2"
+              disabled={excelLoading}
+              className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:opacity-50 transition-colors flex items-center gap-2"
+              title="엑셀 파일로 다운로드"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
-              엑셀 다운로드
+              {excelLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  생성 중...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                  엑셀
+                </>
+              )}
             </button>
             <button
               onClick={() => router.push(`/expenses/${id}/edit`)}
               disabled={deleteLoading}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 transition-colors"
             >
               수정
             </button>
@@ -415,7 +473,7 @@ export default function ExpenseDetailPage() {
         )}
 
         {/* 버튼 */}
-        <div className="flex justify-end gap-4">
+        <div className="flex justify-end gap-4 no-print">
           <button
             onClick={() => router.push('/expenses')}
             className="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"

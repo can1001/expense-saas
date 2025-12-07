@@ -24,3 +24,118 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 프린트 전용 스타일 */
+@media print {
+  /* 불필요한 요소 숨김 */
+  header,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+
+  /* 페이지 설정 */
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  /* 본문 스타일 */
+  body {
+    font-size: 11pt;
+    line-height: 1.4;
+    color: #000;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 배경색 초기화 */
+  .min-h-screen {
+    min-height: auto !important;
+    background: #fff !important;
+  }
+
+  /* 카드 스타일 최적화 */
+  .bg-white {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    page-break-inside: avoid;
+  }
+
+  /* 테이블 최적화 */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 10pt;
+  }
+
+  table th,
+  table td {
+    border: 1px solid #000 !important;
+    padding: 0.4rem !important;
+  }
+
+  table thead {
+    background-color: #f3f4f6 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 섹션 최적화 */
+  .rounded-lg {
+    border-radius: 0 !important;
+  }
+
+  /* 색상 유지 */
+  .text-blue-500 {
+    color: #3b82f6 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 패딩 조정 */
+  .max-w-5xl {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  /* 마진 조정 */
+  .mb-8 {
+    margin-bottom: 1rem !important;
+  }
+
+  .mb-6 {
+    margin-bottom: 0.75rem !important;
+  }
+
+  /* 제목 크기 조정 */
+  .text-3xl {
+    font-size: 18pt !important;
+  }
+
+  .text-xl {
+    font-size: 14pt !important;
+  }
+
+  /* 첨부파일 이미지 최적화 */
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* 이미지 크기 제한 */
+  img {
+    max-width: 100%;
+    max-height: 200px;
+    object-fit: contain;
+    page-break-inside: avoid;
+  }
+
+  /* 링크 스타일 */
+  a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
+}
