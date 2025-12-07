@@ -10,37 +10,45 @@ interface PrintHeaderProps {
 export default function PrintHeader({ expense }: PrintHeaderProps) {
   return (
     <table className="print-header-table">
+      <colgroup>
+        <col style={{ width: '85px' }} />   {/* 1열: 로고 + 좌측결재 */}
+        <col style={{ width: '100px' }} />  {/* 2열: 라벨 */}
+        <col style={{ width: 'auto' }} />   {/* 3열: 값 */}
+        <col style={{ width: '180px' }} />  {/* 4열: 결재란 */}
+      </colgroup>
       <tbody>
-        {/* 1행: 로고 + 제목 + 결재란 */}
+        {/* ===== 1-2행: 로고 + 지출결의서 + 결재란 ===== */}
         <tr>
-          {/* 로고 영역 */}
+          {/* 1열: 로고 (4행 병합) */}
           <td rowSpan={4} className="logo-cell">
             <div className="logo-container">
-              <div className="logo-circles">
-                <div className="circle circle-1">
-                  <span className="circle-icon">&#9769;</span>
+              <div className="logo-wrapper">
+                <div className="logo-circle circle-top">
+                  <span className="circle-icon">✝</span>
                   <span className="circle-text">사랑이 넘치는 교회</span>
                 </div>
-                <div className="circle circle-2">
-                  <span className="circle-icon">&#10013;</span>
+                <div className="logo-middle">
+                  <div className="logo-circle circle-left">
+                    <span className="circle-icon">☧</span>
+                  </div>
+                  <div className="logo-circle circle-right">
+                    <span className="circle-icon">☘</span>
+                    <span className="circle-text">섬김이 넘치는 교회</span>
+                  </div>
                 </div>
-                <div className="circle circle-3">
-                  <span className="circle-icon">&#9752;</span>
-                  <span className="circle-text">섬김이 넘치는 교회</span>
-                </div>
-                <div className="circle circle-4">
-                  <span className="circle-icon">&#9786;</span>
+                <div className="logo-circle circle-bottom">
+                  <span className="circle-icon">☺</span>
                   <span className="circle-text">기쁨이 넘치는 교회</span>
                 </div>
               </div>
             </div>
           </td>
-          {/* 제목 */}
-          <td colSpan={2} className="title-cell">
+          {/* 2-3열: 지출결의서 제목 (2열 병합, 2행 병합) */}
+          <td colSpan={2} rowSpan={2} className="title-cell">
             지 출 결 의 서
           </td>
-          {/* 결재란 */}
-          <td rowSpan={4} className="approval-cell">
+          {/* 4열: 결재란 (8행 병합) */}
+          <td rowSpan={8} className="approval-cell">
             <table className="approval-table">
               <tbody>
                 <tr>
@@ -59,54 +67,83 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
             </table>
           </td>
         </tr>
-
-        {/* 2행: 예산항목 */}
         <tr>
-          <td className="label-cell">
+          {/* 1열: 로고 계속 */}
+          {/* 2-3열: 제목 계속 */}
+          {/* 4열: 결재란 계속 */}
+        </tr>
+
+        {/* ===== 3-4행: 예산항목 ===== */}
+        <tr>
+          {/* 1열: 로고 계속 */}
+          {/* 2열: 예산항목 라벨 (2행 병합) */}
+          <td rowSpan={2} className="label-cell">
             예 산 항 목<br />
             <span className="sub-label">(계정과목)</span>
           </td>
-          <td className="value-cell budget-value">
+          {/* 3열: 예산항목 값 (2행 병합) */}
+          <td rowSpan={2} className="value-cell budget-value">
             {expense.budgetCategory} / {expense.budgetSubcategory}
           </td>
+          {/* 4열: 결재란 계속 */}
+        </tr>
+        <tr>
+          {/* 1열: 로고 계속 */}
+          {/* 2열: 예산항목 라벨 계속 */}
+          {/* 3열: 예산항목 값 계속 */}
+          {/* 4열: 결재란 계속 */}
         </tr>
 
-        {/* 3행: 지출일자 - 사역팀(부)장/재정팀장 전결 표시 */}
+        {/* ===== 5-6행: 지출일자 + 사역팀(부)장 ===== */}
         <tr>
-          <td className="label-cell">지 출 일 자</td>
-          <td className="value-cell notice-cell">
+          {/* 1열: 사역팀(부)장 (1행) */}
+          <td className="left-approval-cell">
+            <div className="vertical-text">사역팀(부)장</div>
+          </td>
+          {/* 2열: 지출일자 라벨 (2행 병합) */}
+          <td rowSpan={2} className="label-cell">
+            지 출 일 자
+          </td>
+          {/* 3열: 지출일자 값 (2행 병합) */}
+          <td rowSpan={2} className="value-cell">
             <div className="notice-box">
               "지출일자"는 재정팀에서 기재합니다.<br />
               (청구일의 다음 주일 날짜로 기재해도 됩니다.)
             </div>
           </td>
-        </tr>
-
-        {/* 4행: 청구금액 */}
-        <tr>
-          <td className="label-cell">청 구 금 액</td>
-          <td className="value-cell amount-value">
-            ₩ {formatCurrency(expense.requestAmount)} 원
-          </td>
-        </tr>
-      </tbody>
-
-      {/* 좌측 결재선 표시 */}
-      <tbody className="left-approval">
-        <tr>
-          <td rowSpan={3} className="left-label-cell">
-            <div className="vertical-text">사역팀(부)장</div>
-          </td>
+          {/* 4열: 결재란 계속 */}
         </tr>
         <tr>
-          <td rowSpan={2} className="left-label-cell">
+          {/* 1열: 재정팀장 전결 (2행 병합 시작) */}
+          <td rowSpan={2} className="left-approval-cell">
             <div className="vertical-text">재정팀장 전결</div>
           </td>
+          {/* 2열: 지출일자 라벨 계속 */}
+          {/* 3열: 지출일자 값 계속 */}
+          {/* 4열: 결재란 계속 */}
+        </tr>
+
+        {/* ===== 7-8행: 청구금액 + 재정팀장전결/신창국 ===== */}
+        <tr>
+          {/* 1열: 재정팀장 전결 계속 */}
+          {/* 2열: 청구금액 라벨 (2행 병합) */}
+          <td rowSpan={2} className="label-cell">
+            청 구 금 액
+          </td>
+          {/* 3열: 청구금액 값 (2행 병합) */}
+          <td rowSpan={2} className="value-cell amount-value">
+            ₩ {formatCurrency(expense.requestAmount)} 원
+          </td>
+          {/* 4열: 결재란 계속 */}
         </tr>
         <tr>
-          <td className="left-label-cell">
+          {/* 1열: 신 창 국 (1행) */}
+          <td className="left-approval-cell name-cell">
             <div className="vertical-text">신 창 국</div>
           </td>
+          {/* 2열: 청구금액 라벨 계속 */}
+          {/* 3열: 청구금액 값 계속 */}
+          {/* 4열: 결재란 계속 */}
         </tr>
       </tbody>
 
@@ -123,11 +160,12 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
           vertical-align: middle;
         }
 
+        /* ===== 로고 셀 ===== */
         .logo-cell {
-          width: 85px;
-          padding: 5px;
+          padding: 8px;
           text-align: center;
           vertical-align: middle;
+          background-color: #fff;
         }
 
         .logo-container {
@@ -136,51 +174,69 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
           align-items: center;
         }
 
-        .logo-circles {
-          position: relative;
-          width: 70px;
-          height: 70px;
+        .logo-wrapper {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
         }
 
-        .circle {
-          position: absolute;
-          width: 35px;
-          height: 35px;
+        .logo-middle {
+          display: flex;
+          gap: 2px;
+        }
+
+        .logo-circle {
+          width: 32px;
+          height: 32px;
           border-radius: 50%;
           display: flex;
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          font-size: 6px;
           color: white;
+          font-size: 10px;
+        }
+
+        .circle-top {
+          background-color: #2e7d32;
+        }
+
+        .circle-left {
+          background-color: #1565c0;
+        }
+
+        .circle-right {
+          background-color: #757575;
+        }
+
+        .circle-bottom {
+          background-color: #f9a825;
         }
 
         .circle-icon {
           font-size: 12px;
+          line-height: 1;
         }
 
         .circle-text {
-          font-size: 4px;
+          font-size: 3px;
           text-align: center;
-          line-height: 1.1;
+          line-height: 1;
+          margin-top: 1px;
         }
 
-        .circle-1 { top: 0; left: 17px; background: #2e7d32; }
-        .circle-2 { top: 17px; left: 0; background: #1565c0; }
-        .circle-3 { top: 17px; right: 0; background: #757575; }
-        .circle-4 { bottom: 0; left: 17px; background: #f9a825; }
-
+        /* ===== 제목 셀 ===== */
         .title-cell {
-          font-size: 24pt;
+          font-size: 22pt;
           font-weight: bold;
           text-align: center;
-          letter-spacing: 20px;
-          padding: 15px;
-          height: 60px;
+          letter-spacing: 18px;
+          padding: 12px;
         }
 
+        /* ===== 결재란 ===== */
         .approval-cell {
-          width: 180px;
           padding: 0;
           vertical-align: top;
         }
@@ -206,16 +262,16 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
         }
 
         .approval-sign-row td {
-          height: 50px;
+          height: 80px;
         }
 
+        /* ===== 라벨/값 셀 ===== */
         .label-cell {
           background-color: #e8f5e9;
           font-weight: bold;
           text-align: center;
-          width: 100px;
           font-size: 10pt;
-          padding: 8px 5px;
+          padding: 8px 4px;
         }
 
         .sub-label {
@@ -232,16 +288,12 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
           font-size: 12pt;
         }
 
-        .notice-cell {
-          padding: 0;
-        }
-
         .notice-box {
           background-color: #fff59d;
           padding: 8px 12px;
           font-size: 9pt;
           color: #000;
-          line-height: 1.4;
+          line-height: 1.5;
         }
 
         .amount-value {
@@ -249,23 +301,24 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
           font-weight: bold;
         }
 
-        .left-approval {
-          position: absolute;
-          left: -30px;
-          top: 60px;
+        /* ===== 좌측 결재선 ===== */
+        .left-approval-cell {
+          background-color: #e8f5e9;
+          text-align: center;
+          padding: 4px 2px;
         }
 
-        .left-label-cell {
-          width: 25px;
-          background-color: #e8f5e9;
-          font-size: 8pt;
+        .name-cell {
+          /* 신창국 셀 */
         }
 
         .vertical-text {
           writing-mode: vertical-rl;
           text-orientation: mixed;
+          font-size: 8pt;
+          font-weight: bold;
           white-space: nowrap;
-          padding: 5px 2px;
+          letter-spacing: 2px;
         }
       `}</style>
     </table>
