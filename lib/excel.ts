@@ -223,6 +223,8 @@ export async function generateExpenseExcel(expense: Expense) {
             right: 0.5,
             top: 0.5,
             bottom: 0.5,
+            header: 0.3,
+            footer: 0.3,
           },
         },
       });
