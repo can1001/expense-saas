@@ -8,6 +8,7 @@ import {
   validateId,
   validateExpenseId,
   validateAttachmentId,
+  validateIds,
   validatePublicId,
 } from '../id-validator';
 import { ApiError } from '@/lib/api/error-handler';
@@ -37,6 +38,15 @@ describe('isCuid', () => {
 
     // Empty string
     expect(isCuid('')).toBe(false);
+  });
+
+  it('should return false for non-string input', () => {
+    expect(isCuid(null as any)).toBe(false);
+    expect(isCuid(undefined as any)).toBe(false);
+    expect(isCuid(123 as any)).toBe(false);
+    expect(isCuid({} as any)).toBe(false);
+    expect(isCuid([] as any)).toBe(false);
+    expect(isCuid(true as any)).toBe(false);
   });
 });
 
@@ -97,6 +107,95 @@ describe('validateAttachmentId', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(ApiError);
       expect((error as ApiError).message).toContain('첨부파일');
+    }
+  });
+});
+
+describe('validateIds', () => {
+  it('should not throw when all IDs are valid', () => {
+    const validIds = [
+      'clx1234567890abcdefghijk',
+      'cm0abcdefghijklmnopqrstu',
+      'c' + 'a'.repeat(24),
+    ];
+    expect(() => validateIds(validIds)).not.toThrow();
+  });
+
+  it('should throw ApiError when any ID is invalid', () => {
+    const invalidIds = [
+      'clx1234567890abcdefghijk', // valid
+      'invalid-id', // invalid
+      'cm0abcdefghijklmnopqrstu', // valid
+    ];
+    
+    expect(() => validateIds(invalidIds)).toThrow(ApiError);
+    
+    try {
+      validateIds(invalidIds);
+    } catch (error) {
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).statusCode).toBe(400);
+      expect((error as ApiError).details).toEqual({
+        invalidIds: ['invalid-id'],
+      });
+    }
+  });
+
+  it('should throw ApiError with all invalid IDs in details', () => {
+    const invalidIds = [
+      'invalid-1',
+      'invalid-2',
+      'clx1234567890abcdefghijk', // valid
+      'invalid-3',
+    ];
+    
+    try {
+      validateIds(invalidIds);
+    } catch (error) {
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).details).toEqual({
+        invalidIds: ['invalid-1', 'invalid-2', 'invalid-3'],
+      });
+    }
+  });
+
+  it('should throw ApiError with custom error message', () => {
+    const invalidIds = ['invalid-id'];
+    
+    try {
+      validateIds(invalidIds, 'Custom error message');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).message).toBe('Custom error message');
+    }
+  });
+
+  it('should throw with 400 status code', () => {
+    const invalidIds = ['invalid-id'];
+    
+    try {
+      validateIds(invalidIds);
+    } catch (error) {
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).statusCode).toBe(400);
+    }
+  });
+
+  it('should handle empty array', () => {
+    expect(() => validateIds([])).not.toThrow();
+  });
+
+  it('should handle array with empty strings', () => {
+    const idsWithEmpty = ['clx1234567890abcdefghijk', '', 'cm0abcdefghijklmnopqrstu'];
+    
+    expect(() => validateIds(idsWithEmpty)).toThrow(ApiError);
+    
+    try {
+      validateIds(idsWithEmpty);
+    } catch (error) {
+      expect((error as ApiError).details).toEqual({
+        invalidIds: [''],
+      });
     }
   });
 });
