@@ -8,6 +8,7 @@ import { ExpensePDFDocument } from '@/components/PDFDocument';
 import { generateExpenseExcel } from '@/lib/excel';
 import ImagePreview from '@/components/ImagePreview';
 import Header from '@/components/Header';
+import PrintableExpense from '@/components/PrintableExpense';
 
 interface ExpenseItem {
   id: string;
@@ -191,8 +192,13 @@ export default function ExpenseDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
+    <>
+      {/* 프린트용 양식 (화면에서는 숨김, 프린트 시에만 표시) */}
+      <PrintableExpense expense={expense} />
+
+      {/* 웹 화면용 (프린트 시 숨김) */}
+      <div className="min-h-screen bg-gray-50 screen-only">
+        <Header />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 헤더 */}
         <div className="mb-8 flex justify-between items-start">
@@ -482,6 +488,7 @@ export default function ExpenseDetailPage() {
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

@@ -27,6 +27,11 @@ body {
 
 /* 프린트 전용 스타일 */
 @media print {
+  /* 화면 전용 콘텐츠 숨김 */
+  .screen-only {
+    display: none !important;
+  }
+
   /* 불필요한 요소 숨김 */
   header,
   nav,
