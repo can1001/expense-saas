@@ -5,18 +5,9 @@ import { useDropzone } from 'react-dropzone';
 import ImagePreview, { ImagePreviewFile } from './ImagePreview';
 import { uploadFiles, removeFile, FileServiceError } from '@/lib/services/file-service';
 import { FILE_VALIDATION } from '@/lib/constants/file-validation';
+import { UploadedFile } from '@/lib/types';
 
-export interface UploadedFile {
-  id?: string; // DB에 저장된 경우 ID
-  publicId: string;
-  url: string;
-  secureUrl: string;
-  format: string;
-  fileName: string;
-  fileSize: number;
-  width?: number;
-  height?: number;
-}
+export type { UploadedFile };
 
 interface FileUploadProps {
   expenseId?: string; // 기존 지출결의서 수정 시

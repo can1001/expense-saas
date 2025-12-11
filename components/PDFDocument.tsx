@@ -3,41 +3,13 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 import { format } from 'date-fns';
+import { Expense } from '@/lib/types';
 
 // 한글 폰트 등록 (옵션: 웹 폰트 사용)
 // Font.register({
 //   family: 'NotoSansKR',
 //   src: 'https://fonts.gstatic.com/s/notosanskr/v12/Pby7FmXiEBPT4ITbgNA5CgmOsn7uwpYcuH8y.ttf',
 // });
-
-interface ExpenseItem {
-  id: string;
-  budgetDetail: string;
-  description: string;
-  unitPrice: number;
-  quantity: number;
-  amount: number;
-  order: number;
-}
-
-interface ExpenseData {
-  id: string;
-  committee: string;
-  department: string;
-  budgetCategory: string;
-  budgetSubcategory: string;
-  expenseDate?: string;
-  requestAmount: number;
-  requestDate: string;
-  requestTeam: string;
-  applicantName: string;
-  applicantTitle?: string;
-  bankName: string;
-  accountNumber: string;
-  accountHolder: string;
-  items: ExpenseItem[];
-  createdAt: string;
-}
 
 const styles = StyleSheet.create({
   page: {
@@ -149,7 +121,7 @@ const styles = StyleSheet.create({
 });
 
 interface PDFDocumentProps {
-  expense: ExpenseData;
+  expense: Expense;
 }
 
 export const ExpensePDFDocument: React.FC<PDFDocumentProps> = ({ expense }) => {

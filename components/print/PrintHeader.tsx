@@ -14,7 +14,7 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
         <col style={{ width: '85px' }} />   {/* 1열: 로고 + 좌측결재 */}
         <col style={{ width: '100px' }} />  {/* 2열: 라벨 */}
         <col style={{ width: 'auto' }} />   {/* 3열: 값 */}
-        <col style={{ width: '180px' }} />  {/* 4열: 결재란 */}
+        <col style={{ width: '90px' }} />   {/* 4열: 결재란 */}
       </colgroup>
       <tbody>
         {/* ===== 1-2행: 로고 + 지출결의서 + 결재란 ===== */}
@@ -51,17 +51,31 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
           <td rowSpan={8} className="approval-cell">
             <table className="approval-table">
               <tbody>
+                {/* 1행: 재정팀장 */}
                 <tr>
-                  <th>재정팀장</th>
-                  <th></th>
-                  <th>회계</th>
-                  <th></th>
+                  <th className="approval-title">재정팀장</th>
                 </tr>
-                <tr className="approval-sign-row">
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
+                {/* 2-3행: 서명란 */}
+                <tr>
+                  <td rowSpan={2} className="approval-sign"></td>
+                </tr>
+                <tr></tr>
+                {/* 4행: 신 창 국 */}
+                <tr>
+                  <td className="approval-name">신 창 국</td>
+                </tr>
+                {/* 5행: 회계 */}
+                <tr>
+                  <th className="approval-title">회계</th>
+                </tr>
+                {/* 6-7행: 서명란 */}
+                <tr>
+                  <td rowSpan={2} className="approval-sign"></td>
+                </tr>
+                <tr></tr>
+                {/* 8행: 윤 운 문 */}
+                <tr>
+                  <td className="approval-name">윤 운 문</td>
                 </tr>
               </tbody>
             </table>
@@ -239,6 +253,7 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
         .approval-cell {
           padding: 0;
           vertical-align: top;
+          width: 90px;
         }
 
         .approval-table {
@@ -250,19 +265,25 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
         .approval-table th,
         .approval-table td {
           border: 1px solid #000;
-          width: 25%;
           text-align: center;
           font-size: 9pt;
-          padding: 3px;
+          padding: 2px;
         }
 
-        .approval-table th {
+        .approval-title {
           background-color: #e8f5e9;
-          height: 25px;
+          height: 20px;
+          font-weight: bold;
         }
 
-        .approval-sign-row td {
-          height: 80px;
+        .approval-sign {
+          height: 35px;
+        }
+
+        .approval-name {
+          height: 18px;
+          font-size: 8pt;
+          letter-spacing: 3px;
         }
 
         /* ===== 라벨/값 셀 ===== */

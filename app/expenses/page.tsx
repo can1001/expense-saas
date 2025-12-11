@@ -4,27 +4,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import Header from '@/components/Header';
-
-interface ExpenseItem {
-  id: string;
-  committee: string;
-  department: string;
-  budgetCategory: string;
-  budgetSubcategory: string;
-  requestAmount: number;
-  applicantName: string;
-  requestDate: string;
-  createdAt: string;
-}
-
-interface ExpensesResponse {
-  expenses: ExpenseItem[];
-  total: number;
-}
+import { ExpenseListItem, ExpenseListResponse } from '@/lib/types';
+import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_OUTLINE } from '@/lib/constants/styles';
+import { formatCurrency } from '@/lib/utils';
 
 export default function ExpensesPage() {
   const router = useRouter();
-  const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
+  const [expenses, setExpenses] = useState<ExpenseListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,7 +43,7 @@ export default function ExpensesPage() {
         throw new Error('데이터를 불러오는데 실패했습니다.');
       }
 
-      const data: ExpensesResponse = await response.json();
+      const data: ExpenseListResponse = await response.json();
       setExpenses(data.expenses || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
@@ -155,13 +141,6 @@ export default function ExpensesPage() {
 
   const handleRowClick = (id: string) => {
     router.push(`/expenses/${id}`);
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ko-KR', {
-      style: 'currency',
-      currency: 'KRW',
-    }).format(amount);
   };
 
   if (loading) {

@@ -1,48 +1,6 @@
 import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
-
-interface ExpenseItem {
-  id: string;
-  budgetDetail: string;
-  description: string;
-  unitPrice: number;
-  quantity: number;
-  amount: number;
-  order: number;
-}
-
-interface ExpenseAttachment {
-  id: string;
-  publicId: string;
-  url: string;
-  secureUrl: string;
-  format: string;
-  fileName: string;
-  fileSize: number;
-  width?: number;
-  height?: number;
-}
-
-interface Expense {
-  id: string;
-  committee: string;
-  department: string;
-  budgetCategory: string;
-  budgetSubcategory: string;
-  expenseDate?: string;
-  requestAmount: number;
-  requestDate: string;
-  requestTeam: string;
-  applicantName: string;
-  applicantTitle?: string;
-  bankName: string;
-  accountNumber: string;
-  accountHolder: string;
-  items: ExpenseItem[];
-  attachments?: ExpenseAttachment[];
-  createdAt: string;
-  updatedAt: string;
-}
+import { Expense } from '@/lib/types';
 
 // 이미지를 다운로드하여 ArrayBuffer로 변환하는 헬퍼 함수
 async function fetchImageAsBuffer(url: string): Promise<ArrayBuffer> {

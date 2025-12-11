@@ -14,7 +14,9 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "db:migrate": "prisma migrate dev"
+    "db:migrate": "prisma migrate dev",
+    "bulk-upload": "ts-node --project tsconfig.scripts.json scripts/bulk-upload.ts",
+    "generate-template": "ts-node --project tsconfig.scripts.json scripts/generate-upload-template.ts"
   },
   "engines": {
     "node": ">=24.0.0",

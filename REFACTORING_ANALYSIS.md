@@ -10,6 +10,7 @@
 7. [폼 처리](#7-폼-처리-분석)
 8. [종합 우선순위](#종합-리팩토링-우선순위)
 9. [실행 계획](#즉시-실행-가능한-개선-사항)
+10. [완료된 리팩토링](#완료된-리팩토링-작업)
 
 ---
 
@@ -422,5 +423,218 @@ hooks/
 
 ---
 
+## 완료된 리팩토링 작업
+
+### 1. 타입 중앙화 ✅
+
+**파일**: `lib/types/index.ts`
+
+모든 타입을 하나의 파일로 통합하여 관리합니다.
+
+```typescript
+// 주요 타입
+export interface ExpenseItem { ... }
+export interface Expense { ... }
+export interface ExpenseFormData { ... }
+export interface ExpenseAttachment { ... }
+export interface BudgetMaster { ... }
+export interface UploadedFile { ... }
+
+// API 응답 타입
+export interface ExpenseListResponse { ... }
+export interface ApiErrorResponse { ... }
+```
+
+**사용 방법**:
+```typescript
+import { Expense, ExpenseItem, ExpenseFormData } from '@/lib/types';
+```
+
+---
+
+### 2. 스타일 상수화 ✅
+
+**파일**: `lib/constants/styles.ts`
+
+중복된 Tailwind CSS 클래스를 상수로 정의하여 재사용합니다.
+
+```typescript
+// 입력 필드
+export const INPUT_BASE = 'w-full px-4 py-2 border border-gray-300 rounded-lg...';
+export const SELECT_BASE = `${INPUT_BASE} appearance-none cursor-pointer`;
+
+// 버튼
+export const BTN_PRIMARY = `${BTN_BASE} bg-blue-500 text-white hover:bg-blue-600`;
+export const BTN_SECONDARY = `${BTN_BASE} bg-gray-500 text-white hover:bg-gray-600`;
+export const BTN_SUCCESS = `${BTN_BASE} bg-green-500 text-white hover:bg-green-600`;
+export const BTN_DANGER = `${BTN_BASE} bg-red-500 text-white hover:bg-red-600`;
+
+// 카드/섹션
+export const SECTION_CARD = `${CARD_BASE} p-6 mb-6`;
+export const SECTION_TITLE = 'text-xl font-semibold text-gray-900 mb-4';
+
+// 테이블
+export const TABLE_BASE = 'min-w-full divide-y divide-gray-200';
+export const TABLE_HEADER_CELL = 'px-4 py-3 text-left text-xs font-semibold...';
+```
+
+**사용 방법**:
+```typescript
+import { INPUT_BASE, BTN_PRIMARY, SECTION_CARD } from '@/lib/constants/styles';
+```
+
+---
+
+### 3. 금액 계산 함수 통일 ✅
+
+**파일**: `lib/schemas/expense-schema.ts`
+
+**이전 (버그)**:
+```typescript
+// expense-schema.ts - 잘못된 계산 (100으로 나눔)
+Math.floor((unitPrice * quantity) / 100) * 10
+```
+
+**수정 후**:
+```typescript
+// expense-schema.ts - 올바른 계산 (10으로 나눔)
+export function calculateAmount(unitPrice: number, quantity: number): number {
+  return Math.floor((unitPrice * quantity) / 10) * 10;
+}
+```
+
+이제 `validators.ts`와 `expense-schema.ts`의 금액 계산 로직이 동일합니다.
+
+---
+
+### 4. 공통 UI 컴포넌트 생성 ✅
+
+**디렉토리**: `components/ui/`
+
+재사용 가능한 UI 컴포넌트들을 생성했습니다.
+
+#### LoadingState.tsx
+```tsx
+import { LoadingState } from '@/components/ui';
+
+// 전체 화면 로딩
+<LoadingState message="데이터를 불러오는 중..." />
+
+// 부분 로딩
+<LoadingState message="처리 중..." fullScreen={false} />
+```
+
+#### ErrorState.tsx
+```tsx
+import { ErrorState } from '@/components/ui';
+
+<ErrorState
+  message="데이터를 불러오지 못했습니다."
+  onRetry={() => refetch()}
+/>
+```
+
+#### FormField.tsx
+```tsx
+import { FormField } from '@/components/ui';
+
+<FormField label="이름" required error={errors.name?.message}>
+  <input {...register('name')} />
+</FormField>
+```
+
+#### Button.tsx
+```tsx
+import { Button } from '@/components/ui';
+
+<Button variant="primary" loading={isLoading}>
+  저장
+</Button>
+
+<Button variant="danger" onClick={handleDelete}>
+  삭제
+</Button>
+```
+
+**사용 방법**:
+```typescript
+import { LoadingState, ErrorState, FormField, Button } from '@/components/ui';
+```
+
+---
+
+### 5. 프린트 컴포넌트 모듈화 ✅
+
+**디렉토리**: `components/print/`
+
+PrintableExpense 컴포넌트를 3개의 모듈로 분리했습니다.
+
+```
+components/print/
+├── types.ts          # 프린트 관련 타입 정의
+├── PrintHeader.tsx   # 상단 헤더 (로고, 제목, 결재란)
+├── PrintItems.tsx    # 지출 항목 테이블
+├── PrintFooter.tsx   # 하단 청구 정보
+└── index.ts          # 컴포넌트 export
+```
+
+**사용 방법**:
+```typescript
+import { PrintHeader, PrintItems, PrintFooter } from '@/components/print';
+```
+
+---
+
+## 업데이트된 파일 구조
+
+```
+lib/
+├── types/
+│   └── index.ts       # ✅ 생성됨 - 모든 타입 중앙화
+├── constants/
+│   └── styles.ts      # ✅ 생성됨 - Tailwind 상수
+├── schemas/
+│   └── expense-schema.ts  # ✅ 수정됨 - 금액 계산 함수 통일
+├── utils.ts
+├── validators.ts
+├── prisma.ts
+└── excel.ts
+
+components/
+├── ui/                # ✅ 생성됨
+│   ├── index.ts
+│   ├── LoadingState.tsx
+│   ├── ErrorState.tsx
+│   ├── FormField.tsx
+│   └── Button.tsx
+├── print/             # ✅ 생성됨
+│   ├── index.ts
+│   ├── types.ts
+│   ├── PrintHeader.tsx
+│   ├── PrintItems.tsx
+│   └── PrintFooter.tsx
+├── PrintableExpense.tsx  # ✅ 수정됨 - print 컴포넌트 사용
+└── ...
+```
+
+---
+
+## 남은 작업
+
+### 우선순위 높음
+- [ ] 기존 컴포넌트에서 중앙화된 타입 import 적용
+- [ ] 기존 컴포넌트에서 스타일 상수 import 적용
+- [ ] API 에러 핸들러 통일
+
+### 우선순위 중간
+- [ ] 커스텀 훅 분리 (useExpenseForm, usePagination 등)
+- [ ] 데이터 변환 로직 분리 (lib/transformers/)
+
+### 우선순위 낮음
+- [ ] 테스트 커버리지 증대
+
+---
+
 *작성일: 2025-12-08*
+*최종 업데이트: 2025-12-08*
 *분석 대상: expense-system MVP*

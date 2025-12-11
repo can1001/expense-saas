@@ -14,7 +14,11 @@
       "Bash(find:*)",
       "Bash(npm run test:*)",
       "Bash(npm run test:coverage:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run generate-template:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(npm run bulk-upload:*)"
     ],
     "deny": [],
     "ask": []

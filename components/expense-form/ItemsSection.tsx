@@ -6,6 +6,7 @@
 
 import { Control, useFieldArray, UseFormRegister, UseFormSetValue, useWatch } from 'react-hook-form';
 import { ExpenseFormData, defaultExpenseItem, calculateAmount } from '@/lib/schemas/expense-schema';
+import { INPUT_BASE, BTN_PRIMARY, BTN_SM, SECTION_CARD, SECTION_TITLE } from '@/lib/constants/styles';
 
 interface ItemsSectionProps {
   control: Control<ExpenseFormData>;
@@ -59,18 +60,15 @@ export default function ItemsSection({
     }
   };
 
-  const inputClasses =
-    'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white placeholder-gray-400';
-
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
+    <div className={SECTION_CARD}>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-900">세부 항목</h2>
+        <h2 className={SECTION_TITLE}>세부 항목</h2>
         <button
           type="button"
           onClick={handleAddItem}
           disabled={disabled || fields.length >= 10}
-          className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className={`${BTN_PRIMARY} ${BTN_SM}`}
         >
           + 항목 추가
         </button>
@@ -103,7 +101,7 @@ export default function ItemsSection({
                   {...register(`items.${index}.budgetDetail`)}
                   disabled={disabled}
                   placeholder="예: 교육자료비"
-                  className={inputClasses}
+                  className={INPUT_BASE}
                 />
               </div>
 
@@ -116,7 +114,7 @@ export default function ItemsSection({
                   {...register(`items.${index}.description`)}
                   disabled={disabled}
                   placeholder="상세 설명"
-                  className={inputClasses}
+                  className={INPUT_BASE}
                 />
               </div>
 
@@ -131,7 +129,7 @@ export default function ItemsSection({
                   })}
                   disabled={disabled}
                   min="0"
-                  className={inputClasses}
+                  className={INPUT_BASE}
                 />
               </div>
 
@@ -146,7 +144,7 @@ export default function ItemsSection({
                   })}
                   disabled={disabled}
                   min="1"
-                  className={inputClasses}
+                  className={INPUT_BASE}
                 />
               </div>
 

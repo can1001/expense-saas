@@ -1,47 +1,12 @@
-export interface ExpenseItem {
-  id: string;
-  budgetDetail: string;
-  description: string;
-  unitPrice: number;
-  quantity: number;
-  amount: number;
-  order: number;
-}
+/**
+ * 프린트 컴포넌트 타입 정의
+ * 중앙화된 타입을 re-export하고 프린트 전용 유틸리티 제공
+ */
 
-export interface ExpenseAttachment {
-  id: string;
-  publicId: string;
-  url: string;
-  secureUrl: string;
-  format: string;
-  fileName: string;
-  fileSize: number;
-  width?: number;
-  height?: number;
-  createdAt: string;
-}
+// 중앙화된 타입 re-export
+export type { ExpenseItem, ExpenseAttachment, Expense } from '@/lib/types';
 
-export interface Expense {
-  id: string;
-  committee: string;
-  department: string;
-  budgetCategory: string;
-  budgetSubcategory: string;
-  expenseDate?: string;
-  requestAmount: number;
-  requestDate: string;
-  requestTeam: string;
-  applicantName: string;
-  applicantTitle?: string;
-  bankName: string;
-  accountNumber: string;
-  accountHolder: string;
-  items: ExpenseItem[];
-  attachments?: ExpenseAttachment[];
-  createdAt: string;
-  updatedAt: string;
-}
-
+// 프린트용 통화 포맷 함수 (원 기호 없이 숫자만)
 export const formatCurrency = (amount: number): string => {
   return amount.toLocaleString('ko-KR');
 };

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { SELECT_BASE, INPUT_DISABLED, LABEL_BASE, LABEL_REQUIRED, SPINNER } from '@/lib/constants/styles';
 
 interface BudgetSelectorProps {
   value: {
@@ -161,16 +162,14 @@ export default function BudgetSelector({ value, onChange, disabled = false }: Bu
     onChange(newValue);
   };
 
-  const selectClasses = `w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-gray-900 ${
-    disabled ? 'opacity-50 cursor-not-allowed' : ''
-  }`;
+  const selectClasses = `${SELECT_BASE} ${disabled ? INPUT_DISABLED : ''}`;
 
   return (
     <div className="space-y-4">
       {/* 위원회 */}
       <div>
-        <label htmlFor="committee" className="block text-sm font-medium text-gray-700 mb-2">
-          위원회 <span className="text-red-500">*</span>
+        <label htmlFor="committee" className={`${LABEL_BASE} ${LABEL_REQUIRED}`}>
+          위원회
         </label>
         <select
           id="committee"
@@ -192,8 +191,8 @@ export default function BudgetSelector({ value, onChange, disabled = false }: Bu
       {/* 사역팀(부) */}
       {value.committee && (
         <div>
-          <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-2">
-            사역팀(부) <span className="text-red-500">*</span>
+          <label htmlFor="department" className={`${LABEL_BASE} ${LABEL_REQUIRED}`}>
+            사역팀(부)
           </label>
           <select
             id="department"
@@ -216,8 +215,8 @@ export default function BudgetSelector({ value, onChange, disabled = false }: Bu
       {/* 예산(항) */}
       {value.department && (
         <div>
-          <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
-            예산(항) <span className="text-red-500">*</span>
+          <label htmlFor="category" className={`${LABEL_BASE} ${LABEL_REQUIRED}`}>
+            예산(항)
           </label>
           <select
             id="category"
@@ -240,8 +239,8 @@ export default function BudgetSelector({ value, onChange, disabled = false }: Bu
       {/* 예산(목) */}
       {value.category && (
         <div>
-          <label htmlFor="subcategory" className="block text-sm font-medium text-gray-700 mb-2">
-            예산(목) <span className="text-red-500">*</span>
+          <label htmlFor="subcategory" className={`${LABEL_BASE} ${LABEL_REQUIRED}`}>
+            예산(목)
           </label>
           <select
             id="subcategory"
@@ -264,7 +263,7 @@ export default function BudgetSelector({ value, onChange, disabled = false }: Bu
       {/* 예산(세목) - 항목별로 선택 */}
       {value.subcategory && (
         <div>
-          <label htmlFor="detail" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="detail" className={LABEL_BASE}>
             예산(세목) (선택사항)
           </label>
           {details.length === 0 ? (
@@ -292,7 +291,7 @@ export default function BudgetSelector({ value, onChange, disabled = false }: Bu
 
       {loading && (
         <div className="text-sm text-gray-500 flex items-center gap-2">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+          <div className={SPINNER}></div>
           <span>옵션을 불러오는 중...</span>
         </div>
       )}

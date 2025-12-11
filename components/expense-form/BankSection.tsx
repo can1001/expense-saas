@@ -6,6 +6,7 @@
 
 import { UseFormRegister, FieldErrors } from 'react-hook-form';
 import { ExpenseFormData } from '@/lib/schemas/expense-schema';
+import { INPUT_BASE, SECTION_CARD, SECTION_TITLE, LABEL_BASE, LABEL_REQUIRED, ERROR_MESSAGE } from '@/lib/constants/styles';
 
 interface BankSectionProps {
   register: UseFormRegister<ExpenseFormData>;
@@ -18,16 +19,13 @@ export default function BankSection({
   errors,
   disabled = false,
 }: BankSectionProps) {
-  const inputClasses =
-    'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white placeholder-gray-400';
-
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">은행 정보</h2>
+    <div className={SECTION_CARD}>
+      <h2 className={SECTION_TITLE}>은행 정보</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label htmlFor="bankName" className="block text-sm font-medium text-gray-700 mb-2">
-            은행명 <span className="text-red-500">*</span>
+          <label htmlFor="bankName" className={`${LABEL_BASE} ${LABEL_REQUIRED}`}>
+            은행명
           </label>
           <input
             type="text"
@@ -35,16 +33,16 @@ export default function BankSection({
             {...register('bankName')}
             disabled={disabled}
             placeholder="예: 국민은행"
-            className={inputClasses}
+            className={INPUT_BASE}
           />
           {errors.bankName && (
-            <p className="mt-1 text-sm text-red-600">{errors.bankName.message}</p>
+            <p className={ERROR_MESSAGE}>{errors.bankName.message}</p>
           )}
         </div>
 
         <div>
-          <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700 mb-2">
-            계좌번호 <span className="text-red-500">*</span>
+          <label htmlFor="accountNumber" className={`${LABEL_BASE} ${LABEL_REQUIRED}`}>
+            계좌번호
           </label>
           <input
             type="text"
@@ -52,16 +50,16 @@ export default function BankSection({
             {...register('accountNumber')}
             disabled={disabled}
             placeholder="숫자만 입력"
-            className={inputClasses}
+            className={INPUT_BASE}
           />
           {errors.accountNumber && (
-            <p className="mt-1 text-sm text-red-600">{errors.accountNumber.message}</p>
+            <p className={ERROR_MESSAGE}>{errors.accountNumber.message}</p>
           )}
         </div>
 
         <div>
-          <label htmlFor="accountHolder" className="block text-sm font-medium text-gray-700 mb-2">
-            예금주 <span className="text-red-500">*</span>
+          <label htmlFor="accountHolder" className={`${LABEL_BASE} ${LABEL_REQUIRED}`}>
+            예금주
           </label>
           <input
             type="text"
@@ -69,10 +67,10 @@ export default function BankSection({
             {...register('accountHolder')}
             disabled={disabled}
             placeholder="예금주 이름"
-            className={inputClasses}
+            className={INPUT_BASE}
           />
           {errors.accountHolder && (
-            <p className="mt-1 text-sm text-red-600">{errors.accountHolder.message}</p>
+            <p className={ERROR_MESSAGE}>{errors.accountHolder.message}</p>
           )}
         </div>
       </div>

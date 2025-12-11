@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createExpenseSchema, calculateAmount, calculateTotal } from '@/lib/validators';
+import { handleApiError, ApiError } from '@/lib/api/error-handler';
 
 // GET /api/expenses - 지출결의서 목록 조회
 export async function GET(request: NextRequest) {
@@ -38,11 +39,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching expenses:', error);
-    return NextResponse.json(
-      { error: '지출결의서 목록을 불러오는데 실패했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -97,26 +94,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(expense, { status: 201 });
   } catch (error: any) {
-    console.error('Error creating expense:', error);
-
     if (error.name === 'ZodError' && error.errors) {
       const errorMessages = error.errors.map((err: any) =>
         `${err.path.join('.')}: ${err.message}`
       ).join(', ');
-
       return NextResponse.json(
-        {
-          error: '입력 데이터가 유효하지 않습니다.',
-          details: errorMessages,
-          validationErrors: error.errors
-        },
+        { error: '입력 데이터가 유효하지 않습니다.', details: errorMessages },
         { status: 400 }
       );
     }
-
-    return NextResponse.json(
-      { error: '지출결의서 생성에 실패했습니다.', message: error.message || String(error) },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

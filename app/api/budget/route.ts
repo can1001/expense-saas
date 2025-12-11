@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from '@/lib/api/error-handler';
 
 // GET /api/budget - 예산 마스터 데이터 조회
 export async function GET(request: NextRequest) {
@@ -46,11 +47,7 @@ export async function GET(request: NextRequest) {
       total: budgetItems.length,
     });
   } catch (error) {
-    console.error('Error fetching budget data:', error);
-    return NextResponse.json(
-      { error: '예산 데이터를 불러오는데 실패했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -107,10 +104,6 @@ export async function POST(request: NextRequest) {
       items,
     });
   } catch (error) {
-    console.error('Error fetching budget hierarchy:', error);
-    return NextResponse.json(
-      { error: '예산 계층 데이터를 불러오는데 실패했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

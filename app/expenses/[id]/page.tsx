@@ -9,50 +9,8 @@ import { generateExpenseExcel } from '@/lib/excel';
 import ImagePreview from '@/components/ImagePreview';
 import Header from '@/components/Header';
 import PrintableExpense from '@/components/PrintableExpense';
-
-interface ExpenseItem {
-  id: string;
-  budgetDetail: string;
-  description: string;
-  unitPrice: number;
-  quantity: number;
-  amount: number;
-  order: number;
-}
-
-interface ExpenseAttachment {
-  id: string;
-  publicId: string;
-  url: string;
-  secureUrl: string;
-  format: string;
-  fileName: string;
-  fileSize: number;
-  width?: number;
-  height?: number;
-  createdAt: string;
-}
-
-interface Expense {
-  id: string;
-  committee: string;
-  department: string;
-  budgetCategory: string;
-  budgetSubcategory: string;
-  expenseDate?: string;
-  requestAmount: number;
-  requestDate: string;
-  requestTeam: string;
-  applicantName: string;
-  applicantTitle?: string;
-  bankName: string;
-  accountNumber: string;
-  accountHolder: string;
-  items: ExpenseItem[];
-  attachments?: ExpenseAttachment[];
-  createdAt: string;
-  updatedAt: string;
-}
+import { Expense } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
 
 export default function ExpenseDetailPage() {
   const router = useRouter();
@@ -153,13 +111,6 @@ export default function ExpenseDetailPage() {
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ko-KR', {
-      style: 'currency',
-      currency: 'KRW',
-    }).format(amount);
   };
 
   if (loading) {

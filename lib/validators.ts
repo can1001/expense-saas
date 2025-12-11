@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+// 중앙화된 계산 함수 re-export
+export {
+  calculateAmount,
+  calculateTotalAmount as calculateTotal,
+} from '@/lib/schemas/expense-schema';
+
 // 지출 항목 스키마
 export const expenseItemSchema = z.object({
   budgetDetail: z.string().min(1, '예산(세목)을 입력해주세요'),
@@ -43,13 +49,3 @@ export const updateExpenseSchema = createExpenseSchema.partial();
 export type ExpenseItem = z.infer<typeof expenseItemSchema>;
 export type CreateExpense = z.infer<typeof createExpenseSchema>;
 export type UpdateExpense = z.infer<typeof updateExpenseSchema>;
-
-// 금액 계산 함수 (10원 단위 절사)
-export function calculateAmount(unitPrice: number, quantity: number): number {
-  return Math.floor((unitPrice * quantity) / 10) * 10;
-}
-
-// 전체 합계 계산
-export function calculateTotal(items: ExpenseItem[]): number {
-  return items.reduce((sum, item) => sum + item.amount, 0);
-}

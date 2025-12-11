@@ -148,11 +148,13 @@ export const defaultExpenseFormData: Partial<ExpenseFormData> = {
 };
 
 /**
- * 금액 계산 함수 (단가 × 수량 ÷ 10, 내림)
- * 결과를 10의 배수로 내림 처리
+ * 금액 계산 함수 (10원 단위 절사)
+ * 단가 × 수량 후 10원 단위로 내림 처리
+ * 예: 11480 × 5 = 57400 → 57400
+ * 예: 11483 × 5 = 57415 → 57410
  */
 export function calculateAmount(unitPrice: number, quantity: number): number {
-  return Math.floor((unitPrice * quantity) / 100) * 10;
+  return Math.floor((unitPrice * quantity) / 10) * 10;
 }
 
 /**
