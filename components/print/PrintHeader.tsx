@@ -17,78 +17,32 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
         <col style={{ width: '90px' }} />   {/* 4열: 결재란 */}
       </colgroup>
       <tbody>
-        {/* ===== 1-2행: 로고 + 지출결의서 + 결재란 ===== */}
-        <tr>
+        {/* ===== 1행: 로고 + 지출결의서 제목 + 재정팀장 ===== */}
+        <tr style={{ height: '25px' }}>
           {/* 1열: 로고 (4행 병합) */}
           <td rowSpan={4} className="logo-cell">
             <div className="logo-container">
-              <div className="logo-wrapper">
-                <div className="logo-circle circle-top">
-                  <span className="circle-icon">✝</span>
-                  <span className="circle-text">사랑이 넘치는 교회</span>
-                </div>
-                <div className="logo-middle">
-                  <div className="logo-circle circle-left">
-                    <span className="circle-icon">☧</span>
-                  </div>
-                  <div className="logo-circle circle-right">
-                    <span className="circle-icon">☘</span>
-                    <span className="circle-text">섬김이 넘치는 교회</span>
-                  </div>
-                </div>
-                <div className="logo-circle circle-bottom">
-                  <span className="circle-icon">☺</span>
-                  <span className="circle-text">기쁨이 넘치는 교회</span>
-                </div>
-              </div>
+              <img src="/logo.png" alt="교회 로고" className="logo-image" />
             </div>
           </td>
           {/* 2-3열: 지출결의서 제목 (2열 병합, 2행 병합) */}
           <td colSpan={2} rowSpan={2} className="title-cell">
             지 출 결 의 서
           </td>
-          {/* 4열: 결재란 (8행 병합) */}
-          <td rowSpan={8} className="approval-cell">
-            <table className="approval-table">
-              <tbody>
-                {/* 1행: 재정팀장 */}
-                <tr>
-                  <th className="approval-title">재정팀장</th>
-                </tr>
-                {/* 2-3행: 서명란 */}
-                <tr>
-                  <td rowSpan={2} className="approval-sign"></td>
-                </tr>
-                <tr></tr>
-                {/* 4행: 신 창 국 */}
-                <tr>
-                  <td className="approval-name">신 창 국</td>
-                </tr>
-                {/* 5행: 회계 */}
-                <tr>
-                  <th className="approval-title">회계</th>
-                </tr>
-                {/* 6-7행: 서명란 */}
-                <tr>
-                  <td rowSpan={2} className="approval-sign"></td>
-                </tr>
-                <tr></tr>
-                {/* 8행: 윤 운 문 */}
-                <tr>
-                  <td className="approval-name">윤 운 문</td>
-                </tr>
-              </tbody>
-            </table>
-          </td>
-        </tr>
-        <tr>
-          {/* 1열: 로고 계속 */}
-          {/* 2-3열: 제목 계속 */}
-          {/* 4열: 결재란 계속 */}
+          {/* 4열: 재정팀장 */}
+          <td className="approval-title">재정팀장</td>
         </tr>
 
-        {/* ===== 3-4행: 예산항목 ===== */}
-        <tr>
+        {/* ===== 2행: 재정팀장 서명란 (2행 병합 시작) ===== */}
+        <tr style={{ height: '25px' }}>
+          {/* 1열: 로고 계속 */}
+          {/* 2-3열: 제목 계속 */}
+          {/* 4열: 재정팀장 서명란 (2행 병합) */}
+          <td rowSpan={2} className="approval-sign"></td>
+        </tr>
+
+        {/* ===== 3행: 예산항목 + 재정팀장 서명란 계속 ===== */}
+        <tr style={{ height: '25px' }}>
           {/* 1열: 로고 계속 */}
           {/* 2열: 예산항목 라벨 (2행 병합) */}
           <td rowSpan={2} className="label-cell">
@@ -99,20 +53,23 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
           <td rowSpan={2} className="value-cell budget-value">
             {expense.budgetCategory} / {expense.budgetSubcategory}
           </td>
-          {/* 4열: 결재란 계속 */}
+          {/* 4열: 재정팀장 서명란 계속 */}
         </tr>
-        <tr>
+
+        {/* ===== 4행: 예산항목 계속 + 신창국 ===== */}
+        <tr style={{ height: '25px' }}>
           {/* 1열: 로고 계속 */}
           {/* 2열: 예산항목 라벨 계속 */}
           {/* 3열: 예산항목 값 계속 */}
-          {/* 4열: 결재란 계속 */}
+          {/* 4열: 신창국 */}
+          <td className="approval-name">신 창 국</td>
         </tr>
 
-        {/* ===== 5-6행: 지출일자 + 사역팀(부)장 ===== */}
-        <tr>
+        {/* ===== 5행: 사역팀(부)장 + 지출일자 + 회계 ===== */}
+        <tr style={{ height: '25px' }}>
           {/* 1열: 사역팀(부)장 (1행) */}
           <td className="left-approval-cell">
-            <div className="vertical-text">사역팀(부)장</div>
+            사역팀(부)장
           </td>
           {/* 2열: 지출일자 라벨 (2행 병합) */}
           <td rowSpan={2} className="label-cell">
@@ -121,24 +78,27 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
           {/* 3열: 지출일자 값 (2행 병합) */}
           <td rowSpan={2} className="value-cell">
             <div className="notice-box">
-              "지출일자"는 재정팀에서 기재합니다.<br />
-              (청구일의 다음 주일 날짜로 기재해도 됩니다.)
+                  년      월      일
             </div>
           </td>
-          {/* 4열: 결재란 계속 */}
+          {/* 4열: 회계 */}
+          <td className="approval-title">회계</td>
         </tr>
-        <tr>
-          {/* 1열: 재정팀장 전결 (2행 병합 시작) */}
+
+        {/* ===== 6행: 재정팀장 전결 (2행 병합 시작) + 지출일자 계속 + 회계 서명란 (2행 병합 시작) ===== */}
+        <tr style={{ height: '25px' }}>
+          {/* 1열: 재정팀장 전결 (2행 병합) */}
           <td rowSpan={2} className="left-approval-cell">
-            <div className="vertical-text">재정팀장 전결</div>
+            재정팀장 전결
           </td>
           {/* 2열: 지출일자 라벨 계속 */}
           {/* 3열: 지출일자 값 계속 */}
-          {/* 4열: 결재란 계속 */}
+          {/* 4열: 회계 서명란 (2행 병합) */}
+          <td rowSpan={2} className="approval-sign"></td>
         </tr>
 
-        {/* ===== 7-8행: 청구금액 + 재정팀장전결/신창국 ===== */}
-        <tr>
+        {/* ===== 7행: 재정팀장 전결 계속 + 청구금액 + 회계 서명란 계속 ===== */}
+        <tr style={{ height: '25px' }}>
           {/* 1열: 재정팀장 전결 계속 */}
           {/* 2열: 청구금액 라벨 (2행 병합) */}
           <td rowSpan={2} className="label-cell">
@@ -148,16 +108,19 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
           <td rowSpan={2} className="value-cell amount-value">
             ₩ {formatCurrency(expense.requestAmount)} 원
           </td>
-          {/* 4열: 결재란 계속 */}
+          {/* 4열: 회계 서명란 계속 */}
         </tr>
-        <tr>
-          {/* 1열: 신 창 국 (1행) */}
+
+        {/* ===== 8행: 신창국 + 청구금액 계속 + 윤운문 ===== */}
+        <tr style={{ height: '25px' }}>
+          {/* 1열: 신창국 (1행) */}
           <td className="left-approval-cell name-cell">
-            <div className="vertical-text">신 창 국</div>
+            신 창 국
           </td>
           {/* 2열: 청구금액 라벨 계속 */}
           {/* 3열: 청구금액 값 계속 */}
-          {/* 4열: 결재란 계속 */}
+          {/* 4열: 윤운문 */}
+          <td className="approval-name">윤 운 문</td>
         </tr>
       </tbody>
 
@@ -188,56 +151,10 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
           align-items: center;
         }
 
-        .logo-wrapper {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 2px;
-        }
-
-        .logo-middle {
-          display: flex;
-          gap: 2px;
-        }
-
-        .logo-circle {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          color: white;
-          font-size: 10px;
-        }
-
-        .circle-top {
-          background-color: #2e7d32;
-        }
-
-        .circle-left {
-          background-color: #1565c0;
-        }
-
-        .circle-right {
-          background-color: #757575;
-        }
-
-        .circle-bottom {
-          background-color: #f9a825;
-        }
-
-        .circle-icon {
-          font-size: 12px;
-          line-height: 1;
-        }
-
-        .circle-text {
-          font-size: 3px;
-          text-align: center;
-          line-height: 1;
-          margin-top: 1px;
+        .logo-image {
+          width: 70px;
+          height: auto;
+          object-fit: contain;
         }
 
         /* ===== 제목 셀 ===== */
@@ -249,46 +166,32 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
           padding: 12px;
         }
 
-        /* ===== 결재란 ===== */
-        .approval-cell {
-          padding: 0;
-          vertical-align: top;
-          width: 90px;
-        }
-
-        .approval-table {
-          width: 100%;
-          height: 100%;
-          border-collapse: collapse;
-        }
-
-        .approval-table th,
-        .approval-table td {
-          border: 1px solid #000;
+        /* ===== 결재란 (중첩 테이블 제거, 메인 테이블에 직접 구성) ===== */
+        .approval-title {
+          background-color: #fff;
+          height: 25px;
+          font-weight: bold;
           text-align: center;
           font-size: 9pt;
           padding: 2px;
         }
 
-        .approval-title {
-          background-color: #e8f5e9;
-          height: 20px;
-          font-weight: bold;
-        }
-
         .approval-sign {
-          height: 35px;
+          height: 50px; /* rowSpan=2이므로 25px × 2 = 50px */
+          background-color: #fff;
         }
 
         .approval-name {
-          height: 18px;
+          height: 25px;
           font-size: 8pt;
           letter-spacing: 3px;
+          text-align: center;
+          background-color: #fff;
         }
 
         /* ===== 라벨/값 셀 ===== */
         .label-cell {
-          background-color: #e8f5e9;
+          background-color: #fff;
           font-weight: bold;
           text-align: center;
           font-size: 10pt;
@@ -302,6 +205,8 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
 
         .value-cell {
           padding: 8px 12px;
+          text-align: center;
+          vertical-align: middle;
         }
 
         .budget-value {
@@ -310,11 +215,13 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
         }
 
         .notice-box {
-          background-color: #fff59d;
+          background-color: #fff;
           padding: 8px 12px;
-          font-size: 9pt;
+          font-size: 10pt;
           color: #000;
           line-height: 1.5;
+          text-align: center;
+          letter-spacing: 8px;
         }
 
         .amount-value {
@@ -324,22 +231,20 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
 
         /* ===== 좌측 결재선 ===== */
         .left-approval-cell {
-          background-color: #e8f5e9;
+          background-color: #fff;
           text-align: center;
+          vertical-align: middle;
           padding: 4px 2px;
-        }
+          font-size: 8pt;
+          font-weight: bold;
+          height: 25px; /* rowSpan=1 기본 높이 */}
+
+        /* rowSpan=2인 경우 자동으로 50px (25px × 2)가 됨 */
 
         .name-cell {
           /* 신창국 셀 */
-        }
-
-        .vertical-text {
-          writing-mode: vertical-rl;
-          text-orientation: mixed;
-          font-size: 8pt;
-          font-weight: bold;
-          white-space: nowrap;
-          letter-spacing: 2px;
+          font-size: 9pt;
+          letter-spacing: 3px;
         }
       `}</style>
     </table>
