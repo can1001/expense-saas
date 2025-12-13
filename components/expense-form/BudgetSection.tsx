@@ -7,6 +7,7 @@
 import { Control, Controller } from 'react-hook-form';
 import BudgetSelector from '@/components/BudgetSelector';
 import { ExpenseFormData } from '@/lib/schemas/expense-schema';
+import { SECTION_CARD, SECTION_TITLE, ERROR_MESSAGE } from '@/lib/constants/styles';
 
 interface BudgetSectionProps {
   control: Control<ExpenseFormData>;
@@ -20,8 +21,8 @@ export default function BudgetSection({
   onBudgetDetailChange,
 }: BudgetSectionProps) {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">예산 정보</h2>
+    <div className={SECTION_CARD}>
+      <h2 className={SECTION_TITLE}>예산 정보</h2>
       <Controller
         name="committee"
         control={control}
@@ -63,7 +64,7 @@ export default function BudgetSection({
                           departmentFieldState.error ||
                           categoryFieldState.error ||
                           subcategoryFieldState.error) && (
-                          <p className="mt-2 text-sm text-red-600">
+                          <p className={`${ERROR_MESSAGE} mt-2`}>
                             {committeeFieldState.error?.message ||
                               departmentFieldState.error?.message ||
                               categoryFieldState.error?.message ||

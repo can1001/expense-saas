@@ -6,6 +6,7 @@
 
 import { UseFormRegister, FieldErrors } from 'react-hook-form';
 import { ExpenseFormData } from '@/lib/schemas/expense-schema';
+import { INPUT_BASE, SECTION_CARD, SECTION_TITLE, LABEL_BASE, ERROR_MESSAGE } from '@/lib/constants/styles';
 
 interface ExpenseDateSectionProps {
   register: UseFormRegister<ExpenseFormData>;
@@ -18,14 +19,11 @@ export default function ExpenseDateSection({
   errors,
   disabled = false,
 }: ExpenseDateSectionProps) {
-  const inputClasses =
-    'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white placeholder-gray-400';
-
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">지출 정보</h2>
+    <div className={SECTION_CARD}>
+      <h2 className={SECTION_TITLE}>지출 정보</h2>
       <div>
-        <label htmlFor="expenseDate" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="expenseDate" className={`${LABEL_BASE} mb-2`}>
           지출일자 (선택사항)
         </label>
         <input
@@ -33,10 +31,10 @@ export default function ExpenseDateSection({
           id="expenseDate"
           {...register('expenseDate')}
           disabled={disabled}
-          className={inputClasses}
+          className={INPUT_BASE}
         />
         {errors.expenseDate && (
-          <p className="mt-1 text-sm text-red-600">{errors.expenseDate.message}</p>
+          <p className={ERROR_MESSAGE}>{errors.expenseDate.message}</p>
         )}
         <p className="mt-1 text-xs text-gray-500">재정팀에서 입력하는 항목입니다.</p>
       </div>

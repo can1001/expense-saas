@@ -21,6 +21,7 @@ import ItemsSection from './expense-form/ItemsSection';
 import ApplicantSection from './expense-form/ApplicantSection';
 import BankSection from './expense-form/BankSection';
 import FileUpload, { UploadedFile } from './FileUpload';
+import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER, ALERT_ERROR } from '@/lib/constants/styles';
 
 interface ExpenseFormProps {
   expenseId?: string;
@@ -168,9 +169,9 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   // 수정 모드 데이터 로딩 중
   if (fetchLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className={`${FLEX_CENTER} py-12`}>
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className={`inline-block ${SPINNER_LG}`}></div>
           <p className="mt-4 text-gray-600">데이터를 불러오는 중...</p>
         </div>
       </div>
@@ -181,14 +182,14 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       {/* 에러 메시지 */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className={ALERT_ERROR}>
           {error}
         </div>
       )}
 
       {/* Zod 검증 에러 표시 */}
       {Object.keys(errors).length > 0 && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className={ALERT_ERROR}>
           <p className="font-medium mb-2">다음 항목을 확인해주세요:</p>
           <ul className="list-disc list-inside space-y-1 text-sm">
             {errors.committee && <li>{errors.committee.message}</li>}
@@ -237,8 +238,8 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       <BankSection register={register} errors={errors} disabled={loading || isSubmitting} />
 
       {/* 첨부파일 */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">첨부파일</h2>
+      <div className={SECTION_CARD}>
+        <h2 className={SECTION_TITLE}>첨부파일</h2>
         <FileUpload
           expenseId={expenseId}
           initialFiles={attachments}
@@ -254,17 +255,17 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
           type="button"
           onClick={() => router.back()}
           disabled={loading || isSubmitting}
-          className="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className={`${BTN_OUTLINE} ${BTN_LG} disabled:cursor-not-allowed`}
         >
           취소
         </button>
         <button
           type="submit"
           disabled={loading || isSubmitting}
-          className="px-6 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          className={`${BTN_PRIMARY} ${BTN_LG} disabled:cursor-not-allowed`}
         >
           {(loading || isSubmitting) && (
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+            <div className={SPINNER}></div>
           )}
           {loading || isSubmitting ? '저장 중...' : '저장'}
         </button>

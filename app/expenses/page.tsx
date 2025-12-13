@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import Header from '@/components/Header';
 import { ExpenseListItem, ExpenseListResponse } from '@/lib/types';
-import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_OUTLINE } from '@/lib/constants/styles';
+import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_OUTLINE, BTN_LG, BTN_PAGINATION, BTN_PAGE_ACTIVE, BTN_PAGE_INACTIVE, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 import { formatCurrency } from '@/lib/utils';
 
 export default function ExpensesPage() {
@@ -145,9 +145,9 @@ export default function ExpensesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`min-h-screen bg-gray-50 ${FLEX_CENTER}`}>
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className={`inline-block ${SPINNER_LG}`}></div>
           <p className="mt-4 text-gray-600">데이터를 불러오는 중...</p>
         </div>
       </div>
@@ -156,14 +156,14 @@ export default function ExpensesPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`min-h-screen bg-gray-50 ${FLEX_CENTER}`}>
         <div className="text-center">
           <div className="text-red-500 text-5xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">오류 발생</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={fetchExpenses}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className={BTN_PRIMARY}
           >
             다시 시도
           </button>
@@ -429,7 +429,7 @@ export default function ExpensesPage() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className={BTN_PAGINATION}
                 >
                   이전
                 </button>
@@ -446,11 +446,7 @@ export default function ExpensesPage() {
                         <button
                           key={page}
                           onClick={() => setCurrentPage(page)}
-                          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                            currentPage === page
-                              ? 'bg-blue-500 text-white'
-                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                          }`}
+                          className={currentPage === page ? BTN_PAGE_ACTIVE : BTN_PAGE_INACTIVE}
                         >
                           {page}
                         </button>
@@ -465,7 +461,7 @@ export default function ExpensesPage() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className={BTN_PAGINATION}
                 >
                   다음
                 </button>
@@ -478,7 +474,7 @@ export default function ExpensesPage() {
         <div className="mt-6 flex justify-end">
           <button
             onClick={() => router.push('/expenses/new')}
-            className="px-6 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
+            className={`${BTN_PRIMARY} ${BTN_LG} shadow-sm`}
           >
             + 신규 지출결의서 작성
           </button>

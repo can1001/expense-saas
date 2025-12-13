@@ -18,7 +18,8 @@
       "Bash(npm run build:*)",
       "Bash(npm run generate-template:*)",
       "Bash(npx ts-node:*)",
-      "Bash(npm run bulk-upload:*)"
+      "Bash(npm run bulk-upload:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

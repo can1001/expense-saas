@@ -41,6 +41,13 @@ export const BTN_LG = 'px-6 py-3';
 // 작은 버튼
 export const BTN_SM = 'px-3 py-1.5 text-sm';
 
+// 페이지네이션 버튼
+export const BTN_PAGINATION = 'px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors';
+
+export const BTN_PAGE_ACTIVE = 'px-4 py-2 text-sm font-medium rounded-lg bg-blue-500 text-white transition-colors';
+
+export const BTN_PAGE_INACTIVE = 'px-4 py-2 text-sm font-medium rounded-lg text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors';
+
 // ============================================
 // 카드/섹션 스타일
 // ============================================
@@ -64,6 +71,8 @@ export const LABEL_REQUIRED = "after:content-['*'] after:ml-0.5 after:text-red-5
 // ============================================
 
 export const ERROR_MESSAGE = 'mt-1 text-sm text-red-600';
+
+export const ALERT_ERROR = 'bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg';
 
 // ============================================
 // 테이블 스타일
@@ -102,6 +111,10 @@ export const FLEX_BETWEEN = 'flex items-center justify-between';
 // ============================================
 
 export const SPINNER = 'animate-spin rounded-full h-4 w-4 border-b-2 border-white';
+
+export const SPINNER_BLUE = 'animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500';
+
+export const SPINNER_MD = 'animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500';
 
 export const SPINNER_LG = 'animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500';
 

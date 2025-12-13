@@ -11,6 +11,7 @@ import Header from '@/components/Header';
 import PrintableExpense from '@/components/PrintableExpense';
 import { Expense } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
+import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_SECONDARY, BTN_SUCCESS, BTN_DANGER, BTN_EMERALD, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 
 export default function ExpenseDetailPage() {
   const router = useRouter();
@@ -115,9 +116,9 @@ export default function ExpenseDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`min-h-screen bg-gray-50 ${FLEX_CENTER}`}>
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className={`inline-block ${SPINNER_LG}`}></div>
           <p className="mt-4 text-gray-600">데이터를 불러오는 중...</p>
         </div>
       </div>
@@ -126,14 +127,14 @@ export default function ExpenseDetailPage() {
 
   if (error || !expense) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`min-h-screen bg-gray-50 ${FLEX_CENTER}`}>
         <div className="text-center">
           <div className="text-red-500 text-5xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">오류 발생</h2>
           <p className="text-gray-600 mb-4">{error || '지출결의서를 찾을 수 없습니다.'}</p>
           <button
             onClick={() => router.push('/expenses')}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className={BTN_PRIMARY}
           >
             목록으로 돌아가기
           </button>
@@ -164,7 +165,7 @@ export default function ExpenseDetailPage() {
             {/* 프린트 버튼 */}
             <button
               onClick={handlePrint}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+              className={BTN_PRIMARY}
               title="페이지 프린트"
             >
               <svg
@@ -186,12 +187,12 @@ export default function ExpenseDetailPage() {
             <button
               onClick={handleDownloadPDF}
               disabled={pdfLoading}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 transition-colors flex items-center gap-2"
+              className={BTN_SUCCESS}
               title="PDF 파일로 다운로드"
             >
               {pdfLoading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className={SPINNER}></div>
                   생성 중...
                 </>
               ) : (
@@ -217,12 +218,12 @@ export default function ExpenseDetailPage() {
             <button
               onClick={handleDownloadExcel}
               disabled={excelLoading}
-              className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:opacity-50 transition-colors flex items-center gap-2"
+              className={BTN_EMERALD}
               title="엑셀 파일로 다운로드"
             >
               {excelLoading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className={SPINNER}></div>
                   생성 중...
                 </>
               ) : (
@@ -247,17 +248,17 @@ export default function ExpenseDetailPage() {
             <button
               onClick={() => router.push(`/expenses/${id}/edit`)}
               disabled={deleteLoading}
-              className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 transition-colors"
+              className={BTN_SECONDARY}
             >
               수정
             </button>
             <button
               onClick={handleDelete}
               disabled={deleteLoading}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors flex items-center gap-2"
+              className={BTN_DANGER}
             >
               {deleteLoading && (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <div className={SPINNER}></div>
               )}
               삭제
             </button>
@@ -265,8 +266,8 @@ export default function ExpenseDetailPage() {
         </div>
 
         {/* 예산 정보 */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">예산 정보</h2>
+        <div className={SECTION_CARD}>
+          <h2 className={SECTION_TITLE}>예산 정보</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">위원회</label>
@@ -288,8 +289,8 @@ export default function ExpenseDetailPage() {
         </div>
 
         {/* 지출 정보 */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">지출 정보</h2>
+        <div className={SECTION_CARD}>
+          <h2 className={SECTION_TITLE}>지출 정보</h2>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">지출일자</label>
             <p className="text-gray-900">
@@ -301,8 +302,8 @@ export default function ExpenseDetailPage() {
         </div>
 
         {/* 세부 항목 */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">세부 항목</h2>
+        <div className={SECTION_CARD}>
+          <h2 className={SECTION_TITLE}>세부 항목</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -360,8 +361,8 @@ export default function ExpenseDetailPage() {
         </div>
 
         {/* 신청 정보 */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">신청 정보</h2>
+        <div className={SECTION_CARD}>
+          <h2 className={SECTION_TITLE}>신청 정보</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">청구 일자</label>
@@ -387,8 +388,8 @@ export default function ExpenseDetailPage() {
         </div>
 
         {/* 은행 정보 */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">은행 정보</h2>
+        <div className={SECTION_CARD}>
+          <h2 className={SECTION_TITLE}>은행 정보</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">은행명</label>
@@ -407,8 +408,8 @@ export default function ExpenseDetailPage() {
 
         {/* 첨부파일 */}
         {expense.attachments && expense.attachments.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">첨부파일</h2>
+          <div className={SECTION_CARD}>
+            <h2 className={SECTION_TITLE}>첨부파일</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {expense.attachments.map((attachment) => (
                 <a
@@ -433,7 +434,7 @@ export default function ExpenseDetailPage() {
         <div className="flex justify-end gap-4 no-print">
           <button
             onClick={() => router.push('/expenses')}
-            className="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+            className={`${BTN_OUTLINE} ${BTN_LG}`}
           >
             목록으로
           </button>

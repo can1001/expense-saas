@@ -47,11 +47,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log('Received POST data:', JSON.stringify(body, null, 2));
 
     // 유효성 검증
     const validatedData = createExpenseSchema.parse(body);
-    console.log('Validated data:', JSON.stringify(validatedData, null, 2));
 
     // 항목별 금액 계산 및 순서 할당
     const itemsWithCalculatedAmount = validatedData.items.map((item, index) => ({

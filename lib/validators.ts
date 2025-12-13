@@ -1,18 +1,15 @@
 import { z } from 'zod';
 
-// 중앙화된 계산 함수 re-export
+// 중앙화된 계산 함수 및 스키마 re-export
 export {
   calculateAmount,
   calculateTotalAmount as calculateTotal,
+  expenseItemSchema as baseExpenseItemSchema,
 } from '@/lib/schemas/expense-schema';
 
-// 지출 항목 스키마
-export const expenseItemSchema = z.object({
-  budgetDetail: z.string().min(1, '예산(세목)을 입력해주세요'),
-  description: z.string().min(1, '적요를 입력해주세요'),
-  unitPrice: z.number().int().positive('단가는 양수여야 합니다'),
-  quantity: z.number().int().positive('수량은 양수여야 합니다'),
-  amount: z.number().int(),
+// API용 지출 항목 스키마 (order 필드 추가)
+import { expenseItemSchema as baseSchema } from '@/lib/schemas/expense-schema';
+export const expenseItemSchema = baseSchema.extend({
   order: z.number().int().optional(),
 });
 

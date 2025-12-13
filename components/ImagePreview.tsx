@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { SPINNER_MD, FLEX_CENTER } from '@/lib/constants/styles';
 
 export interface ImagePreviewFile {
   id?: string;
@@ -63,8 +64,8 @@ export default function ImagePreview({
         ) : (
           <>
             {isLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <div className={`absolute inset-0 ${FLEX_CENTER} bg-gray-100`}>
+                <div className={SPINNER_MD}></div>
               </div>
             )}
             <Image

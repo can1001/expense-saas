@@ -6,6 +6,7 @@ import ImagePreview, { ImagePreviewFile } from './ImagePreview';
 import { uploadFiles, removeFile, FileServiceError } from '@/lib/services/file-service';
 import { FILE_VALIDATION } from '@/lib/constants/file-validation';
 import { UploadedFile } from '@/lib/types';
+import { SPINNER_BLUE } from '@/lib/constants/styles';
 
 export type { UploadedFile };
 
@@ -182,7 +183,7 @@ export default function FileUpload({
       {/* 업로드 진행 상태 */}
       {uploading && (
         <div className="flex items-center gap-2 text-sm text-gray-600">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+          <div className={SPINNER_BLUE}></div>
           <span>{uploadProgress}</span>
         </div>
       )}
