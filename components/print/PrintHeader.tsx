@@ -8,6 +8,12 @@ interface PrintHeaderProps {
 }
 
 export default function PrintHeader({ expense }: PrintHeaderProps) {
+  // 지출일자 분리 (없으면 빈칸)
+  const expenseDate = expense.expenseDate ? new Date(expense.expenseDate) : null;
+  const expenseYear = expenseDate ? expenseDate.getFullYear() : '';
+  const expenseMonth = expenseDate ? expenseDate.getMonth() + 1 : '';
+  const expenseDay = expenseDate ? expenseDate.getDate() : '';
+
   return (
     <table className="print-header-table">
       <colgroup>
@@ -78,7 +84,7 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
           {/* 3열: 지출일자 값 (2행 병합) */}
           <td rowSpan={2} className="value-cell">
             <div className="notice-box">
-                  년      월      일
+              {expenseYear} 년 {expenseMonth} 월 {expenseDay} 일
             </div>
           </td>
           {/* 4열: 회계 */}
