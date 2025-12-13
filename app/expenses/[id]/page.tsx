@@ -183,8 +183,8 @@ export default function ExpenseDetailPage() {
               </svg>
               프린트
             </button>
-            {/* PDF 다운로드 버튼 */}
-            <button
+            {/* PDF 다운로드 버튼 - 임시 숨김 */}
+            {/* <button
               onClick={handleDownloadPDF}
               disabled={pdfLoading}
               className={BTN_SUCCESS}
@@ -213,9 +213,9 @@ export default function ExpenseDetailPage() {
                   PDF
                 </>
               )}
-            </button>
-            {/* 엑셀 다운로드 버튼 */}
-            <button
+            </button> */}
+            {/* 엑셀 다운로드 버튼 - 임시 숨김 */}
+            {/* <button
               onClick={handleDownloadExcel}
               disabled={excelLoading}
               className={BTN_EMERALD}
@@ -244,7 +244,7 @@ export default function ExpenseDetailPage() {
                   엑셀
                 </>
               )}
-            </button>
+            </button> */}
             <button
               onClick={() => router.push(`/expenses/${id}/edit`)}
               disabled={deleteLoading}
