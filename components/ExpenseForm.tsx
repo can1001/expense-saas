@@ -19,7 +19,7 @@ import BudgetSection from './expense-form/BudgetSection';
 import ExpenseDateSection from './expense-form/ExpenseDateSection';
 import ItemsSection from './expense-form/ItemsSection';
 import ApplicantSection from './expense-form/ApplicantSection';
-import BankSection from './expense-form/BankSection';
+import BankAccountSelector from './expense-form/BankAccountSelector';
 import FileUpload, { UploadedFile } from './FileUpload';
 import { createAttachment } from '@/lib/services/file-service';
 import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER, ALERT_ERROR } from '@/lib/constants/styles';
@@ -42,11 +42,17 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
     handleSubmit,
     setValue,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: defaultExpenseFormData as ExpenseFormData,
   });
+
+  // 은행 정보 감시 (BankAccountSelector에 전달)
+  const bankName = watch('bankName');
+  const accountNumber = watch('accountNumber');
+  const accountHolder = watch('accountHolder');
 
   // 수정 모드일 때 데이터 로드
   useEffect(() => {
@@ -252,7 +258,15 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       />
 
       {/* 은행 정보 */}
-      <BankSection register={register} errors={errors} disabled={loading || isSubmitting} />
+      <BankAccountSelector
+        register={register}
+        setValue={setValue}
+        errors={errors}
+        disabled={loading || isSubmitting}
+        defaultBankName={bankName}
+        defaultAccountNumber={accountNumber}
+        defaultAccountHolder={accountHolder}
+      />
 
       {/* 첨부파일 */}
       <div className={SECTION_CARD}>
