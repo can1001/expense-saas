@@ -131,15 +131,15 @@ describe('expenseFormSchema', () => {
 });
 
 describe('calculateAmount', () => {
-  it('should calculate amount correctly (unitPrice × quantity ÷ 10, rounded down)', () => {
-    expect(calculateAmount(10000, 5)).toBe(5000);
-    expect(calculateAmount(1234, 3)).toBe(370);
-    expect(calculateAmount(9999, 1)).toBe(990);
+  it('should calculate amount correctly (unitPrice × quantity, 10원 단위 절사)', () => {
+    expect(calculateAmount(10000, 5)).toBe(50000); // 10000 * 5 = 50000
+    expect(calculateAmount(1234, 3)).toBe(3700);   // 1234 * 3 = 3702 → 3700
+    expect(calculateAmount(9999, 1)).toBe(9990);   // 9999 * 1 = 9999 → 9990
   });
 
-  it('should handle rounding down', () => {
-    expect(calculateAmount(155, 1)).toBe(10); // 155 / 10 = 15.5 → 10 (내림)
-    expect(calculateAmount(199, 1)).toBe(10); // 199 / 10 = 19.9 → 10 (내림)
+  it('should handle rounding down to nearest 10', () => {
+    expect(calculateAmount(155, 1)).toBe(150);  // 155 → 150 (10원 단위 절사)
+    expect(calculateAmount(199, 1)).toBe(190);  // 199 → 190 (10원 단위 절사)
   });
 
   it('should handle zero quantity', () => {
@@ -147,7 +147,7 @@ describe('calculateAmount', () => {
   });
 
   it('should handle large numbers', () => {
-    expect(calculateAmount(1000000, 100)).toBe(10000000);
+    expect(calculateAmount(1000000, 100)).toBe(100000000); // 1000000 * 100 = 100000000
   });
 });
 
