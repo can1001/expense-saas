@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import {
   canModifyApprovalLine,
   generateApprovalLine,
@@ -199,7 +199,7 @@ export async function PUT(
             userAgent: request.headers.get('user-agent') || '',
             timestamp: new Date().toISOString(),
           },
-          beforeSnapshot,
+          beforeSnapshot: beforeSnapshot ?? undefined,
           afterSnapshot: JSON.parse(newSnapshot),
         },
       });

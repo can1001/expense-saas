@@ -104,7 +104,7 @@ export async function PUT(
     return NextResponse.json(expense);
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
-      const zodError = error as { errors: Array<{ path: string[]; message: string }> };
+      const zodError = error as unknown as { errors: Array<{ path: string[]; message: string }> };
       const errorMessages = zodError.errors.map((err) =>
         `${err.path.join('.')}: ${err.message}`
       ).join(', ');
