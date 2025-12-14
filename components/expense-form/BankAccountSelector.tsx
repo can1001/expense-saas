@@ -78,6 +78,9 @@ export default function BankAccountSelector({
       }
     } catch (error) {
       console.error('계좌 목록 조회 실패:', error);
+      // API 오류 시 직접 입력 모드로 전환
+      setMode('direct');
+      setAccounts([]);
     } finally {
       setLoading(false);
     }

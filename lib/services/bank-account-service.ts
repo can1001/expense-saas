@@ -28,19 +28,28 @@ export class BankAccountServiceError extends Error {
  * 저장된 은행 계좌 목록 조회
  */
 export async function getSavedBankAccounts(): Promise<SavedBankAccount[]> {
-  const response = await fetch('/api/bank-accounts');
+  try {
+    const response = await fetch('/api/bank-accounts');
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new BankAccountServiceError(
-      error.error || '계좌 목록 조회에 실패했습니다.',
-      response.status,
-      error
-    );
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new BankAccountServiceError(
+        error.error || '계좌 목록 조회에 실패했습니다.',
+        response.status,
+        error
+      );
+    }
+
+    const data = await response.json();
+    return data.accounts || [];
+  } catch (error) {
+    if (error instanceof BankAccountServiceError) {
+      throw error;
+    }
+    // 네트워크 오류 등 예외 처리
+    console.error('Bank account fetch error:', error);
+    throw new BankAccountServiceError('계좌 목록 조회에 실패했습니다.');
   }
-
-  const data = await response.json();
-  return data.accounts;
 }
 
 /**
