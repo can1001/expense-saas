@@ -14,16 +14,34 @@ export default function Home() {
           </p>
         </div>
 
-        {/* 주요 기능 카드 */}
-        <div className="grid md:grid-cols-2 gap-6 mb-12">
-          <Link
-            href="/expenses/new"
-            className="group bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-all hover:-translate-y-1"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+        {/* 기존 지출결의서 (Ver.4.1.3) */}
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-gray-700 mb-3">
+            기존 지출결의서 (Ver.4.1.3)
+          </h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <Link
+              href="/expenses/new"
+              className="group bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-all hover:-translate-y-1"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                </div>
                 <svg
-                  className="w-6 h-6 text-white"
+                  className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -32,40 +50,40 @@ export default function Home() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 4v16m8-8H4"
+                    d="M9 5l7 7-7 7"
                   />
                 </svg>
               </div>
-              <svg
-                className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              새 지출결의서 작성
-            </h2>
-            <p className="text-gray-600">
-              새로운 지출결의서를 작성하고 PDF로 출력하세요
-            </p>
-          </Link>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                새 지출결의서 작성
+              </h2>
+              <p className="text-gray-600">
+                위원회/사역팀 선택 방식의 지출결의서
+              </p>
+            </Link>
 
-          <Link
-            href="/expenses"
-            className="group bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-all hover:-translate-y-1"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+            <Link
+              href="/expenses"
+              className="group bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-all hover:-translate-y-1"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                </div>
                 <svg
-                  className="w-6 h-6 text-white"
+                  className="w-5 h-5 text-gray-400 group-hover:text-green-500 transition-colors"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -74,31 +92,86 @@ export default function Home() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    d="M9 5l7 7-7 7"
                   />
                 </svg>
               </div>
-              <svg
-                className="w-5 h-5 text-gray-400 group-hover:text-green-500 transition-colors"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              지출결의서 목록
-            </h2>
-            <p className="text-gray-600">
-              저장된 지출결의서를 조회하고 관리하세요
-            </p>
-          </Link>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                지출결의서 목록
+              </h2>
+              <p className="text-gray-600">
+                저장된 지출결의서를 조회하고 관리하세요
+              </p>
+            </Link>
+          </div>
+        </div>
+
+        {/* 간편 지출결의서 (Ver.4.1.4) */}
+        <div className="mb-12">
+          <h2 className="text-lg font-semibold text-gray-700 mb-3">
+            간편 지출결의서 (Ver.4.1.4) - 항목별 예산 선택
+          </h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <Link
+              href="/expenses/simple/new"
+              className="group bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-all hover:-translate-y-1 border-2 border-indigo-100"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-indigo-500 rounded-lg flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                </div>
+                <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded">NEW</span>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                간편 지출결의서 작성
+              </h2>
+              <p className="text-gray-600">
+                각 항목별로 예산(항/목/세목)을 선택하는 방식
+              </p>
+            </Link>
+
+            <Link
+              href="/expenses/simple"
+              className="group bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-all hover:-translate-y-1 border-2 border-purple-100"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                </div>
+                <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded">NEW</span>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                간편 지출결의서 목록
+              </h2>
+              <p className="text-gray-600">
+                간편 양식 지출결의서를 조회하고 관리하세요
+              </p>
+            </Link>
+          </div>
         </div>
 
         {/* 통계 */}
