@@ -4,7 +4,7 @@
 
 'use client';
 
-import { Control, useFieldArray, UseFormRegister, UseFormSetValue, useWatch } from 'react-hook-form';
+import { Control, useFieldArray, UseFormRegister, UseFormSetValue, useWatch, FieldErrors } from 'react-hook-form';
 import { ExpenseFormData, defaultExpenseItem, calculateAmount } from '@/lib/schemas/expense-schema';
 import { INPUT_BASE, BTN_PRIMARY, BTN_SM, SECTION_CARD, SECTION_TITLE } from '@/lib/constants/styles';
 
@@ -12,6 +12,7 @@ interface ItemsSectionProps {
   control: Control<ExpenseFormData>;
   register: UseFormRegister<ExpenseFormData>;
   setValue: UseFormSetValue<ExpenseFormData>;
+  errors?: FieldErrors<ExpenseFormData>;
   disabled?: boolean;
 }
 
@@ -19,6 +20,7 @@ export default function ItemsSection({
   control,
   register,
   setValue,
+  errors,
   disabled = false,
 }: ItemsSectionProps) {
   const { fields, append, remove } = useFieldArray({
@@ -101,8 +103,11 @@ export default function ItemsSection({
                   {...register(`items.${index}.budgetDetail`)}
                   disabled={disabled}
                   placeholder="예: 교육자료비"
-                  className={INPUT_BASE}
+                  className={`${INPUT_BASE} ${errors?.items?.[index]?.budgetDetail ? 'border-red-500' : ''}`}
                 />
+                {errors?.items?.[index]?.budgetDetail && (
+                  <p className="mt-1 text-sm text-red-500">{errors.items[index].budgetDetail.message}</p>
+                )}
               </div>
 
               <div>
@@ -114,8 +119,11 @@ export default function ItemsSection({
                   {...register(`items.${index}.description`)}
                   disabled={disabled}
                   placeholder="상세 설명"
-                  className={INPUT_BASE}
+                  className={`${INPUT_BASE} ${errors?.items?.[index]?.description ? 'border-red-500' : ''}`}
                 />
+                {errors?.items?.[index]?.description && (
+                  <p className="mt-1 text-sm text-red-500">{errors.items[index].description.message}</p>
+                )}
               </div>
 
               <div>
@@ -125,12 +133,16 @@ export default function ItemsSection({
                 <input
                   type="number"
                   {...register(`items.${index}.unitPrice`, {
+                    valueAsNumber: true,
                     onChange: (e) => handleUnitPriceOrQuantityChange(index, 'unitPrice', e.target.value),
                   })}
                   disabled={disabled}
-                  min="0"
-                  className={INPUT_BASE}
+                  min="1"
+                  className={`${INPUT_BASE} ${errors?.items?.[index]?.unitPrice ? 'border-red-500' : ''}`}
                 />
+                {errors?.items?.[index]?.unitPrice && (
+                  <p className="mt-1 text-sm text-red-500">{errors.items[index].unitPrice.message}</p>
+                )}
               </div>
 
               <div>
@@ -140,12 +152,16 @@ export default function ItemsSection({
                 <input
                   type="number"
                   {...register(`items.${index}.quantity`, {
+                    valueAsNumber: true,
                     onChange: (e) => handleUnitPriceOrQuantityChange(index, 'quantity', e.target.value),
                   })}
                   disabled={disabled}
                   min="1"
-                  className={INPUT_BASE}
+                  className={`${INPUT_BASE} ${errors?.items?.[index]?.quantity ? 'border-red-500' : ''}`}
                 />
+                {errors?.items?.[index]?.quantity && (
+                  <p className="mt-1 text-sm text-red-500">{errors.items[index].quantity.message}</p>
+                )}
               </div>
 
               <div className="md:col-span-2">

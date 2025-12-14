@@ -132,7 +132,7 @@ export type ExpenseFormData = z.infer<typeof expenseFormSchema>;
 export const defaultExpenseItem: ExpenseItem = {
   budgetDetail: '',
   description: '',
-  unitPrice: 0,
+  unitPrice: 1,
   quantity: 1,
   amount: 0,
 };

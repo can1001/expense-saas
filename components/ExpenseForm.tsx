@@ -224,6 +224,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         control={control}
         register={register}
         setValue={setValue}
+        errors={errors}
         disabled={loading || isSubmitting}
       />
 
