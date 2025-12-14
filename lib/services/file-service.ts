@@ -5,7 +5,7 @@
  * 컴포넌트와 API 로직을 분리
  */
 
-import { UploadedFile } from '@/components/FileUpload';
+import { UploadedFile } from '@/lib/types';
 
 /**
  * Cloudinary 업로드 응답

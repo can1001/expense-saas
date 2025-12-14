@@ -21,6 +21,7 @@ import ItemsSection from './expense-form/ItemsSection';
 import ApplicantSection from './expense-form/ApplicantSection';
 import BankSection from './expense-form/BankSection';
 import FileUpload, { UploadedFile } from './FileUpload';
+import { createAttachment } from '@/lib/services/file-service';
 import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER, ALERT_ERROR } from '@/lib/constants/styles';
 
 interface ExpenseFormProps {
@@ -152,6 +153,21 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       }
 
       const result = await response.json();
+
+      // 새 지출결의서 생성 시 첨부파일을 DB에 저장
+      if (!expenseId && attachments.length > 0) {
+        const unsavedAttachments = attachments.filter(att => !att.id);
+        if (unsavedAttachments.length > 0) {
+          try {
+            await Promise.all(
+              unsavedAttachments.map(att => createAttachment(result.id, att))
+            );
+          } catch (attachmentError) {
+            console.error('첨부파일 저장 오류:', attachmentError);
+            // 첨부파일 저장 실패해도 지출결의서는 이미 생성됨
+          }
+        }
+      }
 
       alert(
         expenseId
