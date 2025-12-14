@@ -1,0 +1,165 @@
+import { describe, it, expect } from 'vitest';
+import {
+  simpleExpenseFormSchema,
+  createSimpleExpenseSchema,
+} from '../simple-expense-schema';
+
+describe('simple-expense-schema', () => {
+  describe('simpleExpenseFormSchema', () => {
+    it('should validate valid simple expense form data', () => {
+      const validData = {
+        expenseDate: '2024-01-15',
+        items: [
+          {
+            budgetCategory: '사무행정비',
+            budgetSubcategory: '회의비',
+            budgetDetail: '다과비',
+            description: '회의 다과',
+            unitPrice: 10000,
+            quantity: 5,
+            amount: 50000,
+            order: 1,
+          },
+        ],
+        requestDate: '2024-01-15',
+        applicantName: '홍길동',
+        bankName: '우리은행',
+        accountNumber: '123-456-789',
+        accountHolder: '홍길동',
+      };
+
+      const result = simpleExpenseFormSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+    });
+
+    it('should require at least one item', () => {
+      const invalidData = {
+        expenseDate: '2024-01-15',
+        items: [],
+        requestDate: '2024-01-15',
+        applicantName: '홍길동',
+        bankName: '우리은행',
+        accountNumber: '123-456-789',
+        accountHolder: '홍길동',
+      };
+
+      const result = simpleExpenseFormSchema.safeParse(invalidData);
+      expect(result.success).toBe(false);
+    });
+
+    it('should limit items to maximum 10', () => {
+      const items = Array.from({ length: 11 }, (_, i) => ({
+        budgetCategory: '사무행정비',
+        budgetSubcategory: '회의비',
+        budgetDetail: '다과비',
+        description: `항목 ${i + 1}`,
+        unitPrice: 10000,
+        quantity: 1,
+        amount: 10000,
+        order: i + 1,
+      }));
+
+      const invalidData = {
+        expenseDate: '2024-01-15',
+        items,
+        requestDate: '2024-01-15',
+        applicantName: '홍길동',
+        bankName: '우리은행',
+        accountNumber: '123-456-789',
+        accountHolder: '홍길동',
+      };
+
+      const result = simpleExpenseFormSchema.safeParse(invalidData);
+      expect(result.success).toBe(false);
+    });
+
+    it('should require all budget fields', () => {
+      const invalidData = {
+        expenseDate: '2024-01-15',
+        items: [
+          {
+            // budgetCategory missing
+            budgetSubcategory: '회의비',
+            budgetDetail: '다과비',
+            description: '회의 다과',
+            unitPrice: 10000,
+            quantity: 5,
+            amount: 50000,
+            order: 1,
+          },
+        ],
+        requestDate: '2024-01-15',
+        applicantName: '홍길동',
+        bankName: '우리은행',
+        accountNumber: '123-456-789',
+        accountHolder: '홍길동',
+      };
+
+      const result = simpleExpenseFormSchema.safeParse(invalidData);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('createSimpleExpenseSchema', () => {
+    it('should validate valid create data', () => {
+      const validData = {
+        expenseDate: '2024-01-15',
+        items: [
+          {
+            budgetCategory: '사무행정비',
+            budgetSubcategory: '회의비',
+            budgetDetail: '다과비',
+            description: '회의 다과',
+            unitPrice: 10000,
+            quantity: 5,
+            amount: 50000,
+            order: 1,
+          },
+        ],
+        requestDate: '2024-01-15',
+        applicantName: '홍길동',
+        bankName: '우리은행',
+        accountNumber: '123-456-789',
+        accountHolder: '홍길동',
+      };
+
+      const result = createSimpleExpenseSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+    });
+
+    it('should calculate total requestAmount from items', () => {
+      const validData = {
+        items: [
+          {
+            budgetCategory: '사무행정비',
+            budgetSubcategory: '회의비',
+            budgetDetail: '다과비',
+            description: '항목1',
+            unitPrice: 10000,
+            quantity: 2,
+            amount: 20000,
+            order: 1,
+          },
+          {
+            budgetCategory: '사무행정비',
+            budgetSubcategory: '회의비',
+            budgetDetail: '식사비',
+            description: '항목2',
+            unitPrice: 15000,
+            quantity: 3,
+            amount: 45000,
+            order: 2,
+          },
+        ],
+        requestDate: '2024-01-15',
+        applicantName: '홍길동',
+        bankName: '우리은행',
+        accountNumber: '123-456-789',
+        accountHolder: '홍길동',
+      };
+
+      const result = createSimpleExpenseSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+    });
+  });
+});

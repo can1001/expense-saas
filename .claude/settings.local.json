@@ -23,7 +23,18 @@
       "Bash(npx prisma:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(brew upgrade claude-code)",
+      "Bash(RESULT=$?)",
+      "Bash(exit $RESULT)",
+      "Bash(GENERATE_RESULT=$?)",
+      "Bash(if [ $RESULT -eq 0 ])",
+      "Bash([ $GENERATE_RESULT -eq 0 ])",
+      "Bash(then)",
+      "Bash(exit 0)",
+      "Bash(else)",
+      "Bash(exit 1)",
+      "Bash(fi)"
     ],
     "deny": [],
     "ask": []
