@@ -133,3 +133,40 @@ export const COLORS = {
   emerald: 'emerald-500',
   emeraldHover: 'emerald-600',
 } as const;
+
+// ============================================
+// 모달 스타일
+// ============================================
+
+export const MODAL_OVERLAY = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+
+export const MODAL_CONTAINER = 'bg-white rounded-lg shadow-xl max-h-[90vh] overflow-hidden';
+
+export const MODAL_HEADER = 'px-6 py-4 border-b border-gray-200 flex items-center justify-between';
+
+export const MODAL_BODY = 'px-6 py-4 overflow-y-auto';
+
+export const MODAL_FOOTER = 'px-6 py-4 border-t border-gray-200 flex justify-end gap-3';
+
+// 모달 크기
+export const MODAL_SM = 'w-full max-w-md';
+
+export const MODAL_MD = 'w-full max-w-lg';
+
+export const MODAL_LG = 'w-full max-w-2xl';
+
+// ============================================
+// 탭 스타일
+// ============================================
+
+export const TAB_CONTAINER = 'flex border-b border-gray-200 mb-4';
+
+export const TAB_ACTIVE = 'px-4 py-2 border-b-2 border-blue-500 text-blue-600 font-medium';
+
+export const TAB_INACTIVE = 'px-4 py-2 text-gray-500 hover:text-gray-700 cursor-pointer';
+
+// ============================================
+// 뱃지 스타일
+// ============================================
+
+export const BADGE_DEFAULT = 'px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800';
