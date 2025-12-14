@@ -19,7 +19,10 @@
       "Bash(npm run generate-template:*)",
       "Bash(npx ts-node:*)",
       "Bash(npm run bulk-upload:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx prisma:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
