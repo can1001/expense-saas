@@ -145,10 +145,13 @@ describe('cloudinary', () => {
     });
 
     it('throws error on delete failure', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const mockError = new Error('Delete failed');
       (cloudinary.uploader.destroy as Mock).mockRejectedValue(mockError);
 
       await expect(deleteImage('test-id')).rejects.toThrow('Delete failed');
+
+      consoleSpy.mockRestore();
     });
 
     it('logs error to console on failure', async () => {
@@ -190,10 +193,13 @@ describe('cloudinary', () => {
     });
 
     it('throws error on batch delete failure', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const mockError = new Error('Batch delete failed');
       (cloudinary.api.delete_resources as Mock).mockRejectedValue(mockError);
 
       await expect(deleteImages(['id-1', 'id-2'])).rejects.toThrow('Batch delete failed');
+
+      consoleSpy.mockRestore();
     });
 
     it('logs error to console on failure', async () => {
