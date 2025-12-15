@@ -34,7 +34,10 @@
       "Bash(exit 0)",
       "Bash(else)",
       "Bash(exit 1)",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(for i in 1 2 3)",
+      "Bash(do echo \"=== Test Run $i ===\")",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

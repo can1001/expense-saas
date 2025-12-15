@@ -247,4 +247,393 @@ describe('approval-engine', () => {
       expect(all['재정팀']).toBeTruthy();
     });
   });
+
+  // ========================================
+  // Edge Cases and Additional Coverage
+  // ========================================
+  describe('Edge Cases', () => {
+    describe('generateApprovalLine - boundary amounts', () => {
+      it('should generate 2-step line for exactly 499,999 won', () => {
+        const expenseData: ExpenseData = {
+          committee: '기획위원회',
+          department: '재정팀',
+          budgetCategory: '사무행정비',
+          budgetSubcategory: '회의비',
+          requestAmount: 499_999,
+          applicantName: '홍길동',
+        };
+
+        const result = generateApprovalLine(expenseData);
+
+        expect(result.totalSteps).toBe(2);
+        expect(result.isUrgent).toBe(false);
+      });
+
+      it('should generate 3-step line for exactly 500,000 won', () => {
+        const expenseData: ExpenseData = {
+          committee: '기획위원회',
+          department: '재정팀',
+          budgetCategory: '사무행정비',
+          budgetSubcategory: '회의비',
+          requestAmount: 500_000,
+          applicantName: '홍길동',
+        };
+
+        const result = generateApprovalLine(expenseData);
+
+        expect(result.totalSteps).toBe(3);
+        expect(result.steps).toHaveLength(3);
+        expect(result.isUrgent).toBe(false);
+      });
+
+      it('should generate 3-step line for exactly 2,999,999 won', () => {
+        const expenseData: ExpenseData = {
+          committee: '기획위원회',
+          department: '재정팀',
+          budgetCategory: '사무행정비',
+          budgetSubcategory: '회의비',
+          requestAmount: 2_999_999,
+          applicantName: '홍길동',
+        };
+
+        const result = generateApprovalLine(expenseData);
+
+        expect(result.totalSteps).toBe(3);
+        expect(result.isUrgent).toBe(false);
+      });
+
+      it('should generate 3-step urgent line for exactly 3,000,000 won', () => {
+        const expenseData: ExpenseData = {
+          committee: '기획위원회',
+          department: '재정팀',
+          budgetCategory: '사무행정비',
+          budgetSubcategory: '회의비',
+          requestAmount: 3_000_000,
+          applicantName: '홍길동',
+        };
+
+        const result = generateApprovalLine(expenseData);
+
+        expect(result.totalSteps).toBe(3);
+        expect(result.isUrgent).toBe(true);
+      });
+
+      it('should generate 3-step urgent line for very high amount', () => {
+        const expenseData: ExpenseData = {
+          committee: '기획위원회',
+          department: '재정팀',
+          budgetCategory: '사무행정비',
+          budgetSubcategory: '회의비',
+          requestAmount: 100_000_000, // 1억원
+          applicantName: '홍길동',
+        };
+
+        const result = generateApprovalLine(expenseData);
+
+        expect(result.totalSteps).toBe(3);
+        expect(result.isUrgent).toBe(true);
+      });
+
+      it('should generate 2-step line for minimal amount (1 won)', () => {
+        const expenseData: ExpenseData = {
+          committee: '기획위원회',
+          department: '재정팀',
+          budgetCategory: '사무행정비',
+          budgetSubcategory: '회의비',
+          requestAmount: 1,
+          applicantName: '홍길동',
+        };
+
+        const result = generateApprovalLine(expenseData);
+
+        expect(result.totalSteps).toBe(2);
+        expect(result.isUrgent).toBe(false);
+      });
+    });
+
+    describe('generateApprovalLine - different departments', () => {
+      it('should use correct approvers for 교육팀', () => {
+        const expenseData: ExpenseData = {
+          committee: '기획위원회',
+          department: '교육팀',
+          budgetCategory: '사무행정비',
+          budgetSubcategory: '회의비',
+          requestAmount: 1_000_000,
+          applicantName: '홍길동',
+        };
+
+        const result = generateApprovalLine(expenseData);
+
+        expect(result.steps[0].approverName).toBe('최교육');
+        expect(result.steps[0].approverEmail).toBe('education.manager@church.org');
+        expect(result.steps[1].approverName).toBe('박회계');
+        expect(result.steps[2].approverName).toBe('이재무');
+      });
+
+      it('should use correct approvers for 선교팀', () => {
+        const expenseData: ExpenseData = {
+          committee: '기획위원회',
+          department: '선교팀',
+          budgetCategory: '사무행정비',
+          budgetSubcategory: '회의비',
+          requestAmount: 1_000_000,
+          applicantName: '홍길동',
+        };
+
+        const result = generateApprovalLine(expenseData);
+
+        expect(result.steps[0].approverName).toBe('강선교');
+        expect(result.steps[0].approverEmail).toBe('mission.manager@church.org');
+      });
+    });
+
+    describe('generateApprovalLine - self-approval for different roles', () => {
+      it('should throw error if applicant is team manager', () => {
+        const expenseData: ExpenseData = {
+          committee: '기획위원회',
+          department: '교육팀',
+          budgetCategory: '사무행정비',
+          budgetSubcategory: '회의비',
+          requestAmount: 300_000,
+          applicantName: '최교육', // 교육팀장
+        };
+
+        expect(() => generateApprovalLine(expenseData)).toThrow('자기결재 불가');
+      });
+
+      it('should throw error if applicant is accountant', () => {
+        const expenseData: ExpenseData = {
+          committee: '기획위원회',
+          department: '재정팀',
+          budgetCategory: '사무행정비',
+          budgetSubcategory: '회의비',
+          requestAmount: 300_000,
+          applicantName: '박회계', // 회계
+        };
+
+        expect(() => generateApprovalLine(expenseData)).toThrow('자기결재 불가');
+      });
+
+      it('should throw error if applicant is finance manager', () => {
+        const expenseData: ExpenseData = {
+          committee: '기획위원회',
+          department: '재정팀',
+          budgetCategory: '사무행정비',
+          budgetSubcategory: '회의비',
+          requestAmount: 1_000_000,
+          applicantName: '이재무', // 재정팀장
+        };
+
+        expect(() => generateApprovalLine(expenseData)).toThrow('자기결재 불가');
+      });
+    });
+
+    describe('canApprove - edge cases', () => {
+      it('should deny when trying to approve future step', () => {
+        const result = canApprove('김재정', '김재정', 1, 3);
+
+        expect(result.allowed).toBe(false);
+        expect(result.reason).toContain('현재 1차 결재 대기 중');
+      });
+
+      it('should deny when trying to approve past step', () => {
+        const result = canApprove('김재정', '김재정', 3, 1);
+
+        expect(result.allowed).toBe(false);
+        expect(result.reason).toContain('현재 3차 결재 대기 중');
+      });
+
+      it('should deny when approver name does not match at all', () => {
+        const result = canApprove('완전다른사람', '김재정', 1, 1);
+
+        expect(result.allowed).toBe(false);
+        expect(result.reason).toContain('김재정');
+      });
+    });
+
+    describe('calculateNextStep - edge cases', () => {
+      it('should handle step increment at step 1 of 3', () => {
+        const result = calculateNextStep(1, 3, 'APPROVE');
+
+        expect(result.nextStep).toBe(2);
+        expect(result.isComplete).toBe(false);
+      });
+
+      it('should handle step increment at step 2 of 3', () => {
+        const result = calculateNextStep(2, 3, 'APPROVE');
+
+        expect(result.nextStep).toBe(3);
+        expect(result.isComplete).toBe(false);
+      });
+
+      it('should handle rejection at middle step', () => {
+        const result = calculateNextStep(2, 3, 'REJECT');
+
+        expect(result.nextStep).toBe(2);
+        expect(result.isComplete).toBe(false);
+      });
+
+      it('should handle rejection at first step', () => {
+        const result = calculateNextStep(1, 3, 'REJECT');
+
+        expect(result.nextStep).toBe(1);
+        expect(result.isComplete).toBe(false);
+      });
+
+      it('should handle rejection at last step', () => {
+        const result = calculateNextStep(3, 3, 'REJECT');
+
+        expect(result.nextStep).toBe(3);
+        expect(result.isComplete).toBe(false);
+      });
+    });
+
+    describe('calculateApprovalStatus - edge cases', () => {
+      it('should return IN_PROGRESS for step 1 of 3', () => {
+        const result = calculateApprovalStatus('APPROVE', 2, 3);
+        expect(result).toBe('IN_PROGRESS');
+      });
+
+      it('should return IN_PROGRESS for step 2 of 3', () => {
+        const result = calculateApprovalStatus('APPROVE', 3, 3);
+        expect(result).toBe('APPROVED');
+      });
+
+      it('should return APPROVED when current equals total', () => {
+        const result = calculateApprovalStatus('APPROVE', 5, 5);
+        expect(result).toBe('APPROVED');
+      });
+
+      it('should return APPROVED when current exceeds total', () => {
+        const result = calculateApprovalStatus('APPROVE', 4, 3);
+        expect(result).toBe('APPROVED');
+      });
+
+      it('should return REJECTED regardless of step', () => {
+        expect(calculateApprovalStatus('REJECT', 1, 3)).toBe('REJECTED');
+        expect(calculateApprovalStatus('REJECT', 2, 3)).toBe('REJECTED');
+        expect(calculateApprovalStatus('REJECT', 3, 3)).toBe('REJECTED');
+      });
+
+      it('should return DRAFT for WITHDRAW regardless of step', () => {
+        expect(calculateApprovalStatus('WITHDRAW', 1, 3)).toBe('DRAFT');
+        expect(calculateApprovalStatus('WITHDRAW', 2, 3)).toBe('DRAFT');
+        expect(calculateApprovalStatus('WITHDRAW', 3, 3)).toBe('DRAFT');
+      });
+
+      it('should return DRAFT for unknown action (default case)', () => {
+        const result = calculateApprovalStatus('UNKNOWN' as any, 1, 3);
+        expect(result).toBe('DRAFT');
+      });
+    });
+
+    describe('createApprovalSnapshot - structure validation', () => {
+      it('should include snapshotTimestamp in snapshot', () => {
+        const approvalLine = {
+          steps: [
+            {
+              stepNumber: 1,
+              stepName: '팀장',
+              approverName: '김재정',
+              isRequired: true,
+            },
+          ],
+          totalSteps: 1,
+          isUrgent: false,
+        };
+
+        const snapshot = createApprovalSnapshot(approvalLine);
+        const parsed = JSON.parse(snapshot);
+
+        expect(parsed.snapshotTimestamp).toBeTruthy();
+        expect(typeof parsed.snapshotTimestamp).toBe('string');
+        expect(new Date(parsed.snapshotTimestamp).toString()).not.toBe('Invalid Date');
+      });
+
+      it('should preserve all approval line data', () => {
+        const approvalLine = {
+          steps: [
+            {
+              stepNumber: 1,
+              stepName: '팀장',
+              approverName: '김재정',
+              approverEmail: 'manager@church.org',
+              approverTitle: '팀장',
+              isRequired: true,
+              isParallel: false,
+            },
+            {
+              stepNumber: 2,
+              stepName: '회계',
+              approverName: '박회계',
+              approverEmail: 'accountant@church.org',
+              approverTitle: '회계',
+              isRequired: true,
+              isParallel: false,
+            },
+          ],
+          totalSteps: 2,
+          isUrgent: false,
+        };
+
+        const snapshot = createApprovalSnapshot(approvalLine);
+        const parsed = JSON.parse(snapshot);
+
+        expect(parsed.steps).toHaveLength(2);
+        expect(parsed.totalSteps).toBe(2);
+        expect(parsed.isUrgent).toBe(false);
+        expect(parsed.steps[0].stepNumber).toBe(1);
+        expect(parsed.steps[1].stepNumber).toBe(2);
+      });
+    });
+
+    describe('updateDepartmentApprovers - mutation', () => {
+      it('should overwrite existing department approvers', () => {
+        const newApprovers = {
+          department: '재정팀',
+          teamManager: '신재정',
+          teamManagerEmail: 'new.finance@church.org',
+          accountant: '신회계',
+          accountantEmail: 'new.account@church.org',
+          financeManager: '신재무',
+          financeManagerEmail: 'new.cfo@church.org',
+        };
+
+        updateDepartmentApprovers('재정팀', newApprovers);
+
+        const all = getAllDepartmentApprovers();
+        expect(all['재정팀'].teamManager).toBe('신재정');
+        expect(all['재정팀'].accountant).toBe('신회계');
+
+        // Restore original for other tests
+        updateDepartmentApprovers('재정팀', {
+          department: '재정팀',
+          teamManager: '김재정',
+          teamManagerEmail: 'finance.manager@church.org',
+          accountant: '박회계',
+          accountantEmail: 'accountant@church.org',
+          financeManager: '이재무',
+          financeManagerEmail: 'cfo@church.org',
+        });
+      });
+    });
+
+    describe('canModifyApprovalLine - comprehensive scenarios', () => {
+      const testCases = [
+        { status: 'DRAFT', actor: '홍길동', applicant: '홍길동', expected: true },
+        { status: 'PENDING', actor: '홍길동', applicant: '홍길동', expected: false },
+        { status: 'IN_PROGRESS', actor: '홍길동', applicant: '홍길동', expected: false },
+        { status: 'APPROVED', actor: '홍길동', applicant: '홍길동', expected: false },
+        { status: 'REJECTED', actor: '홍길동', applicant: '홍길동', expected: false },
+        { status: 'DRAFT', actor: '김철수', applicant: '홍길동', expected: false },
+      ];
+
+      testCases.forEach(({ status, actor, applicant, expected }) => {
+        it(`should ${expected ? 'allow' : 'deny'} modification when status=${status}, actor=${actor}, applicant=${applicant}`, () => {
+          const result = canModifyApprovalLine(status, actor, applicant);
+          expect(result.allowed).toBe(expected);
+        });
+      });
+    });
+  });
 });
