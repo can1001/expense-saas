@@ -38,6 +38,9 @@ export interface ExpenseAttachment {
 // 지출결의서 타입
 // ============================================
 
+// 결재 상태 타입
+export type ApprovalStatus = 'DRAFT' | 'PENDING' | 'IN_PROGRESS' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN';
+
 export interface Expense {
   id: string;
   committee: string;
@@ -55,6 +58,12 @@ export interface Expense {
   accountHolder: string;
   items: ExpenseItem[];
   attachments?: ExpenseAttachment[];
+  // 결재 관련 필드
+  status?: ApprovalStatus;
+  submittedAt?: string | null;
+  approvedAt?: string | null;
+  rejectedAt?: string | null;
+  // 메타
   createdAt: string;
   updatedAt: string;
   version?: string;
