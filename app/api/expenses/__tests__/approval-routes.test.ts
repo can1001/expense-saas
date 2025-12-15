@@ -254,7 +254,7 @@ describe('Approval API Routes', () => {
 
       const mockUpdatedExpense = {
         ...mockExpense,
-        status: 'IN_PROGRESS',
+        status: 'APPROVED_STEP_1',
         approvalLine: {
           ...mockExpense.approvalLine,
           currentStep: 2,
@@ -301,11 +301,11 @@ describe('Approval API Routes', () => {
       const expenseId = 'test-expense-id';
       const mockExpense = {
         id: expenseId,
-        status: 'IN_PROGRESS',
+        status: 'APPROVED_STEP_2',
         approvalLine: {
           id: 'approval-line-id',
-          currentStep: 2,
-          totalSteps: 2,
+          currentStep: 3,
+          totalSteps: 3,
           steps: [
             {
               id: 'step-1',
@@ -319,7 +319,14 @@ describe('Approval API Routes', () => {
               stepNumber: 2,
               stepName: '회계',
               approverName: '박회계',
-              approverEmail: 'account@church.org',
+              status: 'APPROVED',
+            },
+            {
+              id: 'step-3',
+              stepNumber: 3,
+              stepName: '재정팀장',
+              approverName: '이재무',
+              approverEmail: 'cfo@church.org',
               status: 'PENDING',
             },
           ],
@@ -328,7 +335,7 @@ describe('Approval API Routes', () => {
 
       const mockUpdatedExpense = {
         ...mockExpense,
-        status: 'APPROVED',
+        status: 'APPROVED_FINAL',
         approvedAt: new Date(),
       };
 
@@ -353,7 +360,7 @@ describe('Approval API Routes', () => {
       const request = new NextRequest('http://localhost/api/expenses/test-expense-id/approve', {
         method: 'POST',
         body: JSON.stringify({
-          approverName: '박회계',
+          approverName: '이재무',
           comment: '최종 승인',
         }),
       });
@@ -655,11 +662,11 @@ describe('Approval API Routes', () => {
       expect(data.message).toContain('회수되었습니다');
     });
 
-    it('should withdraw expense successfully from IN_PROGRESS status', async () => {
+    it('should withdraw expense successfully from APPROVED_STEP_1 status', async () => {
       const expenseId = 'test-expense-id';
       const mockExpense = {
         id: expenseId,
-        status: 'IN_PROGRESS',
+        status: 'APPROVED_STEP_1',
         applicantName: '홍길동',
         approvalLine: {
           id: 'approval-line-id',

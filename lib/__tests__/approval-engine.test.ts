@@ -13,7 +13,7 @@ import {
 
 describe('approval-engine', () => {
   describe('generateApprovalLine', () => {
-    it('should generate 2-step approval line for amount under 500,000', () => {
+    it('should generate fixed 3-step approval line regardless of amount', () => {
       const expenseData: ExpenseData = {
         committee: '기획위원회',
         department: '재정팀',
@@ -25,10 +25,11 @@ describe('approval-engine', () => {
 
       const result = generateApprovalLine(expenseData);
 
-      expect(result.totalSteps).toBe(2);
-      expect(result.steps).toHaveLength(2);
+      expect(result.totalSteps).toBe(3);
+      expect(result.steps).toHaveLength(3);
       expect(result.steps[0].stepName).toBe('팀장');
       expect(result.steps[1].stepName).toBe('회계');
+      expect(result.steps[2].stepName).toBe('재정팀장');
       expect(result.isUrgent).toBe(false);
     });
 
@@ -52,7 +53,7 @@ describe('approval-engine', () => {
       expect(result.isUrgent).toBe(false);
     });
 
-    it('should generate 3-step approval line with urgent flag for amount over 3,000,000', () => {
+    it('should generate 3-step approval line with isUrgent=false by default', () => {
       const expenseData: ExpenseData = {
         committee: '기획위원회',
         department: '재정팀',
@@ -66,7 +67,7 @@ describe('approval-engine', () => {
 
       expect(result.totalSteps).toBe(3);
       expect(result.steps).toHaveLength(3);
-      expect(result.isUrgent).toBe(true);
+      expect(result.isUrgent).toBe(false);
     });
 
     it('should throw error for self-approval', () => {
@@ -94,7 +95,7 @@ describe('approval-engine', () => {
 
       const result = generateApprovalLine(expenseData);
 
-      expect(result.totalSteps).toBe(2);
+      expect(result.totalSteps).toBe(3);
       expect(result.steps[0].approverName).toBe('팀장'); // 기본값
     });
   });
@@ -151,14 +152,19 @@ describe('approval-engine', () => {
       expect(result).toBe('PENDING');
     });
 
-    it('should return IN_PROGRESS when approved but not final step', () => {
-      const result = calculateApprovalStatus('APPROVE', 2, 3);
-      expect(result).toBe('IN_PROGRESS');
+    it('should return APPROVED_STEP_1 when step 1 approved', () => {
+      const result = calculateApprovalStatus('APPROVE', 1, 3);
+      expect(result).toBe('APPROVED_STEP_1');
     });
 
-    it('should return APPROVED when approved and final step', () => {
+    it('should return APPROVED_STEP_2 when step 2 approved', () => {
+      const result = calculateApprovalStatus('APPROVE', 2, 3);
+      expect(result).toBe('APPROVED_STEP_2');
+    });
+
+    it('should return APPROVED_FINAL when all steps approved', () => {
       const result = calculateApprovalStatus('APPROVE', 3, 3);
-      expect(result).toBe('APPROVED');
+      expect(result).toBe('APPROVED_FINAL');
     });
 
     it('should return REJECTED when action is REJECT', () => {
@@ -253,7 +259,7 @@ describe('approval-engine', () => {
   // ========================================
   describe('Edge Cases', () => {
     describe('generateApprovalLine - boundary amounts', () => {
-      it('should generate 2-step line for exactly 499,999 won', () => {
+      it('should generate 3-step line for exactly 499,999 won', () => {
         const expenseData: ExpenseData = {
           committee: '기획위원회',
           department: '재정팀',
@@ -265,7 +271,7 @@ describe('approval-engine', () => {
 
         const result = generateApprovalLine(expenseData);
 
-        expect(result.totalSteps).toBe(2);
+        expect(result.totalSteps).toBe(3);
         expect(result.isUrgent).toBe(false);
       });
 
@@ -302,7 +308,7 @@ describe('approval-engine', () => {
         expect(result.isUrgent).toBe(false);
       });
 
-      it('should generate 3-step urgent line for exactly 3,000,000 won', () => {
+      it('should generate 3-step line for exactly 3,000,000 won', () => {
         const expenseData: ExpenseData = {
           committee: '기획위원회',
           department: '재정팀',
@@ -315,10 +321,10 @@ describe('approval-engine', () => {
         const result = generateApprovalLine(expenseData);
 
         expect(result.totalSteps).toBe(3);
-        expect(result.isUrgent).toBe(true);
+        expect(result.isUrgent).toBe(false);
       });
 
-      it('should generate 3-step urgent line for very high amount', () => {
+      it('should generate 3-step line for very high amount', () => {
         const expenseData: ExpenseData = {
           committee: '기획위원회',
           department: '재정팀',
@@ -331,10 +337,10 @@ describe('approval-engine', () => {
         const result = generateApprovalLine(expenseData);
 
         expect(result.totalSteps).toBe(3);
-        expect(result.isUrgent).toBe(true);
+        expect(result.isUrgent).toBe(false);
       });
 
-      it('should generate 2-step line for minimal amount (1 won)', () => {
+      it('should generate 3-step line for minimal amount (1 won)', () => {
         const expenseData: ExpenseData = {
           committee: '기획위원회',
           department: '재정팀',
@@ -346,7 +352,7 @@ describe('approval-engine', () => {
 
         const result = generateApprovalLine(expenseData);
 
-        expect(result.totalSteps).toBe(2);
+        expect(result.totalSteps).toBe(3);
         expect(result.isUrgent).toBe(false);
       });
     });
@@ -489,24 +495,24 @@ describe('approval-engine', () => {
     });
 
     describe('calculateApprovalStatus - edge cases', () => {
-      it('should return IN_PROGRESS for step 1 of 3', () => {
+      it('should return APPROVED_STEP_1 for step 1 of 3', () => {
+        const result = calculateApprovalStatus('APPROVE', 1, 3);
+        expect(result).toBe('APPROVED_STEP_1');
+      });
+
+      it('should return APPROVED_STEP_2 for step 2 of 3', () => {
         const result = calculateApprovalStatus('APPROVE', 2, 3);
-        expect(result).toBe('IN_PROGRESS');
+        expect(result).toBe('APPROVED_STEP_2');
       });
 
-      it('should return IN_PROGRESS for step 2 of 3', () => {
+      it('should return APPROVED_FINAL when current equals total', () => {
         const result = calculateApprovalStatus('APPROVE', 3, 3);
-        expect(result).toBe('APPROVED');
+        expect(result).toBe('APPROVED_FINAL');
       });
 
-      it('should return APPROVED when current equals total', () => {
-        const result = calculateApprovalStatus('APPROVE', 5, 5);
-        expect(result).toBe('APPROVED');
-      });
-
-      it('should return APPROVED when current exceeds total', () => {
+      it('should return APPROVED_FINAL when current exceeds total', () => {
         const result = calculateApprovalStatus('APPROVE', 4, 3);
-        expect(result).toBe('APPROVED');
+        expect(result).toBe('APPROVED_FINAL');
       });
 
       it('should return REJECTED regardless of step', () => {
@@ -622,8 +628,9 @@ describe('approval-engine', () => {
       const testCases = [
         { status: 'DRAFT', actor: '홍길동', applicant: '홍길동', expected: true },
         { status: 'PENDING', actor: '홍길동', applicant: '홍길동', expected: false },
-        { status: 'IN_PROGRESS', actor: '홍길동', applicant: '홍길동', expected: false },
-        { status: 'APPROVED', actor: '홍길동', applicant: '홍길동', expected: false },
+        { status: 'APPROVED_STEP_1', actor: '홍길동', applicant: '홍길동', expected: false },
+        { status: 'APPROVED_STEP_2', actor: '홍길동', applicant: '홍길동', expected: false },
+        { status: 'APPROVED_FINAL', actor: '홍길동', applicant: '홍길동', expected: false },
         { status: 'REJECTED', actor: '홍길동', applicant: '홍길동', expected: false },
         { status: 'DRAFT', actor: '김철수', applicant: '홍길동', expected: false },
       ];
