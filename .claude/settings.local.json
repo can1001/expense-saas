@@ -37,7 +37,8 @@
       "Bash(fi)",
       "Bash(for i in 1 2 3)",
       "Bash(do echo \"=== Test Run $i ===\")",
-      "Bash(done)"
+      "Bash(done)",
+      "WebFetch(domain:expense-system-j7a0.onrender.com)"
     ],
     "deny": [],
     "ask": []

@@ -321,17 +321,25 @@ export function calculateNextStep(
 
 /**
  * 결재 상태 계산
+ *
+ * @param action 결재 액션
+ * @param nextStep 다음 결재 단계 (승인 후 이동할 단계)
+ * @param totalSteps 총 결재 단계 수
+ * @param isComplete 모든 결재 완료 여부 (calculateNextStep에서 계산됨)
  */
 export function calculateApprovalStatus(
   action: 'SUBMIT' | 'APPROVE' | 'REJECT' | 'WITHDRAW',
-  currentStep: number,
-  totalSteps: number
+  nextStep: number,
+  totalSteps: number,
+  isComplete?: boolean
 ): string {
   switch (action) {
     case 'SUBMIT':
       return 'PENDING';
     case 'APPROVE':
-      if (currentStep >= totalSteps) {
+      // isComplete 플래그가 명시적으로 전달된 경우 사용
+      // nextStep > totalSteps인 경우에만 최종 승인으로 판단
+      if (isComplete || nextStep > totalSteps) {
         return 'APPROVED'; // 최종 승인
       }
       return 'IN_PROGRESS'; // 결재 진행중

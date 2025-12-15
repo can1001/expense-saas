@@ -109,11 +109,12 @@ export async function POST(
       'APPROVE'
     );
 
-    // 새로운 상태 계산
+    // 새로운 상태 계산 (isComplete 플래그 전달)
     const newStatus = calculateApprovalStatus(
       'APPROVE',
       nextStep,
-      approvalLine.totalSteps
+      approvalLine.totalSteps,
+      isComplete
     );
 
     // 트랜잭션으로 승인 처리
