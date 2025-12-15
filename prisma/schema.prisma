@@ -246,14 +246,15 @@ model SimpleExpenseAttachment {
 // 결재 시스템 (Approval System)
 // ========================================
 
-// 결재 상태
+// 결재 상태 (3단계 결재: 팀장 → 회계 → 재정팀장)
 enum ApprovalStatus {
-  DRAFT           // 작성중 (제출 전)
-  PENDING         // 결재 대기 (제출됨)
-  IN_PROGRESS     // 결재 진행중 (1차 이상 승인됨)
-  APPROVED        // 최종 승인
-  REJECTED        // 반려
-  WITHDRAWN       // 회수 (작성자가 철회)
+  DRAFT             // 작성중 (제출 전)
+  PENDING           // 결재 대기 (제출됨, 1차 팀장 결재 대기)
+  APPROVED_STEP_1   // 1차 승인 완료 (팀장 승인, 2차 회계 결재 대기)
+  APPROVED_STEP_2   // 2차 승인 완료 (회계 승인, 3차 재정팀장 결재 대기)
+  APPROVED_FINAL    // 최종 승인 (재정팀장 승인 완료)
+  REJECTED          // 반려
+  WITHDRAWN         // 회수 (작성자가 철회)
 }
 
 // 결재선 (지출결의서당 1개, 스냅샷)

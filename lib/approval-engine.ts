@@ -1,10 +1,14 @@
 /**
  * 결재선 자동 생성 엔진
  *
- * 교회 조직 결재 규칙:
- * - ~50만원: 팀장 → 회계
- * - 50만원~300만원: 팀장 → 회계 → 재정팀장
- * - 300만원~: 팀장 → 회계 → 재정팀장 (고액 승인)
+ * 고정 3단계 결재 프로세스:
+ * - 1차: 팀장 승인
+ * - 2차: 회계 승인
+ * - 3차: 재정팀장 승인 (최종)
+ *
+ * 상태 전이:
+ * DRAFT → PENDING → APPROVED_STEP_1 → APPROVED_STEP_2 → APPROVED_FINAL
+ *                 ↘ REJECTED (반려 시 재제출 가능)
  */
 
 // ========================================
@@ -38,11 +42,11 @@ export interface ExpenseData {
 
 export interface ApproverMapping {
   department: string;
-  teamManager: string;        // 팀장
+  teamManager: string;        // 팀장 (1차)
   teamManagerEmail?: string;
-  accountant: string;          // 회계
+  accountant: string;          // 회계 (2차)
   accountantEmail?: string;
-  financeManager: string;      // 재정팀장
+  financeManager: string;      // 재정팀장 (3차/최종)
   financeManagerEmail?: string;
 }
 
@@ -50,11 +54,8 @@ export interface ApproverMapping {
 // 상수 정의
 // ========================================
 
-// 금액 기준 (원)
-const AMOUNT_THRESHOLDS = {
-  LOW: 500_000,        // 50만원
-  MEDIUM: 3_000_000,   // 300만원
-} as const;
+// 고정 결재 단계 수
+const FIXED_APPROVAL_STEPS = 3;
 
 // 결재자 역할명
 const APPROVER_ROLES = {
@@ -112,26 +113,6 @@ const DEPARTMENT_APPROVERS: Record<string, ApproverMapping> = {
 // ========================================
 
 /**
- * 금액에 따른 필요 결재 단계 수 결정
- */
-function determineApprovalSteps(amount: number): number {
-  if (amount < AMOUNT_THRESHOLDS.LOW) {
-    return 2; // 팀장 → 회계
-  } else if (amount < AMOUNT_THRESHOLDS.MEDIUM) {
-    return 3; // 팀장 → 회계 → 재정팀장
-  } else {
-    return 3; // 팀장 → 회계 → 재정팀장 (고액)
-  }
-}
-
-/**
- * 고액 여부 확인
- */
-function isHighAmount(amount: number): boolean {
-  return amount >= AMOUNT_THRESHOLDS.MEDIUM;
-}
-
-/**
  * 부서별 결재자 정보 가져오기
  */
 function getDepartmentApprovers(department: string): ApproverMapping {
@@ -139,19 +120,21 @@ function getDepartmentApprovers(department: string): ApproverMapping {
 }
 
 /**
- * 결재선 자동 생성
+ * 결재선 자동 생성 (고정 3단계)
+ *
+ * 1차: 팀장 → 2차: 회계 → 3차: 재정팀장
  *
  * @param expenseData 지출결의서 데이터
  * @returns 생성된 결재선 정보
  */
 export function generateApprovalLine(expenseData: ExpenseData): ApprovalLineInput {
-  const { department, requestAmount, applicantName } = expenseData;
+  const { department, applicantName } = expenseData;
 
   // 부서 결재자 매핑 가져오기
   const approvers = getDepartmentApprovers(department);
 
-  // 필요한 결재 단계 수 결정
-  const totalSteps = determineApprovalSteps(requestAmount);
+  // 고정 3단계 결재
+  const totalSteps = FIXED_APPROVAL_STEPS;
 
   // 결재 단계 생성
   const steps: ApprovalStepInput[] = [];
@@ -167,7 +150,7 @@ export function generateApprovalLine(expenseData: ExpenseData): ApprovalLineInpu
     isParallel: false,
   });
 
-  // 2차 결재: 회계 (모든 금액에 필수)
+  // 2차 결재: 회계
   steps.push({
     stepNumber: 2,
     stepName: APPROVER_ROLES.ACCOUNTANT,
@@ -178,18 +161,16 @@ export function generateApprovalLine(expenseData: ExpenseData): ApprovalLineInpu
     isParallel: false,
   });
 
-  // 3차 결재: 재정팀장 (50만원 이상)
-  if (totalSteps >= 3) {
-    steps.push({
-      stepNumber: 3,
-      stepName: APPROVER_ROLES.FINANCE_MANAGER,
-      approverName: approvers.financeManager,
-      approverEmail: approvers.financeManagerEmail,
-      approverTitle: '재정팀장',
-      isRequired: true,
-      isParallel: false,
-    });
-  }
+  // 3차 결재: 재정팀장 (최종)
+  steps.push({
+    stepNumber: 3,
+    stepName: APPROVER_ROLES.FINANCE_MANAGER,
+    approverName: approvers.financeManager,
+    approverEmail: approvers.financeManagerEmail,
+    approverTitle: '재정팀장',
+    isRequired: true,
+    isParallel: false,
+  });
 
   // 자기결재 방지 검증
   validateSelfApproval(applicantName, steps);
@@ -197,7 +178,7 @@ export function generateApprovalLine(expenseData: ExpenseData): ApprovalLineInpu
   return {
     steps,
     totalSteps,
-    isUrgent: isHighAmount(requestAmount), // 300만원 이상은 긴급 플래그
+    isUrgent: false, // 긴급 플래그는 별도 지정
   };
 }
 
@@ -320,29 +301,39 @@ export function calculateNextStep(
 }
 
 /**
- * 결재 상태 계산
+ * 결재 상태 계산 (3단계 결재 프로세스)
+ *
+ * 상태 전이:
+ * - DRAFT: 작성중
+ * - PENDING: 결재 대기 (1차 팀장 결재 대기)
+ * - APPROVED_STEP_1: 1차 승인 완료 (2차 회계 결재 대기)
+ * - APPROVED_STEP_2: 2차 승인 완료 (3차 재정팀장 결재 대기)
+ * - APPROVED_FINAL: 최종 승인 (3차 재정팀장 승인 완료)
+ * - REJECTED: 반려
+ * - WITHDRAWN: 회수
  *
  * @param action 결재 액션
- * @param nextStep 다음 결재 단계 (승인 후 이동할 단계)
+ * @param completedStep 완료된 결재 단계 번호 (승인 시)
  * @param totalSteps 총 결재 단계 수
- * @param isComplete 모든 결재 완료 여부 (calculateNextStep에서 계산됨)
  */
 export function calculateApprovalStatus(
   action: 'SUBMIT' | 'APPROVE' | 'REJECT' | 'WITHDRAW',
-  nextStep: number,
-  totalSteps: number,
-  isComplete?: boolean
+  completedStep: number,
+  totalSteps: number
 ): string {
   switch (action) {
     case 'SUBMIT':
       return 'PENDING';
     case 'APPROVE':
-      // isComplete 플래그가 명시적으로 전달된 경우 사용
-      // nextStep > totalSteps인 경우에만 최종 승인으로 판단
-      if (isComplete || nextStep > totalSteps) {
-        return 'APPROVED'; // 최종 승인
+      // 완료된 단계에 따라 상태 결정
+      if (completedStep >= totalSteps) {
+        return 'APPROVED_FINAL'; // 최종 승인 (3차 완료)
+      } else if (completedStep === 2) {
+        return 'APPROVED_STEP_2'; // 2차 승인 완료
+      } else if (completedStep === 1) {
+        return 'APPROVED_STEP_1'; // 1차 승인 완료
       }
-      return 'IN_PROGRESS'; // 결재 진행중
+      return 'PENDING';
     case 'REJECT':
       return 'REJECTED';
     case 'WITHDRAW':

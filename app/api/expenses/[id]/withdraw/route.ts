@@ -53,8 +53,9 @@ export async function POST(
       );
     }
 
-    // 회수 가능한 상태인지 확인 (PENDING 또는 IN_PROGRESS만 가능)
-    if (expense.status !== 'PENDING' && expense.status !== 'IN_PROGRESS') {
+    // 회수 가능한 상태인지 확인 (결재 진행 중인 상태만)
+    const withdrawableStatuses = ['PENDING', 'APPROVED_STEP_1', 'APPROVED_STEP_2'];
+    if (!withdrawableStatuses.includes(expense.status)) {
       return NextResponse.json(
         {
           error: `회수할 수 없는 상태입니다. (현재: ${expense.status}). 결재 진행 중인 문서만 회수 가능합니다.`,

@@ -38,8 +38,15 @@ export interface ExpenseAttachment {
 // 지출결의서 타입
 // ============================================
 
-// 결재 상태 타입
-export type ApprovalStatus = 'DRAFT' | 'PENDING' | 'IN_PROGRESS' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN';
+// 결재 상태 타입 (3단계 결재: 팀장 → 회계 → 재정팀장)
+export type ApprovalStatus =
+  | 'DRAFT'           // 작성중
+  | 'PENDING'         // 결재 대기 (1차 팀장 결재 대기)
+  | 'APPROVED_STEP_1' // 1차 승인 완료 (2차 회계 결재 대기)
+  | 'APPROVED_STEP_2' // 2차 승인 완료 (3차 재정팀장 결재 대기)
+  | 'APPROVED_FINAL'  // 최종 승인
+  | 'REJECTED'        // 반려
+  | 'WITHDRAWN';      // 회수
 
 export interface Expense {
   id: string;

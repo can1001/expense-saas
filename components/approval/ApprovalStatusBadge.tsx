@@ -20,9 +20,25 @@ export default function ApprovalStatusBadge({
         };
       case 'PENDING':
         return {
-          label: '결재대기',
+          label: '1차 결재대기',
           color: 'bg-yellow-100 text-yellow-700 border-yellow-300',
         };
+      case 'APPROVED_STEP_1':
+        return {
+          label: '2차 결재대기',
+          color: 'bg-blue-100 text-blue-700 border-blue-300',
+        };
+      case 'APPROVED_STEP_2':
+        return {
+          label: '3차 결재대기',
+          color: 'bg-indigo-100 text-indigo-700 border-indigo-300',
+        };
+      case 'APPROVED_FINAL':
+        return {
+          label: '최종승인',
+          color: 'bg-green-100 text-green-700 border-green-300',
+        };
+      // 레거시 상태 호환
       case 'IN_PROGRESS':
         return {
           label: '결재진행중',

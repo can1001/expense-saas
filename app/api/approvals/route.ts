@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       };
       whereCondition.expense = {
         status: {
-          in: ['PENDING', 'IN_PROGRESS'],
+          in: ['PENDING', 'APPROVED_STEP_1', 'APPROVED_STEP_2'],
         },
       };
     } else if (status === 'completed') {

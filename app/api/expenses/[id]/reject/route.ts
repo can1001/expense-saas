@@ -62,8 +62,9 @@ export async function POST(
       );
     }
 
-    // 반려 가능한 상태인지 확인
-    if (expense.status !== 'PENDING' && expense.status !== 'IN_PROGRESS') {
+    // 반려 가능한 상태인지 확인 (PENDING, APPROVED_STEP_1, APPROVED_STEP_2)
+    const rejectableStatuses = ['PENDING', 'APPROVED_STEP_1', 'APPROVED_STEP_2'];
+    if (!rejectableStatuses.includes(expense.status)) {
       return NextResponse.json(
         { error: `반려할 수 없는 상태입니다. (현재: ${expense.status})` },
         { status: 400 }

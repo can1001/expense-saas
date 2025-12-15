@@ -371,7 +371,7 @@ export default function ApprovalDetailPage() {
                 onSuccess={fetchData}
               />
               {getCurrentApproverName() !== selectedApprover &&
-                (expense.status === 'PENDING' || expense.status === 'IN_PROGRESS') && (
+                ['PENDING', 'APPROVED_STEP_1', 'APPROVED_STEP_2'].includes(expense.status || '') && (
                   <p className="mt-4 text-sm text-yellow-600 bg-yellow-50 p-3 rounded-lg">
                     현재 결재 대기자: <strong>{getCurrentApproverName()}</strong>
                     <br />

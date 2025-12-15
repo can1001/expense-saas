@@ -478,7 +478,7 @@ export default function ExpenseDetailPage() {
           <h2 className={SECTION_TITLE}>결재 정보</h2>
 
           {/* 사용자 선택 (임시 - 실제로는 인증 시스템 사용) */}
-          {(expense.status === 'PENDING' || expense.status === 'IN_PROGRESS') && (
+          {['PENDING', 'APPROVED_STEP_1', 'APPROVED_STEP_2'].includes(expense.status || '') && (
             <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <label className="block text-sm font-medium text-yellow-800 mb-2">
                 현재 사용자 선택 (임시 - 로그인 기능 대체)

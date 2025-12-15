@@ -59,8 +59,9 @@ export async function POST(
       );
     }
 
-    // 결재 가능한 상태인지 확인
-    if (expense.status !== 'PENDING' && expense.status !== 'IN_PROGRESS') {
+    // 결재 가능한 상태인지 확인 (PENDING, APPROVED_STEP_1, APPROVED_STEP_2)
+    const approvableStatuses = ['PENDING', 'APPROVED_STEP_1', 'APPROVED_STEP_2'];
+    if (!approvableStatuses.includes(expense.status)) {
       return NextResponse.json(
         { error: `승인할 수 없는 상태입니다. (현재: ${expense.status})` },
         { status: 400 }
@@ -109,12 +110,11 @@ export async function POST(
       'APPROVE'
     );
 
-    // 새로운 상태 계산 (isComplete 플래그 전달)
+    // 새로운 상태 계산 (완료된 단계 번호 전달)
     const newStatus = calculateApprovalStatus(
       'APPROVE',
-      nextStep,
-      approvalLine.totalSteps,
-      isComplete
+      currentStep, // 현재 승인 완료된 단계
+      approvalLine.totalSteps
     );
 
     // 트랜잭션으로 승인 처리

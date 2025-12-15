@@ -159,8 +159,8 @@ export default function ApprovalActionButtons({
           </button>
         )}
 
-        {/* 회수 버튼 (작성자 + PENDING/IN_PROGRESS) */}
-        {isApplicant && (status === 'PENDING' || status === 'IN_PROGRESS') && (
+        {/* 회수 버튼 (작성자 + 결재 진행 중 상태) */}
+        {isApplicant && ['PENDING', 'APPROVED_STEP_1', 'APPROVED_STEP_2'].includes(status) && (
           <button
             onClick={handleWithdraw}
             disabled={loading}
@@ -171,8 +171,8 @@ export default function ApprovalActionButtons({
           </button>
         )}
 
-        {/* 승인/반려 버튼 (현재 결재자 + PENDING/IN_PROGRESS) */}
-        {isCurrentApprover && (status === 'PENDING' || status === 'IN_PROGRESS') && (
+        {/* 승인/반려 버튼 (현재 결재자 + 결재 진행 중 상태) */}
+        {isCurrentApprover && ['PENDING', 'APPROVED_STEP_1', 'APPROVED_STEP_2'].includes(status) && (
           <>
             <button
               onClick={() => openCommentModal('approve')}
