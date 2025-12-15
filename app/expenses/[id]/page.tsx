@@ -9,6 +9,9 @@ import { generateExpenseExcel } from '@/lib/excel';
 import ImagePreview from '@/components/ImagePreview';
 import Header from '@/components/Header';
 import PrintableExpense from '@/components/PrintableExpense';
+import ApprovalStatusBadge from '@/components/approval/ApprovalStatusBadge';
+import ApprovalLineDisplay from '@/components/approval/ApprovalLineDisplay';
+import ApprovalActionButtons from '@/components/approval/ApprovalActionButtons';
 import { Expense } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_SECONDARY, BTN_SUCCESS, BTN_DANGER, BTN_EMERALD, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
@@ -19,6 +22,7 @@ export default function ExpenseDetailPage() {
   const id = params.id as string;
 
   const [expense, setExpense] = useState<Expense | null>(null);
+  const [approvalData, setApprovalData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -27,27 +31,47 @@ export default function ExpenseDetailPage() {
 
   useEffect(() => {
     if (id) {
-      fetchExpense();
+      fetchData();
     }
   }, [id]);
 
-  const fetchExpense = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/expenses/${id}`);
 
-      if (!response.ok) {
+      // 지출결의서와 결재 정보를 함께 조회
+      const [expenseRes, approvalRes] = await Promise.all([
+        fetch(`/api/expenses/${id}`),
+        fetch(`/api/expenses/${id}/approval`),
+      ]);
+
+      if (!expenseRes.ok) {
         throw new Error('지출결의서를 불러오는데 실패했습니다.');
       }
 
-      const data = await response.json();
-      setExpense(data);
+      const expenseData = await expenseRes.json();
+      setExpense(expenseData);
+
+      // 결재 정보는 없을 수도 있음 (DRAFT 상태)
+      if (approvalRes.ok) {
+        const approvalInfo = await approvalRes.json();
+        setApprovalData(approvalInfo);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // 현재 결재자 이름 가져오기
+  const getCurrentApproverName = () => {
+    if (!approvalData?.approvalLine) return undefined;
+    const currentStep = approvalData.approvalLine.steps.find(
+      (step: any) => step.stepNumber === approvalData.approvalLine.currentStep
+    );
+    return currentStep?.approverName;
   };
 
   const handleDelete = async () => {
@@ -155,7 +179,10 @@ export default function ExpenseDetailPage() {
         {/* 헤더 */}
         <div className="mb-8 flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">지출결의서 상세</h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold text-gray-900">지출결의서 상세</h1>
+              <ApprovalStatusBadge status={expense.status || 'DRAFT'} size="lg" />
+            </div>
             <p className="mt-2 text-gray-600">
               작성일: {format(new Date(expense.createdAt), 'yyyy-MM-dd HH:mm')}
             </p>
@@ -429,6 +456,34 @@ export default function ExpenseDetailPage() {
             </div>
           </div>
         )}
+
+        {/* 결재 정보 */}
+        <div className={SECTION_CARD}>
+          <h2 className={SECTION_TITLE}>결재 정보</h2>
+
+          {/* 결재 액션 버튼 */}
+          <div className="mb-6">
+            <ApprovalActionButtons
+              expenseId={id}
+              status={expense.status || 'DRAFT'}
+              currentUserName={expense.applicantName}
+              currentApproverName={getCurrentApproverName()}
+              applicantName={expense.applicantName}
+              onSuccess={fetchData}
+            />
+            {expense.status === 'DRAFT' && (
+              <p className="mt-3 text-sm text-gray-500">
+                제출 버튼을 클릭하면 결재선이 자동 생성되고 결재 프로세스가 시작됩니다.
+              </p>
+            )}
+          </div>
+
+          {/* 결재선 표시 */}
+          <ApprovalLineDisplay
+            approvalLine={approvalData?.approvalLine}
+            expenseStatus={expense.status || 'DRAFT'}
+          />
+        </div>
 
         {/* 버튼 */}
         <div className="flex justify-end gap-4 no-print">
