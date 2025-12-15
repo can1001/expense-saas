@@ -46,10 +46,14 @@ interface ApprovalItem {
 }
 
 // 결재자 목록 (실제로는 인증 시스템에서 가져와야 함)
+// approval-engine.ts의 DEPARTMENT_APPROVERS와 일치해야 함
 const APPROVERS = [
-  { name: '김팀장', role: '팀장' },
-  { name: '이회계', role: '회계' },
-  { name: '박재정', role: '재정팀장' },
+  { name: '팀장', role: '팀장 (기본)' },
+  { name: '김재정', role: '팀장 (재정팀)' },
+  { name: '최교육', role: '팀장 (교육팀)' },
+  { name: '강선교', role: '팀장 (선교팀)' },
+  { name: '박회계', role: '회계' },
+  { name: '이재무', role: '재정팀장' },
 ];
 
 export default function ApprovalsPage() {
@@ -57,7 +61,7 @@ export default function ApprovalsPage() {
   const [approvals, setApprovals] = useState<ApprovalItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedApprover, setSelectedApprover] = useState(APPROVERS[0].name);
+  const [selectedApprover, setSelectedApprover] = useState('박회계');
   const [statusFilter, setStatusFilter] = useState<'pending' | 'completed' | 'all'>('pending');
 
   useEffect(() => {
