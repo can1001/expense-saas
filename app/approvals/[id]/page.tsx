@@ -351,6 +351,17 @@ export default function ApprovalDetailPage() {
                 <Clock className="w-5 h-5 text-gray-500" />
                 결재 처리
               </h2>
+
+              {/* 디버그 정보 */}
+              <div className="mb-4 p-3 bg-gray-100 rounded-lg text-xs font-mono">
+                <p>선택된 결재자: {selectedApprover}</p>
+                <p>현재 결재 대기자: {getCurrentApproverName() || '(없음)'}</p>
+                <p>지출결의서 상태: {expense.status}</p>
+                <p>현재 결재 단계: {approvalData?.approvalLine?.currentStep || '(없음)'}</p>
+                <p>총 결재 단계: {approvalData?.approvalLine?.totalSteps || '(없음)'}</p>
+                <p>일치 여부: {selectedApprover === getCurrentApproverName() ? '✅ 일치' : '❌ 불일치'}</p>
+              </div>
+
               <ApprovalActionButtons
                 expenseId={id}
                 status={expense.status || 'DRAFT'}
