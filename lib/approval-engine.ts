@@ -65,61 +65,50 @@ const APPROVER_ROLES = {
 } as const;
 
 // ========================================
-// 부서별 결재자 매핑 (실제로는 DB에서 가져와야 함)
+// 위원회별 팀장 매핑
 // ========================================
 
-// TODO: 실제 구현 시 DB 테이블로 관리하거나 환경변수로 설정
+// 위원회별 담당 팀장 설정
+const COMMITTEE_TEAM_LEADERS: Record<string, string> = {
+  '예배위원회': '청연신창국',
+  '교육훈련위원회': '청연김흥래',
+  '목양위원회': '청연신창국',
+  '기획위원회': '청연신창국',
+  '(가칭)인사위': '청연신창국',
+  '(가칭)행정위': '청연신창국',
+};
+
+// 공통 결재자 설정
+const COMMON_APPROVERS = {
+  accountant: '청연윤운문',      // 회계 (2차 결재)
+  financeManager: '청연정혜종',  // 재정팀장 (최종 결재)
+};
+
+// ========================================
+// 부서별 결재자 매핑 (위원회 기반 동적 생성)
+// ========================================
+
 // 현재 등록된 사용자 (lib/users.ts):
-// - 청연정혜종: 재정팀장 (3차 결재)
-// - 청연김흥래: 회계 (2차 결재)
-// - 청연신창국: 팀장 (방송팀, 1차 결재)
-// - 청연윤운문: 팀장 (재정팀, 1차 결재)
+// - 청연정혜종: 재정팀장 (최종 결재)
+// - 청연윤운문: 회계 (2차 결재)
+// - 청연신창국: 팀장 (예배위원회, 목양위원회, 기획위원회, 1차 결재)
+// - 청연김흥래: 팀장 (교육훈련위원회, 1차 결재)
 // - 청연송원영: 사용자
+
+/**
+ * 위원회에 따른 팀장 결정
+ */
+function getTeamManagerByCommittee(committee: string): string {
+  return COMMITTEE_TEAM_LEADERS[committee] || '청연신창국'; // 기본 팀장
+}
+
 const DEPARTMENT_APPROVERS: Record<string, ApproverMapping> = {
-  '방송팀': {
-    department: '방송팀',
-    teamManager: '청연신창국',
-    teamManagerEmail: undefined,
-    accountant: '청연김흥래',
-    accountantEmail: undefined,
-    financeManager: '청연정혜종',
-    financeManagerEmail: undefined,
-  },
-  '재정팀': {
-    department: '재정팀',
-    teamManager: '청연윤운문',
-    teamManagerEmail: undefined,
-    accountant: '청연김흥래',
-    accountantEmail: undefined,
-    financeManager: '청연정혜종',
-    financeManagerEmail: undefined,
-  },
-  '교육팀': {
-    department: '교육팀',
-    teamManager: '청연신창국', // 기본 팀장으로 방송팀 팀장 사용
-    teamManagerEmail: undefined,
-    accountant: '청연김흥래',
-    accountantEmail: undefined,
-    financeManager: '청연정혜종',
-    financeManagerEmail: undefined,
-  },
-  '선교팀': {
-    department: '선교팀',
-    teamManager: '청연신창국', // 기본 팀장으로 방송팀 팀장 사용
-    teamManagerEmail: undefined,
-    accountant: '청연김흥래',
-    accountantEmail: undefined,
-    financeManager: '청연정혜종',
-    financeManagerEmail: undefined,
-  },
   // 기본값 (부서 정보가 없을 때)
   '기본': {
     department: '기본',
-    teamManager: '청연신창국', // 기본 팀장
-    accountant: '청연김흥래',
-    accountantEmail: undefined,
-    financeManager: '청연정혜종',
-    financeManagerEmail: undefined,
+    teamManager: '청연신창국',
+    accountant: COMMON_APPROVERS.accountant,
+    financeManager: COMMON_APPROVERS.financeManager,
   },
 };
 
@@ -128,10 +117,20 @@ const DEPARTMENT_APPROVERS: Record<string, ApproverMapping> = {
 // ========================================
 
 /**
- * 부서별 결재자 정보 가져오기
+ * 위원회/부서별 결재자 정보 가져오기
+ * @param committee 위원회
+ * @param department 부서
  */
-function getDepartmentApprovers(department: string): ApproverMapping {
-  return DEPARTMENT_APPROVERS[department] || DEPARTMENT_APPROVERS['기본'];
+function getDepartmentApprovers(committee: string, department: string): ApproverMapping {
+  // 위원회에 따른 팀장 결정
+  const teamManager = getTeamManagerByCommittee(committee);
+
+  return {
+    department,
+    teamManager,
+    accountant: COMMON_APPROVERS.accountant,
+    financeManager: COMMON_APPROVERS.financeManager,
+  };
 }
 
 /**
@@ -141,7 +140,7 @@ function getDepartmentApprovers(department: string): ApproverMapping {
  * 작성자가 결재선에 포함된 경우 해당 단계 건너뜀
  *
  * 예시:
- * - 청연김흥래(회계)가 작성 → 1차 팀장 → 2차 재정팀장 (2단계)
+ * - 청연윤운문(회계)이 작성 → 1차 팀장 → 2차 재정팀장 (2단계)
  * - 청연신창국(팀장)이 작성 → 1차 회계 → 2차 재정팀장 (2단계)
  * - 청연정혜종(재정팀장)이 작성 → 에러 (담임목사 승인 필요)
  *
@@ -149,10 +148,10 @@ function getDepartmentApprovers(department: string): ApproverMapping {
  * @returns 생성된 결재선 정보
  */
 export function generateApprovalLine(expenseData: ExpenseData): ApprovalLineInput {
-  const { department, applicantName } = expenseData;
+  const { committee, department, applicantName } = expenseData;
 
-  // 부서 결재자 매핑 가져오기
-  const approvers = getDepartmentApprovers(department);
+  // 위원회/부서 결재자 매핑 가져오기
+  const approvers = getDepartmentApprovers(committee, department);
 
   // 모든 가능한 결재자 목록 생성
   const allApprovers = [
