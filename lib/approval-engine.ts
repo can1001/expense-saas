@@ -69,42 +69,57 @@ const APPROVER_ROLES = {
 // ========================================
 
 // TODO: 실제 구현 시 DB 테이블로 관리하거나 환경변수로 설정
+// 현재 등록된 사용자 (lib/users.ts):
+// - 청연정혜종: 재정팀장 (3차 결재)
+// - 청연김흥래: 회계 (2차 결재)
+// - 청연신창국: 팀장 (방송팀, 1차 결재)
+// - 청연윤운문: 팀장 (재정팀, 1차 결재)
+// - 청연송원영: 사용자
 const DEPARTMENT_APPROVERS: Record<string, ApproverMapping> = {
+  '방송팀': {
+    department: '방송팀',
+    teamManager: '청연신창국',
+    teamManagerEmail: undefined,
+    accountant: '청연김흥래',
+    accountantEmail: undefined,
+    financeManager: '청연정혜종',
+    financeManagerEmail: undefined,
+  },
   '재정팀': {
     department: '재정팀',
-    teamManager: '김재정',
-    teamManagerEmail: 'finance.manager@church.org',
-    accountant: '박회계',
-    accountantEmail: 'accountant@church.org',
-    financeManager: '이재무',
-    financeManagerEmail: 'cfo@church.org',
+    teamManager: '청연윤운문',
+    teamManagerEmail: undefined,
+    accountant: '청연김흥래',
+    accountantEmail: undefined,
+    financeManager: '청연정혜종',
+    financeManagerEmail: undefined,
   },
   '교육팀': {
     department: '교육팀',
-    teamManager: '최교육',
-    teamManagerEmail: 'education.manager@church.org',
-    accountant: '박회계',
-    accountantEmail: 'accountant@church.org',
-    financeManager: '이재무',
-    financeManagerEmail: 'cfo@church.org',
+    teamManager: '청연신창국', // 기본 팀장으로 방송팀 팀장 사용
+    teamManagerEmail: undefined,
+    accountant: '청연김흥래',
+    accountantEmail: undefined,
+    financeManager: '청연정혜종',
+    financeManagerEmail: undefined,
   },
   '선교팀': {
     department: '선교팀',
-    teamManager: '강선교',
-    teamManagerEmail: 'mission.manager@church.org',
-    accountant: '박회계',
-    accountantEmail: 'accountant@church.org',
-    financeManager: '이재무',
-    financeManagerEmail: 'cfo@church.org',
+    teamManager: '청연신창국', // 기본 팀장으로 방송팀 팀장 사용
+    teamManagerEmail: undefined,
+    accountant: '청연김흥래',
+    accountantEmail: undefined,
+    financeManager: '청연정혜종',
+    financeManagerEmail: undefined,
   },
   // 기본값 (부서 정보가 없을 때)
   '기본': {
     department: '기본',
-    teamManager: '팀장',
-    accountant: '박회계',
-    accountantEmail: 'accountant@church.org',
-    financeManager: '이재무',
-    financeManagerEmail: 'cfo@church.org',
+    teamManager: '청연신창국', // 기본 팀장
+    accountant: '청연김흥래',
+    accountantEmail: undefined,
+    financeManager: '청연정혜종',
+    financeManagerEmail: undefined,
   },
 };
 
