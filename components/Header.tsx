@@ -1,12 +1,59 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { FileText, CheckSquare, Home } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { FileText, CheckSquare, Home, LogOut, User } from 'lucide-react';
+
+interface UserInfo {
+  id: string;
+  username: string;
+}
 
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const isHome = pathname === '/';
+  const isLoginPage = pathname === '/login';
+
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        const data = await response.json();
+        if (response.ok && data.user) {
+          setUser(data.user);
+        } else {
+          setUser(null);
+        }
+      } catch {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      setUser(null);
+      router.push('/login');
+      router.refresh();
+    } catch {
+      // 에러 처리
+    }
+  };
+
+  // 로그인 페이지에서는 헤더 숨김
+  if (isLoginPage) {
+    return null;
+  }
 
   const navItems = [
     {
@@ -58,14 +105,30 @@ export default function Header() {
             </nav>
           </div>
 
-          {/* 오른쪽 영역 (추후 사용자 정보 등) */}
+          {/* 오른쪽 영역 - 사용자 정보 */}
           <div className="flex items-center gap-4">
-            {isHome && (
+            {loading ? (
+              <div className="h-8 w-24 bg-gray-200 rounded animate-pulse" />
+            ) : user ? (
+              <>
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <User className="w-4 h-4" />
+                  <span>{user.username}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">로그아웃</span>
+                </button>
+              </>
+            ) : (
               <Link
-                href="/expenses"
+                href="/login"
                 className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
-                시작하기
+                로그인
               </Link>
             )}
           </div>
