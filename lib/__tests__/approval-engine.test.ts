@@ -77,18 +77,18 @@ describe('approval-engine', () => {
         budgetCategory: '사무행정비',
         budgetSubcategory: '회의비',
         requestAmount: 300000,
-        applicantName: '청연김흥래', // 팀장과 동일한 이름
+        applicantName: '김흥래', // 팀장과 동일한 이름
       };
 
       const result = generateApprovalLine(expenseData);
 
-      // 팀장(청연김흥래) 제외, 2단계 결재선 생성
+      // 팀장(김흥래) 제외, 2단계 결재선 생성
       expect(result.totalSteps).toBe(2);
       expect(result.steps).toHaveLength(2);
       expect(result.steps[0].stepName).toBe('회계');
-      expect(result.steps[0].approverName).toBe('청연윤운문');
+      expect(result.steps[0].approverName).toBe('윤운문');
       expect(result.steps[1].stepName).toBe('재정팀장');
-      expect(result.steps[1].approverName).toBe('청연신창국');
+      expect(result.steps[1].approverName).toBe('신창국');
     });
 
     it('should use default approvers for unknown department', () => {
@@ -104,9 +104,9 @@ describe('approval-engine', () => {
       const result = generateApprovalLine(expenseData);
 
       expect(result.totalSteps).toBe(3);
-      expect(result.steps[0].approverName).toBe('청연김흥래'); // 기본 팀장
-      expect(result.steps[1].approverName).toBe('청연윤운문'); // 회계
-      expect(result.steps[2].approverName).toBe('청연신창국'); // 재정팀장
+      expect(result.steps[0].approverName).toBe('김흥래'); // 기본 팀장
+      expect(result.steps[1].approverName).toBe('윤운문'); // 회계
+      expect(result.steps[2].approverName).toBe('신창국'); // 재정팀장
     });
   });
 
@@ -381,10 +381,10 @@ describe('approval-engine', () => {
 
         const result = generateApprovalLine(expenseData);
 
-        // 교육훈련위원회 → 팀장: 청연김흥래, 회계: 청연윤운문, 재정팀장: 청연신창국
-        expect(result.steps[0].approverName).toBe('청연김흥래');
-        expect(result.steps[1].approverName).toBe('청연윤운문');
-        expect(result.steps[2].approverName).toBe('청연신창국');
+        // 교육훈련위원회 → 팀장: 김흥래, 회계: 윤운문, 재정팀장: 신창국
+        expect(result.steps[0].approverName).toBe('김흥래');
+        expect(result.steps[1].approverName).toBe('윤운문');
+        expect(result.steps[2].approverName).toBe('신창국');
       });
 
       it('should use committee-based team leader for any department', () => {
@@ -399,10 +399,10 @@ describe('approval-engine', () => {
 
         const result = generateApprovalLine(expenseData);
 
-        // 예배위원회 → 팀장: 청연김흥래
-        expect(result.steps[0].approverName).toBe('청연김흥래');
-        expect(result.steps[1].approverName).toBe('청연윤운문');
-        expect(result.steps[2].approverName).toBe('청연신창국');
+        // 예배위원회 → 팀장: 김흥래
+        expect(result.steps[0].approverName).toBe('김흥래');
+        expect(result.steps[1].approverName).toBe('윤운문');
+        expect(result.steps[2].approverName).toBe('신창국');
       });
     });
 
@@ -414,7 +414,7 @@ describe('approval-engine', () => {
           budgetCategory: '사무행정비',
           budgetSubcategory: '회의비',
           requestAmount: 300_000,
-          applicantName: '청연김흥래', // 팀장
+          applicantName: '김흥래', // 팀장
         };
 
         const result = generateApprovalLine(expenseData);
@@ -422,9 +422,9 @@ describe('approval-engine', () => {
         // 팀장 제외, 2단계: 회계 → 재정팀장
         expect(result.totalSteps).toBe(2);
         expect(result.steps[0].stepName).toBe('회계');
-        expect(result.steps[0].approverName).toBe('청연윤운문');
+        expect(result.steps[0].approverName).toBe('윤운문');
         expect(result.steps[1].stepName).toBe('재정팀장');
-        expect(result.steps[1].approverName).toBe('청연신창국');
+        expect(result.steps[1].approverName).toBe('신창국');
       });
 
       it('should auto-skip accountant step if applicant is accountant', () => {
@@ -434,7 +434,7 @@ describe('approval-engine', () => {
           budgetCategory: '사무행정비',
           budgetSubcategory: '회의비',
           requestAmount: 300_000,
-          applicantName: '청연윤운문', // 회계
+          applicantName: '윤운문', // 회계
         };
 
         const result = generateApprovalLine(expenseData);
@@ -442,9 +442,9 @@ describe('approval-engine', () => {
         // 회계 제외, 2단계: 팀장 → 재정팀장
         expect(result.totalSteps).toBe(2);
         expect(result.steps[0].stepName).toBe('팀장');
-        expect(result.steps[0].approverName).toBe('청연김흥래');
+        expect(result.steps[0].approverName).toBe('김흥래');
         expect(result.steps[1].stepName).toBe('재정팀장');
-        expect(result.steps[1].approverName).toBe('청연신창국');
+        expect(result.steps[1].approverName).toBe('신창국');
       });
 
       it('should throw error if applicant is finance manager (requires pastor approval)', () => {
@@ -454,7 +454,7 @@ describe('approval-engine', () => {
           budgetCategory: '사무행정비',
           budgetSubcategory: '회의비',
           requestAmount: 1_000_000,
-          applicantName: '청연신창국', // 재정팀장
+          applicantName: '신창국', // 재정팀장
         };
 
         expect(() => generateApprovalLine(expenseData)).toThrow('담임목사 승인이 필요합니다');

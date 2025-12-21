@@ -199,7 +199,7 @@ describe('Approval API Routes', () => {
         budgetCategory: '사무행정비',
         budgetSubcategory: '회의비',
         requestAmount: 300000,
-        applicantName: '청연신창국', // 재정팀장 (담임목사 승인 필요)
+        applicantName: '신창국', // 재정팀장 (담임목사 승인 필요)
         items: [],
         approvalLine: null,
       };

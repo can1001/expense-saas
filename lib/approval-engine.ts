@@ -71,19 +71,20 @@ const APPROVER_ROLES = {
 // 위원회별 담당 팀장 설정
 // 참고: 실제 1차 결재자는 BudgetMaster의 manager 필드를 참조해야 함
 // 아래는 위원회별 기본 팀장 (BudgetMaster manager가 없을 때 사용)
+// 주의: username 형식 사용 (청구인과 매칭을 위해)
 const COMMITTEE_TEAM_LEADERS: Record<string, string> = {
-  '예배위원회': '청연김흥래',      // 기본값 (실제: BudgetMaster manager 사용)
-  '교육훈련위원회': '청연김흥래',
-  '목양위원회': '청연김흥래',      // 기본값 (실제: BudgetMaster manager 사용)
-  '기획위원회': '청연김흥래',      // 기본값 (실제: BudgetMaster manager 사용)
-  '(가칭)인사위': '청연김흥래',    // 기본값 (실제: BudgetMaster manager 사용)
-  '(가칭)행정위': '청연김흥래',    // 기본값 (실제: BudgetMaster manager 사용)
+  '예배위원회': '김흥래',      // 기본값 (실제: BudgetMaster manager 사용)
+  '교육훈련위원회': '김흥래',
+  '목양위원회': '김흥래',      // 기본값 (실제: BudgetMaster manager 사용)
+  '기획위원회': '김흥래',      // 기본값 (실제: BudgetMaster manager 사용)
+  '(가칭)인사위': '김흥래',    // 기본값 (실제: BudgetMaster manager 사용)
+  '(가칭)행정위': '김흥래',    // 기본값 (실제: BudgetMaster manager 사용)
 };
 
-// 공통 결재자 설정
+// 공통 결재자 설정 (username 형식)
 const COMMON_APPROVERS = {
-  accountant: '청연윤운문',      // 회계 (2차 결재)
-  financeManager: '청연신창국',  // 재정팀장 (최종 결재)
+  accountant: '윤운문',      // 회계 (2차 결재)
+  financeManager: '신창국',  // 재정팀장 (최종 결재)
 };
 
 // ========================================
@@ -91,24 +92,24 @@ const COMMON_APPROVERS = {
 // ========================================
 
 // 현재 등록된 사용자 (lib/users.ts):
-// - 청연신창국: 재정팀장 (최종 결재)
-// - 청연윤운문: 회계 (2차 결재)
-// - 청연김흥래: 팀장 (교육훈련위원회, 1차 결재)
-// - 청연정혜종: 사용자
-// - 청연송원영: 사용자
+// - 신창국: 재정팀장 (최종 결재)
+// - 윤운문: 회계 (2차 결재)
+// - 김흥래: 팀장 (교육훈련위원회, 1차 결재)
+// - 정혜종: 사용자
+// - 송원영: 사용자
 
 /**
  * 위원회에 따른 팀장 결정
  */
 function getTeamManagerByCommittee(committee: string): string {
-  return COMMITTEE_TEAM_LEADERS[committee] || '청연신창국'; // 기본 팀장
+  return COMMITTEE_TEAM_LEADERS[committee] || '신창국'; // 기본 팀장
 }
 
 const DEPARTMENT_APPROVERS: Record<string, ApproverMapping> = {
   // 기본값 (부서 정보가 없을 때)
   '기본': {
     department: '기본',
-    teamManager: '청연신창국',
+    teamManager: '신창국',
     accountant: COMMON_APPROVERS.accountant,
     financeManager: COMMON_APPROVERS.financeManager,
   },

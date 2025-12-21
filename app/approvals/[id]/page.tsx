@@ -365,17 +365,17 @@ export default function ApprovalDetailPage() {
               <ApprovalActionButtons
                 expenseId={id}
                 status={expense.status || 'DRAFT'}
-                currentUserName={currentUser?.userid || ''}
+                currentUserName={currentUser?.username || ''}
                 currentApproverName={getCurrentApproverName()}
                 applicantName={expense.applicantName}
                 onSuccess={fetchData}
               />
-              {currentUser && getCurrentApproverName() !== currentUser.userid &&
+              {currentUser && getCurrentApproverName() !== currentUser.username &&
                 ['PENDING', 'APPROVED_STEP_1', 'APPROVED_STEP_2'].includes(expense.status || '') && (
                   <p className="mt-4 text-sm text-yellow-600 bg-yellow-50 p-3 rounded-lg">
                     현재 결재 대기자: <strong>{getCurrentApproverName()}</strong>
                     <br />
-                    로그인한 사용자({currentUser.userid})의 결재 순서가 아닙니다.
+                    로그인한 사용자({currentUser.username})의 결재 순서가 아닙니다.
                   </p>
                 )}
             </div>

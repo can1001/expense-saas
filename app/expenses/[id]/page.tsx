@@ -499,7 +499,7 @@ export default function ExpenseDetailPage() {
             <ApprovalActionButtons
               expenseId={id}
               status={expense.status || 'DRAFT'}
-              currentUserName={currentUser?.userid || expense.applicantName}
+              currentUserName={currentUser?.username || expense.applicantName}
               currentApproverName={getCurrentApproverName()}
               applicantName={expense.applicantName}
               onSuccess={fetchData}
