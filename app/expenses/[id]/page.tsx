@@ -504,9 +504,11 @@ export default function ExpenseDetailPage() {
               applicantName={expense.applicantName}
               onSuccess={fetchData}
             />
-            {expense.status === 'DRAFT' && (
+            {(expense.status === 'DRAFT' || expense.status === 'WITHDRAWN') && (
               <p className="mt-3 text-sm text-gray-500">
-                제출 버튼을 클릭하면 결재선이 자동 생성되고 결재 프로세스가 시작됩니다.
+                {expense.status === 'WITHDRAWN'
+                  ? '제출 버튼을 클릭하면 새로운 결재선이 생성되고 결재 프로세스가 다시 시작됩니다.'
+                  : '제출 버튼을 클릭하면 결재선이 자동 생성되고 결재 프로세스가 시작됩니다.'}
               </p>
             )}
           </div>

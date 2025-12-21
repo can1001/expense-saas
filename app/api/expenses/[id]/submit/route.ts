@@ -37,8 +37,9 @@ export async function POST(
       );
     }
 
-    // 이미 제출된 경우 에러
-    if (expense.status !== 'DRAFT') {
+    // 제출 가능한 상태인지 확인 (DRAFT 또는 WITHDRAWN)
+    const submittableStatuses = ['DRAFT', 'WITHDRAWN'];
+    if (!submittableStatuses.includes(expense.status)) {
       return NextResponse.json(
         {
           error: `이미 제출된 지출결의서입니다. (현재 상태: ${expense.status})`,
@@ -124,9 +125,9 @@ export async function POST(
           action: 'SUBMIT',
           actorName: expense.applicantName,
           actorRole: '작성자',
-          previousStatus: 'DRAFT',
+          previousStatus: expense.status,
           newStatus,
-          comment: '지출결의서 제출',
+          comment: expense.status === 'WITHDRAWN' ? '지출결의서 재제출' : '지출결의서 제출',
           metadata: {
             userAgent: request.headers.get('user-agent') || '',
             timestamp: new Date().toISOString(),
