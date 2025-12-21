@@ -415,7 +415,7 @@ export default function ExpenseDetailPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">청구팀</label>
-              <p className="text-gray-900">{expense.requestTeam}</p>
+              <p className="text-gray-900">{expense.committee} {expense.department}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">청구인</label>

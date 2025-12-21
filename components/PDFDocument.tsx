@@ -222,7 +222,7 @@ export const ExpensePDFDocument: React.FC<PDFDocumentProps> = ({ expense }) => {
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>청구팀:</Text>
-            <Text style={styles.value}>{expense.requestTeam}</Text>
+            <Text style={styles.value}>{expense.committee} {expense.department}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>청구인:</Text>

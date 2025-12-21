@@ -39,7 +39,7 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
             <td colSpan={2} className="team-cell">
               <span className="committee">{expense.committee}</span>
               <span className="divider">　</span>
-              <span className="team">{expense.requestTeam}</span>
+              <span className="team">{expense.department}</span>
             </td>
             <td className="label-cell requester">○ 청구인:</td>
             <td className="name-cell">{expense.applicantName}</td>
