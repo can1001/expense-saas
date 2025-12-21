@@ -45,7 +45,9 @@
       "Bash(for id in cmjf2dkc800001qbl3cm65e7v cmjec0t1w00001qbofxrrlx8o cmj7yfjyu000a1qdhycacgw69 cmj7xtzvl00021qdhmdxbb7de cmj7ar47b000028acexrsg6o2 cmj7ab1i400001qb1h7imqtft cmj6hw689000029aqxa1iznd6 cmj5k22ug00011qb7sdsiizyv cmj5ajgan000228avir9qsub7 cmj5ajeu5000028avpg89rmwy cmio0bvrd0000vv3m0sxskcom)",
       "Bash(do)",
       "Bash(echo:*)",
-      "Bash(jq:*)"
+      "Bash(jq:*)",
+      "Bash(node -e:*)",
+      "Bash(node /tmp/analyze-managers.js:*)"
     ],
     "deny": [],
     "ask": []
