@@ -135,9 +135,15 @@ function getDepartmentApprovers(department: string): ApproverMapping {
 }
 
 /**
- * 결재선 자동 생성 (고정 3단계)
+ * 결재선 자동 생성 (동적 단계)
  *
- * 1차: 팀장 → 2차: 회계 → 3차: 재정팀장
+ * 기본: 1차 팀장 → 2차 회계 → 3차 재정팀장
+ * 작성자가 결재선에 포함된 경우 해당 단계 건너뜀
+ *
+ * 예시:
+ * - 청연김흥래(회계)가 작성 → 1차 팀장 → 2차 재정팀장 (2단계)
+ * - 청연신창국(팀장)이 작성 → 1차 회계 → 2차 재정팀장 (2단계)
+ * - 청연정혜종(재정팀장)이 작성 → 에러 (담임목사 승인 필요)
  *
  * @param expenseData 지출결의서 데이터
  * @returns 생성된 결재선 정보
@@ -148,74 +154,68 @@ export function generateApprovalLine(expenseData: ExpenseData): ApprovalLineInpu
   // 부서 결재자 매핑 가져오기
   const approvers = getDepartmentApprovers(department);
 
-  // 고정 3단계 결재
-  const totalSteps = FIXED_APPROVAL_STEPS;
+  // 모든 가능한 결재자 목록 생성
+  const allApprovers = [
+    {
+      role: APPROVER_ROLES.TEAM_MANAGER,
+      name: approvers.teamManager,
+      email: approvers.teamManagerEmail,
+      title: '팀장',
+    },
+    {
+      role: APPROVER_ROLES.ACCOUNTANT,
+      name: approvers.accountant,
+      email: approvers.accountantEmail,
+      title: '회계',
+    },
+    {
+      role: APPROVER_ROLES.FINANCE_MANAGER,
+      name: approvers.financeManager,
+      email: approvers.financeManagerEmail,
+      title: '재정팀장',
+    },
+  ];
 
-  // 결재 단계 생성
-  const steps: ApprovalStepInput[] = [];
+  // 작성자가 재정팀장인 경우 특별 처리 (담임목사 승인 필요)
+  if (applicantName === approvers.financeManager) {
+    throw new Error(
+      `재정팀장(${applicantName})이 작성한 지출결의서는 담임목사 승인이 필요합니다. ` +
+      `현재 시스템에서는 담임목사 결재선이 설정되지 않았습니다.`
+    );
+  }
 
-  // 1차 결재: 팀장
-  steps.push({
-    stepNumber: 1,
-    stepName: APPROVER_ROLES.TEAM_MANAGER,
-    approverName: approvers.teamManager,
-    approverEmail: approvers.teamManagerEmail,
-    approverTitle: '팀장',
+  // 작성자를 제외한 결재자로 결재선 구성
+  const filteredApprovers = allApprovers.filter(
+    (approver) => approver.name !== applicantName
+  );
+
+  // 결재 단계 생성 (번호 재할당)
+  const steps: ApprovalStepInput[] = filteredApprovers.map((approver, index) => ({
+    stepNumber: index + 1,
+    stepName: approver.role,
+    approverName: approver.name,
+    approverEmail: approver.email,
+    approverTitle: approver.title,
     isRequired: true,
     isParallel: false,
-  });
+  }));
 
-  // 2차 결재: 회계
-  steps.push({
-    stepNumber: 2,
-    stepName: APPROVER_ROLES.ACCOUNTANT,
-    approverName: approvers.accountant,
-    approverEmail: approvers.accountantEmail,
-    approverTitle: '회계',
-    isRequired: true,
-    isParallel: false,
-  });
+  const totalSteps = steps.length;
 
-  // 3차 결재: 재정팀장 (최종)
-  steps.push({
-    stepNumber: 3,
-    stepName: APPROVER_ROLES.FINANCE_MANAGER,
-    approverName: approvers.financeManager,
-    approverEmail: approvers.financeManagerEmail,
-    approverTitle: '재정팀장',
-    isRequired: true,
-    isParallel: false,
-  });
-
-  // 자기결재 방지 검증
-  validateSelfApproval(applicantName, steps);
+  // 최소 1명의 결재자가 있어야 함
+  if (totalSteps === 0) {
+    throw new Error('결재선을 생성할 수 없습니다. 결재자가 없습니다.');
+  }
 
   return {
     steps,
     totalSteps,
-    isUrgent: false, // 긴급 플래그는 별도 지정
+    isUrgent: false,
   };
 }
 
-/**
- * 자기결재 방지 검증
- * 작성자가 결재선에 포함되어 있으면 에러
- */
-function validateSelfApproval(
-  applicantName: string,
-  steps: ApprovalStepInput[]
-): void {
-  const isSelfApproval = steps.some(
-    (step) => step.approverName === applicantName
-  );
-
-  if (isSelfApproval) {
-    throw new Error(
-      `자기결재 불가: 작성자(${applicantName})가 결재선에 포함되어 있습니다. ` +
-      `재정팀장이 작성한 경우 담임목사 승인이 필요합니다.`
-    );
-  }
-}
+// validateSelfApproval 함수는 더 이상 사용하지 않음
+// 대신 generateApprovalLine에서 작성자를 결재선에서 자동 제외함
 
 /**
  * 결재선 수정 가능 여부 검증
@@ -316,14 +316,14 @@ export function calculateNextStep(
 }
 
 /**
- * 결재 상태 계산 (3단계 결재 프로세스)
+ * 결재 상태 계산 (동적 단계 결재 프로세스)
  *
  * 상태 전이:
  * - DRAFT: 작성중
- * - PENDING: 결재 대기 (1차 팀장 결재 대기)
- * - APPROVED_STEP_1: 1차 승인 완료 (2차 회계 결재 대기)
- * - APPROVED_STEP_2: 2차 승인 완료 (3차 재정팀장 결재 대기)
- * - APPROVED_FINAL: 최종 승인 (3차 재정팀장 승인 완료)
+ * - PENDING: 결재 대기 (1차 결재 대기)
+ * - APPROVED_STEP_1: 1차 승인 완료
+ * - APPROVED_STEP_2: 2차 승인 완료 (3단계 이상일 때)
+ * - APPROVED_FINAL: 최종 승인
  * - REJECTED: 반려
  * - WITHDRAWN: 회수
  *
@@ -342,7 +342,7 @@ export function calculateApprovalStatus(
     case 'APPROVE':
       // 완료된 단계에 따라 상태 결정
       if (completedStep >= totalSteps) {
-        return 'APPROVED_FINAL'; // 최종 승인 (3차 완료)
+        return 'APPROVED_FINAL'; // 최종 승인
       } else if (completedStep === 2) {
         return 'APPROVED_STEP_2'; // 2차 승인 완료
       } else if (completedStep === 1) {
