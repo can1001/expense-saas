@@ -215,7 +215,7 @@ export default function ApprovalLineDisplay({
                 )}
 
                 {/* 현재 진행 중 표시 */}
-                {isCurrent && expenseStatus !== 'APPROVED' && expenseStatus !== 'REJECTED' && (
+                {isCurrent && !['APPROVED', 'APPROVED_FINAL'].includes(expenseStatus) && expenseStatus !== 'REJECTED' && (
                   <div className="mt-2">
                     <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-600">
                       <Clock className="w-3 h-3" />
@@ -230,7 +230,7 @@ export default function ApprovalLineDisplay({
       </div>
 
       {/* 최종 상태 메시지 */}
-      {expenseStatus === 'APPROVED' && (
+      {['APPROVED', 'APPROVED_FINAL'].includes(expenseStatus) && (
         <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
           <p className="text-sm font-medium text-green-800 text-center">
             ✓ 모든 결재가 완료되었습니다

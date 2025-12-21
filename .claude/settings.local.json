@@ -41,7 +41,11 @@
       "WebFetch(domain:expense-system-j7a0.onrender.com)",
       "Bash(git push:*)",
       "Bash(git diff:*)",
-      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_GT9zoh3jdrPV@ep-tiny-hill-a10muxl0-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require\" npx ts-node:*)"
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_GT9zoh3jdrPV@ep-tiny-hill-a10muxl0-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require\" npx ts-node:*)",
+      "Bash(for id in cmjf2dkc800001qbl3cm65e7v cmjec0t1w00001qbofxrrlx8o cmj7yfjyu000a1qdhycacgw69 cmj7xtzvl00021qdhmdxbb7de cmj7ar47b000028acexrsg6o2 cmj7ab1i400001qb1h7imqtft cmj6hw689000029aqxa1iznd6 cmj5k22ug00011qb7sdsiizyv cmj5ajgan000228avir9qsub7 cmj5ajeu5000028avpg89rmwy cmio0bvrd0000vv3m0sxskcom)",
+      "Bash(do)",
+      "Bash(echo:*)",
+      "Bash(jq:*)"
     ],
     "deny": [],
     "ask": []
