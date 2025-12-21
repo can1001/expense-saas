@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지출결의서 시스템 - 소프트웨어 아키텍처</title>
+    <style>
+        :root {
+            --primary: #3B82F6;
+            --primary-dark: #2563EB;
+            --secondary: #64748B;
+            --success: #22C55E;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --bg: #F8FAFC;
+            --card-bg: #FFFFFF;
+            --text: #1E293B;
+            --text-secondary: #64748B;
+            --border: #E2E8F0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        nav.toc {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        nav.toc h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        nav.toc ul {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 0.5rem;
+        }
+
+        nav.toc a {
+            color: var(--text);
+            text-decoration: none;
+            padding: 0.5rem;
+            border-radius: 6px;
+            display: block;
+            transition: background 0.2s;
+        }
+
+        nav.toc a:hover {
+            background: var(--bg);
+            color: var(--primary);
+        }
+
+        section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            color: var(--text);
+            margin: 1.5rem 0 1rem;
+        }
+
+        h4 {
+            font-size: 1rem;
+            color: var(--secondary);
+            margin: 1rem 0 0.5rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg);
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        tr:hover {
+            background: var(--bg);
+        }
+
+        pre {
+            background: #1E293B;
+            color: #E2E8F0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            margin: 1rem 0;
+        }
+
+        code {
+            font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+        }
+
+        .inline-code {
+            background: var(--bg);
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            color: var(--primary-dark);
+        }
+
+        .diagram {
+            background: #1E293B;
+            color: #A5F3FC;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            white-space: pre;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 1.25rem;
+        }
+
+        .card h4 {
+            margin-top: 0;
+            color: var(--primary);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-primary {
+            background: #DBEAFE;
+            color: var(--primary-dark);
+        }
+
+        .badge-success {
+            background: #DCFCE7;
+            color: #166534;
+        }
+
+        .badge-warning {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .tech-item {
+            background: var(--bg);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-flow {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .status-box {
+            background: var(--bg);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            text-align: center;
+        }
+
+        .status-box.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .arrow {
+            color: var(--secondary);
+            font-size: 1.25rem;
+        }
+
+        .file-tree {
+            background: var(--bg);
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Fira Code', 'Monaco', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        .file-tree .folder {
+            color: var(--primary);
+        }
+
+        .file-tree .file {
+            color: var(--text-secondary);
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            header {
+                padding: 2rem 1rem;
+            }
+
+            header h1 {
+                font-size: 1.75rem;
+            }
+
+            section {
+                padding: 1.25rem;
+            }
+
+            .diagram {
+                font-size: 0.625rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>지출결의서 시스템</h1>
+        <p>소프트웨어 아키텍처 문서</p>
+    </header>
+
+    <div class="container">
+        <nav class="toc">
+            <h2>목차</h2>
+            <ul>
+                <li><a href="#overview">1. 시스템 개요</a></li>
+                <li><a href="#tech-stack">2. 기술 스택</a></li>
+                <li><a href="#architecture">3. 시스템 아키텍처</a></li>
+                <li><a href="#directory">4. 디렉토리 구조</a></li>
+                <li><a href="#database">5. 데이터베이스 설계</a></li>
+                <li><a href="#api">6. API 설계</a></li>
+                <li><a href="#auth">7. 인증 시스템</a></li>
+                <li><a href="#business">8. 핵심 비즈니스 로직</a></li>
+                <li><a href="#security">9. 보안</a></li>
+                <li><a href="#deployment">10. 배포 아키텍처</a></li>
+            </ul>
+        </nav>
+
+        <!-- 1. 시스템 개요 -->
+        <section id="overview">
+            <h2>1. 시스템 개요</h2>
+
+            <h3>1.1 프로젝트 소개</h3>
+            <p>한국어 기반 지출결의서 관리 시스템으로, 예산 항목 선택부터 결재 프로세스까지 전체 지출 관리 워크플로우를 지원합니다.</p>
+
+            <h3>1.2 주요 기능</h3>
+            <div class="grid-2">
+                <div class="card">
+                    <h4>지출결의서 관리</h4>
+                    <p>지출결의서 작성, 조회, 수정, 삭제 (CRUD) 기능</p>
+                </div>
+                <div class="card">
+                    <h4>계층형 예산 선택</h4>
+                    <p>5단계 드롭다운 (위원회 → 사역팀 → 항 → 목 → 세목)</p>
+                </div>
+                <div class="card">
+                    <h4>3단계 결재 프로세스</h4>
+                    <p>팀장 → 회계 → 재정팀장 순차 결재</p>
+                </div>
+                <div class="card">
+                    <h4>첨부파일 관리</h4>
+                    <p>Cloudinary 연동 이미지 업로드/관리</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. 기술 스택 -->
+        <section id="tech-stack">
+            <h2>2. 기술 스택</h2>
+
+            <h3>2.1 프론트엔드</h3>
+            <div class="tech-stack">
+                <div class="tech-item"><span class="badge badge-primary">Next.js 16</span></div>
+                <div class="tech-item"><span class="badge badge-primary">React 19</span></div>
+                <div class="tech-item"><span class="badge badge-primary">TypeScript 5</span></div>
+                <div class="tech-item"><span class="badge badge-primary">Tailwind CSS 4</span></div>
+                <div class="tech-item"><span class="badge badge-primary">React Hook Form</span></div>
+                <div class="tech-item"><span class="badge badge-primary">Zod</span></div>
+            </div>
+
+            <h3>2.2 백엔드</h3>
+            <div class="tech-stack">
+                <div class="tech-item"><span class="badge badge-success">Next.js API Routes</span></div>
+                <div class="tech-item"><span class="badge badge-success">Prisma 7</span></div>
+                <div class="tech-item"><span class="badge badge-success">PostgreSQL</span></div>
+            </div>
+
+            <h3>2.3 외부 서비스</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>서비스</th>
+                        <th>용도</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Neon</td>
+                        <td>PostgreSQL 서버리스 호스팅</td>
+                    </tr>
+                    <tr>
+                        <td>Cloudinary</td>
+                        <td>이미지/파일 저장 및 CDN</td>
+                    </tr>
+                    <tr>
+                        <td>Render</td>
+                        <td>애플리케이션 호스팅</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- 3. 시스템 아키텍처 -->
+        <section id="architecture">
+            <h2>3. 시스템 아키텍처</h2>
+
+            <h3>3.1 전체 구조도</h3>
+            <div class="diagram">┌─────────────────────────────────────────────────────────────────────────────┐
+│                              클라이언트 (Browser)                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │   로그인     │  │  지출결의서  │  │   결재함    │  │   간편양식   │        │
+│  │   /login    │  │  /expenses  │  │  /approvals │  │ /expenses/  │        │
+│  │             │  │             │  │             │  │   simple    │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘        │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │ HTTPS
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Next.js 서버 (Render)                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                          Middleware (인증)                            │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────┐         ┌─────────────────────────────┐   │
+│  │      Server Components      │◄───────►│        API Routes           │   │
+│  └─────────────────────────────┘         └─────────────────────────────┘   │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                          Prisma ORM                                   │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                    │                 │                 │
+                    ▼                 ▼                 ▼
+          ┌─────────────────┐ ┌─────────────┐ ┌─────────────────┐
+          │   PostgreSQL    │ │  Cloudinary │ │   External      │
+          │     (Neon)      │ │   (이미지)   │ │   Services      │
+          └─────────────────┘ └─────────────┘ └─────────────────┘</div>
+
+            <h3>3.2 레이어 아키텍처</h3>
+            <div class="diagram">┌───────────────────────────────────────────────────────────────┐
+│                    Presentation Layer                         │
+│        Pages (app/)  │  Components  │  Hooks                  │
+├───────────────────────────────────────────────────────────────┤
+│                     Business Layer                            │
+│        API Routes  │  Validators  │  Auth Utils               │
+├───────────────────────────────────────────────────────────────┤
+│                      Data Layer                               │
+│                    Prisma Client                              │
+├───────────────────────────────────────────────────────────────┤
+│                   Infrastructure Layer                        │
+│        PostgreSQL  │  Cloudinary  │  Middleware               │
+└───────────────────────────────────────────────────────────────┘</div>
+        </section>
+
+        <!-- 4. 디렉토리 구조 -->
+        <section id="directory">
+            <h2>4. 디렉토리 구조</h2>
+            <div class="file-tree">
+<span class="folder">expense-system/</span>
+├── <span class="folder">app/</span>                          # Next.js App Router
+│   ├── layout.tsx               # 루트 레이아웃
+│   ├── page.tsx                 # 홈페이지
+│   ├── <span class="folder">login/</span>                   # 로그인 페이지
+│   ├── <span class="folder">expenses/</span>                # 지출결의서
+│   │   ├── page.tsx            # 목록
+│   │   ├── <span class="folder">new/</span>                 # 작성
+│   │   ├── <span class="folder">[id]/</span>                # 상세/수정
+│   │   └── <span class="folder">simple/</span>              # 간편 양식
+│   ├── <span class="folder">approvals/</span>               # 결재함
+│   └── <span class="folder">api/</span>                     # API 라우트
+│       ├── <span class="folder">auth/</span>               # 인증 API
+│       ├── <span class="folder">expenses/</span>           # 지출결의서 API
+│       ├── <span class="folder">budget/</span>             # 예산 API
+│       └── <span class="folder">upload/</span>             # 파일 업로드 API
+├── <span class="folder">components/</span>                  # React 컴포넌트
+│   ├── Header.tsx              # 헤더
+│   ├── ExpenseForm.tsx         # 지출결의서 폼
+│   ├── BudgetSelector.tsx      # 예산 선택기
+│   └── <span class="folder">ui/</span>                     # 공통 UI
+├── <span class="folder">lib/</span>                         # 유틸리티
+│   ├── prisma.ts               # Prisma 클라이언트
+│   ├── auth.ts                 # 인증 유틸리티
+│   └── validators.ts           # Zod 스키마
+├── <span class="folder">prisma/</span>                      # 데이터베이스
+│   ├── schema.prisma           # 스키마 정의
+│   └── seed.ts                 # 시드 데이터
+└── middleware.ts               # 인증 미들웨어
+            </div>
+        </section>
+
+        <!-- 5. 데이터베이스 설계 -->
+        <section id="database">
+            <h2>5. 데이터베이스 설계</h2>
+
+            <h3>5.1 ERD (Entity Relationship Diagram)</h3>
+            <div class="diagram">┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
+│   BudgetMaster  │         │     Expense     │◄───────┐│   ExpenseItem   │
+├─────────────────┤         ├─────────────────┤        │├─────────────────┤
+│ committee       │         │ id              │        ││ budgetDetail    │
+│ department      │         │ committee       │        ││ description     │
+│ category        │         │ department      │        ││ unitPrice       │
+│ subcategory     │         │ budgetCategory  │        ││ quantity        │
+│ detail          │         │ status          │────────┘│ amount          │
+└─────────────────┘         └────────┬────────┘         └─────────────────┘
+                                     │
+              ┌──────────────────────┼──────────────────────┐
+              ▼                      ▼                      ▼
+┌─────────────────────┐  ┌─────────────────┐  ┌─────────────────────┐
+│ ExpenseAttachment   │  │  ApprovalLine   │  │    ApprovalLog      │
+├─────────────────────┤  ├─────────────────┤  ├─────────────────────┤
+│ publicId            │  │ currentStep     │  │ action              │
+│ url                 │  │ totalSteps      │  │ actorName           │
+│ fileName            │  └────────┬────────┘  │ newStatus           │
+└─────────────────────┘           │           └─────────────────────┘
+                                  ▼
+                       ┌─────────────────┐
+                       │  ApprovalStep   │
+                       ├─────────────────┤
+                       │ stepNumber      │
+                       │ approverName    │
+                       │ status          │
+                       └─────────────────┘</div>
+
+            <h3>5.2 주요 테이블</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>테이블</th>
+                        <th>설명</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code class="inline-code">Expense</code></td>
+                        <td>지출결의서 메인 테이블</td>
+                    </tr>
+                    <tr>
+                        <td><code class="inline-code">ExpenseItem</code></td>
+                        <td>지출 세부 항목</td>
+                    </tr>
+                    <tr>
+                        <td><code class="inline-code">BudgetMaster</code></td>
+                        <td>예산 마스터 데이터 (204개)</td>
+                    </tr>
+                    <tr>
+                        <td><code class="inline-code">ApprovalLine</code></td>
+                        <td>결재선 (지출결의서당 1개)</td>
+                    </tr>
+                    <tr>
+                        <td><code class="inline-code">ApprovalStep</code></td>
+                        <td>결재 단계 (3단계)</td>
+                    </tr>
+                    <tr>
+                        <td><code class="inline-code">ApprovalLog</code></td>
+                        <td>감사 로그</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>5.3 결재 상태 흐름</h3>
+            <div class="status-flow">
+                <div class="status-box">DRAFT<br><small>작성중</small></div>
+                <span class="arrow">→</span>
+                <div class="status-box">PENDING<br><small>결재대기</small></div>
+                <span class="arrow">→</span>
+                <div class="status-box">APPROVED_STEP_1<br><small>팀장 승인</small></div>
+                <span class="arrow">→</span>
+                <div class="status-box">APPROVED_STEP_2<br><small>회계 승인</small></div>
+                <span class="arrow">→</span>
+                <div class="status-box active">APPROVED_FINAL<br><small>최종 승인</small></div>
+            </div>
+            <p style="margin-top: 1rem; color: var(--danger);">※ 각 단계에서 반려(REJECTED) 가능 / 작성자는 언제든 회수(WITHDRAWN) 가능</p>
+        </section>
+
+        <!-- 6. API 설계 -->
+        <section id="api">
+            <h2>6. API 설계</h2>
+
+            <h3>6.1 인증 API</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Endpoint</th>
+                        <th>설명</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-success">POST</span></td>
+                        <td><code class="inline-code">/api/auth/login</code></td>
+                        <td>로그인</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-success">POST</span></td>
+                        <td><code class="inline-code">/api/auth/logout</code></td>
+                        <td>로그아웃</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-primary">GET</span></td>
+                        <td><code class="inline-code">/api/auth/me</code></td>
+                        <td>현재 사용자 조회</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>6.2 지출결의서 API</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Endpoint</th>
+                        <th>설명</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-primary">GET</span></td>
+                        <td><code class="inline-code">/api/expenses</code></td>
+                        <td>목록 조회</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-success">POST</span></td>
+                        <td><code class="inline-code">/api/expenses</code></td>
+                        <td>신규 생성</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-primary">GET</span></td>
+                        <td><code class="inline-code">/api/expenses/[id]</code></td>
+                        <td>상세 조회</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-warning">PUT</span></td>
+                        <td><code class="inline-code">/api/expenses/[id]</code></td>
+                        <td>수정</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge" style="background:#FEE2E2;color:#991B1B;">DELETE</span></td>
+                        <td><code class="inline-code">/api/expenses/[id]</code></td>
+                        <td>삭제</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>6.3 결재 API</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Endpoint</th>
+                        <th>설명</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-success">POST</span></td>
+                        <td><code class="inline-code">/api/expenses/[id]/submit</code></td>
+                        <td>결재 제출</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-success">POST</span></td>
+                        <td><code class="inline-code">/api/expenses/[id]/approve</code></td>
+                        <td>승인</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-success">POST</span></td>
+                        <td><code class="inline-code">/api/expenses/[id]/reject</code></td>
+                        <td>반려</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-success">POST</span></td>
+                        <td><code class="inline-code">/api/expenses/[id]/withdraw</code></td>
+                        <td>회수</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- 7. 인증 시스템 -->
+        <section id="auth">
+            <h2>7. 인증 시스템</h2>
+
+            <h3>7.1 인증 방식</h3>
+            <p>쿠키 기반 세션 인증 (Next.js 내장 기능 사용)</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h4>세션 쿠키 설정</h4>
+                    <ul>
+                        <li><strong>httpOnly</strong>: XSS 방지</li>
+                        <li><strong>secure</strong>: HTTPS 전용 (프로덕션)</li>
+                        <li><strong>sameSite=lax</strong>: CSRF 방지</li>
+                        <li><strong>maxAge</strong>: 7일</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>보호된 라우트</h4>
+                    <ul>
+                        <li><code class="inline-code">/expenses/*</code></li>
+                        <li><code class="inline-code">/approvals/*</code></li>
+                    </ul>
+                    <p style="margin-top: 0.5rem; font-size: 0.875rem;">비로그인 시 <code class="inline-code">/login</code>으로 리다이렉트</p>
+                </div>
+            </div>
+
+            <h3>7.2 사용자 목록</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>사용자명</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>1</td><td>청연정혜종</td></tr>
+                    <tr><td>2</td><td>청연김흥래</td></tr>
+                    <tr><td>3</td><td>청연신창국</td></tr>
+                    <tr><td>4</td><td>청연윤운문</td></tr>
+                    <tr><td>5</td><td>청연송원영</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- 8. 핵심 비즈니스 로직 -->
+        <section id="business">
+            <h2>8. 핵심 비즈니스 로직</h2>
+
+            <h3>8.1 금액 계산</h3>
+            <pre><code>// 10원 단위 내림
+function calculateAmount(unitPrice: number, quantity: number): number {
+  return Math.floor((unitPrice * quantity) / 10) * 10;
+}
+
+// 예시: 15,000원 × 3명 = 45,000원
+// 예시: 12,345원 × 2명 = 24,690원</code></pre>
+
+            <h3>8.2 계층형 예산 선택</h3>
+            <div class="diagram">위원회 (Committee)
+  └── 사역팀/부 (Department)
+        └── 예산(항) (Category)
+              └── 예산(목) (Subcategory)
+                    └── 예산(세목) (Detail)
+
+예시:
+기획위원회
+  └── 재정팀
+        └── 사무행정비
+              └── 사무_회의및접대비
+                    └── 아웃팅비_재정팀</div>
+
+            <h3>8.3 결재 프로세스</h3>
+            <div class="diagram">제출 → [1차] 팀장 승인 → [2차] 회계 승인 → [3차] 재정팀장 승인 → 완료
+         │                   │                   │
+         └───────────────────┴───────────────────┴── 반려 가능</div>
+        </section>
+
+        <!-- 9. 보안 -->
+        <section id="security">
+            <h2>9. 보안</h2>
+
+            <h3>9.1 인증 보안</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>항목</th>
+                        <th>구현</th>
+                        <th>상태</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>httpOnly 쿠키</td>
+                        <td>XSS 공격 방지</td>
+                        <td><span class="badge badge-success">완료</span></td>
+                    </tr>
+                    <tr>
+                        <td>secure 플래그</td>
+                        <td>HTTPS 전용 (프로덕션)</td>
+                        <td><span class="badge badge-success">완료</span></td>
+                    </tr>
+                    <tr>
+                        <td>sameSite=lax</td>
+                        <td>CSRF 방지</td>
+                        <td><span class="badge badge-success">완료</span></td>
+                    </tr>
+                    <tr>
+                        <td>세션 만료</td>
+                        <td>7일</td>
+                        <td><span class="badge badge-success">완료</span></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>9.2 데이터 검증</h3>
+            <ul>
+                <li>Zod 스키마로 클라이언트/서버 양쪽 검증</li>
+                <li>Prisma 트랜잭션으로 데이터 일관성 보장</li>
+                <li>SQL Injection 방지 (Prisma ORM)</li>
+            </ul>
+        </section>
+
+        <!-- 10. 배포 아키텍처 -->
+        <section id="deployment">
+            <h2>10. 배포 아키텍처</h2>
+
+            <div class="diagram">┌─────────────────┐
+│     GitHub      │  push to main
+│   Repository    │────────────────┐
+└─────────────────┘                │
+                                   ▼
+                        ┌─────────────────┐
+                        │     Render      │
+                        │   (Auto Deploy) │
+                        │                 │
+                        │ Build Commands: │
+                        │ npm install     │
+                        │ prisma generate │
+                        │ npm run build   │
+                        └────────┬────────┘
+                                 │
+              ┌──────────────────┴──────────────┐
+              ▼                                 ▼
+   ┌─────────────────┐               ┌─────────────────┐
+   │   Neon Database │               │   Cloudinary    │
+   │   (PostgreSQL)  │               │   (Images)      │
+   │                 │               │                 │
+   │ • ap-southeast-1│               │ • CDN 배포      │
+   │ • Auto-scaling  │               │ • 이미지 변환   │
+   └─────────────────┘               └─────────────────┘</div>
+
+            <h3>환경 변수</h3>
+            <pre><code># 데이터베이스
+DATABASE_URL="postgresql://..."
+
+# 앱 URL
+NEXT_PUBLIC_APP_URL="https://expense-system.onrender.com"
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME="..."
+CLOUDINARY_API_KEY="..."
+CLOUDINARY_API_SECRET="..."</code></pre>
+        </section>
+    </div>
+
+    <footer>
+        <p>지출결의서 시스템 아키텍처 문서 v1.0</p>
+        <p>최종 수정: 2025-12-21</p>
+    </footer>
+</body>
+</html>
