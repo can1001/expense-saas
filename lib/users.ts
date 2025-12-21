@@ -24,23 +24,28 @@ export const ROLE_NAMES: Record<UserRole, string> = {
 // 사용자 정의
 export interface UserInfo {
   id: string;
-  username: string;
+  userid: string;       // 로그인 아이디 (예: 청연정혜종)
+  username: string;     // 표시 이름 (예: 정혜종)
   role: UserRole;
   department?: string;  // 소속 부서 (팀장인 경우)
 }
 
 export const USERS: readonly UserInfo[] = [
-  { id: '1', username: '청연정혜종', role: 'user' },
-  { id: '2', username: '청연김흥래', role: 'team_leader', department: '교육훈련위원회' },
-  { id: '3', username: '청연신창국', role: 'finance_head' },
-  { id: '4', username: '청연윤운문', role: 'accountant' },
-  { id: '5', username: '청연송원영', role: 'user' },
+  { id: '1', userid: '청연정혜종', username: '정혜종', role: 'user' },
+  { id: '2', userid: '청연김흥래', username: '김흥래', role: 'team_leader', department: '교육훈련위원회' },
+  { id: '3', userid: '청연신창국', username: '신창국', role: 'finance_head' },
+  { id: '4', userid: '청연윤운문', username: '윤운문', role: 'accountant' },
+  { id: '5', userid: '청연송원영', username: '송원영', role: 'user' },
 ] as const;
 
 export type User = (typeof USERS)[number];
 
 export function findUserById(id: string): UserInfo | undefined {
   return USERS.find((u) => u.id === id);
+}
+
+export function findUserByUserid(userid: string): UserInfo | undefined {
+  return USERS.find((u) => u.userid === userid);
 }
 
 export function findUserByUsername(username: string): UserInfo | undefined {

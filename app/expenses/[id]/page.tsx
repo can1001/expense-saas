@@ -28,7 +28,7 @@ export default function ExpenseDetailPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [excelLoading, setExcelLoading] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ userid: string; username: string; role: string } | null>(null);
 
   // 로그인한 사용자 정보 가져오기
   useEffect(() => {
@@ -499,7 +499,7 @@ export default function ExpenseDetailPage() {
             <ApprovalActionButtons
               expenseId={id}
               status={expense.status || 'DRAFT'}
-              currentUserName={currentUser?.username || expense.applicantName}
+              currentUserName={currentUser?.userid || expense.applicantName}
               currentApproverName={getCurrentApproverName()}
               applicantName={expense.applicantName}
               onSuccess={fetchData}

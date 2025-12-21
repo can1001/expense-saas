@@ -28,7 +28,7 @@ function LoginForm() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: selectedUser }),
+        body: JSON.stringify({ userid: selectedUser }),
       });
 
       const data = await response.json();
@@ -64,7 +64,7 @@ function LoginForm() {
             <label
               key={user.id}
               className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                selectedUser === user.username
+                selectedUser === user.userid
                   ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
               }`}
@@ -72,13 +72,13 @@ function LoginForm() {
               <input
                 type="radio"
                 name="user"
-                value={user.username}
-                checked={selectedUser === user.username}
+                value={user.userid}
+                checked={selectedUser === user.userid}
                 onChange={(e) => setSelectedUser(e.target.value)}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
               />
               <span className="ml-3 text-lg font-medium text-gray-900">
-                {user.username}
+                {user.userid}
               </span>
             </label>
           ))}

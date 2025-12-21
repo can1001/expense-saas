@@ -16,6 +16,7 @@ const ROLE_NAMES: Record<UserRole, string> = {
 
 interface UserInfo {
   id: string;
+  userid: string;
   username: string;
   role: UserRole;
   department?: string;

@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createSession } from '@/lib/auth';
-import { findUserByUsername } from '@/lib/users';
+import { findUserByUserid } from '@/lib/users';
 
 export async function POST(request: Request) {
   try {
-    const { username } = await request.json();
+    const { userid } = await request.json();
 
-    if (!username || typeof username !== 'string') {
+    if (!userid || typeof userid !== 'string') {
       return NextResponse.json(
-        { error: '사용자 이름이 필요합니다.' },
+        { error: '사용자 아이디가 필요합니다.' },
         { status: 400 }
       );
     }
 
-    const user = findUserByUsername(username);
+    const user = findUserByUserid(userid);
     if (!user) {
       return NextResponse.json(
         { error: '존재하지 않는 사용자입니다.' },
@@ -27,6 +27,7 @@ export async function POST(request: Request) {
       success: true,
       user: {
         id: user.id,
+        userid: user.userid,
         username: user.username,
         role: user.role,
         department: user.department,

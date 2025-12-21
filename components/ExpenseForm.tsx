@@ -65,8 +65,8 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         if (response.ok) {
           const data = await response.json();
           if (data.user) {
-            // 청구인에 로그인 사용자 이름 자동 입력
-            setValue('applicantName', data.user.username);
+            // 청구인에 로그인 사용자 아이디 자동 입력 (결재선과 일치시키기 위해 userid 사용)
+            setValue('applicantName', data.user.userid);
           }
         }
       } catch {
