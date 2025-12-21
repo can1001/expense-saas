@@ -30,9 +30,9 @@ export interface UserInfo {
 }
 
 export const USERS: readonly UserInfo[] = [
-  { id: '1', username: '청연정혜종', role: 'finance_head' },
+  { id: '1', username: '청연정혜종', role: 'user' },
   { id: '2', username: '청연김흥래', role: 'team_leader', department: '교육훈련위원회' },
-  { id: '3', username: '청연신창국', role: 'team_leader', department: '예배위원회' },
+  { id: '3', username: '청연신창국', role: 'finance_head' },
   { id: '4', username: '청연윤운문', role: 'accountant' },
   { id: '5', username: '청연송원영', role: 'user' },
 ] as const;
