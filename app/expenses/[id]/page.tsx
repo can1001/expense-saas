@@ -28,17 +28,25 @@ export default function ExpenseDetailPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [excelLoading, setExcelLoading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<string>('');
+  const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(null);
 
-  // 결재자 목록 (실제로는 인증 시스템에서 가져와야 함)
-  const APPROVERS = [
-    { name: '팀장', role: '팀장 (기본)' },
-    { name: '김재정', role: '팀장 (재정팀)' },
-    { name: '최교육', role: '팀장 (교육팀)' },
-    { name: '강선교', role: '팀장 (선교팀)' },
-    { name: '박회계', role: '회계' },
-    { name: '이재무', role: '재정팀장' },
-  ];
+  // 로그인한 사용자 정보 가져오기
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user) {
+            setCurrentUser(data.user);
+          }
+        }
+      } catch {
+        // 로그인되지 않은 경우 무시
+      }
+    };
+    fetchCurrentUser();
+  }, []);
 
   useEffect(() => {
     if (id) {
@@ -63,11 +71,6 @@ export default function ExpenseDetailPage() {
 
       const expenseData = await expenseRes.json();
       setExpense(expenseData);
-
-      // 기본 사용자 설정: 작성자
-      if (!selectedUser) {
-        setSelectedUser(expenseData.applicantName);
-      }
 
       // 결재 정보는 없을 수도 있음 (DRAFT 상태)
       if (approvalRes.ok) {
@@ -477,29 +480,17 @@ export default function ExpenseDetailPage() {
         <div className={SECTION_CARD}>
           <h2 className={SECTION_TITLE}>결재 정보</h2>
 
-          {/* 사용자 선택 (임시 - 실제로는 인증 시스템 사용) */}
-          {['PENDING', 'APPROVED_STEP_1', 'APPROVED_STEP_2'].includes(expense.status || '') && (
-            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <label className="block text-sm font-medium text-yellow-800 mb-2">
-                현재 사용자 선택 (임시 - 로그인 기능 대체)
-              </label>
-              <select
-                value={selectedUser}
-                onChange={(e) => setSelectedUser(e.target.value)}
-                className="w-full max-w-md px-4 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white"
-              >
-                <option value={expense.applicantName}>{expense.applicantName} (작성자)</option>
-                {APPROVERS.map((approver) => (
-                  <option key={approver.name} value={approver.name}>
-                    {approver.name} ({approver.role})
-                  </option>
-                ))}
-              </select>
-              {getCurrentApproverName() && (
-                <p className="mt-2 text-sm text-yellow-700">
-                  현재 결재 대기자: <strong>{getCurrentApproverName()}</strong>
-                </p>
-              )}
+          {/* 현재 로그인 사용자 정보 */}
+          {currentUser && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                현재 로그인: <strong>{currentUser.username}</strong>
+                {getCurrentApproverName() && (
+                  <span className="ml-4">
+                    | 현재 결재 대기자: <strong>{getCurrentApproverName()}</strong>
+                  </span>
+                )}
+              </p>
             </div>
           )}
 
@@ -508,7 +499,7 @@ export default function ExpenseDetailPage() {
             <ApprovalActionButtons
               expenseId={id}
               status={expense.status || 'DRAFT'}
-              currentUserName={selectedUser || expense.applicantName}
+              currentUserName={currentUser?.username || expense.applicantName}
               currentApproverName={getCurrentApproverName()}
               applicantName={expense.applicantName}
               onSuccess={fetchData}

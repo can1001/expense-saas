@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { findUserById, type User } from './users';
+import { findUserById, type UserInfo } from './users';
 
 const SESSION_COOKIE = 'session';
 
@@ -19,7 +19,7 @@ export async function deleteSession(): Promise<void> {
   cookieStore.delete(SESSION_COOKIE);
 }
 
-export async function getCurrentUser(): Promise<User | null> {
+export async function getCurrentUser(): Promise<UserInfo | null> {
   const cookieStore = await cookies();
   const userId = cookieStore.get(SESSION_COOKIE)?.value;
   if (!userId) return null;

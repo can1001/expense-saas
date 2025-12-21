@@ -25,7 +25,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      user: { id: user.id, username: user.username },
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        department: user.department,
+      },
     });
   } catch {
     return NextResponse.json(

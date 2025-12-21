@@ -54,6 +54,29 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   const accountNumber = watch('accountNumber');
   const accountHolder = watch('accountHolder');
 
+  // 로그인한 사용자 정보 자동 채우기 (새 작성 시에만)
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      // 수정 모드가 아닌 경우에만 자동 채우기
+      if (expenseId || initialData) return;
+
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user) {
+            // 청구인에 로그인 사용자 이름 자동 입력
+            setValue('applicantName', data.user.username);
+          }
+        }
+      } catch {
+        // 로그인되지 않은 경우 무시
+      }
+    };
+
+    fetchCurrentUser();
+  }, [expenseId, initialData, setValue]);
+
   // 수정 모드일 때 데이터 로드
   useEffect(() => {
     if (expenseId && !initialData) {

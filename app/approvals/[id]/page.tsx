@@ -11,17 +11,6 @@ import { Expense } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { ArrowLeft, Building2, User, Calendar, CreditCard, FileText, Clock } from 'lucide-react';
 
-// 결재자 목록 (실제로는 인증 시스템에서 가져와야 함)
-// approval-engine.ts의 DEPARTMENT_APPROVERS와 일치해야 함
-const APPROVERS = [
-  { name: '팀장', role: '팀장 (기본)' },
-  { name: '김재정', role: '팀장 (재정팀)' },
-  { name: '최교육', role: '팀장 (교육팀)' },
-  { name: '강선교', role: '팀장 (선교팀)' },
-  { name: '박회계', role: '회계' },
-  { name: '이재무', role: '재정팀장' },
-];
-
 export default function ApprovalDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -31,7 +20,25 @@ export default function ApprovalDetailPage() {
   const [approvalData, setApprovalData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedApprover, setSelectedApprover] = useState('박회계');
+  const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(null);
+
+  // 로그인한 사용자 정보 가져오기
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user) {
+            setCurrentUser(data.user);
+          }
+        }
+      } catch {
+        // 로그인되지 않은 경우 무시
+      }
+    };
+    fetchCurrentUser();
+  }, []);
 
   useEffect(() => {
     if (id) {
@@ -327,22 +334,15 @@ export default function ApprovalDetailPage() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <User className="w-5 h-5 text-gray-500" />
-                결재자 선택
+                현재 로그인 사용자
               </h2>
-              <p className="text-sm text-gray-500 mb-3">
-                (임시) 실제로는 로그인한 사용자 정보를 사용합니다.
-              </p>
-              <select
-                value={selectedApprover}
-                onChange={(e) => setSelectedApprover(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                {APPROVERS.map((approver) => (
-                  <option key={approver.name} value={approver.name}>
-                    {approver.name} ({approver.role})
-                  </option>
-                ))}
-              </select>
+              {currentUser ? (
+                <p className="text-base font-medium text-gray-900">
+                  {currentUser.username}
+                </p>
+              ) : (
+                <p className="text-sm text-gray-500">로그인 정보를 불러오는 중...</p>
+              )}
             </div>
 
             {/* 결재 액션 버튼 */}
@@ -352,30 +352,30 @@ export default function ApprovalDetailPage() {
                 결재 처리
               </h2>
 
-              {/* 디버그 정보 */}
-              <div className="mb-4 p-3 bg-gray-100 rounded-lg text-xs font-mono">
-                <p>선택된 결재자: {selectedApprover}</p>
-                <p>현재 결재 대기자: {getCurrentApproverName() || '(없음)'}</p>
-                <p>지출결의서 상태: {expense.status}</p>
-                <p>현재 결재 단계: {approvalData?.approvalLine?.currentStep || '(없음)'}</p>
-                <p>총 결재 단계: {approvalData?.approvalLine?.totalSteps || '(없음)'}</p>
-                <p>일치 여부: {selectedApprover === getCurrentApproverName() ? '✅ 일치' : '❌ 불일치'}</p>
+              {/* 결재 상태 정보 */}
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg text-sm">
+                <p className="text-blue-800">
+                  현재 결재 대기자: <strong>{getCurrentApproverName() || '(없음)'}</strong>
+                </p>
+                <p className="text-blue-600 text-xs mt-1">
+                  결재 단계: {approvalData?.approvalLine?.currentStep || 0} / {approvalData?.approvalLine?.totalSteps || 3}
+                </p>
               </div>
 
               <ApprovalActionButtons
                 expenseId={id}
                 status={expense.status || 'DRAFT'}
-                currentUserName={selectedApprover}
+                currentUserName={currentUser?.username || ''}
                 currentApproverName={getCurrentApproverName()}
                 applicantName={expense.applicantName}
                 onSuccess={fetchData}
               />
-              {getCurrentApproverName() !== selectedApprover &&
+              {currentUser && getCurrentApproverName() !== currentUser.username &&
                 ['PENDING', 'APPROVED_STEP_1', 'APPROVED_STEP_2'].includes(expense.status || '') && (
                   <p className="mt-4 text-sm text-yellow-600 bg-yellow-50 p-3 rounded-lg">
                     현재 결재 대기자: <strong>{getCurrentApproverName()}</strong>
                     <br />
-                    선택한 결재자({selectedApprover})의 결재 순서가 아닙니다.
+                    로그인한 사용자({currentUser.username})의 결재 순서가 아닙니다.
                   </p>
                 )}
             </div>

@@ -5,9 +5,20 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { FileText, CheckSquare, Home, LogOut, User } from 'lucide-react';
 
+type UserRole = 'finance_head' | 'accountant' | 'team_leader' | 'user';
+
+const ROLE_NAMES: Record<UserRole, string> = {
+  finance_head: '재정팀장',
+  accountant: '회계',
+  team_leader: '팀장',
+  user: '사용자',
+};
+
 interface UserInfo {
   id: string;
   username: string;
+  role: UserRole;
+  department?: string;
 }
 
 export default function Header() {
@@ -114,6 +125,9 @@ export default function Header() {
                 <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <User className="w-4 h-4" />
                   <span>{user.username}</span>
+                  <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                    {ROLE_NAMES[user.role]}
+                  </span>
                 </div>
                 <button
                   onClick={handleLogout}
