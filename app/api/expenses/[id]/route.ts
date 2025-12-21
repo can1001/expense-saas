@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { updateExpenseSchema, calculateAmount, calculateTotal } from '@/lib/validators';
 import { deleteImages } from '@/lib/cloudinary';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
+import { deriveRequestTeam } from '@/lib/domain/request-team';
 
 // GET /api/expenses/[id] - 지출결의서 상세 조회
 export async function GET(
@@ -49,6 +50,36 @@ export async function PUT(
     // 유효성 검증
     const validatedData = updateExpenseSchema.parse(body);
 
+    // 현재 데이터 조회 (청구팀 자동 생성/검증을 위해)
+    const existing = await prisma.expense.findUnique({
+      where: { id },
+      select: { committee: true, department: true },
+    });
+    if (!existing) {
+      throw new ApiError('지출결의서를 찾을 수 없습니다.', 404);
+    }
+
+    const finalCommittee = validatedData.committee ?? existing.committee;
+    const finalDepartment = validatedData.department ?? existing.department;
+    const derivedRequestTeam = deriveRequestTeam(finalCommittee, finalDepartment);
+    if (!derivedRequestTeam) {
+      throw new ApiError('청구팀을 생성할 수 없습니다. 위원회/사역팀을 확인해주세요.', 400);
+    }
+
+    // requestTeam을 직접 보내는 경우에도 규칙 위반이면 거부
+    if (
+      typeof body.requestTeam === 'string' &&
+      body.requestTeam.trim() !== '' &&
+      body.requestTeam !== derivedRequestTeam
+    ) {
+      throw new ApiError('청구팀은 선택한 위원회/사역팀과 동일해야 합니다.', 400);
+    }
+
+    const shouldUpdateRequestTeam =
+      validatedData.committee !== undefined ||
+      validatedData.department !== undefined ||
+      validatedData.requestTeam !== undefined;
+
     // 기존 항목 삭제
     await prisma.expenseItem.deleteMany({
       where: { expenseId: id },
@@ -77,7 +108,7 @@ export async function PUT(
         ...(validatedData.expenseDate !== undefined && { expenseDate: validatedData.expenseDate }),
         ...(requestAmount !== undefined && { requestAmount }),
         ...(validatedData.requestDate && { requestDate: validatedData.requestDate }),
-        ...(validatedData.requestTeam && { requestTeam: validatedData.requestTeam }),
+        ...(shouldUpdateRequestTeam && { requestTeam: derivedRequestTeam }),
         ...(validatedData.applicantName && { applicantName: validatedData.applicantName }),
         ...(validatedData.applicantTitle !== undefined && { applicantTitle: validatedData.applicantTitle }),
         ...(validatedData.bankName && { bankName: validatedData.bankName }),

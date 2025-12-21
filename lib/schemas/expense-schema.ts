@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { deriveRequestTeam } from '@/lib/domain/request-team';
 
 /**
  * 세부 항목 스키마
@@ -41,7 +42,8 @@ export const expenseItemSchema = z.object({
 /**
  * 지출결의서 폼 스키마
  */
-export const expenseFormSchema = z.object({
+export const expenseFormSchema = z
+  .object({
   // 예산 정보 (필수)
   committee: z
     .string()
@@ -89,7 +91,7 @@ export const expenseFormSchema = z.object({
 
   requestTeam: z
     .string()
-    .min(1, '청구팀을 입력해주세요.')
+    .min(1, '청구팀이 자동으로 설정되지 않았습니다. 위원회/사역팀을 선택해주세요.')
     .max(50, '청구팀 이름이 너무 깁니다.'),
 
   applicantName: z
@@ -118,7 +120,17 @@ export const expenseFormSchema = z.object({
     .string()
     .min(1, '예금주를 입력해주세요.')
     .max(50, '예금주 이름이 너무 깁니다.'),
-});
+})
+  .superRefine((data, ctx) => {
+    const expected = deriveRequestTeam(data.committee, data.department);
+    if (data.requestTeam !== expected) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['requestTeam'],
+        message: '청구팀은 선택한 위원회/사역팀과 동일해야 합니다.',
+      });
+    }
+  });
 
 /**
  * 타입 추출
@@ -139,7 +151,7 @@ export const defaultExpenseItem: ExpenseItem = {
 
 export const defaultExpenseFormData: Partial<ExpenseFormData> = {
   requestDate: new Date().toISOString().split('T')[0],
-  requestTeam: '출납팀',
+  requestTeam: '',
   applicantName: '',
   bankName: '',
   accountNumber: '',

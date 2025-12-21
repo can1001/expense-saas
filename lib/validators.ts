@@ -30,7 +30,8 @@ export const createExpenseSchema = z.object({
   requestDate: z.union([z.string(), z.date()]).transform(val =>
     typeof val === 'string' ? new Date(val) : val
   ),
-  requestTeam: z.string().default('출납팀'),
+  // 청구팀은 서버에서 committee/department 기반으로 자동 생성하므로 입력값은 선택사항
+  requestTeam: z.string().optional(),
   applicantName: z.string().min(1, '청구인을 입력해주세요'),
   applicantTitle: z.string().optional().nullable(),
 

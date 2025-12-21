@@ -23,6 +23,7 @@ import BankAccountSelector from './expense-form/BankAccountSelector';
 import FileUpload, { UploadedFile } from './FileUpload';
 import { createAttachment } from '@/lib/services/file-service';
 import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER, ALERT_ERROR } from '@/lib/constants/styles';
+import { deriveRequestTeam } from '@/lib/domain/request-team';
 
 interface ExpenseFormProps {
   expenseId?: string;
@@ -41,6 +42,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
     register,
     handleSubmit,
     setValue,
+    getValues,
     reset,
     watch,
     formState: { errors, isSubmitting },
@@ -53,6 +55,20 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   const bankName = watch('bankName');
   const accountNumber = watch('accountNumber');
   const accountHolder = watch('accountHolder');
+
+  // 위원회/사역팀 감시 (청구팀 자동 생성)
+  const committee = watch('committee');
+  const department = watch('department');
+
+  // 청구팀(requestTeam) 자동 설정: "위원회 + 사역팀(부)"
+  useEffect(() => {
+    const derived = deriveRequestTeam(committee, department);
+    // 위원회/사역팀이 아직 선택되지 않았다면 비워둔다
+    const current = getValues('requestTeam');
+    if (current !== derived) {
+      setValue('requestTeam', derived, { shouldValidate: true, shouldDirty: true });
+    }
+  }, [committee, department, getValues, setValue]);
 
   // 로그인한 사용자 정보 자동 채우기 (새 작성 시에만)
   useEffect(() => {
@@ -111,7 +127,8 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         ? new Date(data.expenseDate).toISOString().split('T')[0]
         : undefined,
       requestDate: new Date(data.requestDate).toISOString().split('T')[0],
-      requestTeam: data.requestTeam,
+      // 청구팀은 규칙에 따라 자동 생성 (과거 데이터 호환 포함)
+      requestTeam: deriveRequestTeam(data.committee, data.department),
       applicantName: data.applicantName,
       applicantTitle: data.applicantTitle || undefined,
       bankName: data.bankName,

@@ -173,24 +173,9 @@ describe('validators', () => {
       }
     });
 
-    it('sets default requestTeam to 출납팀', () => {
+    it('allows omitting requestTeam (server derives it from committee/department)', () => {
       const result = createExpenseSchema.safeParse(validExpense);
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.requestTeam).toBe('출납팀');
-      }
-    });
-
-    it('allows custom requestTeam', () => {
-      const customExpense = {
-        ...validExpense,
-        requestTeam: '재정팀',
-      };
-      const result = createExpenseSchema.safeParse(customExpense);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.requestTeam).toBe('재정팀');
-      }
     });
 
     it('requires committee field', () => {

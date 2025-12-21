@@ -48,6 +48,9 @@ export default function ApplicantSection({
             id="requestTeam"
             {...register('requestTeam')}
             disabled={disabled}
+            readOnly
+            aria-readonly="true"
+            title="청구팀은 위원회/사역팀 선택에 따라 자동으로 설정됩니다."
             className={INPUT_BASE}
           />
           {errors.requestTeam && (

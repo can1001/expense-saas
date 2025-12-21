@@ -190,7 +190,7 @@ describe('Approval API Routes', () => {
       expect(data.error).toContain('이미 제출된');
     });
 
-    it('should return 400 for self-approval case', async () => {
+    it('should return 400 for finance manager self-approval (requires pastor)', async () => {
       const mockExpense = {
         id: 'test-id',
         status: 'DRAFT',
@@ -199,7 +199,7 @@ describe('Approval API Routes', () => {
         budgetCategory: '사무행정비',
         budgetSubcategory: '회의비',
         requestAmount: 300000,
-        applicantName: '김재정', // 팀장과 동일 (자기결재)
+        applicantName: '청연신창국', // 재정팀장 (담임목사 승인 필요)
         items: [],
         approvalLine: null,
       };
@@ -215,7 +215,7 @@ describe('Approval API Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('자기결재 불가');
+      expect(data.error).toContain('담임목사 승인이 필요합니다');
     });
   });
 

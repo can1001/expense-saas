@@ -147,8 +147,11 @@ export async function POST(
   } catch (error: any) {
     console.error('Submit error:', error);
 
-    // 자기결재 방지 에러 처리
-    if (error.message?.includes('자기결재 불가')) {
+    // 자기결재 방지 및 담임목사 승인 필요 에러 처리
+    if (
+      error.message?.includes('자기결재 불가') ||
+      error.message?.includes('담임목사 승인이 필요합니다')
+    ) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 

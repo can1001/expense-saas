@@ -71,7 +71,7 @@ describe('expenseFormSchema', () => {
     budgetCategory: '교육비',
     budgetSubcategory: '교육자료',
     requestDate: '2024-12-01',
-    requestTeam: '출납팀',
+    requestTeam: '교육위원회 교육부',
     applicantName: '홍길동',
     bankName: '국민은행',
     accountNumber: '123-456-789',
@@ -90,6 +90,12 @@ describe('expenseFormSchema', () => {
   it('should validate correct form data', () => {
     const result = expenseFormSchema.safeParse(validFormData);
     expect(result.success).toBe(true);
+  });
+
+  it('should reject mismatched requestTeam (must equal committee + department)', () => {
+    const invalid = { ...validFormData, requestTeam: '출납팀' };
+    const result = expenseFormSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
   });
 
   it('should reject missing required fields', () => {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createExpenseSchema, calculateAmount, calculateTotal } from '@/lib/validators';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
+import { deriveRequestTeam } from '@/lib/domain/request-team';
 
 // GET /api/expenses - 지출결의서 목록 조회
 export async function GET(request: NextRequest) {
@@ -51,6 +52,22 @@ export async function POST(request: NextRequest) {
     // 유효성 검증
     const validatedData = createExpenseSchema.parse(body);
 
+    // 청구팀은 "위원회 + 사역팀(부)"로 강제
+    const derivedRequestTeam = deriveRequestTeam(
+      validatedData.committee,
+      validatedData.department
+    );
+    if (!derivedRequestTeam) {
+      throw new ApiError('청구팀을 생성할 수 없습니다. 위원회/사역팀을 확인해주세요.', 400);
+    }
+    if (
+      typeof body.requestTeam === 'string' &&
+      body.requestTeam.trim() !== '' &&
+      body.requestTeam !== derivedRequestTeam
+    ) {
+      throw new ApiError('청구팀은 선택한 위원회/사역팀과 동일해야 합니다.', 400);
+    }
+
     // 항목별 금액 계산 및 순서 할당
     const itemsWithCalculatedAmount = validatedData.items.map((item, index) => ({
       ...item,
@@ -71,7 +88,7 @@ export async function POST(request: NextRequest) {
         expenseDate: validatedData.expenseDate,
         requestAmount,
         requestDate: validatedData.requestDate,
-        requestTeam: validatedData.requestTeam,
+        requestTeam: derivedRequestTeam,
         applicantName: validatedData.applicantName,
         applicantTitle: validatedData.applicantTitle,
         bankName: validatedData.bankName,
