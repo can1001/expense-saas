@@ -2,11 +2,12 @@
  * 지출결의서 폼 컴포넌트 (리팩토링 버전)
  *
  * react-hook-form + Zod + 섹션 컴포넌트 분리
+ * 공통 훅 사용으로 코드 중복 제거
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,22 +21,35 @@ import ExpenseDateSection from './expense-form/ExpenseDateSection';
 import ItemsSection from './expense-form/ItemsSection';
 import ApplicantSection from './expense-form/ApplicantSection';
 import BankAccountSelector from './expense-form/BankAccountSelector';
-import FileUpload, { UploadedFile } from './FileUpload';
+import FileUpload from './FileUpload';
 import { createAttachment } from '@/lib/services/file-service';
 import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER, ALERT_ERROR } from '@/lib/constants/styles';
 import { deriveRequestTeam } from '@/lib/domain/request-team';
+import {
+  useFetchCurrentUser,
+  useExpenseFormState,
+  useExpenseFormSubmit,
+} from '@/lib/hooks';
 
 interface ExpenseFormProps {
   expenseId?: string;
-  initialData?: any;
+  initialData?: Record<string, unknown>;
 }
 
 export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchLoading, setFetchLoading] = useState(!!expenseId);
-  const [attachments, setAttachments] = useState<UploadedFile[]>([]);
+
+  // 공통 훅 사용
+  const {
+    loading,
+    setLoading,
+    error,
+    setError,
+    fetchLoading,
+    setFetchLoading,
+    attachments,
+    setAttachments,
+  } = useExpenseFormState({ isEditMode: !!expenseId });
 
   const {
     control,
@@ -60,6 +74,21 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   const committee = watch('committee');
   const department = watch('department');
 
+  // 폼 제출 훅
+  const { handleSubmit: handleFormSubmit } = useExpenseFormSubmit({
+    expenseId,
+    apiEndpoint: '/api/expenses',
+    redirectPath: '/expenses',
+    attachments,
+    setLoading,
+    setError,
+    saveAttachments: async (id, unsavedAttachments) => {
+      await Promise.all(
+        unsavedAttachments.map((att) => createAttachment(id, att))
+      );
+    },
+  });
+
   // 청구팀(requestTeam) 자동 설정: "위원회 + 사역팀(부)"
   useEffect(() => {
     const derived = deriveRequestTeam(committee, department);
@@ -71,27 +100,12 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   }, [committee, department, getValues, setValue]);
 
   // 로그인한 사용자 정보 자동 채우기 (새 작성 시에만)
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      // 수정 모드가 아닌 경우에만 자동 채우기
-      if (expenseId || initialData) return;
-
-      try {
-        const response = await fetch('/api/auth/me');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.user) {
-            // 청구인에 로그인 사용자 이름 자동 입력
-            setValue('applicantName', data.user.username);
-          }
-        }
-      } catch {
-        // 로그인되지 않은 경우 무시
-      }
-    };
-
-    fetchCurrentUser();
-  }, [expenseId, initialData, setValue]);
+  useFetchCurrentUser({
+    skip: !!expenseId || !!initialData,
+    onSuccess: (user) => {
+      setValue('applicantName', user.username);
+    },
+  });
 
   // 수정 모드일 때 데이터 로드
   useEffect(() => {
@@ -116,46 +130,47 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
     }
   };
 
-  const loadInitialData = (data: any) => {
+  const loadInitialData = (data: Record<string, unknown>) => {
     // 폼 데이터 로드
     reset({
-      committee: data.committee,
-      department: data.department,
-      budgetCategory: data.budgetCategory,
-      budgetSubcategory: data.budgetSubcategory,
+      committee: data.committee as string,
+      department: data.department as string,
+      budgetCategory: data.budgetCategory as string,
+      budgetSubcategory: data.budgetSubcategory as string,
       expenseDate: data.expenseDate
-        ? new Date(data.expenseDate).toISOString().split('T')[0]
+        ? new Date(data.expenseDate as string).toISOString().split('T')[0]
         : undefined,
-      requestDate: new Date(data.requestDate).toISOString().split('T')[0],
+      requestDate: new Date(data.requestDate as string).toISOString().split('T')[0],
       // 청구팀은 규칙에 따라 자동 생성 (과거 데이터 호환 포함)
-      requestTeam: deriveRequestTeam(data.committee, data.department),
-      applicantName: data.applicantName,
-      applicantTitle: data.applicantTitle || undefined,
-      bankName: data.bankName,
-      accountNumber: data.accountNumber,
-      accountHolder: data.accountHolder,
-      items: data.items.map((item: any) => ({
-        budgetDetail: item.budgetDetail,
-        description: item.description,
-        unitPrice: item.unitPrice,
-        quantity: item.quantity,
-        amount: item.amount,
+      requestTeam: deriveRequestTeam(data.committee as string, data.department as string),
+      applicantName: data.applicantName as string,
+      applicantTitle: (data.applicantTitle as string) || undefined,
+      bankName: data.bankName as string,
+      accountNumber: data.accountNumber as string,
+      accountHolder: data.accountHolder as string,
+      items: (data.items as Array<Record<string, unknown>>).map((item) => ({
+        budgetDetail: item.budgetDetail as string,
+        description: item.description as string,
+        unitPrice: item.unitPrice as number,
+        quantity: item.quantity as number,
+        amount: item.amount as number,
       })),
     });
 
     // 첨부파일 로드
-    if (data.attachments && data.attachments.length > 0) {
+    const attachmentsData = data.attachments as Array<Record<string, unknown>> | undefined;
+    if (attachmentsData && attachmentsData.length > 0) {
       setAttachments(
-        data.attachments.map((att: any) => ({
-          id: att.id,
-          publicId: att.publicId,
-          url: att.url,
-          secureUrl: att.secureUrl,
-          format: att.format,
-          fileName: att.fileName,
-          fileSize: att.fileSize,
-          width: att.width,
-          height: att.height,
+        attachmentsData.map((att) => ({
+          id: att.id as string,
+          publicId: att.publicId as string,
+          url: att.url as string,
+          secureUrl: att.secureUrl as string,
+          format: att.format as string,
+          fileName: att.fileName as string,
+          fileSize: att.fileSize as number,
+          width: att.width as number | undefined,
+          height: att.height as number | undefined,
         }))
       );
     }
@@ -166,66 +181,9 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
     setValue('items.0.budgetDetail', detail);
   };
 
-  const onSubmit = async (data: ExpenseFormData) => {
-    setError(null);
-
-    try {
-      setLoading(true);
-
-      const url = expenseId ? `/api/expenses/${expenseId}` : '/api/expenses';
-      const method = expenseId ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...data,
-          expenseDate: data.expenseDate || null,
-        }),
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMsg = '저장에 실패했습니다.';
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMsg = errorData.details
-            ? `${errorData.error}: ${errorData.details}`
-            : errorData.error || '저장에 실패했습니다.';
-        } catch (e) {
-          errorMsg = `서버 오류 (${response.status}): ${responseText || '응답 없음'}`;
-        }
-        throw new Error(errorMsg);
-      }
-
-      const result = await response.json();
-
-      // 새 지출결의서 생성 시 첨부파일을 DB에 저장
-      if (!expenseId && attachments.length > 0) {
-        const unsavedAttachments = attachments.filter(att => !att.id);
-        if (unsavedAttachments.length > 0) {
-          try {
-            await Promise.all(
-              unsavedAttachments.map(att => createAttachment(result.id, att))
-            );
-          } catch (attachmentError) {
-            console.error('첨부파일 저장 오류:', attachmentError);
-            // 첨부파일 저장 실패해도 지출결의서는 이미 생성됨
-          }
-        }
-      }
-
-      alert(
-        expenseId
-          ? '지출결의서가 성공적으로 수정되었습니다.'
-          : '지출결의서가 성공적으로 등록되었습니다.'
-      );
-      router.push(`/expenses/${result.id}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
+  // onSubmit 핸들러 - useExpenseFormSubmit 훅 사용
+  const onSubmit = (data: ExpenseFormData) => {
+    handleFormSubmit(data);
   };
 
   // 수정 모드 데이터 로딩 중

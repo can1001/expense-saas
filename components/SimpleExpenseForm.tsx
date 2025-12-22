@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,7 +19,7 @@ import {
   defaultSimpleExpenseFormData,
 } from '@/lib/schemas/simple-expense-schema';
 import SimpleItemsSection from './simple-expense-form/SimpleItemsSection';
-import FileUpload, { UploadedFile } from './FileUpload';
+import FileUpload from './FileUpload';
 import {
   SECTION_CARD,
   SECTION_TITLE,
@@ -35,6 +35,11 @@ import {
   LABEL_REQUIRED,
   ERROR_MESSAGE,
 } from '@/lib/constants/styles';
+import {
+  useFetchCurrentUser,
+  useExpenseFormState,
+  useExpenseFormSubmit,
+} from '@/lib/hooks';
 
 interface SimpleExpenseFormProps {
   expenseId?: string;
@@ -43,10 +48,18 @@ interface SimpleExpenseFormProps {
 
 export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpenseFormProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchLoading, setFetchLoading] = useState(!!expenseId);
-  const [attachments, setAttachments] = useState<UploadedFile[]>([]);
+
+  // 공통 훅 사용
+  const {
+    loading,
+    setLoading,
+    error,
+    setError,
+    fetchLoading,
+    setFetchLoading,
+    attachments,
+    setAttachments,
+  } = useExpenseFormState({ isEditMode: !!expenseId });
 
   const {
     control,
@@ -60,28 +73,38 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
     defaultValues: defaultSimpleExpenseFormData as SimpleExpenseFormData,
   });
 
+  // 폼 제출 훅
+  const { handleSubmit: handleFormSubmit } = useExpenseFormSubmit({
+    expenseId,
+    apiEndpoint: '/api/simple-expenses',
+    redirectPath: '/expenses/simple',
+    attachments,
+    setLoading,
+    setError,
+    saveAttachments: async (id, unsavedAttachments) => {
+      await Promise.all(
+        unsavedAttachments.map((att) =>
+          fetch('/api/attachments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              expenseId: id,
+              expenseType: 'simple',
+              ...att,
+            }),
+          })
+        )
+      );
+    },
+  });
+
   // 로그인한 사용자 정보 자동 채우기 (새 작성 시에만)
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      // 수정 모드가 아닌 경우에만 자동 채우기
-      if (expenseId || initialData) return;
-
-      try {
-        const response = await fetch('/api/auth/me');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.user) {
-            // 청구인에 로그인 사용자 이름 자동 입력
-            setValue('applicantName', data.user.username);
-          }
-        }
-      } catch {
-        // 로그인되지 않은 경우 무시
-      }
-    };
-
-    fetchCurrentUser();
-  }, [expenseId, initialData, setValue]);
+  useFetchCurrentUser({
+    skip: !!expenseId || !!initialData,
+    onSuccess: (user) => {
+      setValue('applicantName', user.username);
+    },
+  });
 
   // 수정 모드일 때 데이터 로드
   useEffect(() => {
@@ -147,75 +170,9 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
     }
   };
 
-  const onSubmit = async (data: SimpleExpenseFormData) => {
-    setError(null);
-
-    try {
-      setLoading(true);
-
-      const url = expenseId ? `/api/simple-expenses/${expenseId}` : '/api/simple-expenses';
-      const method = expenseId ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...data,
-          expenseDate: data.expenseDate || null,
-        }),
-      });
-
-      if (!response.ok) {
-        const responseText = await response.text();
-        let errorMsg = '저장에 실패했습니다.';
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMsg = errorData.details
-            ? `${errorData.error}: ${errorData.details}`
-            : errorData.error || '저장에 실패했습니다.';
-        } catch {
-          errorMsg = `서버 오류 (${response.status}): ${responseText || '응답 없음'}`;
-        }
-        throw new Error(errorMsg);
-      }
-
-      const result = await response.json();
-
-      // 새 지출결의서 생성 시 첨부파일을 DB에 저장
-      if (!expenseId && attachments.length > 0) {
-        const unsavedAttachments = attachments.filter((att) => !att.id);
-        if (unsavedAttachments.length > 0) {
-          try {
-            await Promise.all(
-              unsavedAttachments.map((att) =>
-                fetch('/api/attachments', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    expenseId: result.id,
-                    expenseType: 'simple',
-                    ...att,
-                  }),
-                })
-              )
-            );
-          } catch (attachmentError) {
-            console.error('첨부파일 저장 오류:', attachmentError);
-          }
-        }
-      }
-
-      alert(
-        expenseId
-          ? '지출결의서가 성공적으로 수정되었습니다.'
-          : '지출결의서가 성공적으로 등록되었습니다.'
-      );
-      router.push(`/expenses/simple/${result.id}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
+  // onSubmit 핸들러 - useExpenseFormSubmit 훅 사용
+  const onSubmit = (data: SimpleExpenseFormData) => {
+    handleFormSubmit(data);
   };
 
   // 수정 모드 데이터 로딩 중

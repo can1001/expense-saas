@@ -136,6 +136,112 @@ export interface ApiErrorResponse {
 }
 
 // ============================================
+// 표준화된 API 응답 타입
+// ============================================
+
+/** API 필드 에러 */
+export interface FieldError {
+  fieldName: string;
+  message: string;
+}
+
+/** API 에러 상세 */
+export interface ApiError {
+  type: 'VALIDATION' | 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'SERVER_ERROR' | 'UNKNOWN';
+  message: string;
+  details?: unknown;
+  fields?: FieldError[];
+}
+
+/** 통일된 API 응답 타입 */
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  code: string;
+  message?: string;
+  data?: T;
+  error?: ApiError;
+  timestamp: string;
+}
+
+/** 페이지네이션 메타 */
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+/** 페이지네이션 API 응답 */
+export interface PaginatedApiResponse<T> extends ApiResponse<T[]> {
+  meta?: {
+    pagination: PaginationMeta;
+  };
+}
+
+// ============================================
+// 사용자 타입
+// ============================================
+
+/** 사용자 역할 */
+export type UserRole = 'staff' | 'team_leader' | 'accountant' | 'finance_head' | 'admin';
+
+/** 사용자 정보 */
+export interface User {
+  id: string;
+  userid: string;
+  username: string;
+  role: UserRole;
+  committee?: string;
+  department?: string;
+}
+
+/** 현재 사용자 응답 */
+export interface CurrentUserResponse {
+  user: User | null;
+}
+
+// ============================================
+// 결재 시스템 타입
+// ============================================
+
+/** 결재 단계 상태 */
+export type StepStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SKIPPED';
+
+/** 결재 액션 타입 */
+export type ApprovalAction =
+  | 'SUBMIT'
+  | 'APPROVE'
+  | 'REJECT'
+  | 'RESUBMIT'
+  | 'WITHDRAW'
+  | 'MODIFY_LINE'
+  | 'DELEGATE';
+
+/** 결재 단계 정보 */
+export interface ApprovalStepInfo {
+  id: string;
+  stepNumber: number;
+  stepName: string;
+  approverName: string;
+  approverTitle?: string | null;
+  status: StepStatus;
+  approvedAt?: string | null;
+  rejectedAt?: string | null;
+  comment?: string | null;
+}
+
+/** 결재선 정보 */
+export interface ApprovalLineInfo {
+  id: string;
+  currentStep: number;
+  totalSteps: number;
+  steps: ApprovalStepInfo[];
+  isUrgent: boolean;
+}
+
+// ============================================
 // 예산 마스터 타입
 // ============================================
 
