@@ -8,6 +8,14 @@ import ApprovalStatusBadge from '@/components/approval/ApprovalStatusBadge';
 import { formatCurrency } from '@/lib/utils';
 import { Clock, CheckCircle, FileText, User, Building2, Calendar } from 'lucide-react';
 
+interface UserInfo {
+  id: string;
+  userid: string;
+  username: string;
+  role: string;
+  department?: string;
+}
+
 interface ApprovalItem {
   id: string;
   expense: {
@@ -45,35 +53,52 @@ interface ApprovalItem {
   isMyTurn: boolean;
 }
 
-// 결재자 목록 (실제로는 인증 시스템에서 가져와야 함)
-// approval-engine.ts의 DEPARTMENT_APPROVERS와 일치해야 함
-const APPROVERS = [
-  { name: '팀장', role: '팀장 (기본)' },
-  { name: '김재정', role: '팀장 (재정팀)' },
-  { name: '최교육', role: '팀장 (교육팀)' },
-  { name: '강선교', role: '팀장 (선교팀)' },
-  { name: '박회계', role: '회계' },
-  { name: '이재무', role: '재정팀장' },
-];
-
 export default function ApprovalsPage() {
   const router = useRouter();
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
   const [approvals, setApprovals] = useState<ApprovalItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedApprover, setSelectedApprover] = useState('박회계');
   const [statusFilter, setStatusFilter] = useState<'pending' | 'completed' | 'all'>('pending');
 
+  // 로그인 사용자 정보 가져오기
   useEffect(() => {
-    fetchApprovals();
-  }, [selectedApprover, statusFilter]);
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        const data = await response.json();
+        if (response.ok && data.user) {
+          setUser(data.user);
+        } else {
+          // 로그인하지 않은 경우 로그인 페이지로 이동
+          router.push('/login');
+        }
+      } catch {
+        router.push('/login');
+      } finally {
+        setUserLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, [router]);
+
+  // 사용자 정보가 있을 때 결재 목록 가져오기
+  useEffect(() => {
+    if (user) {
+      fetchApprovals();
+    }
+  }, [user, statusFilter]);
 
   const fetchApprovals = async () => {
+    if (!user) return;
+
     try {
       setLoading(true);
       setError(null);
       const response = await fetch(
-        `/api/approvals?approverName=${encodeURIComponent(selectedApprover)}&status=${statusFilter}`
+        `/api/approvals?approverName=${encodeURIComponent(user.username)}&status=${statusFilter}`
       );
 
       if (!response.ok) {
@@ -120,26 +145,7 @@ export default function ApprovalsPage() {
 
         {/* 필터 영역 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* 결재자 선택 */}
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <User className="w-4 h-4 inline mr-1" />
-                결재자 선택
-              </label>
-              <select
-                value={selectedApprover}
-                onChange={(e) => setSelectedApprover(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                {APPROVERS.map((approver) => (
-                  <option key={approver.name} value={approver.name}>
-                    {approver.name} ({approver.role})
-                  </option>
-                ))}
-              </select>
-            </div>
-
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
             {/* 상태 필터 */}
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -185,7 +191,7 @@ export default function ApprovalsPage() {
         </div>
 
         {/* 결재 목록 */}
-        {loading ? (
+        {userLoading || loading ? (
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
