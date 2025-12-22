@@ -1,5 +1,6 @@
 // 사용자 역할 정의
 export type UserRole =
+  | 'admin'          // 시스템 관리자
   | 'finance_head'   // 재정팀장 (3차/최종 결재)
   | 'accountant'     // 회계 (2차 결재)
   | 'team_leader'    // 팀장 (1차 결재)
@@ -7,6 +8,7 @@ export type UserRole =
 
 // 역할별 결재 단계 매핑
 export const ROLE_STEP_MAP: Record<UserRole, number | null> = {
+  admin: null,       // 시스템 관리자 (결재 없음, 모든 권한)
   team_leader: 1,    // 1차 결재
   accountant: 2,     // 2차 결재
   finance_head: 3,   // 3차 결재
@@ -15,6 +17,7 @@ export const ROLE_STEP_MAP: Record<UserRole, number | null> = {
 
 // 역할 한글명
 export const ROLE_NAMES: Record<UserRole, string> = {
+  admin: '관리자',
   finance_head: '재정팀장',
   accountant: '회계',
   team_leader: '팀장',
@@ -32,7 +35,7 @@ export interface UserInfo {
 
 export const USERS: readonly UserInfo[] = [
   // 기존 사용자
-  { id: '1', userid: '청연정혜종', username: '정혜종', role: 'user' },
+  { id: '1', userid: '청연정혜종', username: '정혜종', role: 'admin' },
   { id: '2', userid: '청연김흥래', username: '김흥래', role: 'team_leader', department: '교육훈련위원회' },
   { id: '3', userid: '청연신창국', username: '신창국', role: 'finance_head' },
   { id: '4', userid: '청연윤운문', username: '윤운문', role: 'accountant' },
