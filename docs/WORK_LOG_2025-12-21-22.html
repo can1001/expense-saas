@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>작업 일지 (2025-12-21 ~ 2025-12-22)</title>
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--gray-800);
+      background: var(--gray-50);
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 1.875rem;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      opacity: 0.9;
+      font-size: 1rem;
+    }
+
+    .content {
+      padding: 2rem;
+    }
+
+    .overview {
+      background: var(--gray-100);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .overview p {
+      color: var(--gray-700);
+    }
+
+    .day-section {
+      margin-bottom: 2.5rem;
+    }
+
+    .day-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid var(--primary);
+    }
+
+    .day-header h2 {
+      font-size: 1.5rem;
+      color: var(--gray-900);
+    }
+
+    .day-badge {
+      background: var(--primary);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .section {
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      border-left: 4px solid var(--primary);
+      background: var(--gray-50);
+      border-radius: 0 8px 8px 0;
+    }
+
+    .section h3 {
+      color: var(--gray-800);
+      font-size: 1.125rem;
+      margin-bottom: 1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+
+    th, td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    th {
+      background: var(--gray-100);
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+
+    tr:hover {
+      background: var(--gray-50);
+    }
+
+    .commit-hash {
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.75rem;
+      background: var(--gray-200);
+      padding: 0.125rem 0.5rem;
+      border-radius: 4px;
+      color: var(--gray-700);
+    }
+
+    .code-block {
+      background: var(--gray-800);
+      color: #e5e7eb;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.875rem;
+      margin: 1rem 0;
+    }
+
+    .highlight {
+      color: var(--success);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .stat-card {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--gray-600);
+      margin-top: 0.25rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-admin { background: #fef3c7; color: #92400e; }
+    .badge-finance { background: #dbeafe; color: #1e40af; }
+    .badge-accountant { background: #d1fae5; color: #065f46; }
+    .badge-leader { background: #e0e7ff; color: #3730a3; }
+    .badge-user { background: #f3f4f6; color: #374151; }
+
+    .file-list {
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.8rem;
+      background: var(--gray-100);
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+
+    .file-list li {
+      padding: 0.25rem 0;
+      list-style: none;
+    }
+
+    .file-list li::before {
+      content: '📄 ';
+    }
+
+    footer {
+      background: var(--gray-100);
+      padding: 1.5rem 2rem;
+      text-align: center;
+      color: var(--gray-600);
+      font-size: 0.875rem;
+    }
+
+    @media (max-width: 640px) {
+      body { padding: 1rem; }
+      .content { padding: 1rem; }
+      header { padding: 1.5rem; }
+      header h1 { font-size: 1.5rem; }
+      table { font-size: 0.75rem; }
+      th, td { padding: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>작업 일지</h1>
+      <p>2025-12-21 (토) ~ 2025-12-22 (일)</p>
+    </header>
+
+    <div class="content">
+      <div class="overview">
+        <p>지출결의서 관리 시스템의 <strong>로그인 기능 구현</strong>, <strong>결재선 재구성</strong>, <strong>사용자 관리 개선</strong> 및 <strong>2026년도 예산 업로드 기능</strong>을 구현하였습니다.</p>
+      </div>
+
+      <!-- 12/21 작업 -->
+      <div class="day-section">
+        <div class="day-header">
+          <h2>2025-12-21</h2>
+          <span class="day-badge">토요일</span>
+        </div>
+
+        <div class="section">
+          <h3>1. 로그인 기능 구현 완료</h3>
+          <table>
+            <thead>
+              <tr><th>커밋</th><th>시간</th><th>내용</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="commit-hash">55763c8</span></td>
+                <td>12:26</td>
+                <td>로그인 기능 구현 완료</td>
+              </tr>
+              <tr>
+                <td><span class="commit-hash">ed673fe</span></td>
+                <td>13:42</td>
+                <td>역할 기반 권한 및 자동 연동</td>
+              </tr>
+            </tbody>
+          </table>
+          <p><strong>주요 변경사항:</strong></p>
+          <ul>
+            <li>사용자 인증 시스템 구현 (<code>/api/auth/login</code>, <code>/api/auth/logout</code>, <code>/api/auth/me</code>)</li>
+            <li>역할(role) 기반 권한 체계 도입</li>
+            <li>로그인 페이지 UI 구현</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h3>2. 버그 수정</h3>
+          <table>
+            <thead>
+              <tr><th>커밋</th><th>시간</th><th>내용</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="commit-hash">7ab52f2</span></td>
+                <td>13:29</td>
+                <td>청구팀 표시 오류 수정</td>
+              </tr>
+              <tr>
+                <td><span class="commit-hash">16f2efc</span></td>
+                <td>15:43</td>
+                <td>부서별 결재자 매핑을 실제 등록 사용자로 업데이트</td>
+              </tr>
+              <tr>
+                <td><span class="commit-hash">958d7a1</span></td>
+                <td>15:50</td>
+                <td>회수(WITHDRAWN) 상태에서 재제출 가능하도록 수정</td>
+              </tr>
+              <tr>
+                <td><span class="commit-hash">489ec9c</span></td>
+                <td>23:54</td>
+                <td>APPROVED_FINAL 상태에서 결재 완료 UI 표시</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h3>3. 결재 로직 개선</h3>
+          <table>
+            <thead>
+              <tr><th>커밋</th><th>시간</th><th>내용</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="commit-hash">c1aa8cc</span></td>
+                <td>15:56</td>
+                <td>작성자가 결재선에 포함된 경우 자동 제외</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>팀장이 직접 작성한 지출결의서의 경우, 해당 팀장을 1차 결재에서 제외하여 자기 자신이 자신의 결의서를 결재하는 상황을 방지합니다.</p>
+        </div>
+      </div>
+
+      <!-- 12/22 작업 -->
+      <div class="day-section">
+        <div class="day-header">
+          <h2>2025-12-22</h2>
+          <span class="day-badge">일요일</span>
+        </div>
+
+        <div class="section">
+          <h3>1. 결재선 재구성 (위원회 기반)</h3>
+          <table>
+            <thead>
+              <tr><th>커밋</th><th>시간</th><th>내용</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="commit-hash">d40a6eb</span></td>
+                <td>00:18</td>
+                <td>위원회 기반 결재선 재구성 및 회계 변경</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="code-block">
+<span class="highlight">3단계 고정 결재선:</span>
+1차: 팀장 (BudgetMaster.manager 기반)
+2차: 회계 (윤운문)
+3차: 재정팀장 (신창국)
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>2. 사용자 구조 변경</h3>
+          <table>
+            <thead>
+              <tr><th>커밋</th><th>시간</th><th>내용</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="commit-hash">2ba9f27</span></td>
+                <td>00:36</td>
+                <td>재정팀장을 청연신창국으로 변경</td>
+              </tr>
+              <tr>
+                <td><span class="commit-hash">ef9c866</span></td>
+                <td>00:44</td>
+                <td>사용자 정보 구조 변경 (userid/username 분리)</td>
+              </tr>
+              <tr>
+                <td><span class="commit-hash">765782b</span></td>
+                <td>00:52</td>
+                <td>BudgetMaster 담당자 21명을 팀장으로 추가</td>
+              </tr>
+              <tr>
+                <td><span class="commit-hash">c281862</span></td>
+                <td>01:12</td>
+                <td>청구인 및 결재자 이름을 username 형식으로 변경</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="code-block">
+interface UserInfo {
+  id: string;
+  userid: string;    <span class="highlight">// 로그인 아이디 (예: 청연정혜종)</span>
+  username: string;  <span class="highlight">// 표시 이름 (예: 정혜종)</span>
+  role: UserRole;
+  department?: string;
+}
+          </div>
+          <h4 style="margin-top: 1rem;">등록된 사용자 (25명):</h4>
+          <p>
+            <span class="badge badge-admin">관리자</span> 정혜종 &nbsp;
+            <span class="badge badge-finance">재정팀장</span> 신창국 &nbsp;
+            <span class="badge badge-accountant">회계</span> 윤운문 &nbsp;
+            <span class="badge badge-leader">팀장</span> 21명 &nbsp;
+            <span class="badge badge-user">사용자</span> 송원영
+          </p>
+        </div>
+
+        <div class="section">
+          <h3>3. 테스트 및 품질 개선</h3>
+          <table>
+            <thead>
+              <tr><th>커밋</th><th>시간</th><th>내용</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="commit-hash">417fc36</span></td>
+                <td>01:05</td>
+                <td>자기결재 로직 변경에 맞게 테스트 수정</td>
+              </tr>
+              <tr>
+                <td><span class="commit-hash">dc687b7</span></td>
+                <td>09:40</td>
+                <td>신규 파일 테스트 추가로 커버리지 97% 달성</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value">60.3%</div>
+              <div class="stat-label">이전 커버리지</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" style="color: var(--success);">97.7%</div>
+              <div class="stat-label">현재 커버리지</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">494</div>
+              <div class="stat-label">총 테스트 수</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>4. 리팩토링 및 신규 기능</h3>
+          <table>
+            <thead>
+              <tr><th>커밋</th><th>시간</th><th>내용</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="commit-hash">05080e0</span></td>
+                <td>09:20</td>
+                <td>코드 중복 제거 및 2026년도 예산 업로드 기능 추가</td>
+              </tr>
+            </tbody>
+          </table>
+          <h4>Phase 1: 코드 중복 제거</h4>
+          <ul>
+            <li>공통 훅 생성: <code>useFetchCurrentUser</code>, <code>useExpenseFormState</code>, <code>useExpenseFormSubmit</code></li>
+            <li>ExpenseForm, SimpleExpenseForm 리팩토링 (~100줄 중복 제거)</li>
+          </ul>
+          <h4 style="margin-top: 1rem;">Phase 2: API 응답 표준화</h4>
+          <ul>
+            <li><code>lib/api/response-handler.ts</code> 생성</li>
+            <li>일관된 API 응답 형식 적용</li>
+          </ul>
+          <h4 style="margin-top: 1rem;">Phase 3: 2026년도 예산 업로드 기능</h4>
+          <table>
+            <thead>
+              <tr><th>모드</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Replace</td><td>기존 데이터 삭제 후 새로 등록</td></tr>
+              <tr><td>Merge</td><td>기존 데이터 업데이트, 새 데이터 추가</td></tr>
+              <tr><td>Append</td><td>새 데이터만 추가, 기존 데이터 유지</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h3>5. Admin 역할 및 메뉴</h3>
+          <table>
+            <thead>
+              <tr><th>커밋</th><th>시간</th><th>내용</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="commit-hash">8f566fd</span></td>
+                <td>10:34</td>
+                <td>admin 역할 추가 및 청연정혜종에게 부여</td>
+              </tr>
+              <tr>
+                <td><span class="commit-hash">0d06ce7</span></td>
+                <td>10:37</td>
+                <td>admin 역할에 관리 메뉴 표시</td>
+              </tr>
+            </tbody>
+          </table>
+          <h4>역할 체계:</h4>
+          <table>
+            <thead>
+              <tr><th>역할</th><th>한글명</th><th>권한</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="badge badge-admin">admin</span></td><td>관리자</td><td>시스템 관리, 예산 업로드</td></tr>
+              <tr><td><span class="badge badge-finance">finance_head</span></td><td>재정팀장</td><td>3차(최종) 결재</td></tr>
+              <tr><td><span class="badge badge-accountant">accountant</span></td><td>회계</td><td>2차 결재</td></tr>
+              <tr><td><span class="badge badge-leader">team_leader</span></td><td>팀장</td><td>1차 결재</td></tr>
+              <tr><td><span class="badge badge-user">user</span></td><td>사용자</td><td>지출결의서 작성</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h3>6. 결재함 UI 개선</h3>
+          <table>
+            <thead>
+              <tr><th>커밋</th><th>시간</th><th>내용</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="commit-hash">1cc4264</span></td>
+                <td>10:50</td>
+                <td>결재함에서 결재자 선택 드롭다운 제거</td>
+              </tr>
+            </tbody>
+          </table>
+          <ul>
+            <li>하드코딩된 결재자 목록 제거</li>
+            <li>로그인한 사용자 기준으로 자동 결재 목록 조회</li>
+            <li>미로그인 시 로그인 페이지로 리다이렉트</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 파일 변경 요약 -->
+      <div class="day-section">
+        <div class="day-header">
+          <h2>파일 변경 요약</h2>
+        </div>
+
+        <div class="section">
+          <h3>신규 파일 (11개)</h3>
+          <ul class="file-list">
+            <li>lib/hooks/useFetchCurrentUser.ts</li>
+            <li>lib/hooks/useExpenseFormState.ts</li>
+            <li>lib/hooks/useExpenseFormSubmit.ts</li>
+            <li>lib/hooks/index.ts</li>
+            <li>lib/api/response-handler.ts</li>
+            <li>lib/budget-upload.ts</li>
+            <li>app/api/budget/upload/route.ts</li>
+            <li>app/admin/budget-upload/page.tsx</li>
+            <li>lib/api/__tests__/response-handler.test.ts</li>
+            <li>lib/__tests__/budget-upload.test.ts</li>
+            <li>lib/hooks/__tests__/*.test.ts (3개)</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h3>주요 수정 파일</h3>
+          <ul class="file-list">
+            <li>lib/users.ts - admin 역할 추가, 사용자 25명 등록</li>
+            <li>lib/approval-engine.ts - 결재선 로직 재구성</li>
+            <li>components/Header.tsx - admin 메뉴 표시</li>
+            <li>components/ExpenseForm.tsx - 공통 훅 적용</li>
+            <li>components/SimpleExpenseForm.tsx - 공통 훅 적용</li>
+            <li>app/approvals/page.tsx - 결재자 선택 제거</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div class="stats-grid" style="max-width: 600px; margin: 0 auto;">
+        <div class="stat-card">
+          <div class="stat-value">24</div>
+          <div class="stat-label">총 커밋 수</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">11</div>
+          <div class="stat-label">신규 파일</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">97.7%</div>
+          <div class="stat-label">테스트 커버리지</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">25</div>
+          <div class="stat-label">등록 사용자</div>
+        </div>
+      </div>
+      <p style="margin-top: 1.5rem;">Generated on 2025-12-22</p>
+    </footer>
+  </div>
+</body>
+</html>

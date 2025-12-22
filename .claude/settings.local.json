@@ -47,7 +47,8 @@
       "Bash(echo:*)",
       "Bash(jq:*)",
       "Bash(node -e:*)",
-      "Bash(node /tmp/analyze-managers.js:*)"
+      "Bash(node /tmp/analyze-managers.js:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
