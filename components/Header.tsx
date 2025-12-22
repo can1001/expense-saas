@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FileText, CheckSquare, Home, LogOut, User } from 'lucide-react';
+import { FileText, CheckSquare, Home, LogOut, User, Settings } from 'lucide-react';
 
-type UserRole = 'finance_head' | 'accountant' | 'team_leader' | 'user';
+type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'user';
 
 const ROLE_NAMES: Record<UserRole, string> = {
+  admin: '관리자',
   finance_head: '재정팀장',
   accountant: '회계',
   team_leader: '팀장',
@@ -80,6 +81,17 @@ export default function Header() {
       icon: CheckSquare,
       active: pathname.startsWith('/approvals'),
     },
+    // admin 메뉴 (관리자만 표시)
+    ...(user?.role === 'admin'
+      ? [
+          {
+            href: '/admin/budget-upload',
+            label: '관리',
+            icon: Settings,
+            active: pathname.startsWith('/admin'),
+          },
+        ]
+      : []),
   ];
 
   return (
