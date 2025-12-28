@@ -22,15 +22,15 @@
 | G | 은행 | O | 은행명 | `bankName` |
 | H | 계좌번호 | O | 계좌번호 | `accountNumber` |
 | I | 금액 | O | 지출 금액 | `ExpenseItem.amount` |
-| J | 날짜 | O | 지출 일자 | `expenseDate` 또는 `requestDate` |
+| J | 날짜 | O | 지출 일자 (YYYY-MM-DD) | `expenseDate` 또는 `requestDate` |
 | K | 메모 | - | 적요/비고 | `ExpenseItem.description` |
 
 ### 예시 데이터
 
 ```
-항          목            세목          세세목    지급방법    예금주      은행    계좌번호        금액      날짜        메모
-예배비      강사사례비    강사사례비              헌금        홍길동      우리    123-45-6789     100000    2011.9.26   세미나
-구입비C     사무용품C     품목1C                                                                  20000     2011.9.26   프린트종이1박스
+항          목            세목          세세목    지급방법    예금주      은행    계좌번호        금액      날짜          메모
+예배비      강사사례비    강사사례비              이체        홍길동      우리    123-45-6789     100000    2025-12-28    세미나
+구입비C     사무용품C     품목1C                  이체                                            20000     2025-12-28    프린트종이1박스
 ```
 
 ---
@@ -50,19 +50,19 @@
 | 은행 | `bankName` | - | 그대로 사용 |
 | 계좌번호 | `accountNumber` | - | 그대로 사용 |
 | 금액 | - | `amount` | 숫자 형식 |
-| 날짜 | `expenseDate` / `requestDate` | - | YYYY.M.D 형식 |
+| 날짜 | `expenseDate` / `requestDate` | - | YYYY-MM-DD 형식 |
 | 메모 | - | `description` | 그대로 사용 |
 
 ### 날짜 형식 변환
 
 ```typescript
 // 입력: 2025-12-28T00:00:00.000Z
-// 출력: 2025.12.28
+// 출력: 2025-12-28
 function formatDateForExcel(date: Date): string {
   const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  return `${year}.${month}.${day}`;
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 ```
 

@@ -41,13 +41,13 @@ export interface ExpenseForExcel {
 }
 
 /**
- * 날짜를 엑셀 형식으로 변환 (YYYY.M.D)
+ * 날짜를 엑셀 형식으로 변환 (YYYY-MM-DD)
  */
 export function formatDateForExcel(date: Date): string {
   const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  return `${year}.${month}.${day}`;
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -139,20 +139,20 @@ export function generateExcelFilename(
   endDate?: Date
 ): string {
   const now = new Date();
-  const dateStr = formatDateForExcel(now).replace(/\./g, '-');
+  const dateStr = formatDateForExcel(now);
 
   if (expenses.length === 1) {
     // 단건인 경우
     const expense = expenses[0];
     const expenseDate = expense.expenseDate || expense.requestDate;
-    const expenseDateStr = formatDateForExcel(expenseDate).replace(/\./g, '-');
+    const expenseDateStr = formatDateForExcel(expenseDate);
     return `지출재정_${expense.accountHolder}_${expenseDateStr}.xlsx`;
   }
 
   if (startDate && endDate) {
     // 기간 지정된 경우
-    const start = formatDateForExcel(startDate).replace(/\./g, '-');
-    const end = formatDateForExcel(endDate).replace(/\./g, '-');
+    const start = formatDateForExcel(startDate);
+    const end = formatDateForExcel(endDate);
     return `지출재정_${start}_${end}.xlsx`;
   }
 
