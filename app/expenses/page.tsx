@@ -17,6 +17,10 @@ export default function ExpensesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
 
+  // 엑셀 다운로드용 선택 상태
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [exporting, setExporting] = useState(false);
+
   // 고급 필터
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -141,6 +145,79 @@ export default function ExpensesPage() {
 
   const handleRowClick = (id: string) => {
     router.push(`/expenses/${id}`);
+  };
+
+  // 체크박스 선택 핸들러
+  const handleSelectOne = (id: string, checked: boolean) => {
+    const newSelected = new Set(selectedIds);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  // 전체 선택 핸들러
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(paginatedExpenses.map(e => e.id));
+      setSelectedIds(allIds);
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  // 현재 페이지 전체 선택 여부
+  const isAllSelected = paginatedExpenses.length > 0 &&
+    paginatedExpenses.every(e => selectedIds.has(e.id));
+
+  // 엑셀 다운로드 핸들러
+  const handleExportExcel = async () => {
+    if (selectedIds.size === 0) {
+      alert('엑셀로 내보낼 지출결의서를 선택해주세요.');
+      return;
+    }
+
+    try {
+      setExporting(true);
+      const ids = Array.from(selectedIds).join(',');
+      const response = await fetch(`/api/expenses/export/excel?ids=${ids}&status=all`);
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || '엑셀 내보내기에 실패했습니다.');
+      }
+
+      // 파일 다운로드
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      // Content-Disposition 헤더에서 파일명 추출
+      const disposition = response.headers.get('Content-Disposition');
+      let filename = '지출재정.xlsx';
+      if (disposition) {
+        const filenameMatch = disposition.match(/filename\*=UTF-8''(.+)/);
+        if (filenameMatch) {
+          filename = decodeURIComponent(filenameMatch[1]);
+        }
+      }
+
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      // 선택 초기화
+      setSelectedIds(new Set());
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '엑셀 내보내기 중 오류가 발생했습니다.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   if (loading) {
@@ -349,12 +426,48 @@ export default function ExpensesPage() {
           </div>
         </div>
 
+        {/* 엑셀 다운로드 버튼 */}
+        {selectedIds.size > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex items-center justify-between">
+            <span className="text-blue-700 font-medium">
+              {selectedIds.size}건 선택됨
+            </span>
+            <button
+              onClick={handleExportExcel}
+              disabled={exporting}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+            >
+              {exporting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  내보내는 중...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  엑셀 다운로드
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
         {/* 테이블 */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-blue-500">
                 <tr>
+                  <th className="px-4 py-4 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
                     신청일자
                   </th>
@@ -375,7 +488,7 @@ export default function ExpensesPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                       {searchQuery ? '검색 결과가 없습니다.' : '등록된 지출결의서가 없습니다.'}
                     </td>
                   </tr>
@@ -383,25 +496,47 @@ export default function ExpensesPage() {
                   paginatedExpenses.map((expense) => (
                     <tr
                       key={expense.id}
-                      onClick={() => handleRowClick(expense.id)}
                       className="hover:bg-blue-50 cursor-pointer transition-colors"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(expense.id)}
+                          onChange={(e) => handleSelectOne(expense.id, e.target.checked)}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                      </td>
+                      <td
+                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
                         {format(new Date(expense.requestDate), 'yyyy-MM-dd')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <td
+                        className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
                         {expense.applicantName}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
+                      <td
+                        className="px-6 py-4 text-sm text-gray-700"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
                         <div className="flex flex-col">
                           <span className="font-medium">{expense.budgetCategory}</span>
                           <span className="text-gray-500 text-xs">{expense.budgetSubcategory}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900">
+                      <td
+                        className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
                         {formatCurrency(expense.requestAmount)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <td
+                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-700"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
                         {expense.committee}
                       </td>
                     </tr>

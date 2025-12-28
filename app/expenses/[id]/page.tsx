@@ -28,6 +28,7 @@ export default function ExpenseDetailPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [excelLoading, setExcelLoading] = useState(false);
+  const [webExcelLoading, setWebExcelLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ userid: string; username: string; role: string } | null>(null);
 
   // 로그인한 사용자 정보 가져오기
@@ -155,6 +156,47 @@ export default function ExpenseDetailPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  // 웹 교적용 엑셀 다운로드
+  const handleDownloadWebExcel = async () => {
+    if (!expense) return;
+
+    setWebExcelLoading(true);
+    try {
+      const response = await fetch(`/api/expenses/export/excel?ids=${id}&status=all`);
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || '엑셀 내보내기에 실패했습니다.');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      // Content-Disposition 헤더에서 파일명 추출
+      const disposition = response.headers.get('Content-Disposition');
+      let filename = `지출재정_${expense.applicantName}.xlsx`;
+      if (disposition) {
+        const filenameMatch = disposition.match(/filename\*=UTF-8''(.+)/);
+        if (filenameMatch) {
+          filename = decodeURIComponent(filenameMatch[1]);
+        }
+      }
+
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '엑셀 내보내기 중 오류가 발생했습니다.');
+      console.error('Web Excel generation error:', err);
+    } finally {
+      setWebExcelLoading(false);
+    }
   };
 
   if (loading) {
@@ -291,6 +333,37 @@ export default function ExpenseDetailPage() {
                 </>
               )}
             </button> */}
+            {/* 웹 교적용 엑셀 다운로드 버튼 */}
+            <button
+              onClick={handleDownloadWebExcel}
+              disabled={webExcelLoading}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              title="웹 교적 등록용 엑셀 다운로드"
+            >
+              {webExcelLoading ? (
+                <>
+                  <div className={SPINNER}></div>
+                  생성 중...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  웹교적
+                </>
+              )}
+            </button>
             <button
               onClick={() => router.push(`/expenses/${id}/edit`)}
               disabled={deleteLoading}
