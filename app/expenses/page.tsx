@@ -5,9 +5,16 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import Header from '@/components/Header';
 import { ExcelExportModal } from '@/components/ExcelExportModal';
-import { ExpenseListItem, ExpenseListResponse } from '@/lib/types';
+import { ExpenseListItem, ExpenseListResponse, UserRole } from '@/lib/types';
 import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_OUTLINE, BTN_LG, BTN_PAGINATION, BTN_PAGE_ACTIVE, BTN_PAGE_INACTIVE, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 import { formatCurrency } from '@/lib/utils';
+
+interface CurrentUser {
+  id: string;
+  userid: string;
+  username: string;
+  role: UserRole | string;
+}
 
 export default function ExpensesPage() {
   const router = useRouter();
@@ -22,6 +29,10 @@ export default function ExpensesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+
+  // 현재 사용자 및 일괄 변경 상태
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   // 고급 필터
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -38,7 +49,24 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     fetchExpenses();
+    fetchCurrentUser();
   }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentUser(data.user);
+      }
+    } catch {
+      // 로그인 안 된 경우 무시
+    }
+  };
+
+  // 관리자 또는 재정팀장인지 확인
+  const canBulkChangePaymentStatus = currentUser &&
+    ['admin', '재정팀장'].includes(currentUser.role);
 
   const fetchExpenses = async () => {
     try {
@@ -252,6 +280,49 @@ export default function ExpensesPage() {
       alert(err instanceof Error ? err.message : '엑셀 내보내기 중 오류가 발생했습니다.');
     } finally {
       setExporting(false);
+    }
+  };
+
+  // 지출 상태 일괄 변경 핸들러
+  const handleBulkPaymentStatusChange = async (newStatus: 'PENDING' | 'COMPLETED') => {
+    if (selectedIds.size === 0) {
+      alert('변경할 지출결의서를 선택해주세요.');
+      return;
+    }
+
+    const statusText = newStatus === 'COMPLETED' ? '지출완료' : '지출예정';
+    const confirmed = confirm(`선택한 ${selectedIds.size}건을 ${statusText}로 변경하시겠습니까?\n\n※ 최종 승인된 항목만 변경됩니다.`);
+
+    if (!confirmed) return;
+
+    try {
+      setBulkProcessing(true);
+      const response = await fetch('/api/expenses/bulk-payment-status', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ids: Array.from(selectedIds),
+          paymentStatus: newStatus,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '일괄 변경에 실패했습니다.');
+      }
+
+      alert(data.message);
+
+      // 목록 새로고침 및 선택 초기화
+      await fetchExpenses();
+      setSelectedIds(new Set());
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '일괄 변경 중 오류가 발생했습니다.');
+    } finally {
+      setBulkProcessing(false);
     }
   };
 
@@ -476,31 +547,77 @@ export default function ExpensesPage() {
           </div>
         </div>
 
-        {/* 엑셀 다운로드 버튼 */}
+        {/* 선택 항목 액션 바 */}
         {selectedIds.size > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex items-center justify-between">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex items-center justify-between flex-wrap gap-3">
             <span className="text-blue-700 font-medium">
               {selectedIds.size}건 선택됨
             </span>
-            <button
-              onClick={handleOpenExportModal}
-              disabled={exporting}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
-            >
-              {exporting ? (
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* 관리자/재정팀장 전용: 일괄 지출 상태 변경 버튼 */}
+              {canBulkChangePaymentStatus && (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  내보내는 중...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  엑셀 다운로드
+                  <button
+                    onClick={() => handleBulkPaymentStatusChange('COMPLETED')}
+                    disabled={bulkProcessing || exporting}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                  >
+                    {bulkProcessing ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        처리 중...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        일괄 지출완료
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleBulkPaymentStatusChange('PENDING')}
+                    disabled={bulkProcessing || exporting}
+                    className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                  >
+                    {bulkProcessing ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        처리 중...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        일괄 지출예정
+                      </>
+                    )}
+                  </button>
                 </>
               )}
-            </button>
+              {/* 엑셀 다운로드 버튼 */}
+              <button
+                onClick={handleOpenExportModal}
+                disabled={exporting || bulkProcessing}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              >
+                {exporting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    내보내는 중...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    엑셀 다운로드
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
 
