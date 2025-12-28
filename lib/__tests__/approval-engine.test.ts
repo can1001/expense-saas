@@ -70,7 +70,7 @@ describe('approval-engine', () => {
       expect(result.isUrgent).toBe(false);
     });
 
-    it('should auto-skip self-approval step when applicant is team manager', () => {
+    it('should mark auto-approval for team manager when applicant is team manager', () => {
       const expenseData: ExpenseData = {
         committee: '기획위원회',
         department: '재정팀',
@@ -82,13 +82,17 @@ describe('approval-engine', () => {
 
       const result = generateApprovalLine(expenseData);
 
-      // 팀장(김흥래) 제외, 2단계 결재선 생성
-      expect(result.totalSteps).toBe(2);
-      expect(result.steps).toHaveLength(2);
-      expect(result.steps[0].stepName).toBe('회계');
-      expect(result.steps[0].approverName).toBe('윤운문');
-      expect(result.steps[1].stepName).toBe('재정팀장');
-      expect(result.steps[1].approverName).toBe('신창국');
+      // 고정 3단계 결재선 생성, 1차 팀장은 전결 처리
+      expect(result.totalSteps).toBe(3);
+      expect(result.steps).toHaveLength(3);
+      expect(result.steps[0].stepName).toBe('팀장');
+      expect(result.steps[0].approverName).toBe('김흥래');
+      expect(result.steps[0].isAutoApproved).toBe(true); // 전결
+      expect(result.steps[0].autoApprovalReason).toContain('전결');
+      expect(result.steps[1].stepName).toBe('회계');
+      expect(result.steps[1].isAutoApproved).toBe(false);
+      expect(result.steps[2].stepName).toBe('재정팀장');
+      expect(result.steps[2].isAutoApproved).toBe(false);
     });
 
     it('should use default approvers for unknown department', () => {
@@ -406,8 +410,8 @@ describe('approval-engine', () => {
       });
     });
 
-    describe('generateApprovalLine - self-approval for different roles', () => {
-      it('should auto-skip team manager step if applicant is team manager', () => {
+    describe('generateApprovalLine - auto-approval (전결) for different roles', () => {
+      it('should mark team manager step as auto-approved if applicant is team manager', () => {
         const expenseData: ExpenseData = {
           committee: '교육훈련위원회',
           department: '교육팀',
@@ -419,15 +423,18 @@ describe('approval-engine', () => {
 
         const result = generateApprovalLine(expenseData);
 
-        // 팀장 제외, 2단계: 회계 → 재정팀장
-        expect(result.totalSteps).toBe(2);
-        expect(result.steps[0].stepName).toBe('회계');
-        expect(result.steps[0].approverName).toBe('윤운문');
-        expect(result.steps[1].stepName).toBe('재정팀장');
-        expect(result.steps[1].approverName).toBe('신창국');
+        // 고정 3단계, 팀장 단계만 전결 처리
+        expect(result.totalSteps).toBe(3);
+        expect(result.steps[0].stepName).toBe('팀장');
+        expect(result.steps[0].approverName).toBe('김흥래');
+        expect(result.steps[0].isAutoApproved).toBe(true);
+        expect(result.steps[1].stepName).toBe('회계');
+        expect(result.steps[1].isAutoApproved).toBe(false);
+        expect(result.steps[2].stepName).toBe('재정팀장');
+        expect(result.steps[2].isAutoApproved).toBe(false);
       });
 
-      it('should auto-skip accountant step if applicant is accountant', () => {
+      it('should mark accountant step as auto-approved if applicant is accountant', () => {
         const expenseData: ExpenseData = {
           committee: '기획위원회',
           department: '재정팀',
@@ -439,15 +446,18 @@ describe('approval-engine', () => {
 
         const result = generateApprovalLine(expenseData);
 
-        // 회계 제외, 2단계: 팀장 → 재정팀장
-        expect(result.totalSteps).toBe(2);
+        // 고정 3단계, 회계 단계만 전결 처리
+        expect(result.totalSteps).toBe(3);
         expect(result.steps[0].stepName).toBe('팀장');
-        expect(result.steps[0].approverName).toBe('김흥래');
-        expect(result.steps[1].stepName).toBe('재정팀장');
-        expect(result.steps[1].approverName).toBe('신창국');
+        expect(result.steps[0].isAutoApproved).toBe(false);
+        expect(result.steps[1].stepName).toBe('회계');
+        expect(result.steps[1].approverName).toBe('윤운문');
+        expect(result.steps[1].isAutoApproved).toBe(true);
+        expect(result.steps[2].stepName).toBe('재정팀장');
+        expect(result.steps[2].isAutoApproved).toBe(false);
       });
 
-      it('should throw error if applicant is finance manager (requires pastor approval)', () => {
+      it('should allow finance manager as applicant with self-approval on step 3', () => {
         const expenseData: ExpenseData = {
           committee: '기획위원회',
           department: '재정팀',
@@ -457,7 +467,13 @@ describe('approval-engine', () => {
           applicantName: '신창국', // 재정팀장
         };
 
-        expect(() => generateApprovalLine(expenseData)).toThrow('담임목사 승인이 필요합니다');
+        // 더 이상 에러 발생하지 않음 (옵션 C: 본인 승인 허용)
+        const result = generateApprovalLine(expenseData);
+
+        expect(result.totalSteps).toBe(3);
+        expect(result.steps[2].stepName).toBe('재정팀장');
+        expect(result.steps[2].approverName).toBe('신창국');
+        expect(result.steps[2].isAutoApproved).toBe(true); // 본인 승인 허용
       });
     });
 

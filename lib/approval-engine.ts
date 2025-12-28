@@ -23,6 +23,8 @@ export interface ApprovalStepInput {
   approverTitle?: string;
   isRequired: boolean;
   isParallel?: boolean;
+  isAutoApproved?: boolean;       // 전결 여부
+  autoApprovalReason?: string;    // 전결 사유
 }
 
 export interface ApprovalLineInput {
@@ -38,6 +40,7 @@ export interface ExpenseData {
   budgetSubcategory: string;
   requestAmount: number;
   applicantName: string;
+  budgetManager?: string | null;  // BudgetMaster.manager (세목 담당자)
 }
 
 export interface ApproverMapping {
@@ -137,30 +140,36 @@ function getDepartmentApprovers(committee: string, department: string): Approver
 }
 
 /**
- * 결재선 자동 생성 (동적 단계)
+ * 결재선 자동 생성 (고정 3단계 + 전결 처리)
  *
- * 기본: 1차 팀장 → 2차 회계 → 3차 재정팀장
- * 작성자가 결재선에 포함된 경우 해당 단계 건너뜀
+ * 기본 결재라인: 1차 팀장 → 2차 회계 → 3차 재정팀장
  *
- * 예시:
- * - 청연윤운문(회계)이 작성 → 1차 팀장 → 2차 재정팀장 (2단계)
- * - 청연신창국(팀장)이 작성 → 1차 회계 → 2차 재정팀장 (2단계)
- * - 청연정혜종(재정팀장)이 작성 → 에러 (담임목사 승인 필요)
+ * 1차 결재자 결정:
+ * - BudgetMaster.manager (세목 담당자) 우선 사용
+ * - 없으면 위원회별 기본 팀장 사용
+ *
+ * 전결 규칙:
+ * - 제출자 = 1차 결재자(팀장) → 1차 자동 승인(전결)
+ * - 제출자 = 2차 결재자(회계) → 2차 자동 승인(전결)
+ * - 제출자 = 3차 결재자(재정팀장) → 3차 본인 승인 허용
  *
  * @param expenseData 지출결의서 데이터
  * @returns 생성된 결재선 정보
  */
 export function generateApprovalLine(expenseData: ExpenseData): ApprovalLineInput {
-  const { committee, department, applicantName } = expenseData;
+  const { committee, department, applicantName, budgetManager } = expenseData;
 
   // 위원회/부서 결재자 매핑 가져오기
   const approvers = getDepartmentApprovers(committee, department);
 
-  // 모든 가능한 결재자 목록 생성
+  // 1차 결재자: BudgetMaster.manager 우선, 없으면 위원회 기본 팀장
+  const teamManager = budgetManager || approvers.teamManager;
+
+  // 모든 결재자 목록 (고정 3단계)
   const allApprovers = [
     {
       role: APPROVER_ROLES.TEAM_MANAGER,
-      name: approvers.teamManager,
+      name: teamManager,
       email: approvers.teamManagerEmail,
       title: '팀장',
     },
@@ -178,40 +187,28 @@ export function generateApprovalLine(expenseData: ExpenseData): ApprovalLineInpu
     },
   ];
 
-  // 작성자가 재정팀장인 경우 특별 처리 (담임목사 승인 필요)
-  if (applicantName === approvers.financeManager) {
-    throw new Error(
-      `재정팀장(${applicantName})이 작성한 지출결의서는 담임목사 승인이 필요합니다. ` +
-      `현재 시스템에서는 담임목사 결재선이 설정되지 않았습니다.`
-    );
-  }
+  // 결재 단계 생성 (전결 처리 포함)
+  const steps: ApprovalStepInput[] = allApprovers.map((approver, index) => {
+    const isApplicant = approver.name === applicantName;
 
-  // 작성자를 제외한 결재자로 결재선 구성
-  const filteredApprovers = allApprovers.filter(
-    (approver) => approver.name !== applicantName
-  );
-
-  // 결재 단계 생성 (번호 재할당)
-  const steps: ApprovalStepInput[] = filteredApprovers.map((approver, index) => ({
-    stepNumber: index + 1,
-    stepName: approver.role,
-    approverName: approver.name,
-    approverEmail: approver.email,
-    approverTitle: approver.title,
-    isRequired: true,
-    isParallel: false,
-  }));
-
-  const totalSteps = steps.length;
-
-  // 최소 1명의 결재자가 있어야 함
-  if (totalSteps === 0) {
-    throw new Error('결재선을 생성할 수 없습니다. 결재자가 없습니다.');
-  }
+    return {
+      stepNumber: index + 1,
+      stepName: approver.role,
+      approverName: approver.name,
+      approverEmail: approver.email,
+      approverTitle: approver.title,
+      isRequired: true,
+      isParallel: false,
+      isAutoApproved: isApplicant,  // 제출자 = 결재자면 전결
+      autoApprovalReason: isApplicant
+        ? `${approver.role} 전결 (본인 작성)`
+        : undefined,
+    };
+  });
 
   return {
     steps,
-    totalSteps,
+    totalSteps: FIXED_APPROVAL_STEPS,
     isUrgent: false,
   };
 }
