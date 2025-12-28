@@ -103,33 +103,74 @@ export async function POST(
       return NextResponse.json({ error: validation.reason }, { status: 403 });
     }
 
-    // 다음 단계 계산
-    const { nextStep, isComplete } = calculateNextStep(
-      currentStep,
-      approvalLine.totalSteps,
-      'APPROVE'
-    );
+    // 스냅샷에서 전결 정보 파싱
+    let snapshotData: any = null;
+    try {
+      snapshotData = JSON.parse(approvalLine.snapshot as string);
+    } catch {
+      // 스냅샷 파싱 실패 시 무시
+    }
 
-    // 새로운 상태 계산 (완료된 단계 번호 전달)
+    // 다음 단계부터 연속된 전결 단계 찾기
+    const autoApproveSteps: typeof approvalLine.steps = [];
+    if (snapshotData?.steps) {
+      for (let i = currentStep; i < approvalLine.totalSteps; i++) {
+        const nextStepSnapshot = snapshotData.steps.find(
+          (s: any) => s.stepNumber === i + 1
+        );
+        if (nextStepSnapshot?.isAutoApproved) {
+          const stepData = approvalLine.steps.find((s) => s.stepNumber === i + 1);
+          if (stepData && stepData.status === 'PENDING') {
+            autoApproveSteps.push(stepData);
+          }
+        } else {
+          break; // 전결이 아닌 단계를 만나면 중단
+        }
+      }
+    }
+
+    // 최종 단계 계산 (현재 단계 + 연속 전결 단계)
+    const finalApprovedStep = currentStep + autoApproveSteps.length;
+    const isComplete = finalApprovedStep >= approvalLine.totalSteps;
+    const nextStep = isComplete ? approvalLine.totalSteps : finalApprovedStep + 1;
+
+    // 새로운 상태 계산
     const newStatus = calculateApprovalStatus(
       'APPROVE',
-      currentStep, // 현재 승인 완료된 단계
+      finalApprovedStep,
       approvalLine.totalSteps
     );
 
     // 트랜잭션으로 승인 처리
     const result = await prisma.$transaction(async (tx) => {
+      const now = new Date();
+
       // 1. 현재 결재 단계 업데이트
       await tx.approvalStep.update({
         where: { id: currentStepData.id },
         data: {
           status: 'APPROVED',
-          approvedAt: new Date(),
+          approvedAt: now,
           comment,
         },
       });
 
-      // 2. 결재선 진행 상태 업데이트
+      // 2. 연속된 전결 단계들 자동 승인
+      for (const autoStep of autoApproveSteps) {
+        const stepSnapshot = snapshotData?.steps?.find(
+          (s: any) => s.stepNumber === autoStep.stepNumber
+        );
+        await tx.approvalStep.update({
+          where: { id: autoStep.id },
+          data: {
+            status: 'APPROVED',
+            approvedAt: now,
+            comment: stepSnapshot?.autoApprovalReason || '전결 처리',
+          },
+        });
+      }
+
+      // 3. 결재선 진행 상태 업데이트
       await tx.approvalLine.update({
         where: { id: approvalLine.id },
         data: {
@@ -137,14 +178,14 @@ export async function POST(
         },
       });
 
-      // 3. 지출결의서 상태 업데이트
+      // 4. 지출결의서 상태 업데이트
       const updateData: any = {
         status: newStatus,
       };
 
       // 최종 승인인 경우 승인 일시 기록
       if (isComplete) {
-        updateData.approvedAt = new Date();
+        updateData.approvedAt = now;
       }
 
       const updatedExpense = await tx.expense.update({
@@ -162,7 +203,7 @@ export async function POST(
         },
       });
 
-      // 4. 감사 로그 생성
+      // 5. 감사 로그 생성 - 현재 단계
       await tx.approvalLog.create({
         data: {
           expenseId: id,
@@ -173,15 +214,46 @@ export async function POST(
           stepNumber: currentStep,
           stepName: currentStepData.stepName,
           previousStatus: expense.status,
-          newStatus,
+          newStatus: autoApproveSteps.length > 0
+            ? calculateApprovalStatus('APPROVE', currentStep, approvalLine.totalSteps)
+            : newStatus,
           comment: comment || `${currentStep}차 결재 승인`,
           metadata: {
             userAgent: request.headers.get('user-agent') || '',
-            timestamp: new Date().toISOString(),
-            isComplete,
+            timestamp: now.toISOString(),
+            isComplete: autoApproveSteps.length === 0 && isComplete,
           },
         },
       });
+
+      // 6. 연속된 전결 단계들 감사 로그 생성
+      for (let i = 0; i < autoApproveSteps.length; i++) {
+        const autoStep = autoApproveSteps[i];
+        const stepSnapshot = snapshotData?.steps?.find(
+          (s: any) => s.stepNumber === autoStep.stepNumber
+        );
+        const isLastStep = i === autoApproveSteps.length - 1;
+        await tx.approvalLog.create({
+          data: {
+            expenseId: id,
+            action: 'APPROVE',
+            actorName: autoStep.approverName,
+            actorRole: autoStep.stepName,
+            stepNumber: autoStep.stepNumber,
+            stepName: autoStep.stepName,
+            previousStatus: `APPROVED_STEP_${autoStep.stepNumber - 1}`,
+            newStatus: isLastStep
+              ? newStatus
+              : `APPROVED_STEP_${autoStep.stepNumber}`,
+            comment: stepSnapshot?.autoApprovalReason || '전결 처리',
+            metadata: {
+              autoApproved: true,
+              timestamp: now.toISOString(),
+              isComplete: isLastStep && isComplete,
+            },
+          },
+        });
+      }
 
       return updatedExpense;
     });

@@ -33,6 +33,9 @@ vi.mock('@/lib/prisma', () => ({
       create: vi.fn(),
       findMany: vi.fn(),
     },
+    budgetMaster: {
+      findFirst: vi.fn(),
+    },
     $transaction: vi.fn(),
   },
 }));
@@ -113,10 +116,12 @@ describe('Approval API Routes', () => {
       };
 
       mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
+      mockPrisma.budgetMaster.findFirst.mockResolvedValue(null);
       mockPrisma.$transaction.mockImplementation(async (callback) => {
         return await callback({
           approvalLine: {
             create: vi.fn().mockResolvedValue(mockUpdatedExpense.approvalLine),
+            delete: vi.fn().mockResolvedValue(null),
           },
           expense: {
             update: vi.fn().mockResolvedValue(mockUpdatedExpense),
@@ -190,32 +195,97 @@ describe('Approval API Routes', () => {
       expect(data.error).toContain('이미 제출된');
     });
 
-    it('should return 400 for finance manager self-approval (requires pastor)', async () => {
+    it('should auto-approve steps when applicant is the approver (전결 처리)', async () => {
+      // 재정팀장(신창국)이 작성한 경우:
+      // - 1차 팀장(신창국): 전결 처리
+      // - 2차 회계(윤운문): 대기
+      // - 3차 재정팀장(신창국): 대기 (2차 승인 후 전결 처리됨)
+      const expenseId = 'test-id';
       const mockExpense = {
-        id: 'test-id',
+        id: expenseId,
         status: 'DRAFT',
         committee: '기획위원회',
         department: '재정팀',
         budgetCategory: '사무행정비',
         budgetSubcategory: '회의비',
         requestAmount: 300000,
-        applicantName: '신창국', // 재정팀장 (담임목사 승인 필요)
-        items: [],
+        applicantName: '신창국', // 재정팀장 (팀장도 본인)
+        items: [
+          {
+            id: 'item-1',
+            budgetDetail: '회의비',
+            description: '팀 회의',
+            unitPrice: 10000,
+            quantity: 30,
+            amount: 300000,
+            order: 1,
+          },
+        ],
         approvalLine: null,
       };
 
+      const mockUpdatedExpense = {
+        ...mockExpense,
+        status: 'APPROVED_STEP_1', // 1차만 전결되고 2차 대기
+        submittedAt: new Date(),
+        approvalLine: {
+          id: 'approval-line-id',
+          currentStep: 2,
+          totalSteps: 3,
+          steps: [
+            {
+              id: 'step-1',
+              stepNumber: 1,
+              stepName: '팀장',
+              approverName: '신창국',
+              status: 'APPROVED', // 전결
+            },
+            {
+              id: 'step-2',
+              stepNumber: 2,
+              stepName: '회계',
+              approverName: '윤운문',
+              status: 'PENDING', // 대기
+            },
+            {
+              id: 'step-3',
+              stepNumber: 3,
+              stepName: '재정팀장',
+              approverName: '신창국',
+              status: 'PENDING', // 대기 (2차 승인 후 전결 처리됨)
+            },
+          ],
+        },
+      };
+
       mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
+      mockPrisma.budgetMaster.findFirst.mockResolvedValue(null);
+      mockPrisma.$transaction.mockImplementation(async (callback) => {
+        return await callback({
+          approvalLine: {
+            create: vi.fn().mockResolvedValue(mockUpdatedExpense.approvalLine),
+            delete: vi.fn().mockResolvedValue(null),
+          },
+          expense: {
+            update: vi.fn().mockResolvedValue(mockUpdatedExpense),
+          },
+          approvalLog: {
+            create: vi.fn().mockResolvedValue({}),
+          },
+        });
+      });
 
       const request = new NextRequest('http://localhost/api/expenses/test-id/submit', {
         method: 'POST',
       });
 
-      const params = Promise.resolve({ id: 'test-id' });
+      const params = Promise.resolve({ id: expenseId });
       const response = await submitPOST(request, { params });
       const data = await response.json();
 
-      expect(response.status).toBe(400);
-      expect(data.error).toContain('담임목사 승인이 필요합니다');
+      // 성공적으로 제출되어야 함 (전결 처리)
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
     });
   });
 

@@ -46,11 +46,73 @@ export async function POST(
       );
     }
 
-    // 완료된 단계 수 계산
-    const approvedSteps = expense.approvalLine.steps.filter(
+    // 스냅샷에서 전결 정보 파싱
+    let snapshotData: any = null;
+    try {
+      snapshotData = JSON.parse(expense.approvalLine.snapshot as string);
+    } catch {
+      // 스냅샷 파싱 실패 시 무시
+    }
+
+    // 연속된 전결 단계만 찾기 (1차부터 연속으로)
+    const consecutiveAutoApprovedStepNumbers = new Set<number>();
+    if (snapshotData?.steps) {
+      for (const step of snapshotData.steps) {
+        if (step.isAutoApproved) {
+          consecutiveAutoApprovedStepNumbers.add(step.stepNumber);
+        } else {
+          break; // 연속되지 않으면 중단
+        }
+      }
+    }
+
+    // 잘못된 승인 상태 수정이 필요한 단계 찾기
+    // 연속된 전결이 아닌데 APPROVED인 단계를 PENDING으로 변경
+    const stepsToFix: string[] = [];
+    for (const step of expense.approvalLine.steps) {
+      const isConsecutiveAutoApproved = consecutiveAutoApprovedStepNumbers.has(step.stepNumber);
+      if (!isConsecutiveAutoApproved && step.status === 'APPROVED') {
+        // 이 단계는 연속된 전결이 아닌데 승인됨 - 수정 필요
+        stepsToFix.push(step.id);
+      }
+    }
+
+    // 잘못된 단계 수정
+    if (stepsToFix.length > 0) {
+      await prisma.approvalStep.updateMany({
+        where: { id: { in: stepsToFix } },
+        data: {
+          status: 'PENDING',
+          approvedAt: null,
+          comment: null,
+        },
+      });
+    }
+
+    // 수정 후 다시 조회
+    const refreshedExpense = await prisma.expense.findUnique({
+      where: { id },
+      include: {
+        approvalLine: {
+          include: {
+            steps: { orderBy: { stepNumber: 'asc' } },
+          },
+        },
+      },
+    });
+
+    if (!refreshedExpense?.approvalLine) {
+      return NextResponse.json(
+        { error: '수정 후 조회 실패' },
+        { status: 500 }
+      );
+    }
+
+    // 완료된 단계 수 다시 계산
+    const approvedSteps = refreshedExpense.approvalLine.steps.filter(
       (step) => step.status === 'APPROVED'
     );
-    const pendingSteps = expense.approvalLine.steps.filter(
+    const pendingSteps = refreshedExpense.approvalLine.steps.filter(
       (step) => step.status === 'PENDING'
     );
 
@@ -69,12 +131,28 @@ export async function POST(
       correctStatus = 'APPROVED_FINAL';
     }
 
+    // 올바른 currentStep 계산 (첫 번째 PENDING 단계)
+    const firstPendingStep = refreshedExpense.approvalLine.steps.find(
+      (step) => step.status === 'PENDING'
+    );
+    const correctCurrentStep = firstPendingStep
+      ? firstPendingStep.stepNumber
+      : refreshedExpense.approvalLine.totalSteps;
+
+    // 결재선 currentStep 수정
+    if (refreshedExpense.approvalLine.currentStep !== correctCurrentStep) {
+      await prisma.approvalLine.update({
+        where: { id: refreshedExpense.approvalLine.id },
+        data: { currentStep: correctCurrentStep },
+      });
+    }
+
     // 상태가 이미 올바른 경우
-    if (expense.status === correctStatus) {
+    if (refreshedExpense.status === correctStatus && stepsToFix.length === 0) {
       return NextResponse.json({
         success: true,
         message: '상태가 이미 올바릅니다.',
-        currentStatus: expense.status,
+        currentStatus: refreshedExpense.status,
         approvedStepsCount: approvedSteps.length,
         pendingStepsCount: pendingSteps.length,
       });
@@ -91,9 +169,13 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: `상태가 ${correctStatus}로 수정되었습니다.`,
+      message: stepsToFix.length > 0
+        ? `${stepsToFix.length}개 단계가 수정되었고 상태가 ${correctStatus}로 변경되었습니다.`
+        : `상태가 ${correctStatus}로 수정되었습니다.`,
       previousStatus: expense.status,
       newStatus: updatedExpense.status,
+      fixedSteps: stepsToFix.length,
+      correctCurrentStep,
       approvedStepsCount: approvedSteps.length,
       pendingSteps: pendingSteps.map((s) => ({
         stepNumber: s.stepNumber,

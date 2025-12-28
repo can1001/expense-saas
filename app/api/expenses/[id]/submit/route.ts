@@ -80,11 +80,17 @@ export async function POST(
     // 스냅샷 생성
     const snapshot = createApprovalSnapshot(approvalLineData);
 
-    // 전결 단계 계산 (제출자 = 결재자인 단계들)
-    const autoApprovedSteps = approvalLineData.steps.filter(
-      (step) => step.isAutoApproved
-    );
-    const autoApprovedCount = autoApprovedSteps.length;
+    // 연속된 전결 단계 계산 (1차부터 연속으로 전결인 단계만)
+    // 예: 1차 전결, 2차 대기, 3차 전결 → 1차만 자동 승인
+    const consecutiveAutoApprovedSteps: typeof approvalLineData.steps = [];
+    for (const step of approvalLineData.steps) {
+      if (step.isAutoApproved) {
+        consecutiveAutoApprovedSteps.push(step);
+      } else {
+        break; // 전결이 아닌 단계를 만나면 중단
+      }
+    }
+    const autoApprovedCount = consecutiveAutoApprovedSteps.length;
 
     // 첫 번째 실제 결재 대기 단계 계산
     const firstPendingStep = autoApprovedCount + 1;
@@ -101,6 +107,11 @@ export async function POST(
 
       const now = new Date();
 
+      // 연속된 전결 단계 번호 목록
+      const consecutiveStepNumbers = new Set(
+        consecutiveAutoApprovedSteps.map((s) => s.stepNumber)
+      );
+
       const approvalLine = await tx.approvalLine.create({
         data: {
           expenseId: id,
@@ -111,19 +122,22 @@ export async function POST(
           isUrgent: approvalLineData.isUrgent || false,
           snapshot,
           steps: {
-            create: approvalLineData.steps.map((step) => ({
-              stepNumber: step.stepNumber,
-              stepName: step.stepName,
-              approverName: step.approverName,
-              approverEmail: step.approverEmail,
-              approverTitle: step.approverTitle,
-              isRequired: step.isRequired,
-              isParallel: step.isParallel || false,
-              // 전결 단계는 자동 승인 처리
-              status: step.isAutoApproved ? 'APPROVED' : 'PENDING',
-              approvedAt: step.isAutoApproved ? now : null,
-              comment: step.autoApprovalReason || null,
-            })),
+            create: approvalLineData.steps.map((step) => {
+              // 연속된 전결 단계만 자동 승인
+              const isConsecutiveAutoApproved = consecutiveStepNumbers.has(step.stepNumber);
+              return {
+                stepNumber: step.stepNumber,
+                stepName: step.stepName,
+                approverName: step.approverName,
+                approverEmail: step.approverEmail,
+                approverTitle: step.approverTitle,
+                isRequired: step.isRequired,
+                isParallel: step.isParallel || false,
+                status: isConsecutiveAutoApproved ? 'APPROVED' : 'PENDING',
+                approvedAt: isConsecutiveAutoApproved ? now : null,
+                comment: isConsecutiveAutoApproved ? step.autoApprovalReason || null : null,
+              };
+            }),
           },
         },
         include: {
@@ -184,8 +198,8 @@ export async function POST(
         },
       });
 
-      // 4. 전결 단계들에 대한 감사 로그 생성
-      for (const step of autoApprovedSteps) {
+      // 4. 연속된 전결 단계들에 대한 감사 로그 생성
+      for (const step of consecutiveAutoApprovedSteps) {
         await tx.approvalLog.create({
           data: {
             expenseId: id,
