@@ -39,7 +39,7 @@ export const USERS: readonly UserInfo[] = [
   { id: '2', userid: '청연김흥래', username: '김흥래', role: 'team_leader', department: '교육훈련위원회' },
   { id: '3', userid: '청연신창국', username: '신창국', role: 'finance_head' },
   { id: '4', userid: '청연윤운문', username: '윤운문', role: 'accountant' },
-  { id: '5', userid: '청연송원영', username: '송원영', role: 'user' },
+  { id: '5', userid: '청연송원경', username: '송원경', role: 'admin' },
 
   // 예배위원회 팀장
   { id: '6', userid: '청연김예찬', username: '김예찬', role: 'team_leader', department: '예배위원회/방송팀' },
