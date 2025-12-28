@@ -52,10 +52,16 @@ export function formatDateForExcel(date: Date): string {
 
 /**
  * 지출결의서 데이터를 엑셀 행으로 변환
+ * @param expense 지출결의서 데이터
+ * @param overrideDate 사용자 지정 날짜 (있으면 모든 항목에 적용)
  */
-export function expenseToExcelRows(expense: ExpenseForExcel): ExcelRow[] {
+export function expenseToExcelRows(
+  expense: ExpenseForExcel,
+  overrideDate?: Date
+): ExcelRow[] {
   const rows: ExcelRow[] = [];
-  const date = expense.expenseDate || expense.requestDate;
+  // 오버라이드 날짜가 있으면 사용, 없으면 기존 로직
+  const date = overrideDate || expense.expenseDate || expense.requestDate;
 
   for (const item of expense.items) {
     rows.push({
@@ -78,12 +84,17 @@ export function expenseToExcelRows(expense: ExpenseForExcel): ExcelRow[] {
 
 /**
  * 여러 지출결의서를 엑셀 행 배열로 변환
+ * @param expenses 지출결의서 목록
+ * @param overrideDate 사용자 지정 날짜 (있으면 모든 항목에 적용)
  */
-export function expensesToExcelRows(expenses: ExpenseForExcel[]): ExcelRow[] {
+export function expensesToExcelRows(
+  expenses: ExpenseForExcel[],
+  overrideDate?: Date
+): ExcelRow[] {
   const rows: ExcelRow[] = [];
 
   for (const expense of expenses) {
-    rows.push(...expenseToExcelRows(expense));
+    rows.push(...expenseToExcelRows(expense, overrideDate));
   }
 
   return rows;
@@ -91,9 +102,14 @@ export function expensesToExcelRows(expenses: ExpenseForExcel[]): ExcelRow[] {
 
 /**
  * 엑셀 워크북 생성
+ * @param expenses 지출결의서 목록
+ * @param overrideDate 사용자 지정 날짜 (있으면 모든 항목에 적용)
  */
-export function generateExcelWorkbook(expenses: ExpenseForExcel[]): XLSX.WorkBook {
-  const rows = expensesToExcelRows(expenses);
+export function generateExcelWorkbook(
+  expenses: ExpenseForExcel[],
+  overrideDate?: Date
+): XLSX.WorkBook {
+  const rows = expensesToExcelRows(expenses, overrideDate);
 
   // 워크북 생성
   const workbook = XLSX.utils.book_new();
@@ -124,9 +140,14 @@ export function generateExcelWorkbook(expenses: ExpenseForExcel[]): XLSX.WorkBoo
 
 /**
  * 엑셀 파일을 Buffer로 생성
+ * @param expenses 지출결의서 목록
+ * @param overrideDate 사용자 지정 날짜 (있으면 모든 항목에 적용)
  */
-export function generateExcelBuffer(expenses: ExpenseForExcel[]): Buffer {
-  const workbook = generateExcelWorkbook(expenses);
+export function generateExcelBuffer(
+  expenses: ExpenseForExcel[],
+  overrideDate?: Date
+): Buffer {
+  const workbook = generateExcelWorkbook(expenses, overrideDate);
   return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
 }
 

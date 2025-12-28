@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import Header from '@/components/Header';
+import { ExcelExportModal } from '@/components/ExcelExportModal';
 import { ExpenseListItem, ExpenseListResponse } from '@/lib/types';
 import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_OUTLINE, BTN_LG, BTN_PAGINATION, BTN_PAGE_ACTIVE, BTN_PAGE_INACTIVE, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 import { formatCurrency } from '@/lib/utils';
@@ -20,6 +21,7 @@ export default function ExpensesPage() {
   // 엑셀 다운로드용 선택 상태
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // 고급 필터
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -172,17 +174,34 @@ export default function ExpensesPage() {
   const isAllSelected = paginatedExpenses.length > 0 &&
     paginatedExpenses.every(e => selectedIds.has(e.id));
 
-  // 엑셀 다운로드 핸들러
-  const handleExportExcel = async () => {
+  // 엑셀 다운로드 모달 열기
+  const handleOpenExportModal = () => {
     if (selectedIds.size === 0) {
       alert('엑셀로 내보낼 지출결의서를 선택해주세요.');
       return;
     }
+    setShowExportModal(true);
+  };
 
+  // 엑셀 다운로드 실행
+  const handleExportExcel = async (options: { date: string | null; useSameDate: boolean }) => {
     try {
       setExporting(true);
       const ids = Array.from(selectedIds).join(',');
-      const response = await fetch(`/api/expenses/export/excel?ids=${ids}&status=all`);
+
+      // URL 파라미터 구성
+      const params = new URLSearchParams({
+        ids,
+        status: 'all',
+      });
+
+      // 사용자 지정 날짜가 있으면 추가
+      if (options.useSameDate && options.date) {
+        params.append('expenseDate', options.date);
+        params.append('useSameDate', 'true');
+      }
+
+      const response = await fetch(`/api/expenses/export/excel?${params.toString()}`);
 
       if (!response.ok) {
         const data = await response.json();
@@ -211,8 +230,9 @@ export default function ExpensesPage() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      // 선택 초기화
+      // 선택 초기화 및 모달 닫기
       setSelectedIds(new Set());
+      setShowExportModal(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : '엑셀 내보내기 중 오류가 발생했습니다.');
     } finally {
@@ -433,7 +453,7 @@ export default function ExpensesPage() {
               {selectedIds.size}건 선택됨
             </span>
             <button
-              onClick={handleExportExcel}
+              onClick={handleOpenExportModal}
               disabled={exporting}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
             >
@@ -615,6 +635,15 @@ export default function ExpensesPage() {
           </button>
         </div>
       </div>
+
+      {/* 엑셀 다운로드 모달 */}
+      <ExcelExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExportExcel}
+        selectedCount={selectedIds.size}
+        isExporting={exporting}
+      />
     </div>
   );
 }

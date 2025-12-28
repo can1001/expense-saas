@@ -15,6 +15,8 @@ import {
  * - status: 상태 필터 (기본값: APPROVED_FINAL)
  * - startDate: 시작일 (YYYY-MM-DD)
  * - endDate: 종료일 (YYYY-MM-DD)
+ * - expenseDate: 사용자 지정 지출일자 (YYYY-MM-DD)
+ * - useSameDate: true면 모든 항목에 expenseDate 적용
  */
 export async function GET(request: NextRequest) {
   try {
@@ -25,6 +27,12 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || 'APPROVED_FINAL';
     const startDateParam = searchParams.get('startDate');
     const endDateParam = searchParams.get('endDate');
+    const expenseDateParam = searchParams.get('expenseDate');
+    const useSameDateParam = searchParams.get('useSameDate');
+
+    // 사용자 지정 날짜
+    const overrideDate = expenseDateParam ? new Date(expenseDateParam) : undefined;
+    const useSameDate = useSameDateParam === 'true';
 
     // where 조건 구성
     const where: any = {};
@@ -90,8 +98,11 @@ export async function GET(request: NextRequest) {
       })),
     }));
 
-    // 엑셀 버퍼 생성
-    const buffer = generateExcelBuffer(expensesForExcel);
+    // 엑셀 버퍼 생성 (사용자 지정 날짜가 있으면 전달)
+    const buffer = generateExcelBuffer(
+      expensesForExcel,
+      useSameDate ? overrideDate : undefined
+    );
 
     // 파일명 생성
     const startDate = startDateParam ? new Date(startDateParam) : undefined;
