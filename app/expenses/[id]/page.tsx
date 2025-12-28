@@ -12,6 +12,7 @@ import PrintableExpense from '@/components/PrintableExpense';
 import ApprovalStatusBadge from '@/components/approval/ApprovalStatusBadge';
 import ApprovalLineDisplay from '@/components/approval/ApprovalLineDisplay';
 import ApprovalActionButtons from '@/components/approval/ApprovalActionButtons';
+import { PaymentStatusModal } from '@/components/PaymentStatusModal';
 import { Expense } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_SECONDARY, BTN_SUCCESS, BTN_DANGER, BTN_EMERALD, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
@@ -30,6 +31,8 @@ export default function ExpenseDetailPage() {
   const [excelLoading, setExcelLoading] = useState(false);
   const [webExcelLoading, setWebExcelLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ userid: string; username: string; role: string } | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentStatusLoading, setPaymentStatusLoading] = useState(false);
 
   // 로그인한 사용자 정보 가져오기
   useEffect(() => {
@@ -199,6 +202,51 @@ export default function ExpenseDetailPage() {
     }
   };
 
+  // 지출 상태 변경 핸들러
+  const handlePaymentStatusChange = async (note: string) => {
+    if (!expense) return;
+
+    const newStatus = expense.paymentStatus === 'PENDING' ? 'COMPLETED' : 'PENDING';
+
+    setPaymentStatusLoading(true);
+    try {
+      const response = await fetch(`/api/expenses/${id}/payment-status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentStatus: newStatus,
+          note,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '지출 상태 변경에 실패했습니다.');
+      }
+
+      // 상태 업데이트
+      setExpense({
+        ...expense,
+        paymentStatus: data.data.paymentStatus,
+        paymentCompletedAt: data.data.paymentCompletedAt,
+        paymentCompletedBy: data.data.paymentCompletedBy,
+        paymentNote: data.data.paymentNote,
+      });
+
+      setShowPaymentModal(false);
+      alert(data.message);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '지출 상태 변경 중 오류가 발생했습니다.');
+    } finally {
+      setPaymentStatusLoading(false);
+    }
+  };
+
+  // 관리자 또는 재정팀장인지 확인
+  const canChangePaymentStatus = currentUser &&
+    (currentUser.role === 'admin' || currentUser.role === '재정팀장');
+
   if (loading) {
     return (
       <div className={`min-h-screen bg-gray-50 ${FLEX_CENTER}`}>
@@ -243,6 +291,16 @@ export default function ExpenseDetailPage() {
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold text-gray-900">지출결의서 상세</h1>
               <ApprovalStatusBadge status={expense.status || 'DRAFT'} size="lg" />
+              {/* 지출 상태 뱃지 (최종 승인된 경우에만 표시) */}
+              {expense.status === 'APPROVED_FINAL' && (
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  expense.paymentStatus === 'COMPLETED'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-amber-100 text-amber-800'
+                }`}>
+                  {expense.paymentStatus === 'COMPLETED' ? '지출완료' : '지출예정'}
+                </span>
+              )}
             </div>
             <p className="mt-2 text-gray-600">
               작성일: {format(new Date(expense.createdAt), 'yyyy-MM-dd HH:mm')}
@@ -591,6 +649,44 @@ export default function ExpenseDetailPage() {
             approvalLine={approvalData?.approvalLine}
             expenseStatus={expense.status || 'DRAFT'}
           />
+
+          {/* 지출 상태 관리 (최종 승인된 경우에만 표시) */}
+          {expense.status === 'APPROVED_FINAL' && (
+            <div className={`${SECTION_CARD} mt-6 no-print`}>
+              <h2 className={SECTION_TITLE}>지출 상태 관리</h2>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-4 py-2 rounded-full text-base font-medium ${
+                      expense.paymentStatus === 'COMPLETED'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {expense.paymentStatus === 'COMPLETED' ? '지출완료' : '지출예정'}
+                    </span>
+                  </div>
+                  {expense.paymentStatus === 'COMPLETED' && expense.paymentCompletedAt && (
+                    <p className="mt-2 text-sm text-gray-500">
+                      {format(new Date(expense.paymentCompletedAt), 'yyyy-MM-dd HH:mm')}에
+                      {expense.paymentCompletedBy && ` ${expense.paymentCompletedBy}님이`} 처리
+                      {expense.paymentNote && ` (${expense.paymentNote})`}
+                    </p>
+                  )}
+                </div>
+                {canChangePaymentStatus && (
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    className={expense.paymentStatus === 'PENDING'
+                      ? 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+                      : 'px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors'
+                    }
+                  >
+                    {expense.paymentStatus === 'PENDING' ? '지출완료 처리' : '지출예정으로 되돌리기'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 버튼 */}
@@ -604,6 +700,15 @@ export default function ExpenseDetailPage() {
         </div>
       </div>
       </div>
+
+      {/* 지출 상태 변경 모달 */}
+      <PaymentStatusModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onConfirm={handlePaymentStatusChange}
+        currentStatus={expense.paymentStatus || 'PENDING'}
+        isProcessing={paymentStatusLoading}
+      />
     </>
   );
 }

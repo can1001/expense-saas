@@ -48,6 +48,12 @@ model Expense {
   approvedAt        DateTime?            // 최종 승인 일시
   rejectedAt        DateTime?            // 반려 일시
 
+  // 지출 상태 (최종 승인 후 관리)
+  paymentStatus     PaymentStatus        @default(PENDING)
+  paymentCompletedAt DateTime?           // 지출완료 시각
+  paymentCompletedBy String?             // 지출완료 처리자
+  paymentNote       String?              // 지출 메모
+
   // 결재선 (1:1 관계)
   approvalLine      ApprovalLine?
 
@@ -63,6 +69,7 @@ model Expense {
   @@index([createdAt])
   @@index([status])
   @@index([applicantName])
+  @@index([paymentStatus])
 }
 
 // 지출 세부 항목
@@ -257,6 +264,12 @@ enum ApprovalStatus {
   WITHDRAWN         // 회수 (작성자가 철회)
 }
 
+// 지출 상태 (최종 승인 후 관리)
+enum PaymentStatus {
+  PENDING     // 지출예정 (기본값)
+  COMPLETED   // 지출완료
+}
+
 // 결재선 (지출결의서당 1개, 스냅샷)
 model ApprovalLine {
   id          String   @id @default(cuid())
@@ -333,13 +346,15 @@ enum StepStatus {
 
 // 결재 액션 타입
 enum ApprovalAction {
-  SUBMIT      // 제출
-  APPROVE     // 승인
-  REJECT      // 반려
-  RESUBMIT    // 재제출
-  WITHDRAW    // 회수
-  MODIFY_LINE // 결재선 수정
-  DELEGATE    // 위임/대리 지정
+  SUBMIT           // 제출
+  APPROVE          // 승인
+  REJECT           // 반려
+  RESUBMIT         // 재제출
+  WITHDRAW         // 회수
+  MODIFY_LINE      // 결재선 수정
+  DELEGATE         // 위임/대리 지정
+  PAYMENT_COMPLETE // 지출완료 처리
+  PAYMENT_REVERT   // 지출예정으로 되돌림
 }
 
 // 감사 로그 (모든 결재 액션 기록)

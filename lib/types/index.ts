@@ -48,6 +48,9 @@ export type ApprovalStatus =
   | 'REJECTED'        // 반려
   | 'WITHDRAWN';      // 회수
 
+// 지출 상태 타입 (최종 승인 후 관리)
+export type PaymentStatus = 'PENDING' | 'COMPLETED';
+
 export interface Expense {
   id: string;
   committee: string;
@@ -70,6 +73,11 @@ export interface Expense {
   submittedAt?: string | null;
   approvedAt?: string | null;
   rejectedAt?: string | null;
+  // 지출 상태 관련 필드
+  paymentStatus?: PaymentStatus;
+  paymentCompletedAt?: string | null;
+  paymentCompletedBy?: string | null;
+  paymentNote?: string | null;
   // 메타
   createdAt: string;
   updatedAt: string;
@@ -113,6 +121,8 @@ export interface ExpenseListItem {
   applicantName: string;
   requestDate: string;
   createdAt: string;
+  status?: ApprovalStatus;
+  paymentStatus?: PaymentStatus;
 }
 
 export interface ExpenseListResponse {

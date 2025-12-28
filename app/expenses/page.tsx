@@ -33,6 +33,7 @@ export default function ExpensesPage() {
     endDate: '',
     minAmount: '',
     maxAmount: '',
+    paymentStatus: '',  // 지출 상태 필터 추가
   });
 
   useEffect(() => {
@@ -109,6 +110,19 @@ export default function ExpensesPage() {
       return false;
     }
 
+    // 지출 상태 필터
+    if (filters.paymentStatus) {
+      // 최종 승인된 항목만 지출 상태 필터 적용
+      if (expense.status === 'APPROVED_FINAL') {
+        if (expense.paymentStatus !== filters.paymentStatus) {
+          return false;
+        }
+      } else {
+        // 최종 승인 전 항목은 지출 상태 필터 시 제외
+        return false;
+      }
+    }
+
     return true;
   });
 
@@ -141,6 +155,7 @@ export default function ExpensesPage() {
       endDate: '',
       minAmount: '',
       maxAmount: '',
+      paymentStatus: '',
     });
     setSearchQuery('');
   };
@@ -337,7 +352,7 @@ export default function ExpensesPage() {
             {/* 고급 필터 */}
             {showAdvancedFilters && (
               <div className="pt-4 border-t border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       위원회
@@ -383,6 +398,21 @@ export default function ExpensesPage() {
                       {uniqueCategories.map(c => (
                         <option key={c} value={c}>{c}</option>
                       ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      지출 상태
+                    </label>
+                    <select
+                      value={filters.paymentStatus}
+                      onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                    >
+                      <option value="">전체</option>
+                      <option value="PENDING">지출예정</option>
+                      <option value="COMPLETED">지출완료</option>
                     </select>
                   </div>
                 </div>
@@ -503,12 +533,15 @@ export default function ExpensesPage() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
                     위원회
                   </th>
+                  <th className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                    지출상태
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                       {searchQuery ? '검색 결과가 없습니다.' : '등록된 지출결의서가 없습니다.'}
                     </td>
                   </tr>
@@ -558,6 +591,26 @@ export default function ExpensesPage() {
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {expense.committee}
+                      </td>
+                      <td
+                        className="px-6 py-4 whitespace-nowrap text-sm text-center"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
+                        {expense.status === 'APPROVED_FINAL' ? (
+                          expense.paymentStatus === 'COMPLETED' ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              지출완료
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                              지출예정
+                            </span>
+                          )
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                            -
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))
