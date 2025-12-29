@@ -16,12 +16,7 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
 
   return (
     <table className="print-header-table">
-      <colgroup>
-        <col style={{ width: '85px' }} />   {/* 1열: 로고 + 좌측결재 */}
-        <col style={{ width: '100px' }} />  {/* 2열: 라벨 */}
-        <col style={{ width: 'auto' }} />   {/* 3열: 값 */}
-        <col style={{ width: '90px' }} />   {/* 4열: 결재란 */}
-      </colgroup>
+      <colgroup><col style={{ width: '85px' }} /><col style={{ width: '100px' }} /><col style={{ width: 'auto' }} /><col style={{ width: '90px' }} /></colgroup>
       <tbody>
         {/* ===== 1행: 로고 + 지출결의서 제목 + 재정팀장 ===== */}
         <tr style={{ height: '25px' }}>

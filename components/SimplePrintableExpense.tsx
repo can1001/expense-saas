@@ -69,12 +69,7 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
     <div className="print-only">
       {/* ===== 1. 헤더 (지출결의서 제목 + 결재란) ===== */}
       <table className="print-header-table">
-        <colgroup>
-          <col style={{ width: '85px' }} />
-          <col style={{ width: '100px' }} />
-          <col style={{ width: 'auto' }} />
-          <col style={{ width: '90px' }} />
-        </colgroup>
+        <colgroup><col style={{ width: '85px' }} /><col style={{ width: '100px' }} /><col style={{ width: 'auto' }} /><col style={{ width: '90px' }} /></colgroup>
         <tbody>
           {/* 1행: 로고 + 지출결의서 제목 + 재정팀장 */}
           <tr style={{ height: '25px' }}>
