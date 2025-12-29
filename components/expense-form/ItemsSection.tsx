@@ -4,10 +4,9 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Control, useFieldArray, UseFormRegister, UseFormSetValue, useWatch, FieldErrors } from 'react-hook-form';
 import { ExpenseFormData, defaultExpenseItem, calculateAmount } from '@/lib/schemas/expense-schema';
-import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_OUTLINE, BTN_SM, SECTION_CARD, SECTION_TITLE } from '@/lib/constants/styles';
+import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_SM, SECTION_CARD, SECTION_TITLE } from '@/lib/constants/styles';
 
 interface ItemsSectionProps {
   control: Control<ExpenseFormData>;
@@ -35,42 +34,12 @@ export default function ItemsSection({
   const items = useWatch({ control, name: 'items' });
   const totalAmount = items?.reduce((sum, item) => sum + (item?.amount || 0), 0) || 0;
 
-  // 선택된 세목 상태
-  const [selectedDetail, setSelectedDetail] = useState<string>('');
-
-  // detailOptions가 변경되면 선택 초기화
-  useEffect(() => {
-    setSelectedDetail('');
-  }, [detailOptions]);
-
-  // 선택된 세목을 모든 빈 항목에 적용
-  const handleApplyDetail = () => {
-    if (!selectedDetail) return;
-
-    items?.forEach((item, index) => {
-      // 세목이 비어있는 항목에만 적용
-      if (!item?.budgetDetail || item.budgetDetail.trim() === '') {
-        setValue(`items.${index}.budgetDetail`, selectedDetail);
-      }
-    });
-  };
-
-  // 선택된 세목을 특정 항목에 적용
-  const handleApplyDetailToItem = (index: number) => {
-    if (!selectedDetail) return;
-    setValue(`items.${index}.budgetDetail`, selectedDetail);
-  };
-
   const handleAddItem = () => {
     if (fields.length >= 10) {
       alert('최대 10개까지 항목을 추가할 수 있습니다.');
       return;
     }
-    // 새 항목 추가 시 선택된 세목을 기본값으로 사용
-    append({
-      ...defaultExpenseItem,
-      budgetDetail: selectedDetail || '',
-    });
+    append(defaultExpenseItem);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -109,47 +78,12 @@ export default function ItemsSection({
         </button>
       </div>
 
-      {/* 예산(세목) 선택 영역 */}
-      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
-          <div className="flex-1 w-full sm:w-auto">
-            <label htmlFor="budgetDetailSelector" className="block text-sm font-medium text-gray-700 mb-1">
-              예산(세목)
-            </label>
-            {detailOptions.length === 0 ? (
-              <div className="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 text-sm">
-                예산(목)을 먼저 선택하세요
-              </div>
-            ) : (
-              <select
-                id="budgetDetailSelector"
-                value={selectedDetail}
-                onChange={(e) => setSelectedDetail(e.target.value)}
-                disabled={disabled}
-                className={SELECT_BASE}
-              >
-                <option value="">세목 선택</option>
-                {detailOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={handleApplyDetail}
-            disabled={disabled || !selectedDetail}
-            className={`${BTN_OUTLINE} ${BTN_SM} whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            빈 항목에 적용
-          </button>
+      {/* 예산(목) 미선택 안내 */}
+      {detailOptions.length === 0 && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700 text-sm">
+          예산(목)을 먼저 선택하면 세목을 드롭다운에서 선택할 수 있습니다.
         </div>
-        <p className="mt-2 text-xs text-blue-600">
-          선택한 세목은 새 항목 추가 시 자동으로 적용됩니다
-        </p>
-      </div>
+      )}
 
       <div className="space-y-4">
         {fields.map((field, index) => (
@@ -173,13 +107,28 @@ export default function ItemsSection({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   예산(세목) <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  {...register(`items.${index}.budgetDetail`)}
-                  disabled={disabled}
-                  placeholder="예: 교육자료비"
-                  className={`${INPUT_BASE} ${errors?.items?.[index]?.budgetDetail ? 'border-red-500' : ''}`}
-                />
+                {detailOptions.length > 0 ? (
+                  <select
+                    {...register(`items.${index}.budgetDetail`)}
+                    disabled={disabled}
+                    className={`${SELECT_BASE} ${errors?.items?.[index]?.budgetDetail ? 'border-red-500' : ''}`}
+                  >
+                    <option value="">세목 선택</option>
+                    {detailOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    {...register(`items.${index}.budgetDetail`)}
+                    disabled={disabled}
+                    placeholder="예산(목)을 먼저 선택하세요"
+                    className={`${INPUT_BASE} ${errors?.items?.[index]?.budgetDetail ? 'border-red-500' : ''}`}
+                  />
+                )}
                 {errors?.items?.[index]?.budgetDetail && (
                   <p className="mt-1 text-sm text-red-500">{errors.items[index].budgetDetail.message}</p>
                 )}
