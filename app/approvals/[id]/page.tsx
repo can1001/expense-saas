@@ -425,7 +425,7 @@ export default function ApprovalDetailPage() {
                         {log.stepNumber && ` (${log.stepNumber}차)`}
                       </p>
                       {log.comment && (
-                        <p className="text-sm text-gray-500 mt-1 italic">"{log.comment}"</p>
+                        <p className="text-sm text-gray-500 mt-1 italic">&ldquo;{log.comment}&rdquo;</p>
                       )}
                     </div>
                   ))}
