@@ -19,6 +19,8 @@ interface BudgetSelectorProps {
     detail?: string;
   }) => void;
   disabled?: boolean;
+  showDetail?: boolean;  // 세목 표시 여부 (기본값: true)
+  onDetailsLoaded?: (details: string[]) => void;  // 세목 옵션 외부 전달
 }
 
 interface BudgetHierarchyResponse {
@@ -26,7 +28,13 @@ interface BudgetHierarchyResponse {
   options: string[];
 }
 
-export default function BudgetSelector({ value, onChange, disabled = false }: BudgetSelectorProps) {
+export default function BudgetSelector({
+  value,
+  onChange,
+  disabled = false,
+  showDetail = true,
+  onDetailsLoaded,
+}: BudgetSelectorProps) {
   const [committees, setCommittees] = useState<string[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -106,6 +114,10 @@ export default function BudgetSelector({ value, onChange, disabled = false }: Bu
           break;
         case 'details':
           setDetails(data.options);
+          // 세목 옵션 외부 전달
+          if (onDetailsLoaded) {
+            onDetailsLoaded(data.options);
+          }
           break;
       }
     } catch (error) {
@@ -260,8 +272,8 @@ export default function BudgetSelector({ value, onChange, disabled = false }: Bu
         </div>
       )}
 
-      {/* 예산(세목) - 항목별로 선택 */}
-      {value.subcategory && (
+      {/* 예산(세목) - showDetail이 true일 때만 표시 */}
+      {showDetail && value.subcategory && (
         <div>
           <label htmlFor="detail" className={LABEL_BASE}>
             예산(세목) (선택사항)

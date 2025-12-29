@@ -97,6 +97,16 @@ export async function PUT(
       ? calculateTotal(itemsWithCalculatedAmount)
       : undefined;
 
+    // 상태 처리: 클라이언트에서 전달된 status 사용
+    const statusUpdate: { status?: 'DRAFT' | 'PENDING'; submittedAt?: Date | null } = {};
+    if (body.status === 'PENDING') {
+      statusUpdate.status = 'PENDING';
+      statusUpdate.submittedAt = new Date();
+    } else if (body.status === 'DRAFT') {
+      statusUpdate.status = 'DRAFT';
+      // submittedAt은 그대로 유지 (재저장 시)
+    }
+
     // 데이터베이스 업데이트
     const expense = await prisma.expense.update({
       where: { id },
@@ -114,6 +124,7 @@ export async function PUT(
         ...(validatedData.bankName && { bankName: validatedData.bankName }),
         ...(validatedData.accountNumber && { accountNumber: validatedData.accountNumber }),
         ...(validatedData.accountHolder && { accountHolder: validatedData.accountHolder }),
+        ...statusUpdate,
         ...(itemsWithCalculatedAmount.length > 0 && {
           items: {
             create: itemsWithCalculatedAmount,

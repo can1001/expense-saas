@@ -651,6 +651,9 @@ export default function ExpensesPage() {
                     위원회
                   </th>
                   <th className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                    결재상태
+                  </th>
+                  <th className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
                     지출상태
                   </th>
                 </tr>
@@ -658,7 +661,7 @@ export default function ExpensesPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                       {searchQuery ? '검색 결과가 없습니다.' : '등록된 지출결의서가 없습니다.'}
                     </td>
                   </tr>
@@ -708,6 +711,44 @@ export default function ExpensesPage() {
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {expense.committee}
+                      </td>
+                      <td
+                        className="px-6 py-4 whitespace-nowrap text-sm text-center"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
+                        {expense.status === 'DRAFT' ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            임시저장
+                          </span>
+                        ) : expense.status === 'PENDING' ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            결재대기
+                          </span>
+                        ) : expense.status === 'APPROVED_STEP_1' ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                            1차승인
+                          </span>
+                        ) : expense.status === 'APPROVED_STEP_2' ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                            2차승인
+                          </span>
+                        ) : expense.status === 'APPROVED_FINAL' ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            최종승인
+                          </span>
+                        ) : expense.status === 'REJECTED' ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                            반려
+                          </span>
+                        ) : expense.status === 'WITHDRAWN' ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                            회수
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                            -
+                          </span>
+                        )}
                       </td>
                       <td
                         className="px-6 py-4 whitespace-nowrap text-sm text-center"

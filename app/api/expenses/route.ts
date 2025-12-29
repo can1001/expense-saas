@@ -78,6 +78,10 @@ export async function POST(request: NextRequest) {
     // 전체 청구금액 계산
     const requestAmount = calculateTotal(itemsWithCalculatedAmount);
 
+    // 상태 처리: 클라이언트에서 전달된 status 사용 (기본값: DRAFT)
+    const status = body.status === 'PENDING' ? 'PENDING' : 'DRAFT';
+    const submittedAt = status === 'PENDING' ? new Date() : null;
+
     // 데이터베이스에 저장
     const expense = await prisma.expense.create({
       data: {
@@ -94,6 +98,8 @@ export async function POST(request: NextRequest) {
         bankName: validatedData.bankName,
         accountNumber: validatedData.accountNumber,
         accountHolder: validatedData.accountHolder,
+        status,
+        submittedAt,
         items: {
           create: itemsWithCalculatedAmount,
         },
