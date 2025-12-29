@@ -13,12 +13,16 @@ interface BudgetSectionProps {
   control: Control<ExpenseFormData>;
   disabled?: boolean;
   onBudgetDetailChange?: (detail: string) => void;
+  showDetail?: boolean;  // 세목 표시 여부 (기본값: false - 이제 ItemsSection에서 표시)
+  onDetailsLoaded?: (details: string[]) => void;  // 세목 옵션 외부 전달
 }
 
 export default function BudgetSection({
   control,
   disabled = false,
   onBudgetDetailChange,
+  showDetail = false,  // 기본값: false (세목은 ItemsSection에서 표시)
+  onDetailsLoaded,
 }: BudgetSectionProps) {
   return (
     <div className={SECTION_CARD}>
@@ -59,6 +63,8 @@ export default function BudgetSection({
                             }
                           }}
                           disabled={disabled}
+                          showDetail={showDetail}
+                          onDetailsLoaded={onDetailsLoaded}
                         />
                         {(committeeFieldState.error ||
                           departmentFieldState.error ||

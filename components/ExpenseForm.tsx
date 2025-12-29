@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,7 +23,7 @@ import ApplicantSection from './expense-form/ApplicantSection';
 import BankAccountSelector from './expense-form/BankAccountSelector';
 import FileUpload from './FileUpload';
 import { createAttachment } from '@/lib/services/file-service';
-import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER, ALERT_ERROR } from '@/lib/constants/styles';
+import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_OUTLINE, BTN_SUCCESS, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER, ALERT_ERROR } from '@/lib/constants/styles';
 import { deriveRequestTeam } from '@/lib/domain/request-team';
 import {
   useFetchCurrentUser,
@@ -50,6 +50,12 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
     attachments,
     setAttachments,
   } = useExpenseFormState({ isEditMode: !!expenseId });
+
+  // 세목 옵션 상태 (BudgetSection에서 전달받음)
+  const [detailOptions, setDetailOptions] = useState<string[]>([]);
+
+  // 제출 모드 (저장 vs 제출)
+  const [submitMode, setSubmitMode] = useState<'save' | 'submit'>('save');
 
   const {
     control,
@@ -183,7 +189,19 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
 
   // onSubmit 핸들러 - useExpenseFormSubmit 훅 사용
   const onSubmit = (data: ExpenseFormData) => {
-    handleFormSubmit(data);
+    // submitMode에 따라 status 결정
+    const status = submitMode === 'submit' ? 'PENDING' : 'DRAFT';
+    handleFormSubmit({ ...data, status });
+  };
+
+  // 저장 버튼 클릭 (임시저장)
+  const handleSave = () => {
+    setSubmitMode('save');
+  };
+
+  // 제출 버튼 클릭 (최종제출)
+  const handleSubmitClick = () => {
+    setSubmitMode('submit');
   };
 
   // 수정 모드 데이터 로딩 중
@@ -230,6 +248,8 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         control={control}
         disabled={loading || isSubmitting}
         onBudgetDetailChange={handleBudgetDetailChange}
+        showDetail={false}
+        onDetailsLoaded={setDetailOptions}
       />
 
       {/* 지출일자 */}
@@ -246,6 +266,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         setValue={setValue}
         errors={errors}
         disabled={loading || isSubmitting}
+        detailOptions={detailOptions}
       />
 
       {/* 신청 정보 */}
@@ -290,13 +311,25 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         </button>
         <button
           type="submit"
+          onClick={handleSave}
           disabled={loading || isSubmitting}
           className={`${BTN_PRIMARY} ${BTN_LG} disabled:cursor-not-allowed`}
         >
-          {(loading || isSubmitting) && (
+          {(loading || isSubmitting) && submitMode === 'save' && (
             <div className={SPINNER}></div>
           )}
-          {loading || isSubmitting ? '저장 중...' : '저장'}
+          {(loading || isSubmitting) && submitMode === 'save' ? '저장 중...' : '저장'}
+        </button>
+        <button
+          type="submit"
+          onClick={handleSubmitClick}
+          disabled={loading || isSubmitting}
+          className={`${BTN_SUCCESS} ${BTN_LG} disabled:cursor-not-allowed`}
+        >
+          {(loading || isSubmitting) && submitMode === 'submit' && (
+            <div className={SPINNER}></div>
+          )}
+          {(loading || isSubmitting) && submitMode === 'submit' ? '제출 중...' : '제출'}
         </button>
       </div>
     </form>
