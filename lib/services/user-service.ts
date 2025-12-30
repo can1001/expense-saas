@@ -3,11 +3,12 @@ import { User, UserRole } from '@prisma/client';
 
 // 역할별 결재 단계 매핑
 export const ROLE_STEP_MAP: Record<UserRole, number | null> = {
-  admin: null,       // 시스템 관리자 (결재 없음, 모든 권한)
-  team_leader: 1,    // 1차 결재
-  accountant: 2,     // 2차 결재
-  finance_head: 3,   // 3차 결재
-  user: null,        // 결재 권한 없음
+  admin: null,            // 시스템 관리자 (결재 없음, 모든 권한)
+  team_leader: 1,         // 1차 결재
+  accountant: 2,          // 2차 결재
+  finance_head: 3,        // 3차 결재
+  admin_assistant: null,  // 행정간사 (결재 없음, 지출관리/엑셀 권한)
+  user: null,             // 결재 권한 없음
 };
 
 // 역할 한글명
@@ -16,6 +17,7 @@ export const ROLE_NAMES: Record<UserRole, string> = {
   finance_head: '재정팀장',
   accountant: '회계',
   team_leader: '팀장',
+  admin_assistant: '행정간사',
   user: '사용자',
 };
 
