@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -9,6 +10,21 @@ export async function GET() {
       return NextResponse.json({ user: null });
     }
 
+    // 기본 계좌 조회
+    const defaultBankAccount = await prisma.savedBankAccount.findFirst({
+      where: {
+        userId: user.id,
+        isDefault: true,
+      },
+      select: {
+        id: true,
+        bankName: true,
+        accountNumber: true,
+        accountHolder: true,
+        nickname: true,
+      },
+    });
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -16,6 +32,7 @@ export async function GET() {
         username: user.username,
         role: user.role,
         department: user.department,
+        defaultBankAccount,
       },
     });
   } catch {

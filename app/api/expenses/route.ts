@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, Prisma } from '@/lib/prisma';
 import { createExpenseSchema, calculateAmount, calculateTotal } from '@/lib/validators';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { deriveRequestTeam } from '@/lib/domain/request-team';
@@ -9,17 +9,49 @@ import {
   calculateApprovalStatus,
 } from '@/lib/approval-engine';
 import type { ApprovalStatus } from '@/lib/types';
+import { getCurrentUser } from '@/lib/auth';
 
-// GET /api/expenses - 지출결의서 목록 조회
+// 전체 조회 권한이 있는 역할
+const FULL_ACCESS_ROLES = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
+
+// GET /api/expenses - 지출결의서 목록 조회 (역할 기반 필터링)
 export async function GET(request: NextRequest) {
   try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
 
+    // 역할에 따른 조회 조건 설정
+    const where: Prisma.ExpenseWhereInput = {};
+
+    if (FULL_ACCESS_ROLES.includes(currentUser.role)) {
+      // 전체 조회 권한: 필터 없음
+    } else if (currentUser.role === 'team_leader') {
+      // 팀장: 본인 부서 지출결의서만 조회
+      if (currentUser.department) {
+        where.department = currentUser.department;
+      } else {
+        // 부서가 없으면 본인 작성만
+        where.userId = currentUser.id;
+      }
+    } else {
+      // 일반 사용자: 본인 작성 지출결의서만 조회
+      where.userId = currentUser.id;
+    }
+
     const [expenses, total] = await Promise.all([
       prisma.expense.findMany({
+        where,
         skip,
         take: limit,
         orderBy: {
@@ -33,7 +65,7 @@ export async function GET(request: NextRequest) {
           },
         },
       }),
-      prisma.expense.count(),
+      prisma.expense.count({ where }),
     ]);
 
     return NextResponse.json({
@@ -53,6 +85,15 @@ export async function GET(request: NextRequest) {
 // POST /api/expenses - 지출결의서 생성
 export async function POST(request: NextRequest) {
   try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     // 유효성 검증
@@ -157,6 +198,7 @@ export async function POST(request: NextRequest) {
       // 1. 지출결의서 생성
       const createdExpense = await tx.expense.create({
         data: {
+          userId: currentUser.id,
           committee: validatedData.committee,
           department: validatedData.department,
           budgetCategory: validatedData.budgetCategory,

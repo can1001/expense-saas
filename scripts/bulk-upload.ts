@@ -234,8 +234,29 @@ async function createExpense(rows: ExcelRow[]): Promise<{ success: boolean; id?:
   }
 
   try {
+    // 청구인 이름으로 사용자 찾기
+    const applicantName = firstRow.applicantName.trim();
+    let user = await prisma.user.findFirst({
+      where: { username: applicantName },
+    });
+
+    // 사용자가 없으면 admin 사용자 사용
+    if (!user) {
+      user = await prisma.user.findFirst({
+        where: { role: 'admin' },
+      });
+    }
+
+    if (!user) {
+      return {
+        success: false,
+        error: `사용자를 찾을 수 없습니다: ${applicantName}`,
+      };
+    }
+
     const expense = await prisma.expense.create({
       data: {
+        userId: user.id,
         committee: budgetInfo.committee,
         department: budgetInfo.department,
         budgetCategory: firstRow.category.trim(),
@@ -244,7 +265,7 @@ async function createExpense(rows: ExcelRow[]): Promise<{ success: boolean; id?:
         requestAmount,
         requestDate,
         requestTeam: '출납팀',
-        applicantName: firstRow.applicantName.trim(),
+        applicantName: applicantName,
         applicantTitle: firstRow.applicantTitle?.trim() || null,
         bankName: firstRow.bankName.trim(),
         accountNumber: String(firstRow.accountNumber).trim(),
