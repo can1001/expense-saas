@@ -1,17 +1,48 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { USERS } from '@/lib/users';
+import { UserRole } from '@prisma/client';
+
+interface UserInfo {
+  id: string;
+  userid: string;
+  username: string;
+  role: UserRole;
+  department: string | null;
+}
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [users, setUsers] = useState<UserInfo[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
   const from = searchParams.get('from') || '/expenses';
+
+  // API에서 사용자 목록 가져오기
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        const response = await fetch('/api/users?isActive=true&pageSize=100');
+        const data = await response.json();
+        if (response.ok) {
+          setUsers(data.users);
+        } else {
+          setError('사용자 목록을 불러올 수 없습니다.');
+        }
+      } catch {
+        setError('사용자 목록을 불러올 수 없습니다.');
+      } finally {
+        setLoadingUsers(false);
+      }
+    }
+
+    fetchUsers();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +78,22 @@ function LoginForm() {
     }
   };
 
+  if (loadingUsers) {
+    return (
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto mb-4" />
+          <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto" />
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-16 bg-gray-200 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
       <div>
@@ -59,8 +106,8 @@ function LoginForm() {
       </div>
 
       <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-        <div className="space-y-3">
-          {USERS.map((user) => (
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {users.map((user) => (
             <label
               key={user.id}
               className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${

@@ -357,6 +357,37 @@ enum ApprovalAction {
   PAYMENT_REVERT   // 지출예정으로 되돌림
 }
 
+// ========================================
+// 사용자 관리 (User Management)
+// ========================================
+
+// 사용자 역할
+enum UserRole {
+  admin         // 시스템 관리자
+  finance_head  // 재정팀장 (3차/최종 결재)
+  accountant    // 회계 (2차 결재)
+  team_leader   // 팀장 (1차 결재)
+  user          // 일반 사용자
+}
+
+// 사용자 테이블
+model User {
+  id          String    @id @default(cuid())
+  userid      String    @unique           // 로그인 아이디 (예: 청연정혜종)
+  username    String                      // 표시 이름 (예: 정혜종)
+  password    String?                     // 해시된 비밀번호 (향후 인증용)
+  role        UserRole  @default(user)
+  department  String?                     // 소속 부서 (팀장인 경우)
+  isActive    Boolean   @default(true)    // 활성 상태
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([role])
+  @@index([department])
+  @@index([isActive])
+}
+
 // 감사 로그 (모든 결재 액션 기록)
 model ApprovalLog {
   id              String          @id @default(cuid())

@@ -1,17 +1,107 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserRole } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import * as dotenv from 'dotenv';
+
+// .env 파일 로드
+dotenv.config();
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
+// 사용자 시드 데이터
+const usersData: Array<{
+  userid: string;
+  username: string;
+  role: UserRole;
+  department?: string;
+}> = [
+  // 기존 사용자
+  { userid: '청연정혜종', username: '정혜종', role: 'admin' },
+  { userid: '청연김흥래', username: '김흥래', role: 'team_leader', department: '교육훈련위원회' },
+  { userid: '청연신창국', username: '신창국', role: 'finance_head' },
+  { userid: '청연윤운문', username: '윤운문', role: 'accountant' },
+  { userid: '청연송원경', username: '송원경', role: 'admin' },
+
+  // 예배위원회 팀장
+  { userid: '청연김예찬', username: '김예찬', role: 'team_leader', department: '예배위원회/방송팀' },
+  { userid: '청연김민광', username: '김민광', role: 'team_leader', department: '예배위원회/찬양팀' },
+  { userid: '청연방순화', username: '방순화', role: 'team_leader', department: '예배위원회/기도팀' },
+  { userid: '청연전수희', username: '전수희', role: 'team_leader', department: '예배위원회/안내팀' },
+  { userid: '청연유정희', username: '유정희', role: 'team_leader', department: '예배위원회/예배지원팀' },
+
+  // 교육훈련위원회 팀장
+  { userid: '청연장태규', username: '장태규', role: 'team_leader', department: '교육훈련위원회/새가족팀' },
+  { userid: '청연허지혜', username: '허지혜', role: 'team_leader', department: '교육훈련위원회/세바맘팀' },
+  { userid: '청연박영미', username: '박영미', role: 'team_leader', department: '교육훈련위원회/영유아부' },
+  { userid: '청연유미정', username: '유미정', role: 'team_leader', department: '교육훈련위원회/유치부' },
+  { userid: '청연김경민', username: '김경민', role: 'team_leader', department: '교육훈련위원회/유년부' },
+  { userid: '청연조민경', username: '조민경', role: 'team_leader', department: '교육훈련위원회/초등부' },
+  { userid: '청연김대현', username: '김대현', role: 'team_leader', department: '교육훈련위원회/중고등부' },
+  { userid: '청연오승환', username: '오승환', role: 'team_leader', department: '교육훈련위원회/청세포팀' },
+
+  // 목양위원회 팀장
+  { userid: '청연강홍재', username: '강홍재', role: 'team_leader', department: '목양위원회/목양팀' },
+  { userid: '청연류지성', username: '류지성', role: 'team_leader', department: '목양위원회/마중물팀' },
+  { userid: '청연임대웅', username: '임대웅', role: 'team_leader', department: '목양위원회/양육지원' },
+
+  // 기획위원회 팀장
+  { userid: '청연서주형', username: '서주형', role: 'team_leader', department: '기획위원회/홍보팀' },
+  { userid: '청연양찬승', username: '양찬승', role: 'team_leader', department: '기획위원회/공간사역팀' },
+  { userid: '청연이문희', username: '이문희', role: 'team_leader', department: '기획위원회/시설관리팀' },
+  { userid: '청연임한결', username: '임한결', role: 'team_leader', department: '기획위원회/이웃사랑팀' },
+];
+
+async function seedUsers() {
+  console.log('\n👥 Seeding users...');
+
+  let successCount = 0;
+  for (const user of usersData) {
+    try {
+      await prisma.user.upsert({
+        where: { userid: user.userid },
+        update: {
+          username: user.username,
+          role: user.role,
+          department: user.department,
+        },
+        create: {
+          userid: user.userid,
+          username: user.username,
+          role: user.role,
+          department: user.department,
+        },
+      });
+      successCount++;
+    } catch (error: any) {
+      console.error('Error inserting user:', user, error);
+    }
+  }
+
+  console.log(`✅ Upserted ${successCount}/${usersData.length} users`);
+
+  // 역할별 통계
+  const roleStats = await prisma.user.groupBy({
+    by: ['role'],
+    _count: true,
+  });
+
+  console.log('\n📊 User Statistics by Role:');
+  for (const stat of roleStats) {
+    console.log(`  - ${stat.role}: ${stat._count} users`);
+  }
+}
+
 async function main() {
   console.log('🌱 Starting seed...');
 
+  // 사용자 시드
+  await seedUsers();
+
   // 기존 데이터 삭제
   await prisma.budgetMaster.deleteMany();
-  console.log('✅ Cleared existing budget master data');
+  console.log('\n✅ Cleared existing budget master data');
 
   // 예산 마스터 데이터 삽입
   const budgetMasterData = [

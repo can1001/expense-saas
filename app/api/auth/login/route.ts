@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSession } from '@/lib/auth';
-import { findUserByUserid } from '@/lib/users';
+import { findUserByUserid } from '@/lib/services/user-service';
 
 export async function POST(request: Request) {
   try {
@@ -13,10 +13,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = findUserByUserid(userid);
+    // DB에서 사용자 조회 (비동기)
+    const user = await findUserByUserid(userid);
     if (!user) {
       return NextResponse.json(
         { error: '존재하지 않는 사용자입니다.' },
+        { status: 401 }
+      );
+    }
+
+    // 비활성화된 사용자 체크
+    if (!user.isActive) {
+      return NextResponse.json(
+        { error: '비활성화된 사용자입니다.' },
         { status: 401 }
       );
     }
