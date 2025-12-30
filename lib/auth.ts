@@ -23,7 +23,7 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
   const cookieStore = await cookies();
   const userId = cookieStore.get(SESSION_COOKIE)?.value;
   if (!userId) return null;
-  return findUserById(userId) || null;
+  return await findUserById(userId) || null;
 }
 
 export async function getSessionUserId(): Promise<string | null> {
