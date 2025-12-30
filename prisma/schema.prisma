@@ -377,9 +377,12 @@ model User {
   userid      String    @unique           // 로그인 아이디 (예: 청연정혜종)
   username    String                      // 표시 이름 (예: 정혜종)
   password    String?                     // 해시된 비밀번호 (향후 인증용)
-  role        UserRole  @default(user)
-  department  String?                     // 소속 부서 (팀장인 경우)
+  role        UserRole  @default(user)    // 기본 역할 (admin, user)
+  department  String?                     // 소속 부서 (참고용)
   isActive    Boolean   @default(true)    // 활성 상태
+
+  // 연도별 역할
+  yearRoles   UserYearRole[]
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -387,6 +390,25 @@ model User {
   @@index([role])
   @@index([department])
   @@index([isActive])
+}
+
+// 연도별 사용자 역할 (finance_head, accountant, team_leader, admin_assistant)
+model UserYearRole {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  year        Int                         // 연도 (예: 2024, 2025)
+  role        UserRole                    // 해당 연도의 역할
+  department  String?                     // 소속 부서 (팀장인 경우)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, year])                // 사용자당 연도별 1개의 역할만 가능
+  @@index([year])
+  @@index([role])
+  @@index([userId])
 }
 
 // 감사 로그 (모든 결재 액션 기록)
