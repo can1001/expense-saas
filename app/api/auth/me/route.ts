@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -9,6 +10,26 @@ export async function GET() {
       return NextResponse.json({ user: null });
     }
 
+    // 기본 계좌 조회 (없으면 null)
+    let defaultBankAccount = null;
+    try {
+      defaultBankAccount = await prisma.savedBankAccount.findFirst({
+        where: {
+          userId: user.id,
+          isDefault: true,
+        },
+        select: {
+          id: true,
+          bankName: true,
+          accountNumber: true,
+          accountHolder: true,
+          nickname: true,
+        },
+      });
+    } catch {
+      // 계좌 조회 실패 시 null 유지
+    }
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -16,9 +37,11 @@ export async function GET() {
         username: user.username,
         role: user.role,
         department: user.department,
+        defaultBankAccount,
       },
     });
-  } catch {
+  } catch (error) {
+    console.error('auth/me error:', error);
     return NextResponse.json(
       { error: '사용자 정보 조회 중 오류가 발생했습니다.' },
       { status: 500 }

@@ -13,6 +13,10 @@ datasource db {
 model Expense {
   id                String               @id @default(cuid())
 
+  // 작성자
+  userId            String
+  user              User                 @relation(fields: [userId], references: [id])
+
   // 기본 정보
   committee         String               // 위원회
   department        String               // 사역팀(부)
@@ -62,6 +66,7 @@ model Expense {
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
 
+  @@index([userId])
   @@index([committee])
   @@index([department])
   @@index([budgetCategory, budgetSubcategory])
@@ -142,9 +147,14 @@ model BudgetMaster {
   @@index([department])
 }
 
-// 저장된 은행 계좌
+// 저장된 은행 계좌 (사용자별)
 model SavedBankAccount {
   id             String   @id @default(cuid())
+
+  // 소유자
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // 은행 정보
   bankName       String   // 은행명
   accountNumber  String   // 계좌번호
@@ -160,8 +170,9 @@ model SavedBankAccount {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  // 계좌번호 중복 방지
-  @@unique([accountNumber])
+  // 같은 사용자 내에서만 계좌번호 중복 방지
+  @@unique([userId, accountNumber])
+  @@index([userId])
   @@index([isDefault])
   @@index([createdAt])
 }
@@ -381,8 +392,10 @@ model User {
   department  String?                     // 소속 부서 (참고용)
   isActive    Boolean   @default(true)    // 활성 상태
 
-  // 연도별 역할
-  yearRoles   UserYearRole[]
+  // 관계
+  yearRoles    UserYearRole[]
+  bankAccounts SavedBankAccount[]         // 저장된 은행 계좌들
+  expenses     Expense[]                  // 작성한 지출결의서들
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

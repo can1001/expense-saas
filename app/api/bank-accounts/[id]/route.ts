@@ -15,6 +15,7 @@ import {
   successResponse,
   successMessageResponse,
 } from '@/lib/api/error-handler';
+import { getCurrentUser } from '@/lib/auth';
 
 /**
  * GET /api/bank-accounts/[id] - 계좌 상세 조회
@@ -24,6 +25,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
 
     const account = await prisma.savedBankAccount.findUnique({
@@ -32,6 +42,14 @@ export async function GET(
 
     if (!account) {
       throw new ApiError('저장된 계좌를 찾을 수 없습니다.', 404);
+    }
+
+    // 소유자 확인
+    if (account.userId !== currentUser.id) {
+      return NextResponse.json(
+        { error: '접근 권한이 없습니다.' },
+        { status: 403 }
+      );
     }
 
     return successResponse(account);
@@ -48,6 +66,15 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const body = await request.json();
 
@@ -60,13 +87,21 @@ export async function PUT(
       throw new ApiError('저장된 계좌를 찾을 수 없습니다.', 404);
     }
 
+    // 소유자 확인
+    if (existingAccount.userId !== currentUser.id) {
+      return NextResponse.json(
+        { error: '접근 권한이 없습니다.' },
+        { status: 403 }
+      );
+    }
+
     // 유효성 검증
     const validatedData = updateBankAccountSchema.parse(body);
 
-    // 기본 계좌로 설정하는 경우, 기존 기본 계좌 해제
+    // 기본 계좌로 설정하는 경우, 기존 기본 계좌 해제 (현재 사용자의 계좌만)
     if (validatedData.isDefault && !existingAccount.isDefault) {
       await prisma.savedBankAccount.updateMany({
-        where: { isDefault: true, id: { not: id } },
+        where: { userId: currentUser.id, isDefault: true, id: { not: id } },
         data: { isDefault: false },
       });
     }
@@ -116,6 +151,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
 
     // 계좌 존재 여부 확인
@@ -125,6 +169,14 @@ export async function DELETE(
 
     if (!account) {
       throw new ApiError('저장된 계좌를 찾을 수 없습니다.', 404);
+    }
+
+    // 소유자 확인
+    if (account.userId !== currentUser.id) {
+      return NextResponse.json(
+        { error: '접근 권한이 없습니다.' },
+        { status: 403 }
+      );
     }
 
     // 계좌 삭제
