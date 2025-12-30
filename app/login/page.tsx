@@ -2,13 +2,13 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { USERS } from '@/lib/users';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [selectedUser, setSelectedUser] = useState<string>('');
-  const [error, setError] = useState<string>('');
+  const [userid, setUserid] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const from = searchParams.get('from') || '/expenses';
@@ -17,8 +17,13 @@ function LoginForm() {
     e.preventDefault();
     setError('');
 
-    if (!selectedUser) {
-      setError('사용자를 선택해주세요.');
+    if (!userid.trim()) {
+      setError('아이디를 입력해주세요.');
+      return;
+    }
+
+    if (!password) {
+      setError('비밀번호를 입력해주세요.');
       return;
     }
 
@@ -28,7 +33,7 @@ function LoginForm() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userid: selectedUser }),
+        body: JSON.stringify({ userid: userid.trim(), password }),
       });
 
       const data = await response.json();
@@ -54,34 +59,42 @@ function LoginForm() {
           지출결의서 시스템
         </h1>
         <p className="mt-2 text-center text-sm text-gray-600">
-          사용자를 선택하여 로그인하세요
+          아이디와 비밀번호를 입력해주세요
         </p>
       </div>
 
       <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-        <div className="space-y-3">
-          {USERS.map((user) => (
-            <label
-              key={user.id}
-              className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                selectedUser === user.userid
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <input
-                type="radio"
-                name="user"
-                value={user.userid}
-                checked={selectedUser === user.userid}
-                onChange={(e) => setSelectedUser(e.target.value)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-              />
-              <span className="ml-3 text-lg font-medium text-gray-900">
-                {user.userid}
-              </span>
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="userid" className="block text-sm font-medium text-gray-700">
+              아이디
             </label>
-          ))}
+            <input
+              id="userid"
+              name="userid"
+              type="text"
+              autoComplete="username"
+              value={userid}
+              onChange={(e) => setUserid(e.target.value)}
+              className="mt-1 appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+              placeholder="아이디를 입력하세요"
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              비밀번호
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+              placeholder="비밀번호를 입력하세요"
+            />
+          </div>
         </div>
 
         {error && (
@@ -92,9 +105,9 @@ function LoginForm() {
 
         <button
           type="submit"
-          disabled={loading || !selectedUser}
+          disabled={loading}
           className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-lg font-medium text-white transition-colors ${
-            loading || !selectedUser
+            loading
               ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
           }`}
@@ -113,10 +126,9 @@ function LoginLoading() {
         <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto mb-4" />
         <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto" />
       </div>
-      <div className="space-y-3">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="h-16 bg-gray-200 rounded-lg animate-pulse" />
-        ))}
+      <div className="space-y-4">
+        <div className="h-12 bg-gray-200 rounded-lg animate-pulse" />
+        <div className="h-12 bg-gray-200 rounded-lg animate-pulse" />
       </div>
     </div>
   );
