@@ -2,10 +2,14 @@ import { describe, it, expect } from 'vitest';
 import {
   canApprove,
   getRoleDisplayName,
+  getApprovalStep,
+  toUserInfo,
   ROLE_STEP_MAP,
   ROLE_NAMES,
   type UserRole,
+  type UserInfo,
 } from '../users';
+import type { User } from '@prisma/client';
 
 /**
  * 사용자 관련 테스트
@@ -141,6 +145,103 @@ describe('users', () => {
       expect(ROLE_NAMES.team_leader).toBe('팀장');
       expect(ROLE_NAMES.admin_assistant).toBe('행정간사');
       expect(ROLE_NAMES.user).toBe('사용자');
+    });
+  });
+
+  describe('getApprovalStep', () => {
+    it('should return correct step for team_leader', () => {
+      expect(getApprovalStep('team_leader')).toBe(1);
+    });
+
+    it('should return correct step for accountant', () => {
+      expect(getApprovalStep('accountant')).toBe(2);
+    });
+
+    it('should return correct step for finance_head', () => {
+      expect(getApprovalStep('finance_head')).toBe(3);
+    });
+
+    it('should return null for admin', () => {
+      expect(getApprovalStep('admin')).toBeNull();
+    });
+
+    it('should return null for user', () => {
+      expect(getApprovalStep('user')).toBeNull();
+    });
+
+    it('should return null for admin_assistant', () => {
+      expect(getApprovalStep('admin_assistant')).toBeNull();
+    });
+  });
+
+  describe('toUserInfo', () => {
+    it('should convert User to UserInfo', () => {
+      const user: User = {
+        id: 'user-1',
+        userid: 'testuser',
+        username: '홍길동',
+        role: 'team_leader',
+        department: '재정팀',
+        password: null,
+        isActive: true,
+        createdAt: new Date('2025-01-01'),
+        updatedAt: new Date('2025-01-01'),
+      };
+
+      const userInfo: UserInfo = toUserInfo(user);
+
+      expect(userInfo).toEqual({
+        id: 'user-1',
+        userid: 'testuser',
+        username: '홍길동',
+        role: 'team_leader',
+        department: '재정팀',
+      });
+    });
+
+    it('should handle user without department', () => {
+      const user: User = {
+        id: 'user-2',
+        userid: 'admin',
+        username: '관리자',
+        role: 'admin',
+        department: null,
+        password: null,
+        isActive: true,
+        createdAt: new Date('2025-01-01'),
+        updatedAt: new Date('2025-01-01'),
+      };
+
+      const userInfo: UserInfo = toUserInfo(user);
+
+      expect(userInfo).toEqual({
+        id: 'user-2',
+        userid: 'admin',
+        username: '관리자',
+        role: 'admin',
+        department: null,
+      });
+    });
+
+    it('should exclude password and other sensitive fields', () => {
+      const user: User = {
+        id: 'user-3',
+        userid: 'secureuser',
+        username: '보안사용자',
+        role: 'user',
+        department: '기획팀',
+        password: 'hashed_password_123',
+        isActive: true,
+        createdAt: new Date('2025-01-01'),
+        updatedAt: new Date('2025-01-01'),
+      };
+
+      const userInfo: UserInfo = toUserInfo(user);
+
+      expect(userInfo).not.toHaveProperty('password');
+      expect(userInfo).not.toHaveProperty('isActive');
+      expect(userInfo).not.toHaveProperty('createdAt');
+      expect(userInfo).not.toHaveProperty('updatedAt');
     });
   });
 });

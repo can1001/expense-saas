@@ -1,0 +1,913 @@
+/**
+ * 사용자 서비스 테스트
+ */
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { prisma } from '../../prisma';
+import type { User, UserRole, UserYearRole } from '@prisma/client';
+import {
+  CURRENT_YEAR,
+  ROLE_STEP_MAP,
+  ROLE_NAMES,
+  findUserById,
+  findUserByUserid,
+  findUserByUsername,
+  findUsersByRole,
+  findAllActiveUsers,
+  findUsersByDepartment,
+  canApprove,
+  getRoleDisplayName,
+  getApprovalStep,
+  createUser,
+  updateUser,
+  deactivateUser,
+  activateUser,
+  findUsers,
+  getEffectiveRole,
+  findUserWithEffectiveRole,
+  findUsersByYearRole,
+  findAllUsersWithEffectiveRole,
+  setYearRole,
+  deleteYearRole,
+  getYearRoles,
+  canApproveByYear,
+} from '../user-service';
+
+// Mock Prisma
+vi.mock('../../prisma', () => ({
+  prisma: {
+    user: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      count: vi.fn(),
+    },
+    userYearRole: {
+      findMany: vi.fn(),
+      upsert: vi.fn(),
+      deleteMany: vi.fn(),
+    },
+  },
+}));
+
+describe('user-service', () => {
+  const mockUser: User = {
+    id: 'user-1',
+    userid: 'testuser',
+    username: '홍길동',
+    role: 'user',
+    department: '재정팀',
+    password: null,
+    isActive: true,
+    createdAt: new Date('2025-01-01'),
+    updatedAt: new Date('2025-01-01'),
+  };
+
+  const mockAdmin: User = {
+    id: 'admin-1',
+    userid: 'admin',
+    username: '관리자',
+    role: 'admin',
+    department: null,
+    password: null,
+    isActive: true,
+    createdAt: new Date('2025-01-01'),
+    updatedAt: new Date('2025-01-01'),
+  };
+
+  const mockTeamLeader: User = {
+    id: 'leader-1',
+    userid: 'leader',
+    username: '김팀장',
+    role: 'team_leader',
+    department: '기획팀',
+    password: null,
+    isActive: true,
+    createdAt: new Date('2025-01-01'),
+    updatedAt: new Date('2025-01-01'),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('Constants', () => {
+    it('CURRENT_YEAR is defined and is current year', () => {
+      const currentYear = new Date().getFullYear();
+      expect(CURRENT_YEAR).toBe(currentYear);
+    });
+
+    it('ROLE_STEP_MAP contains all roles', () => {
+      expect(ROLE_STEP_MAP.admin).toBeNull();
+      expect(ROLE_STEP_MAP.team_leader).toBe(1);
+      expect(ROLE_STEP_MAP.accountant).toBe(2);
+      expect(ROLE_STEP_MAP.finance_head).toBe(3);
+      expect(ROLE_STEP_MAP.admin_assistant).toBeNull();
+      expect(ROLE_STEP_MAP.user).toBeNull();
+    });
+
+    it('ROLE_NAMES contains Korean names for all roles', () => {
+      expect(ROLE_NAMES.admin).toBe('관리자');
+      expect(ROLE_NAMES.finance_head).toBe('재정팀장');
+      expect(ROLE_NAMES.accountant).toBe('회계');
+      expect(ROLE_NAMES.team_leader).toBe('팀장');
+      expect(ROLE_NAMES.admin_assistant).toBe('행정간사');
+      expect(ROLE_NAMES.user).toBe('사용자');
+    });
+  });
+
+  describe('findUserById', () => {
+    it('returns user when found', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser);
+
+      const result = await findUserById('user-1');
+
+      expect(result).toEqual(mockUser);
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+      });
+    });
+
+    it('returns null when user not found', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+
+      const result = await findUserById('nonexistent');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findUserByUserid', () => {
+    it('returns user when found', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser);
+
+      const result = await findUserByUserid('testuser');
+
+      expect(result).toEqual(mockUser);
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { userid: 'testuser' },
+      });
+    });
+
+    it('returns null when user not found', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+
+      const result = await findUserByUserid('nonexistent');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findUserByUsername', () => {
+    it('returns first active user with matching username', async () => {
+      vi.mocked(prisma.user.findFirst).mockResolvedValue(mockUser);
+
+      const result = await findUserByUsername('홍길동');
+
+      expect(result).toEqual(mockUser);
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+        where: { username: '홍길동', isActive: true },
+      });
+    });
+
+    it('returns null when no active user found', async () => {
+      vi.mocked(prisma.user.findFirst).mockResolvedValue(null);
+
+      const result = await findUserByUsername('없는사람');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findUsersByRole', () => {
+    it('returns list of users with specified role', async () => {
+      const mockUsers = [mockTeamLeader];
+      vi.mocked(prisma.user.findMany).mockResolvedValue(mockUsers);
+
+      const result = await findUsersByRole('team_leader');
+
+      expect(result).toEqual(mockUsers);
+      expect(prisma.user.findMany).toHaveBeenCalledWith({
+        where: { role: 'team_leader', isActive: true },
+        orderBy: { username: 'asc' },
+      });
+    });
+
+    it('returns empty array when no users found', async () => {
+      vi.mocked(prisma.user.findMany).mockResolvedValue([]);
+
+      const result = await findUsersByRole('admin');
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('findAllActiveUsers', () => {
+    it('returns all active users', async () => {
+      const mockUsers = [mockAdmin, mockTeamLeader, mockUser];
+      vi.mocked(prisma.user.findMany).mockResolvedValue(mockUsers);
+
+      const result = await findAllActiveUsers();
+
+      expect(result).toEqual(mockUsers);
+      expect(prisma.user.findMany).toHaveBeenCalledWith({
+        where: { isActive: true },
+        orderBy: [{ role: 'asc' }, { username: 'asc' }],
+      });
+    });
+  });
+
+  describe('findUsersByDepartment', () => {
+    it('returns users in specified department', async () => {
+      const mockUsers = [mockUser];
+      vi.mocked(prisma.user.findMany).mockResolvedValue(mockUsers);
+
+      const result = await findUsersByDepartment('재정팀');
+
+      expect(result).toEqual(mockUsers);
+      expect(prisma.user.findMany).toHaveBeenCalledWith({
+        where: {
+          department: { contains: '재정팀' },
+          isActive: true,
+        },
+        orderBy: { username: 'asc' },
+      });
+    });
+  });
+
+  describe('canApprove', () => {
+    it('returns true when user can approve step', () => {
+      expect(canApprove(mockTeamLeader, 1)).toBe(true);
+    });
+
+    it('returns false when user cannot approve step', () => {
+      expect(canApprove(mockUser, 1)).toBe(false);
+    });
+
+    it('returns false for admin role', () => {
+      expect(canApprove(mockAdmin, 1)).toBe(false);
+    });
+
+    it('handles accountant role (step 2)', () => {
+      const accountant: User = { ...mockUser, role: 'accountant' };
+      expect(canApprove(accountant, 2)).toBe(true);
+      expect(canApprove(accountant, 1)).toBe(false);
+    });
+
+    it('handles finance_head role (step 3)', () => {
+      const financeHead: User = { ...mockUser, role: 'finance_head' };
+      expect(canApprove(financeHead, 3)).toBe(true);
+      expect(canApprove(financeHead, 1)).toBe(false);
+    });
+  });
+
+  describe('getRoleDisplayName', () => {
+    it('returns correct Korean name for each role', () => {
+      expect(getRoleDisplayName('admin')).toBe('관리자');
+      expect(getRoleDisplayName('finance_head')).toBe('재정팀장');
+      expect(getRoleDisplayName('accountant')).toBe('회계');
+      expect(getRoleDisplayName('team_leader')).toBe('팀장');
+      expect(getRoleDisplayName('admin_assistant')).toBe('행정간사');
+      expect(getRoleDisplayName('user')).toBe('사용자');
+    });
+  });
+
+  describe('getApprovalStep', () => {
+    it('returns correct step for each role', () => {
+      expect(getApprovalStep('admin')).toBeNull();
+      expect(getApprovalStep('team_leader')).toBe(1);
+      expect(getApprovalStep('accountant')).toBe(2);
+      expect(getApprovalStep('finance_head')).toBe(3);
+      expect(getApprovalStep('admin_assistant')).toBeNull();
+      expect(getApprovalStep('user')).toBeNull();
+    });
+  });
+
+  describe('createUser', () => {
+    it('creates user with provided data', async () => {
+      const userData = {
+        userid: 'newuser',
+        username: '새사용자',
+        role: 'user' as UserRole,
+        department: '기획팀',
+        password: 'hashed123',
+      };
+
+      vi.mocked(prisma.user.create).mockResolvedValue({
+        ...mockUser,
+        ...userData,
+      });
+
+      const result = await createUser(userData);
+
+      expect(result.userid).toBe('newuser');
+      expect(prisma.user.create).toHaveBeenCalledWith({
+        data: userData,
+      });
+    });
+
+    it('creates user with default role when not provided', async () => {
+      const userData = {
+        userid: 'newuser',
+        username: '새사용자',
+      };
+
+      vi.mocked(prisma.user.create).mockResolvedValue({
+        ...mockUser,
+        userid: 'newuser',
+        username: '새사용자',
+      });
+
+      await createUser(userData);
+
+      expect(prisma.user.create).toHaveBeenCalledWith({
+        data: {
+          ...userData,
+          role: 'user',
+          department: undefined,
+          password: undefined,
+        },
+      });
+    });
+  });
+
+  describe('updateUser', () => {
+    it('updates user with provided data', async () => {
+      const updateData = {
+        username: '변경된이름',
+        role: 'team_leader' as UserRole,
+      };
+
+      vi.mocked(prisma.user.update).mockResolvedValue({
+        ...mockUser,
+        ...updateData,
+      });
+
+      const result = await updateUser('user-1', updateData);
+
+      expect(result.username).toBe('변경된이름');
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: updateData,
+      });
+    });
+
+    it('updates password', async () => {
+      const updateData = { password: 'newhash' };
+
+      vi.mocked(prisma.user.update).mockResolvedValue({
+        ...mockUser,
+        password: 'newhash',
+      });
+
+      await updateUser('user-1', updateData);
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: updateData,
+      });
+    });
+  });
+
+  describe('deactivateUser', () => {
+    it('sets isActive to false', async () => {
+      vi.mocked(prisma.user.update).mockResolvedValue({
+        ...mockUser,
+        isActive: false,
+      });
+
+      const result = await deactivateUser('user-1');
+
+      expect(result.isActive).toBe(false);
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { isActive: false },
+      });
+    });
+  });
+
+  describe('activateUser', () => {
+    it('sets isActive to true', async () => {
+      const inactiveUser = { ...mockUser, isActive: false };
+      vi.mocked(prisma.user.update).mockResolvedValue({
+        ...inactiveUser,
+        isActive: true,
+      });
+
+      const result = await activateUser('user-1');
+
+      expect(result.isActive).toBe(true);
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { isActive: true },
+      });
+    });
+  });
+
+  describe('findUsers', () => {
+    it('returns paginated users with default options', async () => {
+      const mockUsers = [mockUser, mockTeamLeader];
+      vi.mocked(prisma.user.findMany).mockResolvedValue(mockUsers);
+      vi.mocked(prisma.user.count).mockResolvedValue(2);
+
+      const result = await findUsers();
+
+      expect(result).toEqual({ users: mockUsers, total: 2 });
+      expect(prisma.user.findMany).toHaveBeenCalledWith({
+        where: {},
+        skip: 0,
+        take: 20,
+        orderBy: [{ role: 'asc' }, { username: 'asc' }],
+      });
+    });
+
+    it('filters by role', async () => {
+      vi.mocked(prisma.user.findMany).mockResolvedValue([mockAdmin]);
+      vi.mocked(prisma.user.count).mockResolvedValue(1);
+
+      await findUsers({ role: 'admin' });
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { role: 'admin' },
+        })
+      );
+    });
+
+    it('filters by isActive', async () => {
+      vi.mocked(prisma.user.findMany).mockResolvedValue([mockUser]);
+      vi.mocked(prisma.user.count).mockResolvedValue(1);
+
+      await findUsers({ isActive: true });
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { isActive: true },
+        })
+      );
+    });
+
+    it('searches by userid, username, or department', async () => {
+      vi.mocked(prisma.user.findMany).mockResolvedValue([mockUser]);
+      vi.mocked(prisma.user.count).mockResolvedValue(1);
+
+      await findUsers({ search: '홍길동' });
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            OR: [
+              { userid: { contains: '홍길동', mode: 'insensitive' } },
+              { username: { contains: '홍길동', mode: 'insensitive' } },
+              { department: { contains: '홍길동', mode: 'insensitive' } },
+            ],
+          },
+        })
+      );
+    });
+
+    it('handles pagination correctly', async () => {
+      vi.mocked(prisma.user.findMany).mockResolvedValue([mockUser]);
+      vi.mocked(prisma.user.count).mockResolvedValue(100);
+
+      await findUsers({ page: 3, pageSize: 10 });
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 20,
+          take: 10,
+        })
+      );
+    });
+
+    it('combines multiple filters', async () => {
+      vi.mocked(prisma.user.findMany).mockResolvedValue([]);
+      vi.mocked(prisma.user.count).mockResolvedValue(0);
+
+      await findUsers({
+        role: 'team_leader',
+        isActive: true,
+        search: '김',
+        page: 2,
+        pageSize: 5,
+      });
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            role: 'team_leader',
+            isActive: true,
+            OR: expect.any(Array),
+          }),
+          skip: 5,
+          take: 5,
+        })
+      );
+    });
+  });
+
+  describe('getEffectiveRole', () => {
+    it('returns admin role for admin users', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockAdmin,
+        yearRoles: [],
+      } as any);
+
+      const result = await getEffectiveRole('admin-1');
+
+      expect(result).toEqual({
+        role: 'admin',
+        department: null,
+      });
+    });
+
+    it('returns year role when available', async () => {
+      const mockYearRole: UserYearRole = {
+        id: 'yr-1',
+        userId: 'user-1',
+        year: CURRENT_YEAR,
+        role: 'team_leader',
+        department: '기획팀',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        yearRoles: [mockYearRole],
+      } as any);
+
+      const result = await getEffectiveRole('user-1');
+
+      expect(result).toEqual({
+        role: 'team_leader',
+        department: '기획팀',
+      });
+    });
+
+    it('returns user role when no year role exists', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        yearRoles: [],
+      } as any);
+
+      const result = await getEffectiveRole('user-1');
+
+      expect(result).toEqual({
+        role: 'user',
+        department: '재정팀',
+      });
+    });
+
+    it('returns user role when user not found', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+
+      const result = await getEffectiveRole('nonexistent');
+
+      expect(result).toEqual({
+        role: 'user',
+        department: null,
+      });
+    });
+
+    it('handles custom year parameter', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        yearRoles: [],
+      } as any);
+
+      await getEffectiveRole('user-1', 2024);
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        include: {
+          yearRoles: {
+            where: { year: 2024 },
+          },
+        },
+      });
+    });
+  });
+
+  describe('findUserWithEffectiveRole', () => {
+    it('returns null when user not found', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+
+      const result = await findUserWithEffectiveRole('nonexistent');
+
+      expect(result).toBeNull();
+    });
+
+    it('returns user with effective role for admin', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockAdmin,
+        yearRoles: [],
+      } as any);
+
+      const result = await findUserWithEffectiveRole('admin-1');
+
+      expect(result).toMatchObject({
+        id: 'admin-1',
+        effectiveRole: 'admin',
+        effectiveDepartment: null,
+      });
+    });
+
+    it('returns user with year role', async () => {
+      const mockYearRole: UserYearRole = {
+        id: 'yr-1',
+        userId: 'user-1',
+        year: CURRENT_YEAR,
+        role: 'accountant',
+        department: '재정팀',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        yearRoles: [mockYearRole],
+      } as any);
+
+      const result = await findUserWithEffectiveRole('user-1');
+
+      expect(result).toMatchObject({
+        id: 'user-1',
+        effectiveRole: 'accountant',
+        effectiveDepartment: '재정팀',
+      });
+    });
+
+    it('returns user with default role when no year role', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        yearRoles: [],
+      } as any);
+
+      const result = await findUserWithEffectiveRole('user-1');
+
+      expect(result).toMatchObject({
+        id: 'user-1',
+        effectiveRole: 'user',
+        effectiveDepartment: '재정팀',
+      });
+    });
+  });
+
+  describe('findUsersByYearRole', () => {
+    it('returns admin users from User table', async () => {
+      vi.mocked(prisma.user.findMany).mockResolvedValue([mockAdmin]);
+
+      const result = await findUsersByYearRole('admin');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].effectiveRole).toBe('admin');
+      expect(prisma.user.findMany).toHaveBeenCalledWith({
+        where: { role: 'admin', isActive: true },
+        orderBy: { username: 'asc' },
+      });
+    });
+
+    it('returns users with specific year role', async () => {
+      const mockYearRoles = [
+        {
+          id: 'yr-1',
+          userId: 'user-1',
+          year: CURRENT_YEAR,
+          role: 'team_leader' as UserRole,
+          department: '기획팀',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          user: mockTeamLeader,
+        },
+      ];
+
+      vi.mocked(prisma.userYearRole.findMany).mockResolvedValue(mockYearRoles as any);
+
+      const result = await findUsersByYearRole('team_leader');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].effectiveRole).toBe('team_leader');
+    });
+
+    it('filters out inactive users', async () => {
+      const inactiveUser = { ...mockUser, isActive: false };
+      const mockYearRoles = [
+        {
+          id: 'yr-1',
+          userId: 'user-1',
+          year: CURRENT_YEAR,
+          role: 'accountant' as UserRole,
+          department: '재정팀',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          user: inactiveUser,
+        },
+      ];
+
+      vi.mocked(prisma.userYearRole.findMany).mockResolvedValue(mockYearRoles as any);
+
+      const result = await findUsersByYearRole('accountant');
+
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('findAllUsersWithEffectiveRole', () => {
+    it('returns all active users with effective roles', async () => {
+      const mockYearRole: UserYearRole = {
+        id: 'yr-1',
+        userId: 'user-1',
+        year: CURRENT_YEAR,
+        role: 'team_leader',
+        department: '기획팀',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      vi.mocked(prisma.user.findMany).mockResolvedValue([
+        { ...mockAdmin, yearRoles: [] },
+        { ...mockUser, yearRoles: [mockYearRole] },
+      ] as any);
+
+      const result = await findAllUsersWithEffectiveRole();
+
+      expect(result).toHaveLength(2);
+      expect(result[0].effectiveRole).toBe('admin');
+      expect(result[1].effectiveRole).toBe('team_leader');
+    });
+
+    it('handles custom year', async () => {
+      vi.mocked(prisma.user.findMany).mockResolvedValue([]);
+
+      await findAllUsersWithEffectiveRole(2024);
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith({
+        where: { isActive: true },
+        include: {
+          yearRoles: {
+            where: { year: 2024 },
+          },
+        },
+        orderBy: { username: 'asc' },
+      });
+    });
+  });
+
+  describe('setYearRole', () => {
+    it('creates or updates year role', async () => {
+      const mockYearRole: UserYearRole = {
+        id: 'yr-1',
+        userId: 'user-1',
+        year: 2025,
+        role: 'accountant',
+        department: '재정팀',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      vi.mocked(prisma.userYearRole.upsert).mockResolvedValue(mockYearRole);
+
+      const result = await setYearRole('user-1', 2025, 'accountant', '재정팀');
+
+      expect(result).toEqual(mockYearRole);
+      expect(prisma.userYearRole.upsert).toHaveBeenCalledWith({
+        where: {
+          userId_year: { userId: 'user-1', year: 2025 },
+        },
+        update: { role: 'accountant', department: '재정팀' },
+        create: { userId: 'user-1', year: 2025, role: 'accountant', department: '재정팀' },
+      });
+    });
+
+    it('creates year role without department', async () => {
+      const mockYearRole: UserYearRole = {
+        id: 'yr-1',
+        userId: 'user-1',
+        year: 2025,
+        role: 'user',
+        department: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      vi.mocked(prisma.userYearRole.upsert).mockResolvedValue(mockYearRole);
+
+      await setYearRole('user-1', 2025, 'user');
+
+      expect(prisma.userYearRole.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            department: undefined,
+          }),
+        })
+      );
+    });
+  });
+
+  describe('deleteYearRole', () => {
+    it('deletes year role', async () => {
+      vi.mocked(prisma.userYearRole.deleteMany).mockResolvedValue({ count: 1 });
+
+      await deleteYearRole('user-1', 2025);
+
+      expect(prisma.userYearRole.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', year: 2025 },
+      });
+    });
+  });
+
+  describe('getYearRoles', () => {
+    it('returns all year roles for specified year', async () => {
+      const mockYearRoles = [
+        {
+          id: 'yr-1',
+          userId: 'user-1',
+          year: CURRENT_YEAR,
+          role: 'team_leader' as UserRole,
+          department: '기획팀',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          user: mockTeamLeader,
+        },
+      ];
+
+      vi.mocked(prisma.userYearRole.findMany).mockResolvedValue(mockYearRoles as any);
+
+      const result = await getYearRoles();
+
+      expect(result).toEqual(mockYearRoles);
+      expect(prisma.userYearRole.findMany).toHaveBeenCalledWith({
+        where: { year: CURRENT_YEAR },
+        include: { user: true },
+        orderBy: [{ role: 'asc' }, { user: { username: 'asc' } }],
+      });
+    });
+
+    it('handles custom year parameter', async () => {
+      vi.mocked(prisma.userYearRole.findMany).mockResolvedValue([]);
+
+      await getYearRoles(2024);
+
+      expect(prisma.userYearRole.findMany).toHaveBeenCalledWith({
+        where: { year: 2024 },
+        include: { user: true },
+        orderBy: [{ role: 'asc' }, { user: { username: 'asc' } }],
+      });
+    });
+  });
+
+  describe('canApproveByYear', () => {
+    it('returns true when user can approve step for current year', async () => {
+      const mockYearRole: UserYearRole = {
+        id: 'yr-1',
+        userId: 'user-1',
+        year: CURRENT_YEAR,
+        role: 'team_leader',
+        department: '기획팀',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        yearRoles: [mockYearRole],
+      } as any);
+
+      const result = await canApproveByYear('user-1', 1);
+
+      expect(result).toBe(true);
+    });
+
+    it('returns false when user cannot approve step', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        yearRoles: [],
+      } as any);
+
+      const result = await canApproveByYear('user-1', 1);
+
+      expect(result).toBe(false);
+    });
+
+    it('handles custom year parameter', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        yearRoles: [],
+      } as any);
+
+      await canApproveByYear('user-1', 1, 2024);
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        include: {
+          yearRoles: {
+            where: { year: 2024 },
+          },
+        },
+      });
+    });
+  });
+});
