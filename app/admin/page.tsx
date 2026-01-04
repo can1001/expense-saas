@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, FileSpreadsheet, Upload, Settings, CalendarCog } from 'lucide-react';
+import { Users, FileSpreadsheet, Upload, Settings, CalendarCog, BarChart3 } from 'lucide-react';
 import { SECTION_CARD } from '@/lib/constants/styles';
 
 interface AdminMenuItem {
@@ -33,6 +33,13 @@ const menuItems: AdminMenuItem[] = [
     description: '연도별 결재 역할 일괄 설정 (팀장/회계/재정팀장)',
     icon: CalendarCog,
     color: 'bg-orange-500',
+  },
+  {
+    href: '/admin/year-roles-summary',
+    title: '연도별 팀장 현황',
+    description: '위원회/사역팀별 팀장 현황 조회',
+    icon: BarChart3,
+    color: 'bg-teal-500',
   },
   {
     href: '/admin/budget-upload',
