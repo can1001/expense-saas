@@ -126,6 +126,9 @@ export function getApprovalStep(role: UserRole): number | null {
 // 사용자 관리 함수들 (CRUD)
 // ========================================
 
+// 기본 비밀번호
+export const DEFAULT_PASSWORD = 'chc2026';
+
 /**
  * 사용자 생성
  */
@@ -142,7 +145,7 @@ export async function createUser(data: {
       username: data.username,
       role: data.role ?? 'user',
       department: data.department,
-      password: data.password,
+      password: data.password || DEFAULT_PASSWORD,
     },
   });
 }
