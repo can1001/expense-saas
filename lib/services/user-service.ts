@@ -1,5 +1,6 @@
 import { prisma } from '../prisma';
 import { User, UserRole, UserYearRole } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 // 현재 연도
 export const CURRENT_YEAR = new Date().getFullYear();
@@ -129,6 +130,23 @@ export function getApprovalStep(role: UserRole): number | null {
 // 기본 비밀번호
 export const DEFAULT_PASSWORD = 'chc2026';
 
+// bcrypt salt rounds
+const SALT_ROUNDS = 10;
+
+/**
+ * 비밀번호 해시화
+ */
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, SALT_ROUNDS);
+}
+
+/**
+ * 비밀번호 검증
+ */
+export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+  return bcrypt.compare(password, hashedPassword);
+}
+
 /**
  * 사용자 생성
  */
@@ -139,13 +157,16 @@ export async function createUser(data: {
   department?: string;
   password?: string;
 }): Promise<User> {
+  const plainPassword = data.password || DEFAULT_PASSWORD;
+  const hashedPassword = await hashPassword(plainPassword);
+
   return prisma.user.create({
     data: {
       userid: data.userid,
       username: data.username,
       role: data.role ?? 'user',
       department: data.department,
-      password: data.password || DEFAULT_PASSWORD,
+      password: hashedPassword,
     },
   });
 }
@@ -163,9 +184,16 @@ export async function updateUser(
     isActive?: boolean;
   }
 ): Promise<User> {
+  const updateData = { ...data };
+
+  // 비밀번호가 있으면 해시화
+  if (updateData.password) {
+    updateData.password = await hashPassword(updateData.password);
+  }
+
   return prisma.user.update({
     where: { id },
-    data,
+    data: updateData,
   });
 }
 
