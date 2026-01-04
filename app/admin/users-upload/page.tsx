@@ -116,10 +116,10 @@ export default function UsersUploadPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">사용자 일괄 등록</h1>
         <Link
-          href="/expenses"
+          href="/admin/users"
           className={BTN_OUTLINE}
         >
-          목록으로
+          사용자 목록
         </Link>
       </div>
 

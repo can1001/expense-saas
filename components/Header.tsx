@@ -85,7 +85,7 @@ export default function Header() {
     ...(user?.role === 'admin'
       ? [
           {
-            href: '/admin/budget-upload',
+            href: '/admin',
             label: '관리',
             icon: Settings,
             active: pathname.startsWith('/admin'),
