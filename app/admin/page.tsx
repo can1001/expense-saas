@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, FileSpreadsheet, Upload, Settings } from 'lucide-react';
+import { Users, FileSpreadsheet, Upload, Settings, CalendarCog } from 'lucide-react';
 import { SECTION_CARD } from '@/lib/constants/styles';
 
 interface AdminMenuItem {
@@ -26,6 +26,13 @@ const menuItems: AdminMenuItem[] = [
     description: 'Excel 파일로 사용자 일괄 등록/수정',
     icon: Upload,
     color: 'bg-green-500',
+  },
+  {
+    href: '/admin/year-roles',
+    title: '연도별 역할 관리',
+    description: '연도별 결재 역할 일괄 설정 (팀장/회계/재정팀장)',
+    icon: CalendarCog,
+    color: 'bg-orange-500',
   },
   {
     href: '/admin/budget-upload',
