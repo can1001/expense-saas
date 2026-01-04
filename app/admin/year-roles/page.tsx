@@ -44,8 +44,20 @@ interface UserWithYearRole extends User {
   yearDepartment?: string;
 }
 
+interface BudgetItem {
+  committee: string;
+  department: string;
+}
+
 const YEAR_ROLE_OPTIONS = [
   { value: '', label: '(선택 안함)' },
+  { value: 'team_leader', label: '팀장 (1차 결재)' },
+  { value: 'accountant', label: '회계 (2차 결재)' },
+  { value: 'finance_head', label: '재정팀장 (3차 결재)' },
+  { value: 'admin_assistant', label: '행정간사' },
+];
+
+const BULK_ROLE_OPTIONS = [
   { value: 'team_leader', label: '팀장 (1차 결재)' },
   { value: 'accountant', label: '회계 (2차 결재)' },
   { value: 'finance_head', label: '재정팀장 (3차 결재)' },
@@ -71,25 +83,48 @@ export default function YearRolesPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [changes, setChanges] = useState<Record<string, { role: string; department: string }>>({});
 
+  // 체크박스 선택 상태
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [bulkRole, setBulkRole] = useState('team_leader');
+  const [bulkCommittee, setBulkCommittee] = useState('');
+  const [bulkDepartment, setBulkDepartment] = useState('');
+
+  // 위원회/부서 목록
+  const [committees, setCommittees] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
+
+  // 개별 행 위원회/부서 선택 상태
+  const [rowCommittees, setRowCommittees] = useState<Record<string, string>>({});
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     setSuccess(null);
     setChanges({});
+    setSelectedUsers(new Set());
+    setRowCommittees({});
 
     try {
-      // 사용자 목록과 연도별 역할 동시 조회
-      const [usersRes, yearRolesRes] = await Promise.all([
+      // 사용자 목록, 연도별 역할, 예산 데이터 동시 조회
+      const [usersRes, yearRolesRes, budgetRes] = await Promise.all([
         fetch('/api/users?pageSize=1000&isActive=true'),
         fetch(`/api/users/year-roles?year=${selectedYear}`),
+        fetch('/api/budget'),
       ]);
 
-      if (!usersRes.ok || !yearRolesRes.ok) {
+      if (!usersRes.ok || !yearRolesRes.ok || !budgetRes.ok) {
         throw new Error('데이터 조회 실패');
       }
 
       const usersData = await usersRes.json();
       const yearRolesData = await yearRolesRes.json();
+      const budgetData = await budgetRes.json();
+
+      // 예산 데이터에서 위원회/부서 목록 추출
+      const items: BudgetItem[] = budgetData.items || [];
+      setBudgetItems(items);
+      setCommittees(budgetData.hierarchy?.committees || []);
 
       // 연도별 역할을 userId로 매핑
       const yearRoleMap = new Map<string, YearRole>();
@@ -110,12 +145,54 @@ export default function YearRolesPage() {
         });
 
       setUsers(usersWithRoles);
+
+      // 기존 부서 데이터로 rowCommittees 초기화
+      const initialRowCommittees: Record<string, string> = {};
+      usersWithRoles.forEach((user) => {
+        if (user.yearDepartment) {
+          // 부서에서 위원회 찾기
+          const matchingItem = items.find((item) => item.department === user.yearDepartment);
+          if (matchingItem) {
+            initialRowCommittees[user.id] = matchingItem.committee;
+          }
+        }
+      });
+      setRowCommittees(initialRowCommittees);
     } catch (err) {
       setError(err instanceof Error ? err.message : '데이터 조회 실패');
     } finally {
       setLoading(false);
     }
   }, [selectedYear]);
+
+  // 일괄 적용 위원회 변경 시 부서 목록 업데이트
+  useEffect(() => {
+    if (bulkCommittee) {
+      const filteredDepts = Array.from(
+        new Set(
+          budgetItems
+            .filter((item) => item.committee === bulkCommittee)
+            .map((item) => item.department)
+        )
+      );
+      setDepartments(filteredDepts);
+      setBulkDepartment('');
+    } else {
+      setDepartments([]);
+      setBulkDepartment('');
+    }
+  }, [bulkCommittee, budgetItems]);
+
+  // 특정 위원회에 대한 부서 목록 가져오기
+  const getDepartmentsForCommittee = (committee: string): string[] => {
+    return Array.from(
+      new Set(
+        budgetItems
+          .filter((item) => item.committee === committee)
+          .map((item) => item.department)
+      )
+    );
+  };
 
   useEffect(() => {
     fetchData();
@@ -139,6 +216,64 @@ export default function YearRolesPage() {
         department,
       },
     }));
+  };
+
+  const handleRowCommitteeChange = (userId: string, committee: string) => {
+    setRowCommittees((prev) => ({
+      ...prev,
+      [userId]: committee,
+    }));
+    // 위원회 변경 시 부서 초기화
+    handleDepartmentChange(userId, '');
+  };
+
+  // 체크박스 핸들러
+  const handleSelectUser = (userId: string, checked: boolean) => {
+    setSelectedUsers((prev) => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(userId);
+      } else {
+        newSet.delete(userId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedUsers(new Set(users.map((u) => u.id)));
+    } else {
+      setSelectedUsers(new Set());
+    }
+  };
+
+  // 선택된 사용자들에게 일괄 역할 적용
+  const handleApplyBulkRole = () => {
+    if (selectedUsers.size === 0) {
+      setError('선택된 사용자가 없습니다.');
+      return;
+    }
+
+    const newChanges = { ...changes };
+    const newRowCommittees = { ...rowCommittees };
+
+    selectedUsers.forEach((userId) => {
+      const user = users.find((u) => u.id === userId);
+      newChanges[userId] = {
+        role: bulkRole,
+        department: bulkDepartment || user?.yearDepartment || '',
+      };
+      if (bulkCommittee) {
+        newRowCommittees[userId] = bulkCommittee;
+      }
+    });
+
+    setChanges(newChanges);
+    setRowCommittees(newRowCommittees);
+
+    const deptInfo = bulkDepartment ? ` / ${bulkDepartment}` : '';
+    setSuccess(`${selectedUsers.size}명에게 ${ROLE_LABELS[bulkRole]}${deptInfo} 역할이 적용되었습니다. "변경사항 저장"을 클릭하세요.`);
   };
 
   const handleSaveAll = async () => {
@@ -265,6 +400,7 @@ export default function YearRolesPage() {
   };
 
   const hasChanges = Object.keys(changes).length > 0;
+  const isAllSelected = users.length > 0 && selectedUsers.size === users.length;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -315,6 +451,72 @@ export default function YearRolesPage() {
         </div>
       </div>
 
+      {/* 일괄 역할 적용 */}
+      <div className={`${SECTION_CARD} mb-6 bg-orange-50 border-orange-200`}>
+        <h3 className="text-lg font-semibold text-orange-800 mb-3">일괄 역할 적용</h3>
+        <div className="flex flex-wrap items-end gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">역할 선택</label>
+            <select
+              value={bulkRole}
+              onChange={(e) => setBulkRole(e.target.value)}
+              className={`${SELECT_BASE} w-48`}
+            >
+              {BULK_ROLE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">위원회</label>
+            <select
+              value={bulkCommittee}
+              onChange={(e) => setBulkCommittee(e.target.value)}
+              className={`${SELECT_BASE} w-40`}
+            >
+              <option value="">선택</option>
+              {committees.map((committee) => (
+                <option key={committee} value={committee}>
+                  {committee}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">사역팀(부)</label>
+            <select
+              value={bulkDepartment}
+              onChange={(e) => setBulkDepartment(e.target.value)}
+              disabled={!bulkCommittee}
+              className={`${SELECT_BASE} w-40 disabled:bg-gray-100`}
+            >
+              <option value="">선택</option>
+              {departments.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={handleApplyBulkRole}
+            disabled={selectedUsers.size === 0}
+            className={`${BTN_PRIMARY} disabled:opacity-50`}
+          >
+            선택한 {selectedUsers.size}명에게 적용
+          </button>
+
+          <div className="text-sm text-orange-700">
+            아래 목록에서 체크박스로 사용자를 선택한 후 &quot;적용&quot; 버튼을 클릭하세요.
+          </div>
+        </div>
+      </div>
+
       {/* 알림 메시지 */}
       {error && <div className={`${ALERT_ERROR} mb-4`}>{error}</div>}
       {success && (
@@ -347,25 +549,48 @@ export default function YearRolesPage() {
             <table className={TABLE_BASE}>
               <thead className={TABLE_HEADER}>
                 <tr>
+                  <th className={`${TABLE_HEADER_CELL} w-12`}>
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </th>
                   <th className={TABLE_HEADER_CELL}>아이디</th>
                   <th className={TABLE_HEADER_CELL}>이름</th>
                   <th className={TABLE_HEADER_CELL}>기본 역할</th>
                   <th className={TABLE_HEADER_CELL}>{selectedYear}년 역할</th>
-                  <th className={TABLE_HEADER_CELL}>부서 (선택)</th>
+                  <th className={TABLE_HEADER_CELL}>위원회</th>
+                  <th className={TABLE_HEADER_CELL}>사역팀(부)</th>
                 </tr>
               </thead>
               <tbody className={TABLE_BODY}>
                 {users.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className={`${TABLE_CELL} text-center text-gray-500 py-10`}>
+                    <td colSpan={7} className={`${TABLE_CELL} text-center text-gray-500 py-10`}>
                       활성 사용자가 없습니다.
                     </td>
                   </tr>
                 ) : (
                   users.map((user) => {
                     const isChanged = user.id in changes;
+                    const isSelected = selectedUsers.has(user.id);
+                    const userCommittee = rowCommittees[user.id] || '';
+                    const userDepts = userCommittee ? getDepartmentsForCommittee(userCommittee) : [];
                     return (
-                      <tr key={user.id} className={isChanged ? 'bg-yellow-50' : ''}>
+                      <tr
+                        key={user.id}
+                        className={`${isChanged ? 'bg-yellow-50' : ''} ${isSelected ? 'bg-blue-50' : ''}`}
+                      >
+                        <td className={TABLE_CELL}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => handleSelectUser(user.id, e.target.checked)}
+                            className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                        </td>
                         <td className={TABLE_CELL}>{user.userid}</td>
                         <td className={TABLE_CELL}>{user.username}</td>
                         <td className={TABLE_CELL}>
@@ -377,7 +602,7 @@ export default function YearRolesPage() {
                           <select
                             value={getRoleValue(user)}
                             onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                            className={`${SELECT_BASE} ${BTN_SM} w-48`}
+                            className={`${SELECT_BASE} ${BTN_SM} w-44`}
                           >
                             {YEAR_ROLE_OPTIONS.map((option) => (
                               <option key={option.value} value={option.value}>
@@ -387,13 +612,33 @@ export default function YearRolesPage() {
                           </select>
                         </td>
                         <td className={TABLE_CELL}>
-                          <input
-                            type="text"
+                          <select
+                            value={userCommittee}
+                            onChange={(e) => handleRowCommitteeChange(user.id, e.target.value)}
+                            className={`${SELECT_BASE} ${BTN_SM} w-28`}
+                          >
+                            <option value="">선택</option>
+                            {committees.map((committee) => (
+                              <option key={committee} value={committee}>
+                                {committee}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className={TABLE_CELL}>
+                          <select
                             value={getDepartmentValue(user)}
                             onChange={(e) => handleDepartmentChange(user.id, e.target.value)}
-                            placeholder="부서명"
-                            className={`${SELECT_BASE} ${BTN_SM} w-32`}
-                          />
+                            disabled={!userCommittee}
+                            className={`${SELECT_BASE} ${BTN_SM} w-32 disabled:bg-gray-100`}
+                          >
+                            <option value="">선택</option>
+                            {userDepts.map((dept) => (
+                              <option key={dept} value={dept}>
+                                {dept}
+                              </option>
+                            ))}
+                          </select>
                         </td>
                       </tr>
                     );
