@@ -97,6 +97,26 @@ export default function ExpenseDetailPage() {
     return currentStep?.approverName;
   };
 
+  // 프린트용: 1차 결재자(팀장) 이름
+  const getTeamLeaderNameForPrint = () => {
+    const steps = approvalData?.approvalLine?.steps;
+    if (!Array.isArray(steps)) return null;
+    const teamStep = steps.find((step: any) =>
+      step?.stepName === '팀장' || step?.approverTitle === '팀장'
+    );
+    return typeof teamStep?.approverName === 'string' ? teamStep.approverName : null;
+  };
+
+  // 프린트용: 3차 결재자(재정팀장) 이름
+  const getFinanceManagerNameForPrint = () => {
+    const steps = approvalData?.approvalLine?.steps;
+    if (!Array.isArray(steps)) return null;
+    const financeStep = steps.find((step: any) =>
+      step?.stepName === '재정팀장' || step?.approverTitle === '재정팀장'
+    );
+    return typeof financeStep?.approverName === 'string' ? financeStep.approverName : null;
+  };
+
   const handleDelete = async () => {
     if (!confirm('정말로 이 지출결의서를 삭제하시겠습니까?')) {
       return;
@@ -279,7 +299,11 @@ export default function ExpenseDetailPage() {
   return (
     <>
       {/* 프린트용 양식 (화면에서는 숨김, 프린트 시에만 표시) */}
-      <PrintableExpense expense={expense} />
+      <PrintableExpense
+        expense={expense}
+        teamLeaderName={getTeamLeaderNameForPrint()}
+        financeManagerName={getFinanceManagerNameForPrint()}
+      />
 
       {/* 웹 화면용 (프린트 시 숨김) */}
       <div className="min-h-screen bg-gray-50 screen-only">

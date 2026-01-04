@@ -5,9 +5,18 @@ import { Expense, formatCurrency } from './types';
 
 interface PrintHeaderProps {
   expense: Expense;
+  teamLeaderName?: string | null;
+  financeManagerName?: string | null;
 }
 
-export default function PrintHeader({ expense }: PrintHeaderProps) {
+function formatNameForPrint(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return '';
+  // 한글 이름은 보통 2~4글자이므로 글자 사이에 공백을 넣어 인쇄물 스타일을 맞춤
+  return trimmed.split('').join(' ');
+}
+
+export default function PrintHeader({ expense, teamLeaderName, financeManagerName }: PrintHeaderProps) {
   // 지출일자 분리 (없으면 빈칸)
   const expenseDate = expense.expenseDate ? new Date(expense.expenseDate) : null;
   const expenseYear = expenseDate ? expenseDate.getFullYear() : '';
@@ -57,13 +66,15 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
           {/* 4열: 재정팀장 서명란 계속 */}
         </tr>
 
-        {/* ===== 4행: 예산항목 계속 + 신창국 ===== */}
+        {/* ===== 4행: 예산항목 계속 + 재정팀장 이름 ===== */}
         <tr style={{ height: '25px' }}>
           {/* 1열: 로고 계속 */}
           {/* 2열: 예산항목 라벨 계속 */}
           {/* 3열: 예산항목 값 계속 */}
-          {/* 4열: 신창국 */}
-          <td className="approval-name">신 창 국</td>
+          {/* 4열: 재정팀장 이름 */}
+          <td className="approval-name">
+            {financeManagerName ? formatNameForPrint(financeManagerName) : ''}
+          </td>
         </tr>
 
         {/* ===== 5행: 사역팀(부)장 + 지출일자 + 회계 ===== */}
@@ -86,21 +97,19 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
           <td className="approval-title">회계</td>
         </tr>
 
-        {/* ===== 6행: 재정팀장 전결 (2행 병합 시작) + 지출일자 계속 + 회계 서명란 (2행 병합 시작) ===== */}
+        {/* ===== 6행: 재정팀장 전결 영역(공란, 2행 병합) + 지출일자 계속 + 회계 서명란 (2행 병합 시작) ===== */}
         <tr style={{ height: '25px' }}>
-          {/* 1열: 재정팀장 전결 (2행 병합) */}
-          <td rowSpan={2} className="left-approval-cell">
-            재정팀장 전결
-          </td>
+          {/* 1열: 재정팀장 전결 영역(공란, rowSpan=2로 병합) */}
+          <td rowSpan={2} className="left-approval-cell"></td>
           {/* 2열: 지출일자 라벨 계속 */}
           {/* 3열: 지출일자 값 계속 */}
           {/* 4열: 회계 서명란 (2행 병합) */}
           <td rowSpan={2} className="approval-sign"></td>
         </tr>
 
-        {/* ===== 7행: 재정팀장 전결 계속 + 청구금액 + 회계 서명란 계속 ===== */}
+        {/* ===== 7행: 재정팀장 전결 영역(공란 계속) + 청구금액 + 회계 서명란 계속 ===== */}
         <tr style={{ height: '25px' }}>
-          {/* 1열: 재정팀장 전결 계속 */}
+          {/* 1열: 재정팀장 전결 영역(rowSpan=2로 위에서 병합됨) */}
           {/* 2열: 청구금액 라벨 (2행 병합) */}
           <td rowSpan={2} className="label-cell">
             청 구 금 액
@@ -112,11 +121,11 @@ export default function PrintHeader({ expense }: PrintHeaderProps) {
           {/* 4열: 회계 서명란 계속 */}
         </tr>
 
-        {/* ===== 8행: 신창국 + 청구금액 계속 + 윤운문 ===== */}
+        {/* ===== 8행: 팀장 이름 + 청구금액 계속 + 윤운문 ===== */}
         <tr style={{ height: '25px' }}>
-          {/* 1열: 신창국 (1행) */}
+          {/* 1열: 팀장 이름 (1행) */}
           <td className="left-approval-cell name-cell">
-            신 창 국
+            {teamLeaderName ? formatNameForPrint(teamLeaderName) : ''}
           </td>
           {/* 2열: 청구금액 라벨 계속 */}
           {/* 3열: 청구금액 값 계속 */}
