@@ -1,7 +1,9 @@
 /**
- * 예산 마스터 데이터 업로드 로직
+ * 예산 데이터 업로드 로직 (정규화 테이블 기반)
  *
- * Excel 파일을 파싱하여 BudgetMaster 테이블에 업로드합니다.
+ * Excel 파일을 파싱하여 정규화된 예산 테이블에 업로드합니다.
+ * - Committee, Department, BudgetCategory, BudgetSubcategory, BudgetDetail
+ * - DepartmentBudgetDetail (부서-세목 연결)
  */
 
 import ExcelJS from 'exceljs';
@@ -187,7 +189,7 @@ export async function parseExcelFile(
     dataStartRow?: number; // 데이터 시작 행 번호 (기본값: 2)
   }
 ): Promise<{ rows: BudgetRow[]; validationErrors: ValidationError[] }> {
-  const { headerRow = 1, dataStartRow = 2 } = options ?? {};
+  const { dataStartRow = 2 } = options ?? {};
 
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
@@ -221,7 +223,7 @@ export async function parseExcelFile(
 }
 
 /**
- * 예산 데이터 업로드
+ * 예산 데이터 업로드 (정규화 테이블)
  */
 export async function uploadBudgetData(
   rows: BudgetRow[],
@@ -245,14 +247,16 @@ export async function uploadBudgetData(
     // Dry run: 중복 체크만 수행
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const existing = await prisma.budgetMaster.findUnique({
+
+      // BudgetDetail 존재 여부 확인
+      const existing = await prisma.budgetDetail.findFirst({
         where: {
-          committee_department_category_subcategory_detail: {
-            committee: row.committee,
-            department: row.department,
-            category: row.category,
-            subcategory: row.subcategory,
-            detail: row.detail,
+          name: row.detail,
+          subcategory: {
+            name: row.subcategory,
+            category: {
+              name: row.category,
+            },
           },
         },
       });
@@ -274,61 +278,150 @@ export async function uploadBudgetData(
   // 실제 업로드
   try {
     await prisma.$transaction(async (tx) => {
-      // replace 모드: 기존 데이터 모두 삭제
+      // replace 모드: 관계 테이블 초기화
       if (mode === 'replace') {
-        await tx.budgetMaster.deleteMany();
+        await tx.departmentBudgetDetail.deleteMany();
+        await tx.budgetDetail.deleteMany();
+        await tx.budgetSubcategory.deleteMany();
+        await tx.budgetCategory.deleteMany();
+        // Committee, Department는 유지 (다른 곳에서 참조될 수 있음)
       }
+
+      // 캐시 맵 (성능 최적화)
+      const committeeCache = new Map<string, string>();
+      const departmentCache = new Map<string, string>();
+      const categoryCache = new Map<string, string>();
+      const subcategoryCache = new Map<string, string>();
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
 
         try {
-          const existing = await tx.budgetMaster.findUnique({
-            where: {
-              committee_department_category_subcategory_detail: {
-                committee: row.committee,
-                department: row.department,
-                category: row.category,
-                subcategory: row.subcategory,
-                detail: row.detail,
+          // 1. Committee upsert
+          let committeeId = committeeCache.get(row.committee);
+          if (!committeeId) {
+            const committee = await tx.committee.upsert({
+              where: { name: row.committee },
+              update: {},
+              create: { name: row.committee, isActive: true },
+            });
+            committeeId = committee.id;
+            committeeCache.set(row.committee, committeeId);
+          }
+
+          // 2. Department upsert
+          const deptKey = `${row.committee}|${row.department}`;
+          let departmentId = departmentCache.get(deptKey);
+          if (!departmentId) {
+            const department = await tx.department.upsert({
+              where: {
+                committeeId_name: {
+                  committeeId,
+                  name: row.department,
+                },
               },
+              update: {},
+              create: {
+                committeeId,
+                name: row.department,
+                isActive: true,
+              },
+            });
+            departmentId = department.id;
+            departmentCache.set(deptKey, departmentId);
+          }
+
+          // 3. BudgetCategory upsert
+          let categoryId = categoryCache.get(row.category);
+          if (!categoryId) {
+            const category = await tx.budgetCategory.upsert({
+              where: { name: row.category },
+              update: {},
+              create: { name: row.category, isActive: true },
+            });
+            categoryId = category.id;
+            categoryCache.set(row.category, categoryId);
+          }
+
+          // 4. BudgetSubcategory upsert
+          const subcatKey = `${row.category}|${row.subcategory}`;
+          let subcategoryId = subcategoryCache.get(subcatKey);
+          if (!subcategoryId) {
+            const subcategory = await tx.budgetSubcategory.upsert({
+              where: {
+                categoryId_name: {
+                  categoryId,
+                  name: row.subcategory,
+                },
+              },
+              update: {},
+              create: {
+                categoryId,
+                name: row.subcategory,
+                isActive: true,
+              },
+            });
+            subcategoryId = subcategory.id;
+            subcategoryCache.set(subcatKey, subcategoryId);
+          }
+
+          // 5. BudgetDetail upsert
+          const existingDetail = await tx.budgetDetail.findFirst({
+            where: {
+              subcategoryId,
+              name: row.detail,
             },
           });
 
-          if (existing) {
+          let budgetDetailId: string;
+
+          if (existingDetail) {
             if (mode === 'append') {
-              // append 모드: 기존 데이터 건너뛰기
               summary.skipped++;
-            } else {
-              // merge 모드: 기존 데이터 업데이트
-              await tx.budgetMaster.update({
-                where: { id: existing.id },
-                data: {
-                  manager: row.manager,
-                  accountCode: row.accountCode,
-                  description: row.description,
-                  isActive: row.isActive ?? true,
-                },
-              });
-              summary.updated++;
+              continue;
             }
-          } else {
-            // 새 데이터 생성
-            await tx.budgetMaster.create({
+            // merge: 업데이트
+            await tx.budgetDetail.update({
+              where: { id: existingDetail.id },
               data: {
-                committee: row.committee,
-                department: row.department,
-                category: row.category,
-                subcategory: row.subcategory,
-                detail: row.detail,
-                manager: row.manager,
                 accountCode: row.accountCode,
                 description: row.description,
                 isActive: row.isActive ?? true,
               },
             });
+            budgetDetailId = existingDetail.id;
+            summary.updated++;
+          } else {
+            // 새로 생성
+            const newDetail = await tx.budgetDetail.create({
+              data: {
+                subcategoryId,
+                name: row.detail,
+                accountCode: row.accountCode,
+                description: row.description,
+                isActive: row.isActive ?? true,
+              },
+            });
+            budgetDetailId = newDetail.id;
             summary.created++;
           }
+
+          // 6. DepartmentBudgetDetail 연결 (upsert)
+          await tx.departmentBudgetDetail.upsert({
+            where: {
+              departmentId_budgetDetailId: {
+                departmentId,
+                budgetDetailId,
+              },
+            },
+            update: { isActive: true },
+            create: {
+              departmentId,
+              budgetDetailId,
+              isActive: true,
+            },
+          });
+
         } catch (err) {
           summary.errors++;
           validationErrors.push({
@@ -361,7 +454,7 @@ export async function uploadBudgetData(
 }
 
 /**
- * 예산 데이터를 Excel 템플릿으로 내보내기
+ * 예산 데이터를 Excel 템플릿으로 내보내기 (정규화 테이블)
  */
 export async function exportBudgetTemplate(): Promise<ArrayBuffer> {
   const workbook = new ExcelJS.Workbook();
@@ -389,29 +482,62 @@ export async function exportBudgetTemplate(): Promise<ArrayBuffer> {
     fgColor: { argb: 'FFE0E0E0' },
   };
 
-  // 기존 데이터 조회 및 추가
-  const existingData = await prisma.budgetMaster.findMany({
+  // 정규화된 테이블에서 데이터 조회
+  const budgetDetails = await prisma.budgetDetail.findMany({
+    include: {
+      subcategory: {
+        include: {
+          category: true,
+        },
+      },
+      departmentDetails: {
+        include: {
+          department: {
+            include: {
+              committee: true,
+            },
+          },
+        },
+      },
+    },
     orderBy: [
-      { committee: 'asc' },
-      { department: 'asc' },
-      { category: 'asc' },
-      { subcategory: 'asc' },
-      { detail: 'asc' },
+      { subcategory: { category: { name: 'asc' } } },
+      { subcategory: { name: 'asc' } },
+      { name: 'asc' },
     ],
   });
 
-  for (const item of existingData) {
-    sheet.addRow({
-      committee: item.committee,
-      department: item.department,
-      category: item.category,
-      subcategory: item.subcategory,
-      detail: item.detail,
-      manager: item.manager || '',
-      accountCode: item.accountCode || '',
-      description: item.description || '',
-      isActive: item.isActive ? 'true' : 'false',
-    });
+  // 데이터 행 추가
+  for (const detail of budgetDetails) {
+    // 각 부서 연결별로 행 추가
+    if (detail.departmentDetails.length > 0) {
+      for (const dd of detail.departmentDetails) {
+        sheet.addRow({
+          committee: dd.department.committee.name,
+          department: dd.department.name,
+          category: detail.subcategory.category.name,
+          subcategory: detail.subcategory.name,
+          detail: detail.name,
+          manager: '', // 담당자는 BudgetDetailYear에서 관리
+          accountCode: detail.accountCode || '',
+          description: detail.description || '',
+          isActive: detail.isActive ? 'true' : 'false',
+        });
+      }
+    } else {
+      // 부서 연결이 없는 경우
+      sheet.addRow({
+        committee: '',
+        department: '',
+        category: detail.subcategory.category.name,
+        subcategory: detail.subcategory.name,
+        detail: detail.name,
+        manager: '',
+        accountCode: detail.accountCode || '',
+        description: detail.description || '',
+        isActive: detail.isActive ? 'true' : 'false',
+      });
+    }
   }
 
   const buffer = await workbook.xlsx.writeBuffer();

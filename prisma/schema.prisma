@@ -119,7 +119,7 @@ model ExpenseAttachment {
   @@index([expenseId])
 }
 
-// 예산 마스터 데이터 (드롭다운 옵션)
+// 예산 마스터 데이터 (드롭다운 옵션) - 레거시, 마이그레이션 후 제거 예정
 model BudgetMaster {
   id           String   @id @default(cuid())
 
@@ -145,6 +145,157 @@ model BudgetMaster {
   @@index([category, subcategory, detail])
   @@index([committee])
   @@index([department])
+}
+
+// ========================================
+// 정규화된 예산 구조 (Normalized Budget Structure)
+// ========================================
+
+// 위원회
+model Committee {
+  id          String       @id @default(cuid())
+  name        String       @unique  // "기획위원회", "선교위원회"
+  sortOrder   Int          @default(0)
+  isActive    Boolean      @default(true)
+
+  departments Department[]
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([sortOrder])
+  @@index([isActive])
+}
+
+// 사역팀(부)
+model Department {
+  id           String     @id @default(cuid())
+  committeeId  String
+  committee    Committee  @relation(fields: [committeeId], references: [id])
+
+  name         String     // "재정팀", "공간사역팀"
+  sortOrder    Int        @default(0)
+  isActive     Boolean    @default(true)
+
+  // 관계
+  budgetDetails DepartmentBudgetDetail[]
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([committeeId, name])
+  @@index([committeeId])
+  @@index([sortOrder])
+  @@index([isActive])
+}
+
+// 예산(항)
+model BudgetCategory {
+  id            String              @id @default(cuid())
+  name          String              @unique  // "사무행정비", "비전사역비"
+  sortOrder     Int                 @default(0)
+  isActive      Boolean             @default(true)
+
+  subcategories BudgetSubcategory[]
+
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([sortOrder])
+  @@index([isActive])
+}
+
+// 예산(목)
+model BudgetSubcategory {
+  id          String          @id @default(cuid())
+  categoryId  String
+  category    BudgetCategory  @relation(fields: [categoryId], references: [id])
+
+  name        String          // "회의및접대비", "공간사역비"
+  sortOrder   Int             @default(0)
+  isActive    Boolean         @default(true)
+
+  details     BudgetDetail[]
+
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([categoryId, name])
+  @@index([categoryId])
+  @@index([sortOrder])
+  @@index([isActive])
+}
+
+// 예산(세목)
+model BudgetDetail {
+  id             String            @id @default(cuid())
+  subcategoryId  String
+  subcategory    BudgetSubcategory @relation(fields: [subcategoryId], references: [id])
+
+  name           String            // "아웃팅비_재정팀", "인건비"
+  accountCode    String?           // 계정코드
+  description    String?           // 항목 내역
+  sortOrder      Int               @default(0)
+  isActive       Boolean           @default(true)
+
+  // 관계
+  yearSettings       BudgetDetailYear[]
+  departmentDetails  DepartmentBudgetDetail[]
+
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([subcategoryId, name])
+  @@index([subcategoryId])
+  @@index([sortOrder])
+  @@index([isActive])
+}
+
+// 연도별 세목 설정 (담당자 + 예산금액)
+model BudgetDetailYear {
+  id              String       @id @default(cuid())
+
+  budgetDetailId  String
+  budgetDetail    BudgetDetail @relation(fields: [budgetDetailId], references: [id], onDelete: Cascade)
+
+  year            Int          // 2024, 2025, 2026...
+
+  // 담당자 (1차 결재자) - User 테이블 참조
+  managerId       String?
+  manager         User?        @relation("BudgetDetailManager", fields: [managerId], references: [id])
+
+  // 예산금액
+  budgetAmount    Int          @default(0)   // 배정 예산
+  usedAmount      Int          @default(0)   // 사용 금액 (집계)
+
+  isActive        Boolean      @default(true)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([budgetDetailId, year])
+  @@index([year])
+  @@index([managerId])
+  @@index([isActive])
+}
+
+// 사역팀별 사용 가능 세목 (부서-세목 연결)
+model DepartmentBudgetDetail {
+  id              String       @id @default(cuid())
+
+  departmentId    String
+  department      Department   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  budgetDetailId  String
+  budgetDetail    BudgetDetail @relation(fields: [budgetDetailId], references: [id], onDelete: Cascade)
+
+  isActive        Boolean      @default(true)
+
+  createdAt       DateTime     @default(now())
+
+  @@unique([departmentId, budgetDetailId])
+  @@index([departmentId])
+  @@index([budgetDetailId])
 }
 
 // 저장된 은행 계좌 (사용자별)
@@ -393,9 +544,10 @@ model User {
   isActive    Boolean   @default(true)    // 활성 상태
 
   // 관계
-  yearRoles    UserYearRole[]
-  bankAccounts SavedBankAccount[]         // 저장된 은행 계좌들
-  expenses     Expense[]                  // 작성한 지출결의서들
+  yearRoles          UserYearRole[]
+  bankAccounts       SavedBankAccount[]         // 저장된 은행 계좌들
+  expenses           Expense[]                  // 작성한 지출결의서들
+  managedBudgets     BudgetDetailYear[]  @relation("BudgetDetailManager")  // 담당 예산 세목들
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

@@ -57,7 +57,10 @@
       "Bash(source .env)",
       "Bash(npx dotenv -e .env -- npx prisma db push)",
       "Bash(npm run db:seed:*)",
-      "Bash(npx dotenv:*)"
+      "Bash(npx dotenv:*)",
+      "Bash(PORT=3002 npm run dev:*)",
+      "Bash(__NEW_LINE__ curl -s -X POST \"http://localhost:3002/api/budget\" )",
+      "Bash(node /tmp/test-query.mjs:*)"
     ],
     "deny": [],
     "ask": []

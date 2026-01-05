@@ -4,10 +4,9 @@ import { createExpenseSchema, calculateAmount, calculateTotal } from '@/lib/vali
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { deriveRequestTeam } from '@/lib/domain/request-team';
 import {
-  generateApprovalLine,
-  createApprovalSnapshot,
-  calculateApprovalStatus,
-} from '@/lib/approval-engine';
+  calculateApprovalLineForExpense,
+  ApprovalLineInfo,
+} from '@/lib/services/approval-line-service';
 import type { ApprovalStatus } from '@/lib/types';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -130,47 +129,39 @@ export async function POST(request: NextRequest) {
     const now = new Date();
 
     // 제출인 경우 결재선 데이터 준비
-    let approvalLineData = null;
-    let snapshot = null;
-    const consecutiveAutoApprovedSteps: any[] = [];
+    let approvalLineInfo: ApprovalLineInfo | null = null;
+    let snapshot: string | null = null;
+    type ApprovalStepInfo = ApprovalLineInfo['steps'][number];
+    const consecutiveAutoApprovedSteps: ApprovalStepInfo[] = [];
     let autoApprovedCount = 0;
     let firstPendingStep = 1;
     let isAllAutoApproved = false;
     let finalStatus: ApprovalStatus = isSubmit ? 'PENDING' : 'DRAFT';
 
     if (isSubmit) {
-      // BudgetMaster에서 첫 번째 항목의 manager 조회
+      // 정규화된 테이블 기반 결재선 자동 산출
       const firstItem = itemsWithCalculatedAmount[0];
-      let budgetManager: string | null = null;
+      const year = validatedData.requestDate.getFullYear();
 
-      if (firstItem) {
-        const budgetMaster = await prisma.budgetMaster.findFirst({
-          where: {
-            category: validatedData.budgetCategory,
-            subcategory: validatedData.budgetSubcategory,
-            detail: firstItem.budgetDetail,
-            isActive: true,
-          },
-          select: { manager: true },
-        });
-        budgetManager = budgetMaster?.manager || null;
+      try {
+        approvalLineInfo = await calculateApprovalLineForExpense(
+          validatedData.budgetCategory,
+          validatedData.budgetSubcategory,
+          firstItem.budgetDetail,
+          year
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '결재선 산출 실패';
+        throw new ApiError(message, 400);
       }
 
-      // 결재선 자동 생성
-      approvalLineData = generateApprovalLine({
-        committee: validatedData.committee,
-        department: validatedData.department,
-        budgetCategory: validatedData.budgetCategory,
-        budgetSubcategory: validatedData.budgetSubcategory,
-        requestAmount,
-        applicantName: validatedData.applicantName,
-        budgetManager,
+      snapshot = JSON.stringify({
+        ...approvalLineInfo,
+        snapshotTimestamp: now.toISOString(),
       });
 
-      snapshot = createApprovalSnapshot(approvalLineData);
-
       // 연속된 전결 단계 계산
-      for (const step of approvalLineData.steps) {
+      for (const step of approvalLineInfo.steps) {
         if (step.isAutoApproved) {
           consecutiveAutoApprovedSteps.push(step);
         } else {
@@ -179,17 +170,17 @@ export async function POST(request: NextRequest) {
       }
       autoApprovedCount = consecutiveAutoApprovedSteps.length;
       firstPendingStep = autoApprovedCount + 1;
-      isAllAutoApproved = firstPendingStep > approvalLineData.totalSteps;
+      isAllAutoApproved = firstPendingStep > approvalLineInfo.totalSteps;
 
       // 최종 상태 결정
       if (isAllAutoApproved) {
         finalStatus = 'APPROVED_FINAL';
-      } else if (autoApprovedCount > 0) {
-        finalStatus = calculateApprovalStatus(
-          'APPROVE',
-          autoApprovedCount,
-          approvalLineData.totalSteps
-        ) as ApprovalStatus;
+      } else if (autoApprovedCount >= approvalLineInfo.totalSteps) {
+        finalStatus = 'APPROVED_FINAL';
+      } else if (autoApprovedCount === 2) {
+        finalStatus = 'APPROVED_STEP_2';
+      } else if (autoApprovedCount === 1) {
+        finalStatus = 'APPROVED_STEP_1';
       }
     }
 
@@ -229,7 +220,7 @@ export async function POST(request: NextRequest) {
       });
 
       // 2. 제출인 경우 결재선 생성
-      if (isSubmit && approvalLineData && snapshot) {
+      if (isSubmit && approvalLineInfo && snapshot) {
         const consecutiveStepNumbers = new Set(
           consecutiveAutoApprovedSteps.map((s) => s.stepNumber)
         );
@@ -238,25 +229,27 @@ export async function POST(request: NextRequest) {
           data: {
             expenseId: createdExpense.id,
             currentStep: isAllAutoApproved
-              ? approvalLineData.totalSteps
+              ? approvalLineInfo.totalSteps
               : firstPendingStep,
-            totalSteps: approvalLineData.totalSteps,
-            isUrgent: approvalLineData.isUrgent || false,
+            totalSteps: approvalLineInfo.totalSteps,
+            isUrgent: false,
             snapshot,
             steps: {
-              create: approvalLineData.steps.map((step) => {
+              create: approvalLineInfo.steps.map((step) => {
                 const isConsecutiveAutoApproved = consecutiveStepNumbers.has(step.stepNumber);
                 return {
                   stepNumber: step.stepNumber,
                   stepName: step.stepName,
                   approverName: step.approverName,
-                  approverEmail: step.approverEmail,
-                  approverTitle: step.approverTitle,
-                  isRequired: step.isRequired,
-                  isParallel: step.isParallel || false,
+                  approverEmail: step.approverEmail || null,
+                  approverTitle: step.role,
+                  isRequired: true,
+                  isParallel: false,
                   status: isConsecutiveAutoApproved ? 'APPROVED' : 'PENDING',
                   approvedAt: isConsecutiveAutoApproved ? now : null,
-                  comment: isConsecutiveAutoApproved ? step.autoApprovalReason || null : null,
+                  comment: isConsecutiveAutoApproved
+                    ? (step.stepName.includes('전결') ? '전결 처리 (1차 자동 승인)' : null)
+                    : null,
                 };
               }),
             },
@@ -295,12 +288,13 @@ export async function POST(request: NextRequest) {
                   ? 'PENDING'
                   : `APPROVED_STEP_${step.stepNumber - 1}`,
               newStatus:
-                step.stepNumber === approvalLineData.totalSteps
+                step.stepNumber === approvalLineInfo.totalSteps
                   ? 'APPROVED_FINAL'
                   : `APPROVED_STEP_${step.stepNumber}`,
-              comment: step.autoApprovalReason || '전결 처리',
+              comment: '전결 처리 (담당자 = 재정팀장)',
               metadata: {
                 autoApproved: true,
+                isDirectApproval: approvalLineInfo.isDirectApproval,
                 timestamp: now.toISOString(),
               },
             },

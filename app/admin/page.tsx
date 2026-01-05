@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, FileSpreadsheet, Upload, Settings, CalendarCog, BarChart3 } from 'lucide-react';
+import { Users, FileSpreadsheet, Upload, Settings, CalendarCog, BarChart3, UserCog } from 'lucide-react';
 import { SECTION_CARD } from '@/lib/constants/styles';
 
 interface AdminMenuItem {
@@ -40,6 +40,13 @@ const menuItems: AdminMenuItem[] = [
     description: '위원회/사역팀별 팀장 현황 조회',
     icon: BarChart3,
     color: 'bg-teal-500',
+  },
+  {
+    href: '/admin/budget-managers',
+    title: '세목별 담당자 관리',
+    description: '연도별 예산 세목 담당자(1차 결재자) 및 예산금액 설정',
+    icon: UserCog,
+    color: 'bg-indigo-500',
   },
   {
     href: '/admin/budget-upload',

@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
-  generateApprovalLine,
-  createApprovalSnapshot,
-  calculateApprovalStatus,
-} from '@/lib/approval-engine';
+  calculateApprovalLineForExpense,
+  ApprovalLineInfo,
+} from '@/lib/services/approval-line-service';
 
 /**
  * POST /api/expenses/[id]/submit
- * 지출결의서 제출 및 결재선 생성
+ * 지출결의서 제출 및 결재선 자동 생성
+ *
+ * 결재선 산출 규칙:
+ * - 담당자 ≠ 재정팀장: 담당자 → 회계 → 재정팀장 (3단계)
+ * - 담당자 = 재정팀장: 재정팀장(전결) → 회계 → 재정팀장 (3단계, 1차 자동승인)
+ *
+ * 담당자는 정규화된 BudgetDetailYear 테이블에서 조회
+ * 회계/재정팀장은 UserYearRole 테이블에서 조회
  */
 export async function POST(
   request: NextRequest,
@@ -48,42 +54,41 @@ export async function POST(
       );
     }
 
-    // BudgetMaster에서 첫 번째 항목의 manager 조회
-    // (세목별 담당자를 1차 결재자로 사용)
+    // 항목이 있는지 확인
     const firstItem = expense.items[0];
-    let budgetManager: string | null = null;
-
-    if (firstItem) {
-      const budgetMaster = await prisma.budgetMaster.findFirst({
-        where: {
-          category: expense.budgetCategory,
-          subcategory: expense.budgetSubcategory,
-          detail: firstItem.budgetDetail,
-          isActive: true,
-        },
-        select: { manager: true },
-      });
-      budgetManager = budgetMaster?.manager || null;
+    if (!firstItem) {
+      return NextResponse.json(
+        { error: '지출결의서 항목이 없습니다.' },
+        { status: 400 }
+      );
     }
 
-    // 결재선 자동 생성 (BudgetMaster.manager 전달)
-    const approvalLineData = generateApprovalLine({
-      committee: expense.committee,
-      department: expense.department,
-      budgetCategory: expense.budgetCategory,
-      budgetSubcategory: expense.budgetSubcategory,
-      requestAmount: expense.requestAmount,
-      applicantName: expense.applicantName,
-      budgetManager,
-    });
+    // 연도 추출 (청구일자 기준)
+    const year = expense.requestDate.getFullYear();
+
+    // 정규화된 테이블 기반 결재선 자동 산출
+    let approvalLineInfo: ApprovalLineInfo;
+    try {
+      approvalLineInfo = await calculateApprovalLineForExpense(
+        expense.budgetCategory,
+        expense.budgetSubcategory,
+        firstItem.budgetDetail,
+        year
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '결재선 산출 실패';
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
 
     // 스냅샷 생성
-    const snapshot = createApprovalSnapshot(approvalLineData);
+    const snapshot = JSON.stringify({
+      ...approvalLineInfo,
+      snapshotTimestamp: new Date().toISOString(),
+    });
 
     // 연속된 전결 단계 계산 (1차부터 연속으로 전결인 단계만)
-    // 예: 1차 전결, 2차 대기, 3차 전결 → 1차만 자동 승인
-    const consecutiveAutoApprovedSteps: typeof approvalLineData.steps = [];
-    for (const step of approvalLineData.steps) {
+    const consecutiveAutoApprovedSteps: typeof approvalLineInfo.steps = [];
+    for (const step of approvalLineInfo.steps) {
       if (step.isAutoApproved) {
         consecutiveAutoApprovedSteps.push(step);
       } else {
@@ -94,7 +99,7 @@ export async function POST(
 
     // 첫 번째 실제 결재 대기 단계 계산
     const firstPendingStep = autoApprovedCount + 1;
-    const isAllAutoApproved = firstPendingStep > approvalLineData.totalSteps;
+    const isAllAutoApproved = firstPendingStep > approvalLineInfo.totalSteps;
 
     // 트랜잭션으로 결재선 생성 및 상태 업데이트
     const result = await prisma.$transaction(async (tx) => {
@@ -116,26 +121,28 @@ export async function POST(
         data: {
           expenseId: id,
           currentStep: isAllAutoApproved
-            ? approvalLineData.totalSteps
+            ? approvalLineInfo.totalSteps
             : firstPendingStep,
-          totalSteps: approvalLineData.totalSteps,
-          isUrgent: approvalLineData.isUrgent || false,
+          totalSteps: approvalLineInfo.totalSteps,
+          isUrgent: false,
           snapshot,
           steps: {
-            create: approvalLineData.steps.map((step) => {
+            create: approvalLineInfo.steps.map((step) => {
               // 연속된 전결 단계만 자동 승인
               const isConsecutiveAutoApproved = consecutiveStepNumbers.has(step.stepNumber);
               return {
                 stepNumber: step.stepNumber,
                 stepName: step.stepName,
                 approverName: step.approverName,
-                approverEmail: step.approverEmail,
-                approverTitle: step.approverTitle,
-                isRequired: step.isRequired,
-                isParallel: step.isParallel || false,
+                approverEmail: step.approverEmail || null,
+                approverTitle: step.role,
+                isRequired: true,
+                isParallel: false,
                 status: isConsecutiveAutoApproved ? 'APPROVED' : 'PENDING',
                 approvedAt: isConsecutiveAutoApproved ? now : null,
-                comment: isConsecutiveAutoApproved ? step.autoApprovalReason || null : null,
+                comment: isConsecutiveAutoApproved
+                  ? (step.stepName.includes('전결') ? '전결 처리 (1차 자동 승인)' : null)
+                  : null,
               };
             }),
           },
@@ -150,17 +157,14 @@ export async function POST(
       if (isAllAutoApproved) {
         // 모든 단계가 전결이면 최종 승인
         newStatus = 'APPROVED_FINAL';
+      } else if (autoApprovedCount >= approvalLineInfo.totalSteps) {
+        newStatus = 'APPROVED_FINAL';
+      } else if (autoApprovedCount === 2) {
+        newStatus = 'APPROVED_STEP_2';
+      } else if (autoApprovedCount === 1) {
+        newStatus = 'APPROVED_STEP_1';
       } else {
-        // 전결 단계 수에 따라 상태 결정
-        newStatus = calculateApprovalStatus(
-          'APPROVE',
-          autoApprovedCount,
-          approvalLineData.totalSteps
-        );
-        // 전결이 없으면 PENDING
-        if (autoApprovedCount === 0) {
-          newStatus = 'PENDING';
-        }
+        newStatus = 'PENDING';
       }
 
       const updatedExpense = await tx.expense.update({
@@ -213,12 +217,13 @@ export async function POST(
                 ? 'PENDING'
                 : `APPROVED_STEP_${step.stepNumber - 1}`,
             newStatus:
-              step.stepNumber === approvalLineData.totalSteps
+              step.stepNumber === approvalLineInfo.totalSteps
                 ? 'APPROVED_FINAL'
                 : `APPROVED_STEP_${step.stepNumber}`,
-            comment: step.autoApprovalReason || '전결 처리',
+            comment: '전결 처리 (담당자 = 재정팀장)',
             metadata: {
               autoApproved: true,
+              isDirectApproval: approvalLineInfo.isDirectApproval,
               timestamp: now.toISOString(),
             },
           },
@@ -230,14 +235,23 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: '지출결의서가 제출되었습니다.',
+      message: approvalLineInfo.isDirectApproval
+        ? '지출결의서가 제출되었습니다. (1차 전결 자동 승인)'
+        : '지출결의서가 제출되었습니다.',
       data: result,
+      approvalLineInfo: {
+        managerId: approvalLineInfo.managerId,
+        managerName: approvalLineInfo.managerName,
+        isDirectApproval: approvalLineInfo.isDirectApproval,
+        totalSteps: approvalLineInfo.totalSteps,
+        autoApprovedSteps: autoApprovedCount,
+      },
     });
   } catch (error: any) {
     console.error('Submit error:', error);
 
     // 결재선 생성 에러 처리
-    if (error.message?.includes('결재선을 생성할 수 없습니다')) {
+    if (error.message?.includes('설정되지 않았습니다')) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
