@@ -66,11 +66,12 @@ interface ExcelRow {
   groupId?: string | number;
 }
 
-// BudgetMaster 조회 결과 캐시
+// 예산 조회 결과 캐시 (정규화 테이블 사용)
 const budgetCache = new Map<string, { committee: string; department: string } | null>();
 
 /**
- * BudgetMaster에서 category, subcategory, detail로 committee, department 조회
+ * 정규화된 테이블에서 category, subcategory, detail로 committee, department 조회
+ * BudgetDetail → DepartmentBudgetDetail → Department → Committee
  */
 async function findBudgetInfo(
   category: string,
@@ -83,22 +84,41 @@ async function findBudgetInfo(
     return budgetCache.get(cacheKey) || null;
   }
 
-  const budget = await prisma.budgetMaster.findFirst({
+  // BudgetDetail 조회
+  const budgetDetail = await prisma.budgetDetail.findFirst({
     where: {
-      category,
-      subcategory,
-      detail,
+      name: detail,
       isActive: true,
+      subcategory: {
+        name: subcategory,
+        category: {
+          name: category,
+        },
+      },
     },
-    select: {
-      committee: true,
-      department: true,
+    include: {
+      departmentDetails: {
+        where: { isActive: true },
+        include: {
+          department: {
+            include: {
+              committee: true,
+            },
+          },
+        },
+        take: 1,
+      },
     },
   });
 
-  if (budget) {
-    budgetCache.set(cacheKey, budget);
-    return budget;
+  if (budgetDetail && budgetDetail.departmentDetails.length > 0) {
+    const dept = budgetDetail.departmentDetails[0].department;
+    const result = {
+      committee: dept.committee.name,
+      department: dept.name,
+    };
+    budgetCache.set(cacheKey, result);
+    return result;
   }
 
   budgetCache.set(cacheKey, null);

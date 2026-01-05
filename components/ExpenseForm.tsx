@@ -22,6 +22,7 @@ import ItemsSection from './expense-form/ItemsSection';
 import ApplicantSection from './expense-form/ApplicantSection';
 import BankAccountSelector from './expense-form/BankAccountSelector';
 import FileUpload from './FileUpload';
+import ApprovalLinePreview from './expense-form/ApprovalLinePreview';
 import { createAttachment } from '@/lib/services/file-service';
 import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_OUTLINE, BTN_SUCCESS, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER, ALERT_ERROR } from '@/lib/constants/styles';
 import { deriveRequestTeam } from '@/lib/domain/request-team';
@@ -79,6 +80,12 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   // 위원회/사역팀 감시 (청구팀 자동 생성)
   const committee = watch('committee');
   const department = watch('department');
+
+  // 결재선 미리보기용 감시
+  const budgetCategory = watch('budgetCategory');
+  const budgetSubcategory = watch('budgetSubcategory');
+  const items = watch('items');
+  const requestDate = watch('requestDate');
 
   // 폼 제출 훅
   const { handleSubmit: handleFormSubmit } = useExpenseFormSubmit({
@@ -298,6 +305,15 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
           disabled={loading || isSubmitting}
         />
       </div>
+
+      {/* 결재선 미리보기 */}
+      <ApprovalLinePreview
+        budgetCategory={budgetCategory}
+        budgetSubcategory={budgetSubcategory}
+        budgetDetail={items?.[0]?.budgetDetail}
+        requestDate={requestDate}
+        requestAmount={items?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0}
+      />
 
       {/* 버튼 */}
       <div className="flex justify-end gap-4">
