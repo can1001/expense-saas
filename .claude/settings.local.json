@@ -60,7 +60,8 @@
       "Bash(npx dotenv:*)",
       "Bash(PORT=3002 npm run dev:*)",
       "Bash(__NEW_LINE__ curl -s -X POST \"http://localhost:3002/api/budget\" )",
-      "Bash(node /tmp/test-query.mjs:*)"
+      "Bash(node /tmp/test-query.mjs:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []
