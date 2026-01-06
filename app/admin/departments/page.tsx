@@ -1,0 +1,344 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Plus, Pencil, Check, X, ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  BTN_PRIMARY,
+  BTN_SM,
+  INPUT_BASE,
+  SELECT_BASE,
+  SPINNER_LG,
+  FLEX_CENTER,
+} from '@/lib/constants/styles';
+
+interface Committee {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+interface Department {
+  id: string;
+  name: string;
+  committeeId: string;
+  committeeName: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+interface GroupedDepartments {
+  committee: Committee;
+  departments: Department[];
+}
+
+export default function DepartmentsPage() {
+  const [committees, setCommittees] = useState<Committee[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [addingToCommittee, setAddingToCommittee] = useState<string | null>(null);
+  const [newName, setNewName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [expandedCommittees, setExpandedCommittees] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [committeeRes, departmentRes] = await Promise.all([
+        fetch('/api/committees'),
+        fetch('/api/departments'),
+      ]);
+
+      if (!committeeRes.ok || !departmentRes.ok) {
+        throw new Error('데이터를 불러오는데 실패했습니다.');
+      }
+
+      const committeeData = await committeeRes.json();
+      const departmentData = await departmentRes.json();
+
+      setCommittees(committeeData.committees || []);
+      setDepartments(departmentData.departments || []);
+
+      // 모든 위원회 펼치기
+      setExpandedCommittees(new Set(committeeData.committees?.map((c: Committee) => c.id) || []));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleExpand = (committeeId: string) => {
+    setExpandedCommittees((prev) => {
+      const next = new Set(prev);
+      if (next.has(committeeId)) {
+        next.delete(committeeId);
+      } else {
+        next.add(committeeId);
+      }
+      return next;
+    });
+  };
+
+  const handleAdd = async (committeeId: string) => {
+    if (!newName.trim()) return;
+    setSaving(true);
+    try {
+      const response = await fetch('/api/departments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName.trim(), committeeId }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || '추가에 실패했습니다.');
+      }
+      setNewName('');
+      setAddingToCommittee(null);
+      fetchData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '오류가 발생했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdate = async (id: string) => {
+    if (!editName.trim()) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/departments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editName.trim() }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || '수정에 실패했습니다.');
+      }
+      setEditingId(null);
+      fetchData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '오류가 발생했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleActive = async (id: string, currentActive: boolean) => {
+    try {
+      const response = await fetch(`/api/departments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !currentActive }),
+      });
+      if (!response.ok) throw new Error('상태 변경에 실패했습니다.');
+      fetchData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '오류가 발생했습니다.');
+    }
+  };
+
+  const startEdit = (department: Department) => {
+    setEditingId(department.id);
+    setEditName(department.name);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName('');
+  };
+
+  // 위원회별로 그룹화
+  const groupedData: GroupedDepartments[] = committees
+    .filter((c) => c.isActive)
+    .map((committee) => ({
+      committee,
+      departments: departments.filter((d) => d.committeeId === committee.id),
+    }));
+
+  if (loading) {
+    return (
+      <div className={`${FLEX_CENTER} py-20`}>
+        <div className={SPINNER_LG}></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl">
+      {/* 헤더 */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">사역팀(부) 관리</h1>
+        <p className="text-gray-600 mt-1">위원회별 사역팀을 추가, 수정, 비활성화할 수 있습니다.</p>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6">{error}</div>
+      )}
+
+      {/* 위원회별 그룹 */}
+      <div className="space-y-4">
+        {groupedData.map(({ committee, departments: depts }) => (
+          <div key={committee.id} className="bg-white rounded-lg shadow overflow-hidden">
+            {/* 위원회 헤더 */}
+            <div
+              className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b cursor-pointer hover:bg-gray-100"
+              onClick={() => toggleExpand(committee.id)}
+            >
+              <div className="flex items-center gap-2">
+                {expandedCommittees.has(committee.id) ? (
+                  <ChevronDown className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <ChevronRight className="w-5 h-5 text-gray-500" />
+                )}
+                <span className="font-semibold text-gray-900">{committee.name}</span>
+                <span className="text-sm text-gray-500">({depts.length}개)</span>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAddingToCommittee(committee.id);
+                  setExpandedCommittees((prev) => new Set([...prev, committee.id]));
+                }}
+                className={`${BTN_SM} text-blue-600 hover:bg-blue-50 flex items-center gap-1`}
+              >
+                <Plus className="w-4 h-4" />
+                추가
+              </button>
+            </div>
+
+            {/* 사역팀 목록 */}
+            {expandedCommittees.has(committee.id) && (
+              <div className="divide-y">
+                {/* 추가 행 */}
+                {addingToCommittee === committee.id && (
+                  <div className="flex items-center gap-3 px-4 py-3 bg-blue-50">
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      placeholder="사역팀명 입력"
+                      className={`${INPUT_BASE} flex-1 max-w-xs`}
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAdd(committee.id);
+                        if (e.key === 'Escape') {
+                          setAddingToCommittee(null);
+                          setNewName('');
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={() => handleAdd(committee.id)}
+                      disabled={saving || !newName.trim()}
+                      className={`${BTN_SM} text-green-600 hover:bg-green-50 disabled:opacity-50`}
+                    >
+                      <Check className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAddingToCommittee(null);
+                        setNewName('');
+                      }}
+                      className={`${BTN_SM} text-gray-600 hover:bg-gray-100`}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* 사역팀 행 */}
+                {depts.map((dept) => (
+                  <div
+                    key={dept.id}
+                    className={`flex items-center justify-between px-4 py-3 ${
+                      !dept.isActive ? 'bg-gray-50 text-gray-400' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-4"></div>
+                      {editingId === dept.id ? (
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className={`${INPUT_BASE} max-w-xs`}
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleUpdate(dept.id);
+                            if (e.key === 'Escape') cancelEdit();
+                          }}
+                        />
+                      ) : (
+                        <span className={!dept.isActive ? 'line-through' : ''}>
+                          {dept.name}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleToggleActive(dept.id, dept.isActive)}
+                        className={`text-xs px-2 py-1 rounded ${
+                          dept.isActive
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-gray-200 text-gray-600'
+                        }`}
+                      >
+                        {dept.isActive ? '활성' : '비활성'}
+                      </button>
+
+                      {editingId === dept.id ? (
+                        <>
+                          <button
+                            onClick={() => handleUpdate(dept.id)}
+                            disabled={saving}
+                            className={`${BTN_SM} text-green-600 hover:bg-green-50`}
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className={`${BTN_SM} text-gray-600 hover:bg-gray-100`}
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => startEdit(dept)}
+                          className={`${BTN_SM} text-gray-600 hover:bg-gray-100`}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {depts.length === 0 && addingToCommittee !== committee.id && (
+                  <div className="text-center py-6 text-gray-500">
+                    등록된 사역팀이 없습니다.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+
+        {groupedData.length === 0 && (
+          <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+            활성화된 위원회가 없습니다. 먼저 위원회를 추가해주세요.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
