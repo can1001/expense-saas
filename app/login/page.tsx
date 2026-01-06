@@ -1,7 +1,8 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 function LoginForm() {
   const router = useRouter();
@@ -10,8 +11,16 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const from = searchParams.get('from') || '/expenses';
+  const from = searchParams.get('from') || '/';
+  const registered = searchParams.get('registered');
+
+  useEffect(() => {
+    if (registered === 'true') {
+      setSuccessMessage('회원가입이 완료되었습니다. 로그인해주세요.');
+    }
+  }, [registered]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +106,12 @@ function LoginForm() {
           </div>
         </div>
 
+        {successMessage && (
+          <div className="text-green-600 text-sm text-center bg-green-50 p-3 rounded-lg">
+            {successMessage}
+          </div>
+        )}
+
         {error && (
           <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg">
             {error}
@@ -114,6 +129,13 @@ function LoginForm() {
         >
           {loading ? '로그인 중...' : '로그인'}
         </button>
+
+        <div className="text-center text-sm text-gray-600">
+          계정이 없으신가요?{' '}
+          <Link href="/signup" className="text-blue-600 hover:text-blue-500 font-medium">
+            회원가입
+          </Link>
+        </div>
       </form>
     </div>
   );
