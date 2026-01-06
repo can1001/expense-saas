@@ -12,6 +12,7 @@ import {
   FileSpreadsheet,
   UserCog,
   BarChart3,
+  Eye,
   LucideIcon,
 } from 'lucide-react';
 
@@ -48,6 +49,7 @@ export const ADMIN_SIDEBAR_MENU: SidebarGroup[] = [
     items: [
       { href: '/admin/budget-upload', label: '예산 마스터 관리', icon: FileSpreadsheet },
       { href: '/admin/budget-managers', label: '세목별 담당자 관리', icon: UserCog },
+      { href: '/admin/budget-view', label: '예산 현황 조회', icon: Eye },
     ],
   },
   {

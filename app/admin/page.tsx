@@ -10,7 +10,8 @@ import {
   Shield,
   FileSpreadsheet,
   UserCog,
-  BarChart3
+  BarChart3,
+  Eye
 } from 'lucide-react';
 
 interface QuickLinkItem {
@@ -77,6 +78,13 @@ const quickLinks: QuickLinkItem[] = [
     description: '예산 세목 담당자 및 예산금액 설정',
     icon: UserCog,
     color: 'bg-pink-500',
+  },
+  {
+    href: '/admin/budget-view',
+    title: '예산 현황 조회',
+    description: '조직별 예산 세목 현황 조회',
+    icon: Eye,
+    color: 'bg-emerald-500',
   },
   {
     href: '/admin/year-roles-summary',
