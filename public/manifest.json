@@ -3,22 +3,34 @@
   "short_name": "지출결의서",
   "description": "교회 지출결의서를 간편하게 작성하고 관리하세요",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3B82F6",
   "orientation": "portrait-primary",
+  "lang": "ko",
+  "dir": "ltr",
+  "categories": ["finance", "productivity", "utilities"],
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
+      "src": "/logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "새 지출결의서",
+      "short_name": "새 결의서",
+      "description": "새 지출결의서를 작성합니다",
+      "url": "/expenses/new"
+    },
+    {
+      "name": "지출결의서 목록",
+      "short_name": "목록",
+      "description": "지출결의서 목록을 봅니다",
+      "url": "/expenses"
     }
   ]
 }
