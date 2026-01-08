@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { Plus, Pencil, GripVertical, Check, X } from 'lucide-react';
 import {
   BTN_PRIMARY,
-  BTN_OUTLINE,
   BTN_SM,
   INPUT_BASE,
+  SELECT_BASE,
   TABLE_BASE,
   TABLE_HEADER,
   TABLE_HEADER_CELL,
@@ -16,11 +16,18 @@ import {
   FLEX_CENTER,
 } from '@/lib/constants/styles';
 
+interface User {
+  id: string;
+  username: string;
+}
+
 interface Committee {
   id: string;
   name: string;
   sortOrder: number;
   isActive: boolean;
+  leaderId: string | null;
+  leader: User | null;
   _count?: {
     departments: number;
   };
@@ -28,17 +35,33 @@ interface Committee {
 
 export default function CommitteesPage() {
   const [committees, setCommittees] = useState<Committee[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [editLeaderId, setEditLeaderId] = useState<string>('');
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
+  const [newLeaderId, setNewLeaderId] = useState<string>('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchCommittees();
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users?active=true');
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.users || []);
+      }
+    } catch {
+      console.error('사용자 목록을 불러오는데 실패했습니다.');
+    }
+  };
 
   const fetchCommittees = async () => {
     try {
@@ -61,13 +84,17 @@ export default function CommitteesPage() {
       const response = await fetch('/api/committees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName.trim() }),
+        body: JSON.stringify({
+          name: newName.trim(),
+          leaderId: newLeaderId || null,
+        }),
       });
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || '추가에 실패했습니다.');
       }
       setNewName('');
+      setNewLeaderId('');
       setIsAdding(false);
       fetchCommittees();
     } catch (err) {
@@ -84,13 +111,17 @@ export default function CommitteesPage() {
       const response = await fetch(`/api/committees/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editName.trim() }),
+        body: JSON.stringify({
+          name: editName.trim(),
+          leaderId: editLeaderId || null,
+        }),
       });
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || '수정에 실패했습니다.');
       }
       setEditingId(null);
+      setEditLeaderId('');
       fetchCommittees();
     } catch (err) {
       alert(err instanceof Error ? err.message : '오류가 발생했습니다.');
@@ -116,11 +147,13 @@ export default function CommitteesPage() {
   const startEdit = (committee: Committee) => {
     setEditingId(committee.id);
     setEditName(committee.name);
+    setEditLeaderId(committee.leaderId || '');
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setEditName('');
+    setEditLeaderId('');
   };
 
   if (loading) {
@@ -161,6 +194,7 @@ export default function CommitteesPage() {
             <tr>
               <th className={`${TABLE_HEADER_CELL} w-12`}></th>
               <th className={TABLE_HEADER_CELL}>위원회명</th>
+              <th className={`${TABLE_HEADER_CELL} w-40`}>위원장</th>
               <th className={`${TABLE_HEADER_CELL} w-24 text-center`}>사역팀 수</th>
               <th className={`${TABLE_HEADER_CELL} w-24 text-center`}>상태</th>
               <th className={`${TABLE_HEADER_CELL} w-24 text-center`}>관리</th>
@@ -184,9 +218,24 @@ export default function CommitteesPage() {
                       if (e.key === 'Escape') {
                         setIsAdding(false);
                         setNewName('');
+                        setNewLeaderId('');
                       }
                     }}
                   />
+                </td>
+                <td className={TABLE_CELL}>
+                  <select
+                    value={newLeaderId}
+                    onChange={(e) => setNewLeaderId(e.target.value)}
+                    className={`${SELECT_BASE} max-w-[150px]`}
+                  >
+                    <option value="">선택안함</option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.username}
+                      </option>
+                    ))}
+                  </select>
                 </td>
                 <td className={TABLE_CELL}></td>
                 <td className={TABLE_CELL}></td>
@@ -203,6 +252,7 @@ export default function CommitteesPage() {
                       onClick={() => {
                         setIsAdding(false);
                         setNewName('');
+                        setNewLeaderId('');
                       }}
                       className={`${BTN_SM} text-gray-600 hover:bg-gray-100`}
                     >
@@ -237,6 +287,26 @@ export default function CommitteesPage() {
                   ) : (
                     <span className={!committee.isActive ? 'line-through' : ''}>
                       {committee.name}
+                    </span>
+                  )}
+                </td>
+                <td className={TABLE_CELL}>
+                  {editingId === committee.id ? (
+                    <select
+                      value={editLeaderId}
+                      onChange={(e) => setEditLeaderId(e.target.value)}
+                      className={`${SELECT_BASE} max-w-[150px]`}
+                    >
+                      <option value="">선택안함</option>
+                      {users.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.username}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className={`text-sm ${committee.leader ? 'text-gray-900' : 'text-gray-400'}`}>
+                      {committee.leader?.username || '-'}
                     </span>
                   )}
                 </td>
@@ -285,7 +355,7 @@ export default function CommitteesPage() {
             ))}
             {committees.length === 0 && !isAdding && (
               <tr>
-                <td colSpan={5} className="text-center py-8 text-gray-500">
+                <td colSpan={6} className="text-center py-8 text-gray-500">
                   등록된 위원회가 없습니다.
                 </td>
               </tr>

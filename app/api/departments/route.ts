@@ -16,6 +16,9 @@ export async function GET(request: NextRequest) {
         committee: {
           select: { id: true, name: true },
         },
+        leader: {
+          select: { id: true, username: true },
+        },
       },
     });
 
@@ -27,6 +30,8 @@ export async function GET(request: NextRequest) {
       committeeName: dept.committee.name,
       sortOrder: dept.sortOrder,
       isActive: dept.isActive,
+      leaderId: dept.leaderId,
+      leaderName: dept.leader?.username || null,
     }));
 
     return NextResponse.json({ departments: formattedDepartments });
@@ -43,7 +48,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, committeeId } = body;
+    const { name, committeeId, leaderId } = body;
 
     if (!name?.trim()) {
       return NextResponse.json(
@@ -99,6 +104,12 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         committeeId,
         sortOrder: (lastDepartment?.sortOrder ?? 0) + 1,
+        leaderId: leaderId || null,
+      },
+      include: {
+        leader: {
+          select: { id: true, username: true },
+        },
       },
     });
 

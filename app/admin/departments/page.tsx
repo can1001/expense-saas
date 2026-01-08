@@ -3,13 +3,17 @@
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Check, X, ChevronDown, ChevronRight } from 'lucide-react';
 import {
-  BTN_PRIMARY,
   BTN_SM,
   INPUT_BASE,
   SELECT_BASE,
   SPINNER_LG,
   FLEX_CENTER,
 } from '@/lib/constants/styles';
+
+interface User {
+  id: string;
+  username: string;
+}
 
 interface Committee {
   id: string;
@@ -24,6 +28,8 @@ interface Department {
   committeeName: string;
   sortOrder: number;
   isActive: boolean;
+  leaderId: string | null;
+  leaderName: string | null;
 }
 
 interface GroupedDepartments {
@@ -34,18 +40,34 @@ interface GroupedDepartments {
 export default function DepartmentsPage() {
   const [committees, setCommittees] = useState<Committee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [editLeaderId, setEditLeaderId] = useState<string>('');
   const [addingToCommittee, setAddingToCommittee] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
+  const [newLeaderId, setNewLeaderId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [expandedCommittees, setExpandedCommittees] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchData();
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users?active=true');
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.users || []);
+      }
+    } catch {
+      console.error('사용자 목록을 불러오는데 실패했습니다.');
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -93,13 +115,18 @@ export default function DepartmentsPage() {
       const response = await fetch('/api/departments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName.trim(), committeeId }),
+        body: JSON.stringify({
+          name: newName.trim(),
+          committeeId,
+          leaderId: newLeaderId || null,
+        }),
       });
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || '추가에 실패했습니다.');
       }
       setNewName('');
+      setNewLeaderId('');
       setAddingToCommittee(null);
       fetchData();
     } catch (err) {
@@ -116,13 +143,17 @@ export default function DepartmentsPage() {
       const response = await fetch(`/api/departments/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editName.trim() }),
+        body: JSON.stringify({
+          name: editName.trim(),
+          leaderId: editLeaderId || null,
+        }),
       });
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || '수정에 실패했습니다.');
       }
       setEditingId(null);
+      setEditLeaderId('');
       fetchData();
     } catch (err) {
       alert(err instanceof Error ? err.message : '오류가 발생했습니다.');
@@ -148,11 +179,13 @@ export default function DepartmentsPage() {
   const startEdit = (department: Department) => {
     setEditingId(department.id);
     setEditName(department.name);
+    setEditLeaderId(department.leaderId || '');
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setEditName('');
+    setEditLeaderId('');
   };
 
   // 위원회별로 그룹화
@@ -225,16 +258,29 @@ export default function DepartmentsPage() {
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
                       placeholder="사역팀명 입력"
-                      className={`${INPUT_BASE} flex-1 max-w-xs`}
+                      className={`${INPUT_BASE} flex-1 max-w-[200px]`}
                       autoFocus
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleAdd(committee.id);
                         if (e.key === 'Escape') {
                           setAddingToCommittee(null);
                           setNewName('');
+                          setNewLeaderId('');
                         }
                       }}
                     />
+                    <select
+                      value={newLeaderId}
+                      onChange={(e) => setNewLeaderId(e.target.value)}
+                      className={`${SELECT_BASE} max-w-[140px]`}
+                    >
+                      <option value="">팀장 선택</option>
+                      {users.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.username}
+                        </option>
+                      ))}
+                    </select>
                     <button
                       onClick={() => handleAdd(committee.id)}
                       disabled={saving || !newName.trim()}
@@ -246,6 +292,7 @@ export default function DepartmentsPage() {
                       onClick={() => {
                         setAddingToCommittee(null);
                         setNewName('');
+                        setNewLeaderId('');
                       }}
                       className={`${BTN_SM} text-gray-600 hover:bg-gray-100`}
                     >
@@ -265,21 +312,40 @@ export default function DepartmentsPage() {
                     <div className="flex items-center gap-3 flex-1">
                       <div className="w-4"></div>
                       {editingId === dept.id ? (
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className={`${INPUT_BASE} max-w-xs`}
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleUpdate(dept.id);
-                            if (e.key === 'Escape') cancelEdit();
-                          }}
-                        />
+                        <>
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className={`${INPUT_BASE} max-w-[200px]`}
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleUpdate(dept.id);
+                              if (e.key === 'Escape') cancelEdit();
+                            }}
+                          />
+                          <select
+                            value={editLeaderId}
+                            onChange={(e) => setEditLeaderId(e.target.value)}
+                            className={`${SELECT_BASE} max-w-[140px]`}
+                          >
+                            <option value="">팀장 선택</option>
+                            {users.map((user) => (
+                              <option key={user.id} value={user.id}>
+                                {user.username}
+                              </option>
+                            ))}
+                          </select>
+                        </>
                       ) : (
-                        <span className={!dept.isActive ? 'line-through' : ''}>
-                          {dept.name}
-                        </span>
+                        <>
+                          <span className={!dept.isActive ? 'line-through' : ''}>
+                            {dept.name}
+                          </span>
+                          <span className={`text-sm ${dept.leaderName ? 'text-blue-600' : 'text-gray-400'}`}>
+                            ({dept.leaderName || '팀장 미지정'})
+                          </span>
+                        </>
                       )}
                     </div>
 

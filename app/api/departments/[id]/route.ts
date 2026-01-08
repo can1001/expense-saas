@@ -9,7 +9,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, isActive, sortOrder, committeeId } = body;
+    const { name, isActive, sortOrder, committeeId, leaderId } = body;
 
     // 사역팀 존재 확인
     const existing = await prisma.department.findUnique({
@@ -48,10 +48,16 @@ export async function PATCH(
     if (isActive !== undefined) updateData.isActive = isActive;
     if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
     if (committeeId !== undefined) updateData.committeeId = committeeId;
+    if (leaderId !== undefined) updateData.leaderId = leaderId || null;
 
     const department = await prisma.department.update({
       where: { id },
       data: updateData,
+      include: {
+        leader: {
+          select: { id: true, username: true },
+        },
+      },
     });
 
     return NextResponse.json(department);

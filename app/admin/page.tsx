@@ -11,7 +11,8 @@ import {
   FileSpreadsheet,
   UserCog,
   BarChart3,
-  Eye
+  Eye,
+  Wand2
 } from 'lucide-react';
 
 interface QuickLinkItem {
@@ -36,6 +37,13 @@ const quickLinks: QuickLinkItem[] = [
     description: '위원회별 사역팀 관리',
     icon: Users2,
     color: 'bg-teal-500',
+  },
+  {
+    href: '/admin/budget-wizard',
+    title: '예산 등록 마법사',
+    description: '위원회 → 사역팀 → 예산 순서로 등록',
+    icon: Wand2,
+    color: 'bg-violet-500',
   },
   {
     href: '/admin/users',

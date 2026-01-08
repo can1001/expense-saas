@@ -158,6 +158,10 @@ model Committee {
   sortOrder   Int          @default(0)
   isActive    Boolean      @default(true)
 
+  // 위원장 (기본값, 실제 역할은 UserYearRole로 관리)
+  leaderId    String?
+  leader      User?        @relation("CommitteeLeader", fields: [leaderId], references: [id])
+
   departments Department[]
 
   createdAt   DateTime     @default(now())
@@ -165,6 +169,7 @@ model Committee {
 
   @@index([sortOrder])
   @@index([isActive])
+  @@index([leaderId])
 }
 
 // 사역팀(부)
@@ -177,6 +182,10 @@ model Department {
   sortOrder    Int        @default(0)
   isActive     Boolean    @default(true)
 
+  // 팀장 (기본값, 실제 역할은 UserYearRole로 관리)
+  leaderId     String?
+  leader       User?      @relation("DepartmentLeader", fields: [leaderId], references: [id])
+
   // 관계
   budgetDetails DepartmentBudgetDetail[]
 
@@ -187,6 +196,7 @@ model Department {
   @@index([committeeId])
   @@index([sortOrder])
   @@index([isActive])
+  @@index([leaderId])
 }
 
 // 예산(항)
@@ -548,6 +558,10 @@ model User {
   bankAccounts       SavedBankAccount[]         // 저장된 은행 계좌들
   expenses           Expense[]                  // 작성한 지출결의서들
   managedBudgets     BudgetDetailYear[]  @relation("BudgetDetailManager")  // 담당 예산 세목들
+
+  // 리더 역할 (기본값 설정용)
+  ledCommittees      Committee[]   @relation("CommitteeLeader")   // 담당 위원회
+  ledDepartments     Department[]  @relation("DepartmentLeader")  // 담당 사역팀
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
