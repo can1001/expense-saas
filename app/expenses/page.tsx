@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import Header from '@/components/Header';
 import { ExcelExportModal } from '@/components/ExcelExportModal';
 import ExpenseCard from '@/components/ExpenseCard';
 import MobileFilterPanel, { MobileFilterButton } from '@/components/MobileFilterPanel';
+import { ExpenseListSkeleton, FilterSkeleton, TableSkeleton } from '@/components/ui/Skeleton';
+import { LoadMoreIndicator } from '@/components/ui/LoadingIndicator';
 import { ExpenseListItem, ExpenseListResponse, UserRole } from '@/lib/types';
 import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_OUTLINE, BTN_LG, BTN_PAGINATION, BTN_PAGE_ACTIVE, BTN_PAGE_INACTIVE, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 import { formatCurrency } from '@/lib/utils';
@@ -35,6 +37,10 @@ export default function ExpensesPage() {
   // 현재 사용자 및 일괄 변경 상태
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+
+  // 모바일 무한 스크롤
+  const [mobileVisibleCount, setMobileVisibleCount] = useState(10);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // 고급 필터
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -166,7 +172,30 @@ export default function ExpensesPage() {
   // 페이지 변경 시 첫 페이지로 리셋
   useEffect(() => {
     setCurrentPage(1);
+    setMobileVisibleCount(10); // 모바일도 리셋
   }, [searchQuery, itemsPerPage, filters]);
+
+  // 모바일 무한 스크롤 - Intersection Observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && mobileVisibleCount < filteredExpenses.length) {
+          setMobileVisibleCount(prev => Math.min(prev + 10, filteredExpenses.length));
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [mobileVisibleCount, filteredExpenses.length]);
+
+  // 모바일용 표시 항목
+  const mobileVisibleExpenses = filteredExpenses.slice(0, mobileVisibleCount);
+  const hasMoreMobile = mobileVisibleCount < filteredExpenses.length;
 
   // 필터 옵션 추출
   const uniqueCommittees = Array.from(new Set(expenses.map(e => e.committee))).sort();
@@ -334,10 +363,27 @@ export default function ExpensesPage() {
 
   if (loading) {
     return (
-      <div className={`min-h-screen bg-gray-50 ${FLEX_CENTER}`}>
-        <div className="text-center">
-          <div className={`inline-block ${SPINNER_LG}`}></div>
-          <p className="mt-4 text-gray-600">데이터를 불러오는 중...</p>
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* 헤더 스켈레톤 */}
+          <div className="mb-6">
+            <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2" />
+            <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
+          </div>
+
+          {/* 필터 스켈레톤 */}
+          <FilterSkeleton />
+
+          {/* 모바일: 카드 스켈레톤 */}
+          <div className="md:hidden mt-4">
+            <ExpenseListSkeleton count={5} />
+          </div>
+
+          {/* 데스크톱: 테이블 스켈레톤 */}
+          <div className="hidden md:block mt-4">
+            <TableSkeleton rows={10} columns={8} />
+          </div>
         </div>
       </div>
     );
@@ -681,7 +727,7 @@ export default function ExpensesPage() {
           </div>
         )}
 
-        {/* 모바일 카드 뷰 (md 미만) */}
+        {/* 모바일 카드 뷰 (md 미만) - 무한 스크롤 */}
         <div className="md:hidden space-y-3">
           {/* 전체 선택 헤더 */}
           <div className="bg-white rounded-lg border border-gray-200 p-3 flex items-center justify-between">
@@ -695,25 +741,33 @@ export default function ExpensesPage() {
               <span className="text-sm font-medium text-gray-700">전체 선택</span>
             </label>
             <span className="text-sm text-gray-500">
-              {paginatedExpenses.length}건
+              {mobileVisibleExpenses.length} / {filteredExpenses.length}건
             </span>
           </div>
 
-          {/* 카드 목록 */}
-          {paginatedExpenses.length === 0 ? (
+          {/* 카드 목록 - 무한 스크롤 */}
+          {filteredExpenses.length === 0 ? (
             <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
               {searchQuery ? '검색 결과가 없습니다.' : '등록된 지출결의서가 없습니다.'}
             </div>
           ) : (
-            paginatedExpenses.map((expense) => (
-              <ExpenseCard
-                key={expense.id}
-                expense={expense}
-                isSelected={selectedIds.has(expense.id)}
-                onSelect={handleSelectOne}
-                onClick={handleRowClick}
+            <>
+              {mobileVisibleExpenses.map((expense) => (
+                <ExpenseCard
+                  key={expense.id}
+                  expense={expense}
+                  isSelected={selectedIds.has(expense.id)}
+                  onSelect={handleSelectOne}
+                  onClick={handleRowClick}
+                />
+              ))}
+              {/* 무한 스크롤 로딩 인디케이터 */}
+              <LoadMoreIndicator
+                isLoading={false}
+                hasMore={hasMoreMobile}
+                loadMoreRef={loadMoreRef}
               />
-            ))
+            </>
           )}
         </div>
 
