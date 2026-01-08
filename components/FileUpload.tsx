@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { Camera } from 'lucide-react';
 import ImagePreview, { ImagePreviewFile } from './ImagePreview';
 import { uploadFiles, removeFile, FileServiceError } from '@/lib/services/file-service';
 import { FILE_VALIDATION } from '@/lib/constants/file-validation';
 import { UploadedFile } from '@/lib/types';
 import { SPINNER_BLUE } from '@/lib/constants/styles';
+import { CameraButton } from './mobile/CameraCapture';
 
 export type { UploadedFile };
 
@@ -131,8 +133,21 @@ export default function FileUpload({
     }
   };
 
+  // 카메라로 촬영한 파일 처리
+  const handleCameraCapture = useCallback(
+    (file: File) => {
+      handleFiles([file]);
+    },
+    [handleFiles]
+  );
+
   return (
     <div className="space-y-4">
+      {/* 모바일 카메라 버튼 */}
+      {!disabled && files.length < maxFiles && (
+        <CameraButton onCapture={handleCameraCapture} />
+      )}
+
       {/* 드래그 앤 드롭 영역 */}
       <div
         {...getRootProps()}

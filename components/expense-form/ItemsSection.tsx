@@ -7,6 +7,8 @@
 import { Control, useFieldArray, UseFormRegister, UseFormSetValue, useWatch, FieldErrors } from 'react-hook-form';
 import { ExpenseFormData, defaultExpenseItem, calculateAmount } from '@/lib/schemas/expense-schema';
 import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_SM, SECTION_CARD, SECTION_TITLE } from '@/lib/constants/styles';
+import { VoiceInputButton } from '@/components/mobile/VoiceInput';
+import LocationPicker from '@/components/mobile/LocationPicker';
 
 interface ItemsSectionProps {
   control: Control<ExpenseFormData>;
@@ -155,15 +157,34 @@ export default function ItemsSection({
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   적요 <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  {...register(`items.${index}.description`)}
-                  disabled={disabled}
-                  placeholder="상세 설명"
-                  className={`${INPUT_BASE} ${errors?.items?.[index]?.description ? 'border-red-500' : ''}`}
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    {...register(`items.${index}.description`)}
+                    disabled={disabled}
+                    placeholder="상세 설명"
+                    className={`${INPUT_BASE} flex-1 ${errors?.items?.[index]?.description ? 'border-red-500' : ''}`}
+                  />
+                  {/* 모바일 음성 입력 버튼 */}
+                  <VoiceInputButton
+                    onTranscript={(text) => setValue(`items.${index}.description`, text)}
+                    disabled={disabled}
+                  />
+                </div>
                 {errors?.items?.[index]?.description && (
                   <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.items[index].description.message}</p>
+                )}
+                {/* 모바일 위치 입력 - 첫 번째 항목에서만 표시 */}
+                {index === 0 && (
+                  <div className="mt-2">
+                    <LocationPicker
+                      onLocationSelect={(location) => {
+                        const currentDesc = items?.[index]?.description || '';
+                        const newDesc = currentDesc ? `${currentDesc} (${location})` : location;
+                        setValue(`items.${index}.description`, newDesc);
+                      }}
+                    />
+                  </div>
                 )}
               </div>
 
