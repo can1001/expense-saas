@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SELECT_BASE, INPUT_DISABLED, LABEL_BASE, LABEL_REQUIRED, SPINNER } from '@/lib/constants/styles';
+import { ChevronRight } from 'lucide-react';
 
 interface BudgetSelectorProps {
   value: {
@@ -176,8 +177,55 @@ export default function BudgetSelector({
 
   const selectClasses = `${SELECT_BASE} ${disabled ? INPUT_DISABLED : ''}`;
 
+  // 선택 진행률 계산
+  const getProgress = () => {
+    let count = 0;
+    if (value.committee) count++;
+    if (value.department) count++;
+    if (value.category) count++;
+    if (value.subcategory) count++;
+    if (showDetail && value.detail) count++;
+    return count;
+  };
+
+  const totalSteps = showDetail ? 5 : 4;
+  const progress = getProgress();
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
+      {/* 모바일 진행률 표시 */}
+      <div className="md:hidden">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-gray-700">예산 선택</span>
+          <span className="text-sm text-gray-500">{progress}/{totalSteps} 완료</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-1.5">
+          <div
+            className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
+            style={{ width: `${(progress / totalSteps) * 100}%` }}
+          />
+        </div>
+
+        {/* 선택된 항목 요약 (모바일) */}
+        {progress > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-1 text-xs text-gray-600">
+            {value.committee && <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{value.committee}</span>}
+            {value.department && (
+              <>
+                <ChevronRight className="w-3 h-3 text-gray-400" />
+                <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{value.department}</span>
+              </>
+            )}
+            {value.category && (
+              <>
+                <ChevronRight className="w-3 h-3 text-gray-400" />
+                <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{value.category}</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* 위원회 */}
       <div>
         <label htmlFor="committee" className={`${LABEL_BASE} ${LABEL_REQUIRED}`}>
@@ -276,11 +324,11 @@ export default function BudgetSelector({
       {showDetail && value.subcategory && (
         <div>
           <label htmlFor="detail" className={LABEL_BASE}>
-            예산(세목) (선택사항)
+            예산(세목) <span className="text-gray-400 text-xs">(선택사항)</span>
           </label>
           {details.length === 0 ? (
-            <div className="px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 text-sm">
-              해당 예산(목)에는 세목이 없습니다. 세부 항목에 직접 입력해주세요.
+            <div className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 text-sm min-h-[44px] flex items-center">
+              해당 예산(목)에는 세목이 없습니다.
             </div>
           ) : (
             <select

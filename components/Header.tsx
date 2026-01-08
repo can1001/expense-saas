@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FileText, CheckSquare, Home, LogOut, User, Settings } from 'lucide-react';
+import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X } from 'lucide-react';
 
 type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'user';
 
@@ -23,14 +23,143 @@ interface UserInfo {
   department?: string;
 }
 
+// 모바일 드로어 컴포넌트
+function MobileDrawer({
+  isOpen,
+  onClose,
+  navItems,
+  user,
+  loading,
+  onLogout,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  navItems: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; active: boolean }[];
+  user: UserInfo | null;
+  loading: boolean;
+  onLogout: () => void;
+}) {
+  // ESC 키로 닫기
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleEsc);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, onClose]);
+
+  return (
+    <>
+      {/* 오버레이 */}
+      <div
+        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 md:hidden ${
+          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={onClose}
+      />
+
+      {/* 드로어 */}
+      <div
+        className={`fixed top-0 left-0 h-full w-72 bg-white z-50 shadow-xl transform transition-transform duration-300 ease-out md:hidden ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* 드로어 헤더 */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <Link href="/" onClick={onClose} className="flex items-center gap-2 text-lg font-bold text-gray-900">
+            <Home className="w-5 h-5" />
+            <span>지출결의서 관리</span>
+          </Link>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="메뉴 닫기"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* 사용자 정보 */}
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          {loading ? (
+            <div className="h-12 bg-gray-200 rounded animate-pulse" />
+          ) : user ? (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <User className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">{user.username}</p>
+                <p className="text-sm text-blue-600">{ROLE_NAMES[user.role]}</p>
+              </div>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              onClick={onClose}
+              className="block w-full py-3 text-center bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              로그인
+            </Link>
+          )}
+        </div>
+
+        {/* 네비게이션 메뉴 */}
+        <nav className="p-4 space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className={`flex items-center gap-3 px-4 py-3 text-base font-medium rounded-lg transition-colors ${
+                  item.active
+                    ? 'text-blue-600 bg-blue-50'
+                    : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* 로그아웃 버튼 */}
+        {user && (
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
+            <button
+              onClick={() => {
+                onLogout();
+                onClose();
+              }}
+              className="flex items-center justify-center gap-2 w-full py-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>로그아웃</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const isHome = pathname === '/';
   const isLoginPage = pathname === '/login';
 
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -50,6 +179,11 @@ export default function Header() {
     };
 
     fetchUser();
+  }, [pathname]);
+
+  // 페이지 변경 시 드로어 닫기
+  useEffect(() => {
+    setIsDrawerOpen(false);
   }, [pathname]);
 
   const handleLogout = async () => {
@@ -95,73 +229,111 @@ export default function Header() {
   ];
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-8">
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors"
-            >
-              <Home className="w-6 h-6" />
-              <span className="hidden sm:inline">지출결의서 관리</span>
-            </Link>
-
-            {/* 메인 네비게이션 */}
-            <nav className="flex items-center gap-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${
-                      item.active
-                        ? 'text-blue-600 bg-blue-50'
-                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
-
-          {/* 오른쪽 영역 - 사용자 정보 */}
-          <div className="flex items-center gap-4">
-            {loading ? (
-              <div className="h-8 w-24 bg-gray-200 rounded animate-pulse" />
-            ) : user ? (
-              <>
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                  <User className="w-4 h-4" />
-                  <span>{user.username}</span>
-                  <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
-                    {ROLE_NAMES[user.role]}
-                  </span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">로그아웃</span>
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/login"
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+    <>
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4 md:gap-8">
+              {/* 모바일 햄버거 버튼 */}
+              <button
+                onClick={() => setIsDrawerOpen(true)}
+                className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="메뉴 열기"
               >
-                로그인
+                <Menu className="w-6 h-6" />
+              </button>
+
+              <Link
+                href="/"
+                className="flex items-center gap-2 text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors"
+              >
+                <Home className="w-6 h-6" />
+                <span className="hidden sm:inline">지출결의서 관리</span>
               </Link>
-            )}
+
+              {/* 데스크톱 네비게이션 */}
+              <nav className="hidden md:flex items-center gap-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${
+                        item.active
+                          ? 'text-blue-600 bg-blue-50'
+                          : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* 오른쪽 영역 - 사용자 정보 (데스크톱) */}
+            <div className="hidden md:flex items-center gap-4">
+              {loading ? (
+                <div className="h-8 w-24 bg-gray-200 rounded animate-pulse" />
+              ) : user ? (
+                <>
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <User className="w-4 h-4" />
+                    <span>{user.username}</span>
+                    <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                      {ROLE_NAMES[user.role]}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>로그아웃</span>
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/login"
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  로그인
+                </Link>
+              )}
+            </div>
+
+            {/* 모바일 - 사용자 아이콘 */}
+            <div className="md:hidden">
+              {loading ? (
+                <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />
+              ) : user ? (
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-blue-600" />
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  로그인
+                </Link>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* 모바일 드로어 */}
+      <MobileDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        navItems={navItems}
+        user={user}
+        loading={loading}
+        onLogout={handleLogout}
+      />
+    </>
   );
 }
-

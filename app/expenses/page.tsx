@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import Header from '@/components/Header';
 import { ExcelExportModal } from '@/components/ExcelExportModal';
+import ExpenseCard from '@/components/ExpenseCard';
+import MobileFilterPanel, { MobileFilterButton } from '@/components/MobileFilterPanel';
 import { ExpenseListItem, ExpenseListResponse, UserRole } from '@/lib/types';
 import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_OUTLINE, BTN_LG, BTN_PAGINATION, BTN_PAGE_ACTIVE, BTN_PAGE_INACTIVE, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 import { formatCurrency } from '@/lib/utils';
@@ -36,6 +38,7 @@ export default function ExpensesPage() {
 
   // 고급 필터
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [filters, setFilters] = useState({
     committee: '',
     department: '',
@@ -169,6 +172,9 @@ export default function ExpensesPage() {
   const uniqueCommittees = Array.from(new Set(expenses.map(e => e.committee))).sort();
   const uniqueDepartments = Array.from(new Set(expenses.map(e => e.department))).sort();
   const uniqueCategories = Array.from(new Set(expenses.map(e => e.budgetCategory))).sort();
+
+  // 활성화된 필터 개수 계산
+  const activeFilterCount = Object.values(filters).filter(v => v !== '').length;
 
   const handleFilterChange = (field: string, value: string) => {
     setFilters({ ...filters, [field]: value });
@@ -360,18 +366,72 @@ export default function ExpensesPage() {
       <Header />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 헤더 */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">지출결의서 목록</h1>
-          <p className="mt-2 text-gray-600">
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">지출결의서 목록</h1>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
             총 {filteredExpenses.length}건의 지출결의서
           </p>
         </div>
 
         {/* 검색 및 필터 */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-col gap-4">
-            {/* 기본 검색 */}
-            <div className="flex flex-col sm:flex-row gap-4 items-end justify-between">
+            {/* 모바일 검색 + 필터 버튼 */}
+            <div className="md:hidden">
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="검색..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white placeholder-gray-400 min-h-[48px]"
+                  />
+                </div>
+                <MobileFilterButton
+                  onClick={() => setShowMobileFilters(true)}
+                  activeCount={activeFilterCount}
+                />
+              </div>
+              {/* 활성 필터 태그 표시 */}
+              {activeFilterCount > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {filters.committee && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      {filters.committee}
+                      <button onClick={() => handleFilterChange('committee', '')} className="hover:text-blue-900">×</button>
+                    </span>
+                  )}
+                  {filters.department && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      {filters.department}
+                      <button onClick={() => handleFilterChange('department', '')} className="hover:text-blue-900">×</button>
+                    </span>
+                  )}
+                  {filters.budgetCategory && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      {filters.budgetCategory}
+                      <button onClick={() => handleFilterChange('budgetCategory', '')} className="hover:text-blue-900">×</button>
+                    </span>
+                  )}
+                  {filters.paymentStatus && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      {filters.paymentStatus === 'PENDING' ? '지출예정' : '지출완료'}
+                      <button onClick={() => handleFilterChange('paymentStatus', '')} className="hover:text-blue-900">×</button>
+                    </span>
+                  )}
+                  {(filters.startDate || filters.endDate) && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      {filters.startDate || '시작'} ~ {filters.endDate || '종료'}
+                      <button onClick={() => { handleFilterChange('startDate', ''); handleFilterChange('endDate', ''); }} className="hover:text-blue-900">×</button>
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 데스크톱 기본 검색 */}
+            <div className="hidden md:flex flex-col sm:flex-row gap-4 items-end justify-between">
               <div className="w-full sm:flex-1">
                 <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
                   통합 검색
@@ -420,9 +480,9 @@ export default function ExpensesPage() {
               </div>
             </div>
 
-            {/* 고급 필터 */}
+            {/* 고급 필터 (데스크톱만) */}
             {showAdvancedFilters && (
-              <div className="pt-4 border-t border-gray-200">
+              <div className="hidden md:block pt-4 border-t border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -549,11 +609,11 @@ export default function ExpensesPage() {
 
         {/* 선택 항목 액션 바 */}
         {selectedIds.size > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex items-center justify-between flex-wrap gap-3">
-            <span className="text-blue-700 font-medium">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <span className="text-blue-700 font-medium text-center sm:text-left">
               {selectedIds.size}건 선택됨
             </span>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-end">
               {/* 관리자/재정팀장 전용: 일괄 지출 상태 변경 버튼 */}
               {canBulkChangePaymentStatus && (
                 <>
@@ -621,8 +681,44 @@ export default function ExpensesPage() {
           </div>
         )}
 
-        {/* 테이블 */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        {/* 모바일 카드 뷰 (md 미만) */}
+        <div className="md:hidden space-y-3">
+          {/* 전체 선택 헤더 */}
+          <div className="bg-white rounded-lg border border-gray-200 p-3 flex items-center justify-between">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isAllSelected}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+                className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-gray-700">전체 선택</span>
+            </label>
+            <span className="text-sm text-gray-500">
+              {paginatedExpenses.length}건
+            </span>
+          </div>
+
+          {/* 카드 목록 */}
+          {paginatedExpenses.length === 0 ? (
+            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
+              {searchQuery ? '검색 결과가 없습니다.' : '등록된 지출결의서가 없습니다.'}
+            </div>
+          ) : (
+            paginatedExpenses.map((expense) => (
+              <ExpenseCard
+                key={expense.id}
+                expense={expense}
+                isSelected={selectedIds.has(expense.id)}
+                onSelect={handleSelectOne}
+                onClick={handleRowClick}
+              />
+            ))
+          )}
+        </div>
+
+        {/* 데스크톱 테이블 뷰 (md 이상) */}
+        <div className="hidden md:block bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-blue-500">
@@ -777,32 +873,39 @@ export default function ExpensesPage() {
             </table>
           </div>
 
-          {/* 페이지네이션 */}
-          {paginatedExpenses.length > 0 && (
-            <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
-              <div className="text-sm text-gray-700">
-                <span className="font-medium">{startIndex + 1}</span>
-                {' - '}
-                <span className="font-medium">
-                  {Math.min(endIndex, filteredExpenses.length)}
+        </div>
+
+        {/* 페이지네이션 (모바일/데스크톱 공통) */}
+        {paginatedExpenses.length > 0 && (
+          <div className="mt-4 bg-white rounded-lg shadow-sm p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-gray-700">
+              <span className="font-medium">{startIndex + 1}</span>
+              {' - '}
+              <span className="font-medium">
+                {Math.min(endIndex, filteredExpenses.length)}
+              </span>
+              {' / '}
+              <span className="font-medium">{filteredExpenses.length}</span>
+              {' 건'}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className={`${BTN_PAGINATION} min-h-[44px] min-w-[44px]`}
+              >
+                이전
+              </button>
+
+              {/* 모바일: 간소화된 페이지 표시 */}
+              <div className="flex gap-1 items-center">
+                <span className="md:hidden text-sm text-gray-600 px-2">
+                  {currentPage} / {totalPages}
                 </span>
-                {' / '}
-                <span className="font-medium">{filteredExpenses.length}</span>
-                {' 건'}
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className={BTN_PAGINATION}
-                >
-                  이전
-                </button>
-
-                <div className="flex gap-1">
+                {/* 데스크톱: 전체 페이지 버튼 */}
+                <div className="hidden md:flex gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
-                    // 현재 페이지 주변만 표시
                     if (
                       page === 1 ||
                       page === totalPages ||
@@ -823,21 +926,21 @@ export default function ExpensesPage() {
                     return null;
                   })}
                 </div>
-
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  className={BTN_PAGINATION}
-                >
-                  다음
-                </button>
               </div>
-            </div>
-          )}
-        </div>
 
-        {/* 신규 등록 버튼 */}
-        <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className={`${BTN_PAGINATION} min-h-[44px] min-w-[44px]`}
+              >
+                다음
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 신규 등록 버튼 - 데스크톱 */}
+        <div className="mt-6 hidden md:flex justify-end">
           <button
             onClick={() => router.push('/expenses/new')}
             className={`${BTN_PRIMARY} ${BTN_LG} shadow-sm`}
@@ -845,6 +948,22 @@ export default function ExpensesPage() {
             + 신규 지출결의서 작성
           </button>
         </div>
+
+        {/* 하단 여백 (모바일 플로팅 버튼 공간 확보) */}
+        <div className="h-20 md:hidden" />
+      </div>
+
+      {/* 신규 등록 버튼 - 모바일 플로팅 */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-gray-100 to-transparent">
+        <button
+          onClick={() => router.push('/expenses/new')}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          신규 지출결의서 작성
+        </button>
       </div>
 
       {/* 엑셀 다운로드 모달 */}
@@ -854,6 +973,18 @@ export default function ExpensesPage() {
         onExport={handleExportExcel}
         selectedCount={selectedIds.size}
         isExporting={exporting}
+      />
+
+      {/* 모바일 필터 패널 */}
+      <MobileFilterPanel
+        isOpen={showMobileFilters}
+        onClose={() => setShowMobileFilters(false)}
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onClearFilters={clearFilters}
+        uniqueCommittees={uniqueCommittees}
+        uniqueDepartments={uniqueDepartments}
+        uniqueCategories={uniqueCategories}
       />
     </div>
   );

@@ -224,19 +224,19 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8 pb-24 sm:pb-0">
       {/* 에러 메시지 */}
       {error && (
-        <div className={ALERT_ERROR}>
+        <div className={`${ALERT_ERROR} text-sm sm:text-base`}>
           {error}
         </div>
       )}
 
       {/* Zod 검증 에러 표시 */}
       {Object.keys(errors).length > 0 && (
-        <div className={ALERT_ERROR}>
+        <div className={`${ALERT_ERROR} text-sm sm:text-base`}>
           <p className="font-medium mb-2">다음 항목을 확인해주세요:</p>
-          <ul className="list-disc list-inside space-y-1 text-sm">
+          <ul className="list-disc list-inside space-y-1 text-xs sm:text-sm">
             {errors.committee && <li>{errors.committee.message}</li>}
             {errors.department && <li>{errors.department.message}</li>}
             {errors.budgetCategory && <li>{errors.budgetCategory.message}</li>}
@@ -315,8 +315,8 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         requestAmount={items?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0}
       />
 
-      {/* 버튼 */}
-      <div className="flex justify-end gap-4">
+      {/* 데스크톱 버튼 */}
+      <div className="hidden sm:flex justify-end gap-4">
         <button
           type="button"
           onClick={() => router.back()}
@@ -341,6 +341,40 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
           onClick={handleSubmitClick}
           disabled={loading || isSubmitting}
           className={`${BTN_SUCCESS} ${BTN_LG} disabled:cursor-not-allowed`}
+        >
+          {(loading || isSubmitting) && submitMode === 'submit' && (
+            <div className={SPINNER}></div>
+          )}
+          {(loading || isSubmitting) && submitMode === 'submit' ? '제출 중...' : '제출'}
+        </button>
+      </div>
+
+      {/* 모바일 하단 고정 버튼 */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex gap-3 z-30 shadow-lg">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          disabled={loading || isSubmitting}
+          className={`${BTN_OUTLINE} flex-1 min-h-[48px] disabled:cursor-not-allowed`}
+        >
+          취소
+        </button>
+        <button
+          type="submit"
+          onClick={handleSave}
+          disabled={loading || isSubmitting}
+          className={`${BTN_PRIMARY} flex-1 min-h-[48px] disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+        >
+          {(loading || isSubmitting) && submitMode === 'save' && (
+            <div className={SPINNER}></div>
+          )}
+          {(loading || isSubmitting) && submitMode === 'save' ? '저장 중...' : '저장'}
+        </button>
+        <button
+          type="submit"
+          onClick={handleSubmitClick}
+          disabled={loading || isSubmitting}
+          className={`${BTN_SUCCESS} flex-1 min-h-[48px] disabled:cursor-not-allowed flex items-center justify-center gap-2`}
         >
           {(loading || isSubmitting) && submitMode === 'submit' && (
             <div className={SPINNER}></div>

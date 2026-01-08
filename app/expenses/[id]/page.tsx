@@ -13,9 +13,11 @@ import ApprovalStatusBadge from '@/components/approval/ApprovalStatusBadge';
 import ApprovalLineDisplay from '@/components/approval/ApprovalLineDisplay';
 import ApprovalActionButtons from '@/components/approval/ApprovalActionButtons';
 import { PaymentStatusModal } from '@/components/PaymentStatusModal';
+import Accordion, { InfoRow, MobileItemCard } from '@/components/ui/Accordion';
 import { Expense } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_SECONDARY, BTN_SUCCESS, BTN_DANGER, BTN_EMERALD, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
+import { ArrowLeft, Printer, FileSpreadsheet, Edit2, Trash2 } from 'lucide-react';
 
 export default function ExpenseDetailPage() {
   const router = useRouter();
@@ -308,14 +310,64 @@ export default function ExpenseDetailPage() {
       {/* 웹 화면용 (프린트 시 숨김) */}
       <div className="min-h-screen bg-gray-50 screen-only">
         <Header />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 헤더 */}
-        <div className="mb-8 flex justify-between items-start">
+
+        {/* 모바일 상단 바 */}
+        <div className="md:hidden sticky top-16 z-20 bg-white border-b border-gray-200 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => router.push('/expenses')}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 min-h-[44px]"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span>목록</span>
+            </button>
+            <div className="flex items-center gap-2">
+              <ApprovalStatusBadge status={expense.status || 'DRAFT'} size="sm" />
+              {expense.status === 'APPROVED_FINAL' && (
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                  expense.paymentStatus === 'COMPLETED'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-amber-100 text-amber-800'
+                }`}>
+                  {expense.paymentStatus === 'COMPLETED' ? '지출완료' : '지출예정'}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pb-32 md:pb-8">
+
+        {/* 모바일 요약 카드 */}
+        <div className="md:hidden mb-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-gray-500">
+                {format(new Date(expense.requestDate), 'yyyy-MM-dd')}
+              </span>
+              <span className="text-sm text-gray-500">{expense.committee}</span>
+            </div>
+            <div className="mb-3">
+              <h2 className="text-lg font-bold text-gray-900">{expense.applicantName}</h2>
+              <p className="text-sm text-gray-600">{expense.budgetCategory} &gt; {expense.budgetSubcategory}</p>
+            </div>
+            <div className="pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">총 청구금액</span>
+                <span className="text-2xl font-bold text-blue-600">
+                  {formatCurrency(expense.requestAmount)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 데스크톱 헤더 */}
+        <div className="hidden md:flex mb-8 justify-between items-start">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold text-gray-900">지출결의서 상세</h1>
               <ApprovalStatusBadge status={expense.status || 'DRAFT'} size="lg" />
-              {/* 지출 상태 뱃지 (최종 승인된 경우에만 표시) */}
               {expense.status === 'APPROVED_FINAL' && (
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                   expense.paymentStatus === 'COMPLETED'
@@ -332,90 +384,14 @@ export default function ExpenseDetailPage() {
           </div>
 
           <div className="flex gap-2 no-print">
-            {/* 프린트 버튼 */}
             <button
               onClick={handlePrint}
               className={BTN_PRIMARY}
               title="페이지 프린트"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-                />
-              </svg>
+              <Printer className="w-5 h-5" />
               프린트
             </button>
-            {/* PDF 다운로드 버튼 - 임시 숨김 */}
-            {/* <button
-              onClick={handleDownloadPDF}
-              disabled={pdfLoading}
-              className={BTN_SUCCESS}
-              title="PDF 파일로 다운로드"
-            >
-              {pdfLoading ? (
-                <>
-                  <div className={SPINNER}></div>
-                  생성 중...
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  PDF
-                </>
-              )}
-            </button> */}
-            {/* 엑셀 다운로드 버튼 - 임시 숨김 */}
-            {/* <button
-              onClick={handleDownloadExcel}
-              disabled={excelLoading}
-              className={BTN_EMERALD}
-              title="엑셀 파일로 다운로드"
-            >
-              {excelLoading ? (
-                <>
-                  <div className={SPINNER}></div>
-                  생성 중...
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                    />
-                  </svg>
-                  엑셀
-                </>
-              )}
-            </button> */}
-            {/* 웹 교적용 엑셀 다운로드 버튼 */}
             <button
               onClick={handleDownloadWebExcel}
               disabled={webExcelLoading}
@@ -429,19 +405,7 @@ export default function ExpenseDetailPage() {
                 </>
               ) : (
                 <>
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
+                  <FileSpreadsheet className="w-5 h-5" />
                   웹교적
                 </>
               )}
@@ -458,151 +422,205 @@ export default function ExpenseDetailPage() {
               disabled={deleteLoading}
               className={BTN_DANGER}
             >
-              {deleteLoading && (
-                <div className={SPINNER}></div>
-              )}
+              {deleteLoading && <div className={SPINNER}></div>}
               삭제
             </button>
           </div>
         </div>
 
-        {/* 예산 정보 */}
-        <div className={SECTION_CARD}>
-          <h2 className={SECTION_TITLE}>예산 정보</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">위원회</label>
-              <p className="text-gray-900">{expense.committee}</p>
+        {/* 모바일 아코디언 섹션들 */}
+        <div className="md:hidden space-y-3">
+          {/* 세부 항목 */}
+          <Accordion
+            title="세부 항목"
+            defaultOpen={true}
+            badge={<span className="text-sm text-gray-500">{expense.items.length}건</span>}
+          >
+            <div className="pt-3 space-y-3">
+              {expense.items.map((item) => (
+                <MobileItemCard
+                  key={item.id}
+                  order={item.order}
+                  budgetDetail={item.budgetDetail}
+                  description={item.description}
+                  unitPrice={item.unitPrice}
+                  quantity={item.quantity}
+                  amount={item.amount}
+                />
+              ))}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">사역팀(부)</label>
-              <p className="text-gray-900">{expense.department}</p>
+          </Accordion>
+
+          {/* 예산 정보 */}
+          <Accordion title="예산 정보">
+            <div className="pt-3 grid grid-cols-2 gap-x-4">
+              <InfoRow label="위원회" value={expense.committee} />
+              <InfoRow label="사역팀(부)" value={expense.department} />
+              <InfoRow label="예산(항)" value={expense.budgetCategory} />
+              <InfoRow label="예산(목)" value={expense.budgetSubcategory} />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">예산(항)</label>
-              <p className="text-gray-900">{expense.budgetCategory}</p>
+          </Accordion>
+
+          {/* 신청 정보 */}
+          <Accordion title="신청 정보">
+            <div className="pt-3 grid grid-cols-2 gap-x-4">
+              <InfoRow label="청구일자" value={format(new Date(expense.requestDate), 'yyyy-MM-dd')} />
+              <InfoRow label="지출일자" value={expense.expenseDate ? format(new Date(expense.expenseDate), 'yyyy-MM-dd') : '미정'} />
+              <InfoRow label="청구인" value={expense.applicantName} />
+              {expense.applicantTitle && <InfoRow label="직책" value={expense.applicantTitle} />}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">예산(목)</label>
-              <p className="text-gray-900">{expense.budgetSubcategory}</p>
+          </Accordion>
+
+          {/* 은행 정보 */}
+          <Accordion title="은행 정보">
+            <div className="pt-3">
+              <InfoRow label="은행명" value={expense.bankName} />
+              <InfoRow label="계좌번호" value={expense.accountNumber} />
+              <InfoRow label="예금주" value={expense.accountHolder} />
             </div>
-          </div>
+          </Accordion>
         </div>
 
-        {/* 지출 정보 */}
-        <div className={SECTION_CARD}>
-          <h2 className={SECTION_TITLE}>지출 정보</h2>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">지출일자</label>
-            <p className="text-gray-900">
-              {expense.expenseDate
-                ? format(new Date(expense.expenseDate), 'yyyy-MM-dd')
-                : '미정'}
-            </p>
+        {/* 데스크톱 섹션들 */}
+        <div className="hidden md:block space-y-6">
+          {/* 예산 정보 */}
+          <div className={SECTION_CARD}>
+            <h2 className={SECTION_TITLE}>예산 정보</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">위원회</label>
+                <p className="text-gray-900">{expense.committee}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">사역팀(부)</label>
+                <p className="text-gray-900">{expense.department}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">예산(항)</label>
+                <p className="text-gray-900">{expense.budgetCategory}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">예산(목)</label>
+                <p className="text-gray-900">{expense.budgetSubcategory}</p>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* 세부 항목 */}
-        <div className={SECTION_CARD}>
-          <h2 className={SECTION_TITLE}>세부 항목</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                    순서
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                    예산(세목)
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                    적요
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">
-                    단가
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">
-                    수량
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">
-                    금액
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {expense.items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-3 text-sm text-gray-900">{item.order}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{item.budgetDetail}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{item.description}</td>
-                    <td className="px-4 py-3 text-sm text-right text-gray-900">
-                      {item.unitPrice.toLocaleString('ko-KR')}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right text-gray-900">
-                      {item.quantity}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">
-                      {formatCurrency(item.amount)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-gray-50">
-                <tr>
-                  <td colSpan={5} className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
-                    총 청구금액
-                  </td>
-                  <td className="px-4 py-3 text-right text-lg font-bold text-blue-500">
-                    {formatCurrency(expense.requestAmount)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-
-        {/* 신청 정보 */}
-        <div className={SECTION_CARD}>
-          <h2 className={SECTION_TITLE}>신청 정보</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* 지출 정보 */}
+          <div className={SECTION_CARD}>
+            <h2 className={SECTION_TITLE}>지출 정보</h2>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">청구 일자</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">지출일자</label>
               <p className="text-gray-900">
-                {format(new Date(expense.requestDate), 'yyyy-MM-dd')}
+                {expense.expenseDate
+                  ? format(new Date(expense.expenseDate), 'yyyy-MM-dd')
+                  : '미정'}
               </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">청구팀</label>
-              <p className="text-gray-900">{expense.committee} {expense.department}</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">청구인</label>
-              <p className="text-gray-900">{expense.applicantName}</p>
-            </div>
-            {expense.applicantTitle && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">직책</label>
-                <p className="text-gray-900">{expense.applicantTitle}</p>
-              </div>
-            )}
           </div>
-        </div>
 
-        {/* 은행 정보 */}
-        <div className={SECTION_CARD}>
-          <h2 className={SECTION_TITLE}>은행 정보</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">은행명</label>
-              <p className="text-gray-900">{expense.bankName}</p>
+          {/* 세부 항목 */}
+          <div className={SECTION_CARD}>
+            <h2 className={SECTION_TITLE}>세부 항목</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
+                      순서
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
+                      예산(세목)
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
+                      적요
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">
+                      단가
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">
+                      수량
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">
+                      금액
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {expense.items.map((item) => (
+                    <tr key={item.id}>
+                      <td className="px-4 py-3 text-sm text-gray-900">{item.order}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{item.budgetDetail}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{item.description}</td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900">
+                        {item.unitPrice.toLocaleString('ko-KR')}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900">
+                        {item.quantity}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">
+                        {formatCurrency(item.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-gray-50">
+                  <tr>
+                    <td colSpan={5} className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
+                      총 청구금액
+                    </td>
+                    <td className="px-4 py-3 text-right text-lg font-bold text-blue-500">
+                      {formatCurrency(expense.requestAmount)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">계좌번호</label>
-              <p className="text-gray-900">{expense.accountNumber}</p>
+          </div>
+
+          {/* 신청 정보 */}
+          <div className={SECTION_CARD}>
+            <h2 className={SECTION_TITLE}>신청 정보</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">청구 일자</label>
+                <p className="text-gray-900">
+                  {format(new Date(expense.requestDate), 'yyyy-MM-dd')}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">청구팀</label>
+                <p className="text-gray-900">{expense.committee} {expense.department}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">청구인</label>
+                <p className="text-gray-900">{expense.applicantName}</p>
+              </div>
+              {expense.applicantTitle && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">직책</label>
+                  <p className="text-gray-900">{expense.applicantTitle}</p>
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">예금주</label>
-              <p className="text-gray-900">{expense.accountHolder}</p>
+          </div>
+
+          {/* 은행 정보 */}
+          <div className={SECTION_CARD}>
+            <h2 className={SECTION_TITLE}>은행 정보</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">은행명</label>
+                <p className="text-gray-900">{expense.bankName}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">계좌번호</label>
+                <p className="text-gray-900">{expense.accountNumber}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">예금주</label>
+                <p className="text-gray-900">{expense.accountHolder}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -713,8 +731,8 @@ export default function ExpenseDetailPage() {
           )}
         </div>
 
-        {/* 버튼 */}
-        <div className="flex justify-end gap-4 no-print">
+        {/* 데스크톱 버튼 */}
+        <div className="hidden md:flex justify-end gap-4 no-print">
           <button
             onClick={() => router.push('/expenses')}
             className={`${BTN_OUTLINE} ${BTN_LG}`}
@@ -722,6 +740,48 @@ export default function ExpenseDetailPage() {
             목록으로
           </button>
         </div>
+      </div>
+
+      {/* 모바일 하단 고정 액션 바 */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex gap-2 z-30 shadow-lg no-print">
+        <button
+          onClick={handlePrint}
+          className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors min-h-[48px]"
+        >
+          <Printer className="w-5 h-5" />
+          <span className="text-sm font-medium">프린트</span>
+        </button>
+        <button
+          onClick={handleDownloadWebExcel}
+          disabled={webExcelLoading}
+          className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors min-h-[48px]"
+        >
+          {webExcelLoading ? (
+            <div className={SPINNER}></div>
+          ) : (
+            <FileSpreadsheet className="w-5 h-5" />
+          )}
+          <span className="text-sm font-medium">엑셀</span>
+        </button>
+        <button
+          onClick={() => router.push(`/expenses/${id}/edit`)}
+          disabled={deleteLoading}
+          className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors min-h-[48px]"
+        >
+          <Edit2 className="w-5 h-5" />
+          <span className="text-sm font-medium">수정</span>
+        </button>
+        <button
+          onClick={handleDelete}
+          disabled={deleteLoading}
+          className="flex items-center justify-center px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors min-h-[48px] min-w-[48px]"
+        >
+          {deleteLoading ? (
+            <div className={SPINNER}></div>
+          ) : (
+            <Trash2 className="w-5 h-5" />
+          )}
+        </button>
       </div>
       </div>
 

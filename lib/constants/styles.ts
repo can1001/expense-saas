@@ -5,9 +5,10 @@
 
 // ============================================
 // 입력 필드 스타일
+// WCAG 권장 터치 타겟: 최소 44x44px
 // ============================================
 
-export const INPUT_BASE = 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white placeholder-gray-400';
+export const INPUT_BASE = 'w-full px-4 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white placeholder-gray-400';
 
 export const INPUT_ERROR = 'border-red-500 focus:ring-red-500';
 
@@ -15,13 +16,14 @@ export const INPUT_DISABLED = 'bg-gray-100 cursor-not-allowed';
 
 export const SELECT_BASE = `${INPUT_BASE} appearance-none cursor-pointer`;
 
-export const TEXTAREA_BASE = `${INPUT_BASE} resize-none`;
+export const TEXTAREA_BASE = 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white placeholder-gray-400 resize-none';
 
 // ============================================
 // 버튼 스타일
+// WCAG 권장 터치 타겟: 최소 44x44px
 // ============================================
 
-export const BTN_BASE = 'px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50';
+export const BTN_BASE = 'px-4 py-2.5 min-h-[44px] rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50';
 
 export const BTN_PRIMARY = `${BTN_BASE} bg-blue-500 text-white hover:bg-blue-600`;
 
@@ -36,17 +38,17 @@ export const BTN_OUTLINE = `${BTN_BASE} border border-gray-300 text-gray-700 hov
 export const BTN_EMERALD = `${BTN_BASE} bg-emerald-500 text-white hover:bg-emerald-600`;
 
 // 큰 버튼
-export const BTN_LG = 'px-6 py-3';
+export const BTN_LG = 'px-6 py-3 min-h-[48px]';
 
-// 작은 버튼
-export const BTN_SM = 'px-3 py-1.5 text-sm';
+// 작은 버튼 (데스크톱 전용, 모바일에서는 BTN_BASE 사용 권장)
+export const BTN_SM = 'px-3 py-1.5 text-sm min-h-[36px]';
 
 // 페이지네이션 버튼
-export const BTN_PAGINATION = 'px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors';
+export const BTN_PAGINATION = 'px-4 py-2 min-h-[44px] text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors';
 
-export const BTN_PAGE_ACTIVE = 'px-4 py-2 text-sm font-medium rounded-lg bg-blue-500 text-white transition-colors';
+export const BTN_PAGE_ACTIVE = 'px-4 py-2 min-h-[44px] min-w-[44px] text-sm font-medium rounded-lg bg-blue-500 text-white transition-colors flex items-center justify-center';
 
-export const BTN_PAGE_INACTIVE = 'px-4 py-2 text-sm font-medium rounded-lg text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors';
+export const BTN_PAGE_INACTIVE = 'px-4 py-2 min-h-[44px] min-w-[44px] text-sm font-medium rounded-lg text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center';
 
 // ============================================
 // 카드/섹션 스타일
@@ -157,16 +159,56 @@ export const MODAL_LG = 'w-full max-w-2xl';
 
 // ============================================
 // 탭 스타일
+// WCAG 권장 터치 타겟: 최소 44x44px
 // ============================================
 
 export const TAB_CONTAINER = 'flex border-b border-gray-200 mb-4';
 
-export const TAB_ACTIVE = 'px-4 py-2 border-b-2 border-blue-500 text-blue-600 font-medium';
+export const TAB_ACTIVE = 'px-4 py-3 min-h-[44px] border-b-2 border-blue-500 text-blue-600 font-medium flex items-center';
 
-export const TAB_INACTIVE = 'px-4 py-2 text-gray-500 hover:text-gray-700 cursor-pointer';
+export const TAB_INACTIVE = 'px-4 py-3 min-h-[44px] text-gray-500 hover:text-gray-700 cursor-pointer flex items-center';
 
 // ============================================
 // 뱃지 스타일
 // ============================================
 
 export const BADGE_DEFAULT = 'px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800';
+
+// ============================================
+// 반응형 타이포그래피
+// 모바일 → 태블릿 → 데스크톱 순으로 크기 증가
+// ============================================
+
+// 페이지 메인 제목 (홈페이지 등)
+export const TEXT_HERO = 'text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold';
+
+// 페이지 제목
+export const TEXT_PAGE_TITLE = 'text-xl sm:text-2xl md:text-3xl font-bold';
+
+// 섹션 제목
+export const TEXT_SECTION_TITLE = 'text-lg sm:text-xl md:text-2xl font-bold';
+
+// 카드 제목
+export const TEXT_CARD_TITLE = 'text-base sm:text-lg md:text-xl font-bold';
+
+// 부제목/설명
+export const TEXT_SUBTITLE = 'text-sm sm:text-base md:text-lg';
+
+// 본문
+export const TEXT_BODY = 'text-sm sm:text-base';
+
+// 작은 텍스트
+export const TEXT_SMALL = 'text-xs sm:text-sm';
+
+// 통계 숫자
+export const TEXT_STAT = 'text-2xl md:text-3xl font-bold';
+
+// ============================================
+// 반응형 패딩/간격
+// ============================================
+
+export const PADDING_PAGE = 'p-4 sm:p-6 md:p-8';
+
+export const PADDING_CARD = 'p-4 sm:p-6 md:p-8';
+
+export const MARGIN_SECTION = 'mb-6 sm:mb-8 md:mb-12';

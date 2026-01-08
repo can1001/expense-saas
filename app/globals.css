@@ -23,6 +23,125 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  /* 노치 디스플레이 (iPhone X+) safe-area 대응 */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* PWA 스탠드얼론 모드 대응 */
+@media all and (display-mode: standalone) {
+  body {
+    /* 스탠드얼론 모드에서 추가 여백 */
+    padding-top: calc(env(safe-area-inset-top) + 0px);
+  }
+}
+
+/* iOS 터치 하이라이트 제거 */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 스크롤바 스타일 (모바일 친화적) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* 모바일에서 스크롤바 숨김 (터치 스크롤 사용) */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+/* ============================================
+   모바일 터치 최적화 스타일
+   WCAG 권장 터치 타겟: 최소 44x44px
+   ============================================ */
+
+/* 체크박스 터치 영역 확대 */
+input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  /* 모바일에서 체크박스 더 크게 */
+  input[type="checkbox"] {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  /* 체크박스 라벨 터치 영역 확대 */
+  label:has(input[type="checkbox"]) {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0.5rem 0;
+    cursor: pointer;
+  }
+
+  /* 라디오 버튼 터치 영역 확대 */
+  input[type="radio"] {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  /* 모바일에서 select 드롭다운 높이 */
+  select {
+    min-height: 44px;
+  }
+
+  /* 모바일에서 링크 터치 영역 */
+  a:not(.no-touch-expand) {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* 모바일에서 클릭 가능 행 */
+  .clickable-row,
+  tr[class*="cursor-pointer"] {
+    min-height: 56px;
+  }
+
+  /* 폼 입력 시 자동 줌 방지 (iOS) */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="date"],
+  input[type="datetime-local"],
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* 터치 피드백 - 터치 시 살짝 축소 효과 */
+@media (hover: none) and (pointer: coarse) {
+  .touch-feedback:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
 }
 
 /* 프린트 전용 스타일 */
