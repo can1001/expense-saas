@@ -566,3 +566,302 @@ model User {
 - 18개 파일 수정
 - 역할 관리가 완전히 Role 테이블 기반으로 전환됨
 - 새 역할 추가 시 스키마 마이그레이션 불필요
+
+---
+
+## 14. 적요 관리 UI (Phase 2)
+
+### 배경
+관리자가 세목별 적요 예제를 편집할 수 있는 UI를 제공합니다.
+
+### 생성 파일
+- `app/admin/memo-examples/page.tsx` - 적요 예제 관리 페이지
+- `app/api/budget-details/[id]/description/route.ts` - 적요 수정 API
+
+### 변경 파일
+- `lib/constants/admin-menu.ts` - 사이드바 메뉴에 "적요 예제 관리" 추가
+
+### 기능
+
+| 기능 | 설명 |
+|------|------|
+| 세목 목록 표시 | 카테고리/서브카테고리별 계층 구조 |
+| 필터링 | 위원회/부서별 필터 |
+| 검색 | 세목명, 적요 예제 검색 |
+| 인라인 편집 | 텍스트 필드에서 직접 수정 |
+| 개별/전체 저장 | Enter로 개별 저장, 버튼으로 전체 저장 |
+| 변경 표시 | 수정된 항목 노란색 하이라이트 |
+
+### API 엔드포인트
+
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| PATCH | `/api/budget-details/[id]/description` | 적요 예제 수정 |
+
+### 접근 경로
+`/admin` → 예산 → 적요 예제 관리
+
+---
+
+## 15. 팀장 일괄 업로드 기능
+
+### 배경
+Excel 파일을 통해 사역팀장을 일괄 설정할 수 있는 기능입니다.
+
+### 생성 파일
+- `app/admin/leaders-upload/page.tsx` - 팀장 일괄 업로드 페이지
+- `app/api/departments/leaders-upload/route.ts` - 업로드 API
+
+### 변경 파일
+- `lib/constants/admin-menu.ts` - 사이드바 "조직" 그룹에 메뉴 추가
+
+### Excel 형식
+
+| 위원회 | 사역팀 | 팀장 |
+|--------|--------|------|
+| 교육위원회 | 유년부 | 정혜종 |
+| 선교위원회 | 해외선교부 | (비워두면 해제) |
+
+### API 엔드포인트
+
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| GET | `/api/departments/leaders-upload` | 현재 팀장 목록 템플릿 다운로드 |
+| POST | `/api/departments/leaders-upload` | Excel 업로드로 팀장 설정 |
+
+### 기능
+- 템플릿 다운로드 (현재 팀장 정보 포함)
+- Dry-run 미리보기 모드
+- 검증 → 실행 2단계 업로드
+- 오류 상세 표시
+
+### 접근 경로
+`/admin` → 조직 → 팀장 일괄 등록
+
+---
+
+## 16. 테스트 수정 (user-service.test.ts)
+
+### 문제
+Role 테이블 도입 후 `createUser`, `updateUser`, `setYearRole` 테스트 실패
+
+### 원인
+`prisma.role` mock이 누락되어 `getAllRoles()` 호출 시 에러 발생
+
+### 수정 내용
+
+```typescript
+// Mock Prisma에 role 추가
+vi.mock('../../prisma', () => ({
+  prisma: {
+    user: { ... },
+    userYearRole: { ... },
+    role: {
+      findMany: vi.fn(),  // 추가
+    },
+  },
+}));
+
+// Mock 데이터 추가
+const mockRoles = [
+  { id: 'role-1', code: 'admin', ... },
+  { id: 'role-6', code: 'user', ... },
+];
+
+beforeEach(() => {
+  vi.mocked(prisma.role.findMany).mockResolvedValue(mockRoles);
+});
+
+// 테스트 기대값에 roleId 추가
+expect(prisma.user.create).toHaveBeenCalledWith({
+  data: {
+    ...
+    roleId: 'role-6',  // 추가
+  },
+});
+```
+
+### 결과
+- 519개 테스트 모두 통과
+
+---
+
+## 17. db:seed 프로덕션 실행 차단
+
+### 배경
+프로덕션 환경에서 실수로 `npm run db:seed` 실행을 방지합니다.
+
+### 변경 파일
+- `prisma/seed.ts`
+
+### 구현
+
+```typescript
+// 파일 최상단에 추가
+if (process.env.NODE_ENV !== 'development') {
+  console.error('❌ 오류: db:seed는 development 환경에서만 실행할 수 있습니다.');
+  console.error('   현재 NODE_ENV:', process.env.NODE_ENV || '(설정되지 않음)');
+  console.error('   실행 방법: NODE_ENV=development npm run db:seed');
+  process.exit(1);
+}
+```
+
+### 동작
+
+| 명령어 | 결과 |
+|--------|------|
+| `npm run db:seed` | ❌ 차단 (NODE_ENV 미설정) |
+| `NODE_ENV=production npm run db:seed` | ❌ 차단 |
+| `NODE_ENV=development npm run db:seed` | ✅ 실행 허용 |
+
+---
+
+## 18. 환경 설정 파일 분리
+
+### 배경
+Development, Test, Production 환경별 설정 분리를 위한 구조 정리
+
+### 생성 파일
+- `.env.example` - 환경 변수 템플릿 (Git 커밋 가능)
+
+### 변경 파일
+- `.gitignore` - `.env.example` 커밋 허용
+
+### .env.example 내용
+
+```bash
+# 환경 구분
+NODE_ENV=development
+
+# 데이터베이스
+DATABASE_URL="postgresql://..."
+
+# 애플리케이션 URL
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=""
+CLOUDINARY_API_KEY=""
+CLOUDINARY_API_SECRET=""
+```
+
+### .gitignore 변경
+
+```diff
+- .env*
++ .env
++ .env.local
++ .env.development
++ .env.test
++ .env.production
++ # .env.example은 커밋 허용 (템플릿)
+```
+
+### 환경 파일 구조
+
+| 파일 | 용도 | Git |
+|------|------|-----|
+| `.env.example` | 템플릿 | ✅ 커밋 |
+| `.env` | 실제 설정 | ❌ 제외 |
+| `.env.local` | 로컬 개발용 | ❌ 제외 |
+
+### 새 개발자 설정 방법
+```bash
+cp .env.example .env.local
+# .env.local 파일에 실제 값 입력
+```
+
+---
+
+## 19. DB 초기화 스크립트 추가
+
+### 배경
+User, Role 테이블을 제외한 모든 데이터를 초기화하는 스크립트
+
+### 생성 파일
+- `scripts/reset-db-keep-users.ts`
+- `scripts/reset-db-keep-users.sql`
+
+### 실행 방법
+```bash
+npx ts-node --compiler-options '{"module":"CommonJS"}' scripts/reset-db-keep-users.ts
+```
+
+### 삭제 대상 테이블 (순서대로)
+1. ApprovalLog, ApprovalStep, ApprovalLine
+2. ExpenseAttachment, ExpenseItem, Expense
+3. SimpleExpenseAttachment, SimpleExpenseItem, SimpleExpense
+4. BudgetDetailYearHistory, DepartmentBudgetDetail, BudgetDetailYear
+5. BudgetDetail, BudgetSubcategory, BudgetCategory
+6. Department, Committee
+7. BudgetMaster
+8. UserYearRoleHistory, UserYearRole
+9. SavedBankAccount
+
+### 유지 테이블
+- User
+- Role
+
+---
+
+## 20. Admin IA 최적화 (업무 흐름 기반)
+
+### 배경
+Admin 사이드바 메뉴를 업무 흐름 기반으로 재구성하여 사용성을 향상시킵니다.
+
+### 변경 파일
+- `lib/constants/admin-menu.ts`
+
+### 변경 전 (4개 그룹)
+
+```
+조직: 위원회, 사역팀, 팀장 일괄 등록
+사용자: 사용자 관리, 일괄 등록, 연도별 역할, 역할 안내
+예산: 마스터 관리, 담당자, 적요 예제, 현황 조회
+현황: 연도별 팀장 현황
+```
+
+### 변경 후 (5개 그룹)
+
+```
+대시보드
+└─ 홈
+
+연도 설정
+├─ 설정 마법사
+├─ 위원회 관리
+├─ 사역팀(부) 관리
+└─ 예산 마스터 업로드
+
+인원 관리
+├─ 사용자 관리
+├─ 사용자 일괄 등록
+├─ 팀장 일괄 등록
+└─ 연도별 역할 관리
+
+예산 관리
+├─ 세목별 담당자 관리
+├─ 적요 예제 관리
+└─ 예산 현황 조회
+
+현황/리포트
+├─ 연도별 설정 현황
+├─ 연도별 팀장 현황
+└─ 역할 안내
+```
+
+### 개선 사항
+
+| 항목 | 설명 |
+|------|------|
+| 대시보드 추가 | 홈 페이지 빠른 접근 |
+| 연도 설정 워크플로우 | 매년 초 설정 작업을 순서대로 진행 가능 |
+| 인원 관리 통합 | 사용자 + 역할 관련 기능을 한 곳에 배치 |
+| 숨겨진 페이지 노출 | 설정 마법사, 연도별 설정 현황 메뉴에 추가 |
+| 일괄 등록 접근성 | 관련 관리 화면과 같은 그룹에 배치 |
+
+### 추가 아이콘
+
+```typescript
+import { LayoutDashboard, Wand2, CheckCircle } from 'lucide-react';
+```
