@@ -105,6 +105,20 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // 위원회-부서 매핑 정보 조회 (연도별 역할 관리 페이지용)
+    const departmentsWithCommittee = await prisma.department.findMany({
+      where: { isActive: true },
+      include: {
+        committee: true,
+      },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    const items = departmentsWithCommittee.map((d) => ({
+      committee: d.committee.name,
+      department: d.name,
+    }));
+
     return NextResponse.json({
       hierarchy: {
         committees: committees.map((c) => c.name),
@@ -113,6 +127,7 @@ export async function GET(request: NextRequest) {
         subcategories: subcategories.map((s) => s.name),
         details: details.map((d) => d.name),
       },
+      items, // 위원회-부서 매핑 정보
       total: details.length,
     });
   } catch (error) {
