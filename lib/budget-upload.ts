@@ -27,6 +27,8 @@ export interface BudgetRow {
   accountCode?: string | null;
   description?: string | null;
   isActive?: boolean;
+  year?: number | null;          // 연도
+  budgetAmount?: number | null;  // 예산금액
 }
 
 /**
@@ -72,6 +74,8 @@ const COLUMN_MAPPING = {
   accountCode: 7,    // G열: 계정코드 (선택)
   description: 8,    // H열: 항목 내역 (선택)
   isActive: 9,       // I열: 활성화 여부 (선택, 기본값 true)
+  year: 10,          // J열: 연도 (선택)
+  budgetAmount: 11,  // K열: 예산금액 (선택)
 };
 
 /**
@@ -131,6 +135,42 @@ function getCellValueAsBoolean(cell: ExcelJS.Cell | undefined): boolean {
 }
 
 /**
+ * 셀 값을 숫자로 변환
+ */
+function getCellValueAsNumber(cell: ExcelJS.Cell | undefined): number | null {
+  if (!cell || cell.value === null || cell.value === undefined) {
+    return null;
+  }
+
+  const value = cell.value;
+
+  // 숫자 타입
+  if (typeof value === 'number') {
+    return Math.floor(value);
+  }
+
+  // 문자열 타입 (숫자 문자열)
+  if (typeof value === 'string') {
+    const trimmed = value.trim().replace(/,/g, ''); // 콤마 제거
+    if (trimmed === '') {
+      return null;
+    }
+    const parsed = parseInt(trimmed, 10);
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  // 수식 결과 객체
+  if (typeof value === 'object' && 'result' in value) {
+    const result = (value as { result: unknown }).result;
+    if (typeof result === 'number') {
+      return Math.floor(result);
+    }
+  }
+
+  return null;
+}
+
+/**
  * 행 데이터 파싱
  */
 function parseRow(row: ExcelJS.Row, rowNumber: number): { data: BudgetRow | null; errors: ValidationError[] } {
@@ -174,6 +214,8 @@ function parseRow(row: ExcelJS.Row, rowNumber: number): { data: BudgetRow | null
       accountCode: getCellValueAsString(row.getCell(COLUMN_MAPPING.accountCode)),
       description: getCellValueAsString(row.getCell(COLUMN_MAPPING.description)),
       isActive: getCellValueAsBoolean(row.getCell(COLUMN_MAPPING.isActive)),
+      year: getCellValueAsNumber(row.getCell(COLUMN_MAPPING.year)),
+      budgetAmount: getCellValueAsNumber(row.getCell(COLUMN_MAPPING.budgetAmount)),
     },
     errors: [],
   };
@@ -422,6 +464,28 @@ export async function uploadBudgetData(
             },
           });
 
+          // 7. BudgetDetailYear upsert (연도별 예산금액)
+          if (row.year && row.budgetAmount !== null && row.budgetAmount !== undefined) {
+            await tx.budgetDetailYear.upsert({
+              where: {
+                budgetDetailId_year: {
+                  budgetDetailId,
+                  year: row.year,
+                },
+              },
+              update: {
+                budgetAmount: row.budgetAmount,
+                isActive: true,
+              },
+              create: {
+                budgetDetailId,
+                year: row.year,
+                budgetAmount: row.budgetAmount,
+                isActive: true,
+              },
+            });
+          }
+
         } catch (err) {
           summary.errors++;
           validationErrors.push({
@@ -471,6 +535,8 @@ export async function exportBudgetTemplate(): Promise<ArrayBuffer> {
     { header: '계정코드', key: 'accountCode', width: 15 },
     { header: '항목 내역', key: 'description', width: 40 },
     { header: '활성화', key: 'isActive', width: 10 },
+    { header: '연도', key: 'year', width: 10 },
+    { header: '예산금액', key: 'budgetAmount', width: 15 },
   ];
 
   // 헤더 스타일
@@ -499,6 +565,11 @@ export async function exportBudgetTemplate(): Promise<ArrayBuffer> {
           },
         },
       },
+      yearSettings: {
+        orderBy: {
+          year: 'desc',
+        },
+      },
     },
     orderBy: [
       { subcategory: { category: { name: 'asc' } } },
@@ -509,34 +580,45 @@ export async function exportBudgetTemplate(): Promise<ArrayBuffer> {
 
   // 데이터 행 추가
   for (const detail of budgetDetails) {
+    // 연도별 예산 설정 (없으면 빈 배열로 처리)
+    const yearSettings = detail.yearSettings.length > 0 ? detail.yearSettings : [null];
+
     // 각 부서 연결별로 행 추가
     if (detail.departmentDetails.length > 0) {
       for (const dd of detail.departmentDetails) {
-        sheet.addRow({
-          committee: dd.department.committee.name,
-          department: dd.department.name,
-          category: detail.subcategory.category.name,
-          subcategory: detail.subcategory.name,
-          detail: detail.name,
-          manager: '', // 담당자는 BudgetDetailYear에서 관리
-          accountCode: detail.accountCode || '',
-          description: detail.description || '',
-          isActive: detail.isActive ? 'true' : 'false',
-        });
+        for (const ys of yearSettings) {
+          sheet.addRow({
+            committee: dd.department.committee.name,
+            department: dd.department.name,
+            category: detail.subcategory.category.name,
+            subcategory: detail.subcategory.name,
+            detail: detail.name,
+            manager: '',
+            accountCode: detail.accountCode || '',
+            description: detail.description || '',
+            isActive: detail.isActive ? 'true' : 'false',
+            year: ys?.year || '',
+            budgetAmount: ys?.budgetAmount || '',
+          });
+        }
       }
     } else {
       // 부서 연결이 없는 경우
-      sheet.addRow({
-        committee: '',
-        department: '',
-        category: detail.subcategory.category.name,
-        subcategory: detail.subcategory.name,
-        detail: detail.name,
-        manager: '',
-        accountCode: detail.accountCode || '',
-        description: detail.description || '',
-        isActive: detail.isActive ? 'true' : 'false',
-      });
+      for (const ys of yearSettings) {
+        sheet.addRow({
+          committee: '',
+          department: '',
+          category: detail.subcategory.category.name,
+          subcategory: detail.subcategory.name,
+          detail: detail.name,
+          manager: '',
+          accountCode: detail.accountCode || '',
+          description: detail.description || '',
+          isActive: detail.isActive ? 'true' : 'false',
+          year: ys?.year || '',
+          budgetAmount: ys?.budgetAmount || '',
+        });
+      }
     }
   }
 
