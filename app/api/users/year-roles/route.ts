@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { UserRole } from '@prisma/client';
 import {
   getYearRoles,
   setYearRole,
   findUserByUserid,
   CURRENT_YEAR,
+  UserRole,
 } from '@/lib/services/user-service';
 
 // GET /api/users/year-roles - 연도별 역할 목록 조회

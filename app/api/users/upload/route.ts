@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { UserRole } from '@prisma/client';
+
+// 역할 코드 타입 (Role.code와 동일)
+type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
 
 // 기본 비밀번호
 const DEFAULT_PASSWORD = 'chc2026';
@@ -74,7 +76,7 @@ export async function GET() {
     const data = users.map((user) => ({
       'userid (아이디)': user.userid,
       'username (이름)': user.username,
-      'role (역할)': roleDisplayMap[user.role],
+      'role (역할)': roleDisplayMap[user.role as UserRole] ?? user.role,
       'department (부서)': user.department || '',
       'isActive (활성화)': user.isActive ? 'Y' : 'N',
     }));

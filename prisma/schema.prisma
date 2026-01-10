@@ -533,15 +533,8 @@ enum ApprovalAction {
 // 사용자 관리 (User Management)
 // ========================================
 
-// 사용자 역할 (레거시 - 마이그레이션 후 제거 예정)
-enum UserRole {
-  admin            // 시스템 관리자
-  finance_head     // 재정팀장 (3차/최종 결재)
-  accountant       // 회계 (2차 결재)
-  team_leader      // 팀장 (1차 결재)
-  admin_assistant  // 행정간사 (지출관리, 엑셀 다운로드)
-  user             // 일반 사용자
-}
+// 유효한 역할 코드 목록 (Role 테이블과 동기화 필요)
+// admin, finance_head, accountant, team_leader, admin_assistant, user
 
 // 역할 마스터 테이블
 model Role {
@@ -577,7 +570,7 @@ model User {
   userid      String    @unique           // 로그인 아이디 (예: 청연정혜종)
   username    String                      // 표시 이름 (예: 정혜종)
   password    String?                     // 해시된 비밀번호 (향후 인증용)
-  role        UserRole  @default(user)    // 기본 역할 (레거시, 마이그레이션 후 제거)
+  role        String    @default("user")  // 역할 코드 (Role.code 참조)
   roleId      String?                     // 새 역할 테이블 참조
   roleRef     Role?     @relation("UserRole", fields: [roleId], references: [id])
   department  String?                     // 소속 부서 (참고용)
@@ -609,7 +602,7 @@ model UserYearRole {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   year        Int                         // 연도 (예: 2024, 2025)
-  role        UserRole                    // 해당 연도의 역할 (레거시, 마이그레이션 후 제거)
+  role        String                      // 역할 코드 (Role.code 참조)
   roleId      String?                     // 새 역할 테이블 참조
   roleRef     Role?     @relation("YearRole", fields: [roleId], references: [id])
   department  String?                     // 소속 부서 (팀장인 경우)

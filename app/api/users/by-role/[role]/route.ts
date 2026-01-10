@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { UserRole } from '@prisma/client';
-import { findUsersByRole } from '@/lib/services/user-service';
+import { findUsersByRole, UserRole } from '@/lib/services/user-service';
 
 // GET /api/users/by-role/[role] - 역할별 사용자 목록 조회
 export async function GET(

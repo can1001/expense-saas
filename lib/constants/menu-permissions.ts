@@ -3,10 +3,11 @@
  * 클라이언트 컴포넌트에서 안전하게 사용 가능
  */
 
-import { UserRole } from '@prisma/client';
+// 역할 코드 타입 (Role.code와 동일)
+type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
 
 // 역할 한글명 (클라이언트 안전)
-export const ROLE_NAMES: Record<UserRole, string> = {
+export const ROLE_NAMES: Record<string, string> = {
   admin: '관리자',
   finance_head: '재정팀장',
   accountant: '회계',
@@ -40,20 +41,20 @@ export const ADMIN_MENU_ROLES: UserRole[] = [
  * 확장 메뉴 접근 권한 체크
  * (간편 지출결의서 작성/목록)
  */
-export function canAccessExtendedMenu(role: UserRole): boolean {
-  return EXTENDED_MENU_ROLES.includes(role);
+export function canAccessExtendedMenu(role: string): boolean {
+  return EXTENDED_MENU_ROLES.includes(role as UserRole);
 }
 
 /**
  * 결재함 접근 권한 체크
  */
-export function canAccessApprovalMenu(role: UserRole): boolean {
-  return APPROVAL_MENU_ROLES.includes(role);
+export function canAccessApprovalMenu(role: string): boolean {
+  return APPROVAL_MENU_ROLES.includes(role as UserRole);
 }
 
 /**
  * 관리 메뉴 접근 권한 체크
  */
-export function canAccessAdminMenu(role: UserRole): boolean {
-  return ADMIN_MENU_ROLES.includes(role);
+export function canAccessAdminMenu(role: string): boolean {
+  return ADMIN_MENU_ROLES.includes(role as UserRole);
 }

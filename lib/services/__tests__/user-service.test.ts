@@ -4,7 +4,8 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { prisma } from '../../prisma';
-import type { User, UserRole, UserYearRole } from '@prisma/client';
+import type { User, UserYearRole } from '@prisma/client';
+import type { UserRole } from '../user-service';
 
 // Mock bcryptjs
 vi.mock('bcryptjs', () => ({

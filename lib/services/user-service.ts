@@ -1,6 +1,9 @@
 import { prisma } from '../prisma';
-import { User, UserRole, UserYearRole, Role } from '@prisma/client';
+import { User, UserYearRole, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+
+// 역할 코드 타입 (Role.code와 동일)
+export type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
 
 // 현재 연도
 export const CURRENT_YEAR = new Date().getFullYear();
@@ -8,13 +11,13 @@ export const CURRENT_YEAR = new Date().getFullYear();
 // 사용자와 연도별 역할 정보를 포함한 타입
 export interface UserWithYearRole extends User {
   yearRoles?: UserYearRole[];
-  effectiveRole?: UserRole;      // 현재 연도 기준 유효 역할
+  effectiveRole?: string;        // 현재 연도 기준 유효 역할
   effectiveDepartment?: string | null;  // 현재 연도 기준 부서
   roleRef?: Role | null;         // Role 테이블 참조 정보
 }
 
 // 역할별 결재 단계 매핑 (레거시 - Role 테이블의 stepNumber로 대체 예정)
-export const ROLE_STEP_MAP: Record<UserRole, number | null> = {
+export const ROLE_STEP_MAP: Record<string, number | null> = {
   admin: null,            // 시스템 관리자 (결재 없음, 모든 권한)
   team_leader: 1,         // 1차 결재
   accountant: 2,          // 2차 결재
@@ -24,7 +27,7 @@ export const ROLE_STEP_MAP: Record<UserRole, number | null> = {
 };
 
 // 역할 한글명 (레거시 - Role 테이블의 name으로 대체 예정)
-export const ROLE_NAMES: Record<UserRole, string> = {
+export const ROLE_NAMES: Record<string, string> = {
   admin: '관리자',
   finance_head: '재정팀장',
   accountant: '회계',
@@ -138,7 +141,7 @@ export async function findUserByUsername(username: string): Promise<User | null>
 /**
  * 역할로 사용자 목록 조회
  */
-export async function findUsersByRole(role: UserRole): Promise<User[]> {
+export async function findUsersByRole(role: string): Promise<User[]> {
   return prisma.user.findMany({
     where: { role, isActive: true },
     orderBy: { username: 'asc' },
@@ -183,15 +186,15 @@ export function canApprove(user: User, stepNumber: number): boolean {
 /**
  * 역할 표시명 가져오기
  */
-export function getRoleDisplayName(role: UserRole): string {
-  return ROLE_NAMES[role];
+export function getRoleDisplayName(role: string): string {
+  return ROLE_NAMES[role] ?? role;
 }
 
 /**
  * 결재 단계 가져오기
  */
-export function getApprovalStep(role: UserRole): number | null {
-  return ROLE_STEP_MAP[role];
+export function getApprovalStep(role: string): number | null {
+  return ROLE_STEP_MAP[role] ?? null;
 }
 
 // ========================================
@@ -224,7 +227,7 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 export async function createUser(data: {
   userid: string;
   username: string;
-  role?: UserRole;
+  role?: string;
   roleId?: string;
   department?: string;
   password?: string;
@@ -258,7 +261,7 @@ export async function updateUser(
   id: string,
   data: {
     username?: string;
-    role?: UserRole;
+    role?: string;
     roleId?: string;
     department?: string;
     password?: string;
@@ -313,7 +316,7 @@ export async function activateUser(id: string): Promise<User> {
 export async function findUsers(options?: {
   page?: number;
   pageSize?: number;
-  role?: UserRole;
+  role?: string;
   isActive?: boolean;
   search?: string;
   includeRoleRef?: boolean;
@@ -368,7 +371,7 @@ export async function findUsers(options?: {
 export async function getEffectiveRole(
   userId: string,
   year: number = CURRENT_YEAR
-): Promise<{ role: UserRole; department: string | null }> {
+): Promise<{ role: string; department: string | null }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
@@ -427,7 +430,7 @@ export async function findUserWithEffectiveRole(
  * 연도별 역할로 사용자 목록 조회
  */
 export async function findUsersByYearRole(
-  role: UserRole,
+  role: string,
   year: number = CURRENT_YEAR
 ): Promise<UserWithYearRole[]> {
   // admin 역할은 User.role에서 조회
@@ -436,7 +439,7 @@ export async function findUsersByYearRole(
       where: { role: 'admin', isActive: true },
       orderBy: { username: 'asc' },
     });
-    return users.map(u => ({ ...u, effectiveRole: 'admin' as UserRole }));
+    return users.map(u => ({ ...u, effectiveRole: 'admin' }));
   }
 
   // 나머지 역할은 UserYearRole에서 조회
@@ -490,7 +493,7 @@ export async function findAllUsersWithEffectiveRole(
 export async function setYearRole(
   userId: string,
   year: number,
-  role: UserRole,
+  role: string,
   department?: string,
   roleId?: string
 ): Promise<UserYearRole> {

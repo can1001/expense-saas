@@ -5,13 +5,13 @@
  * 새로운 코드에서는 lib/services/user-service.ts를 사용하세요.
  */
 
-import { User, UserRole } from '@prisma/client';
+import { User } from '@prisma/client';
 
-// 타입 re-export
-export type { UserRole };
+// 역할 코드 타입 (Role.code와 동일)
+export type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
 
 // 역할별 결재 단계 매핑
-export const ROLE_STEP_MAP: Record<UserRole, number | null> = {
+export const ROLE_STEP_MAP: Record<string, number | null> = {
   admin: null,            // 시스템 관리자 (결재 없음, 모든 권한)
   team_leader: 1,         // 1차 결재
   accountant: 2,          // 2차 결재
@@ -21,7 +21,7 @@ export const ROLE_STEP_MAP: Record<UserRole, number | null> = {
 };
 
 // 역할 한글명
-export const ROLE_NAMES: Record<UserRole, string> = {
+export const ROLE_NAMES: Record<string, string> = {
   admin: '관리자',
   finance_head: '재정팀장',
   accountant: '회계',
@@ -35,7 +35,7 @@ export interface UserInfo {
   id: string;
   userid: string;       // 로그인 아이디 (예: 청연정혜종)
   username: string;     // 표시 이름 (예: 정혜종)
-  role: UserRole;
+  role: string;         // 역할 코드 (string으로 DB에서 반환)
   department?: string | null;  // 소속 부서 (팀장인 경우)
 }
 

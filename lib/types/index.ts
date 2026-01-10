@@ -194,8 +194,8 @@ export interface PaginatedApiResponse<T> extends ApiResponse<T[]> {
 // 사용자 타입
 // ============================================
 
-/** 사용자 역할 */
-export type UserRole = 'staff' | 'team_leader' | 'accountant' | 'finance_head' | 'admin';
+/** 사용자 역할 코드 (Role.code와 동일) */
+export type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
 
 /** 사용자 정보 */
 export interface User {

@@ -2,14 +2,16 @@
 
 import Link from 'next/link';
 import { canAccessExtendedMenu, canAccessApprovalMenu, canAccessAdminMenu, ROLE_NAMES } from '@/lib/constants/menu-permissions';
-import { UserRole } from '@prisma/client';
 import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, TEXT_STAT, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
+
+// 역할 코드 타입 (Role.code와 동일)
+type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
 
 interface UserInfo {
   id: string;
   userid: string;
   username: string;
-  role: UserRole;
+  role: string;  // 역할 코드 (string으로 DB에서 반환)
   department?: string | null;
 }
 

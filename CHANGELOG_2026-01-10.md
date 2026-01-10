@@ -502,3 +502,67 @@ export function getYearRoleOptions(roles: Role[]): { value: string; label: strin
 ### 결과
 - 빌드 검증 완료
 - `/expenses/new` 페이지에서 사용 가능
+
+---
+
+## 13. Role 마이그레이션 Phase 4 - UserRole enum 제거
+
+### 배경
+Prisma `UserRole` enum을 제거하고 `role` 필드를 `String` 타입으로 변경합니다. 이로써 역할 관리가 완전히 Role 테이블 기반으로 전환됩니다.
+
+### 스키마 변경
+```prisma
+// Before
+enum UserRole {
+  admin
+  finance_head
+  accountant
+  team_leader
+  admin_assistant
+  user
+}
+
+model User {
+  role UserRole @default(user)
+}
+
+// After
+model User {
+  role String @default("user")
+}
+```
+
+### 변경 파일 (18개)
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `prisma/schema.prisma` | UserRole enum 제거, role 필드 String 타입으로 변경 |
+| `prisma/seed.ts` | UserRole 타입 로컬 정의 |
+| `lib/types/index.ts` | UserRole 타입 업데이트 |
+| `lib/users.ts` | UserRole import 제거, 로컬 정의, ROLE_STEP_MAP/ROLE_NAMES Record<string,...> |
+| `lib/constants/menu-permissions.ts` | 함수 시그니처 string 타입으로 변경 |
+| `lib/services/user-service.ts` | 모든 UserRole 참조 string으로 변경 |
+| `lib/services/approval-line-service.ts` | UserRole 로컬 정의 |
+| `app/api/users/route.ts` | UserRole import 경로 변경 |
+| `app/api/users/[id]/route.ts` | UserRole import 경로 변경 |
+| `app/api/users/by-role/[role]/route.ts` | UserRole import 경로 변경 |
+| `app/api/users/upload/route.ts` | UserRole 로컬 정의 |
+| `app/api/users/year-roles/route.ts` | UserRole import 경로 변경 |
+| `components/HomeClient.tsx` | UserRole 로컬 정의, UserInfo.role string 타입 |
+| `lib/services/__tests__/user-service.test.ts` | UserRole import 경로 변경 |
+
+### 타입 변경 요약
+
+| 항목 | Before | After |
+|------|--------|-------|
+| `User.role` | `UserRole` (enum) | `string` |
+| `UserYearRole.role` | `UserRole` (enum) | `string` |
+| `UserInfo.role` | `UserRole` | `string` |
+| `ROLE_STEP_MAP` | `Record<UserRole, number \| null>` | `Record<string, number \| null>` |
+| `ROLE_NAMES` | `Record<UserRole, string>` | `Record<string, string>` |
+
+### 결과
+- 빌드 검증 완료
+- 18개 파일 수정
+- 역할 관리가 완전히 Role 테이블 기반으로 전환됨
+- 새 역할 추가 시 스키마 마이그레이션 불필요

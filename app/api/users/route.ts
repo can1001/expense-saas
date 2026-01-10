@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { UserRole } from '@prisma/client';
 import {
   findUsers,
   createUser,
   findUserByUserid,
   getRoleByCode,
+  UserRole,
 } from '@/lib/services/user-service';
 
 // GET /api/users - 사용자 목록 조회
