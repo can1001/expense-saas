@@ -539,5 +539,79 @@ describe('budget-upload', () => {
       expect(sheet.getRow(2).getCell(10).value).toBe(''); // 연도 빈값
       expect(sheet.getRow(2).getCell(11).value).toBe(''); // 예산금액 빈값
     });
+
+    it('should handle details without department connections', async () => {
+      // departmentDetails가 빈 배열인 경우 (부서 연결 없음)
+      vi.mocked(prisma.budgetDetail.findMany).mockResolvedValue([
+        {
+          id: 'detail-no-dept',
+          name: '공통비',
+          accountCode: '200.0',
+          description: '공통 비용',
+          isActive: true,
+          subcategory: {
+            name: '운영비',
+            category: {
+              name: '관리비',
+            },
+          },
+          departmentDetails: [], // 부서 연결 없음
+          yearSettings: [
+            {
+              year: 2026,
+              budgetAmount: 500000,
+            },
+          ],
+        },
+      ] as any);
+
+      const buffer = await exportBudgetTemplate();
+
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+      const sheet = workbook.worksheets[0];
+
+      expect(sheet.rowCount).toBe(2); // 헤더 + 데이터 1행
+      // 부서 연결 없을 때 위원회/사역팀 빈값
+      expect(sheet.getRow(2).getCell(1).value).toBe(''); // 위원회 빈값
+      expect(sheet.getRow(2).getCell(2).value).toBe(''); // 사역팀 빈값
+      expect(sheet.getRow(2).getCell(3).value).toBe('관리비'); // 예산(항)
+      expect(sheet.getRow(2).getCell(4).value).toBe('운영비'); // 예산(목)
+      expect(sheet.getRow(2).getCell(5).value).toBe('공통비'); // 예산(세목)
+      expect(sheet.getRow(2).getCell(10).value).toBe(2026); // 연도
+      expect(sheet.getRow(2).getCell(11).value).toBe(500000); // 예산금액
+    });
+
+    it('should handle details without department connections and without yearSettings', async () => {
+      vi.mocked(prisma.budgetDetail.findMany).mockResolvedValue([
+        {
+          id: 'detail-no-dept-no-year',
+          name: '기타비',
+          accountCode: '300.0',
+          description: '기타 비용',
+          isActive: true,
+          subcategory: {
+            name: '기타',
+            category: {
+              name: '기타비용',
+            },
+          },
+          departmentDetails: [], // 부서 연결 없음
+          yearSettings: [], // 연도 설정 없음
+        },
+      ] as any);
+
+      const buffer = await exportBudgetTemplate();
+
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+      const sheet = workbook.worksheets[0];
+
+      expect(sheet.rowCount).toBe(2);
+      expect(sheet.getRow(2).getCell(1).value).toBe(''); // 위원회 빈값
+      expect(sheet.getRow(2).getCell(2).value).toBe(''); // 사역팀 빈값
+      expect(sheet.getRow(2).getCell(10).value).toBe(''); // 연도 빈값
+      expect(sheet.getRow(2).getCell(11).value).toBe(''); // 예산금액 빈값
+    });
   });
 });
