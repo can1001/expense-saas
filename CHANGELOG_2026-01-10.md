@@ -301,6 +301,7 @@ model Role {
 | `app/api/admin/roles/[id]/route.ts` | **신규** - Role 개별 API (GET, PUT, DELETE) |
 | `app/api/users/route.ts` | roleId 지원, includeRoleRef 옵션 추가 |
 | `app/api/users/[id]/route.ts` | roleId 지원, includeRoleRef 옵션 추가 |
+| `app/admin/roles/page.tsx` | **신규** - 역할 관리 UI (CRUD, 권한 설정) |
 
 ### 초기 역할 데이터
 
@@ -358,7 +359,7 @@ app/admin/
 ├── budget-wizard/page.tsx     # 연도 선택 기능 추가
 ├── budget-view/page.tsx       # Excel 다운로드 버튼 추가
 ├── year-setup-status/page.tsx # 신규 (설정 현황 대시보드)
-└── roles/page.tsx             # 신규 (역할 관리 페이지 - 향후 구현)
+└── roles/page.tsx             # 수정 (Role 테이블 기반 동적 관리 페이지)
 
 app/api/
 ├── admin/
