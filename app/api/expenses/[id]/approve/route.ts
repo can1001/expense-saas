@@ -12,7 +12,12 @@ import {
  *
  * Body: {
  *   approverName: string,
- *   comment?: string
+ *   comment?: string,
+ *   signature?: {
+ *     type: "signature" | "stamp" | "realtime",
+ *     data?: string (base64 이미지 - realtime인 경우),
+ *     signatureId?: string (저장된 서명/도장 ID)
+ *   }
  * }
  */
 export async function POST(
@@ -22,7 +27,28 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { approverName, comment } = body;
+    const { approverName, comment, signature } = body;
+
+    // 서명 데이터 처리
+    let signatureType: string | null = null;
+    let signatureData: string | null = null;
+
+    if (signature) {
+      if (signature.signatureId) {
+        // 저장된 서명/도장 사용
+        const savedSignature = await prisma.userSignature.findUnique({
+          where: { id: signature.signatureId },
+        });
+        if (savedSignature) {
+          signatureType = savedSignature.type;
+          signatureData = savedSignature.imageData;
+        }
+      } else if (signature.data && signature.type) {
+        // 실시간 서명
+        signatureType = signature.type;
+        signatureData = signature.data;
+      }
+    }
 
     if (!approverName) {
       return NextResponse.json(
@@ -145,13 +171,15 @@ export async function POST(
     const result = await prisma.$transaction(async (tx) => {
       const now = new Date();
 
-      // 1. 현재 결재 단계 업데이트
+      // 1. 현재 결재 단계 업데이트 (서명 데이터 포함)
       await tx.approvalStep.update({
         where: { id: currentStepData.id },
         data: {
           status: 'APPROVED',
           approvedAt: now,
           comment,
+          signatureType,
+          signatureData,
         },
       });
 
@@ -222,6 +250,8 @@ export async function POST(
             userAgent: request.headers.get('user-agent') || '',
             timestamp: now.toISOString(),
             isComplete: autoApproveSteps.length === 0 && isComplete,
+            hasSignature: !!signatureData,
+            signatureType,
           },
         },
       });

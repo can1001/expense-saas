@@ -3,6 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, XCircle, RotateCcw, Send } from 'lucide-react';
+import { SignatureSelector } from '@/components/signature';
+
+interface SignatureData {
+  type: 'signature' | 'stamp' | 'realtime';
+  data?: string;
+  signatureId?: string;
+}
 
 /**
  * 결재 액션 버튼 컴포넌트
@@ -30,6 +37,7 @@ export default function ApprovalActionButtons({
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [action, setAction] = useState<'approve' | 'reject' | null>(null);
   const [comment, setComment] = useState('');
+  const [signatureData, setSignatureData] = useState<SignatureData | null>(null);
 
   const isApplicant = currentUserName === applicantName;
   const isCurrentApprover = currentUserName === currentApproverName;
@@ -99,6 +107,7 @@ export default function ApprovalActionButtons({
   const openCommentModal = (actionType: 'approve' | 'reject') => {
     setAction(actionType);
     setComment('');
+    setSignatureData(null);
     setShowCommentModal(true);
   };
 
@@ -108,6 +117,11 @@ export default function ApprovalActionButtons({
 
     if (action === 'reject' && !comment.trim()) {
       alert('반려 사유를 입력해주세요.');
+      return;
+    }
+
+    if (action === 'approve' && !signatureData) {
+      alert('서명 또는 도장을 선택해주세요.');
       return;
     }
 
@@ -124,6 +138,7 @@ export default function ApprovalActionButtons({
         body: JSON.stringify({
           approverName: currentUserName,
           comment: comment.trim() || undefined,
+          ...(action === 'approve' && signatureData && { signature: signatureData }),
         }),
       });
 
@@ -197,25 +212,52 @@ export default function ApprovalActionButtons({
       {/* 승인/반려 의견 입력 모달 */}
       {showCommentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-white rounded-lg max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">
-              {action === 'approve' ? '승인' : '반려'} 의견
+              결재 {action === 'approve' ? '승인' : '반려'}
             </h3>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder={
-                action === 'approve'
-                  ? '승인 의견을 입력하세요 (선택사항)'
-                  : '반려 사유를 입력하세요 (필수)'
-              }
-              className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900"
-              required={action === 'reject'}
-            />
-            <div className="flex gap-2 mt-4">
+
+            {/* 승인 시 서명/도장 선택 */}
+            {action === 'approve' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  서명/도장 <span className="text-red-500">*</span>
+                </label>
+                <SignatureSelector
+                  onSelect={setSignatureData}
+                  selectedData={signatureData}
+                />
+              </div>
+            )}
+
+            {/* 의견 입력 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {action === 'approve' ? '승인 의견' : '반려 사유'}
+                {action === 'reject' && <span className="text-red-500"> *</span>}
+              </label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder={
+                  action === 'approve'
+                    ? '승인 의견을 입력하세요 (선택사항)'
+                    : '반려 사유를 입력하세요 (필수)'
+                }
+                className="w-full h-24 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900"
+                required={action === 'reject'}
+              />
+            </div>
+
+            {/* 버튼 */}
+            <div className="flex gap-2">
               <button
                 onClick={handleApprovalAction}
-                disabled={loading || (action === 'reject' && !comment.trim())}
+                disabled={
+                  loading ||
+                  (action === 'reject' && !comment.trim()) ||
+                  (action === 'approve' && !signatureData)
+                }
                 className={`flex-1 px-4 py-2 text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors ${
                   action === 'approve'
                     ? 'bg-green-600 hover:bg-green-700'

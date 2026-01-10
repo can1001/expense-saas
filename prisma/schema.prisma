@@ -494,6 +494,10 @@ model ApprovalStep {
   rejectedAt      DateTime?      // 반려 일시
   comment         String?        // 결재 의견
 
+  // 서명/도장
+  signatureType   String?        // "signature" | "stamp" | "realtime"
+  signatureData   String?        // base64 인코딩 이미지 데이터
+
   // 필수 여부
   isRequired      Boolean        @default(true)  // 필수 결재자 여부
   isParallel      Boolean        @default(false) // 병렬 승인 여부 (동일 stepNumber)
@@ -581,6 +585,7 @@ model User {
   bankAccounts       SavedBankAccount[]         // 저장된 은행 계좌들
   expenses           Expense[]                  // 작성한 지출결의서들
   managedBudgets     BudgetDetailYear[]  @relation("BudgetDetailManager")  // 담당 예산 세목들
+  signatures         UserSignature[]            // 저장된 서명/도장들
 
   // 리더 역할 (기본값 설정용)
   ledCommittees      Committee[]   @relation("CommitteeLeader")   // 담당 위원회
@@ -615,6 +620,24 @@ model UserYearRole {
   @@index([role])
   @@index([roleId])
   @@index([userId])
+}
+
+// 사용자 서명/도장
+model UserSignature {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type        String   // "signature" | "stamp"
+  name        String   // "기본 서명", "도장 1" 등
+  imageData   String   @db.Text  // base64 인코딩 이미지 (PNG)
+  isDefault   Boolean  @default(false)  // 기본 서명/도장 여부
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, type])
 }
 
 // ========================================
