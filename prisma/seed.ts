@@ -1,3 +1,18 @@
+// ============================================
+// 프로덕션 환경 실행 차단
+// NODE_ENV=development 일 때만 실행 가능
+// ============================================
+if (process.env.NODE_ENV !== 'development') {
+  console.error('');
+  console.error('❌ 오류: db:seed는 development 환경에서만 실행할 수 있습니다.');
+  console.error('');
+  console.error('   현재 NODE_ENV:', process.env.NODE_ENV || '(설정되지 않음)');
+  console.error('');
+  console.error('   실행 방법: NODE_ENV=development npm run db:seed');
+  console.error('');
+  process.exit(1);
+}
+
 import { PrismaClient } from '@prisma/client';
 
 // 역할 코드 타입 (Role.code와 동일)
