@@ -5,6 +5,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { prisma } from '../../prisma';
 import type { User, UserRole, UserYearRole } from '@prisma/client';
+
+// Mock bcryptjs
+vi.mock('bcryptjs', () => ({
+  default: {
+    hash: vi.fn().mockImplementation((password: string) => Promise.resolve(`hashed_${password}`)),
+    compare: vi.fn().mockImplementation((password: string, hash: string) =>
+      Promise.resolve(hash === `hashed_${password}`)
+    ),
+  },
+}));
 import {
   CURRENT_YEAR,
   ROLE_STEP_MAP,
@@ -292,19 +302,26 @@ describe('user-service', () => {
         username: '새사용자',
         role: 'user' as UserRole,
         department: '기획팀',
-        password: 'hashed123',
+        password: 'mypassword',
       };
 
       vi.mocked(prisma.user.create).mockResolvedValue({
         ...mockUser,
         ...userData,
+        password: 'hashed_mypassword',
       });
 
       const result = await createUser(userData);
 
       expect(result.userid).toBe('newuser');
       expect(prisma.user.create).toHaveBeenCalledWith({
-        data: userData,
+        data: {
+          userid: 'newuser',
+          username: '새사용자',
+          role: 'user',
+          department: '기획팀',
+          password: 'hashed_mypassword', // bcrypt mock에 의해 해시됨
+        },
       });
     });
 
@@ -324,10 +341,11 @@ describe('user-service', () => {
 
       expect(prisma.user.create).toHaveBeenCalledWith({
         data: {
-          ...userData,
+          userid: 'newuser',
+          username: '새사용자',
           role: 'user',
           department: undefined,
-          password: undefined,
+          password: 'hashed_chc2026', // 기본 비밀번호(chc2026)가 해시됨
         },
       });
     });
@@ -355,18 +373,18 @@ describe('user-service', () => {
     });
 
     it('updates password', async () => {
-      const updateData = { password: 'newhash' };
+      const updateData = { password: 'newpassword' };
 
       vi.mocked(prisma.user.update).mockResolvedValue({
         ...mockUser,
-        password: 'newhash',
+        password: 'hashed_newpassword',
       });
 
       await updateUser('user-1', updateData);
 
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
-        data: updateData,
+        data: { password: 'hashed_newpassword' }, // bcrypt mock에 의해 해시됨
       });
     });
   });

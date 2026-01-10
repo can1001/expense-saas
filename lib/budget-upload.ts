@@ -7,6 +7,7 @@
  */
 
 import ExcelJS from 'exceljs';
+import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -335,6 +336,10 @@ export async function uploadBudgetData(
       const departmentCache = new Map<string, string>();
       const categoryCache = new Map<string, string>();
       const subcategoryCache = new Map<string, string>();
+      const userCache = new Map<string, string>(); // username -> userId
+
+      // 기본 비밀번호 해시 (새 사용자 생성 시 사용)
+      const defaultPasswordHash = await bcrypt.hash('chc2026', 10);
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
@@ -465,8 +470,55 @@ export async function uploadBudgetData(
             },
           });
 
-          // 7. BudgetDetailYear upsert (연도별 예산금액)
-          if (row.year && row.budgetAmount !== null && row.budgetAmount !== undefined) {
+          // 7. 담당자(User) 조회 또는 생성
+          let managerId: string | null = null;
+          if (row.manager) {
+            // 캐시에서 먼저 확인
+            managerId = userCache.get(row.manager) || null;
+
+            if (!managerId) {
+              // DB에서 username으로 조회
+              const existingUser = await tx.user.findFirst({
+                where: { username: row.manager },
+              });
+
+              if (existingUser) {
+                managerId = existingUser.id;
+              } else {
+                // 새 User 생성
+                // userid: "청연" + username (예: "청연홍길동")
+                const userid = `청연${row.manager}`;
+
+                // userid 중복 확인
+                const existingByUserid = await tx.user.findUnique({
+                  where: { userid },
+                });
+
+                if (existingByUserid) {
+                  // userid가 이미 있으면 해당 사용자 사용
+                  managerId = existingByUserid.id;
+                } else {
+                  // 새 사용자 생성
+                  const newUser = await tx.user.create({
+                    data: {
+                      userid,
+                      username: row.manager,
+                      password: defaultPasswordHash,
+                      role: 'user',
+                      isActive: true,
+                    },
+                  });
+                  managerId = newUser.id;
+                }
+              }
+
+              // 캐시에 저장
+              userCache.set(row.manager, managerId);
+            }
+          }
+
+          // 8. BudgetDetailYear upsert (연도별 예산금액 + 담당자)
+          if (row.year) {
             await tx.budgetDetailYear.upsert({
               where: {
                 budgetDetailId_year: {
@@ -475,13 +527,15 @@ export async function uploadBudgetData(
                 },
               },
               update: {
-                budgetAmount: row.budgetAmount,
+                budgetAmount: row.budgetAmount ?? 0,
+                managerId: managerId,
                 isActive: true,
               },
               create: {
                 budgetDetailId,
                 year: row.year,
-                budgetAmount: row.budgetAmount,
+                budgetAmount: row.budgetAmount ?? 0,
+                managerId: managerId,
                 isActive: true,
               },
             });
