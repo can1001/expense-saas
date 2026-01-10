@@ -4,6 +4,7 @@ import {
   findUserById,
   updateUser,
   deactivateUser,
+  getRoleByCode,
 } from '@/lib/services/user-service';
 
 // GET /api/users/[id] - 사용자 상세 조회
@@ -13,7 +14,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const user = await findUserById(id);
+    const searchParams = request.nextUrl.searchParams;
+    const includeRoleRef = searchParams.get('includeRoleRef') === 'true';
+
+    const user = await findUserById(id, includeRoleRef);
 
     if (!user) {
       return NextResponse.json(
@@ -40,7 +44,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { username, role, department, password, isActive } = body;
+    const { username, role, roleId, department, password, isActive } = body;
 
     // 사용자 존재 확인
     const existingUser = await findUserById(id);
@@ -60,9 +64,22 @@ export async function PUT(
       );
     }
 
+    // roleId로 전달된 경우 role 코드 조회
+    let resolvedRole = role;
+    let resolvedRoleId = roleId;
+
+    if (roleId && !role) {
+      const roleRef = await getRoleByCode(roleId);
+      if (roleRef) {
+        resolvedRole = roleRef.code as UserRole;
+        resolvedRoleId = roleRef.id;
+      }
+    }
+
     const user = await updateUser(id, {
       username,
-      role,
+      role: resolvedRole,
+      roleId: resolvedRoleId,
       department,
       password,
       isActive,

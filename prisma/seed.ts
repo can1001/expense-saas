@@ -13,6 +13,107 @@ const prisma = new PrismaClient({ adapter });
 // 현재 연도
 const CURRENT_YEAR = new Date().getFullYear();
 
+// 역할 시드 데이터
+const rolesData = [
+  {
+    code: 'admin',
+    name: '관리자',
+    description: '시스템 관리자 - 모든 권한',
+    stepNumber: null,
+    sortOrder: 0,
+    canApprove: false,
+    canManageExpense: true,
+    canAccessAdmin: true,
+    canExportData: true,
+  },
+  {
+    code: 'finance_head',
+    name: '재정팀장',
+    description: '3차/최종 결재권자',
+    stepNumber: 3,
+    sortOrder: 1,
+    canApprove: true,
+    canManageExpense: true,
+    canAccessAdmin: false,
+    canExportData: true,
+  },
+  {
+    code: 'accountant',
+    name: '회계',
+    description: '2차 결재권자',
+    stepNumber: 2,
+    sortOrder: 2,
+    canApprove: true,
+    canManageExpense: true,
+    canAccessAdmin: false,
+    canExportData: true,
+  },
+  {
+    code: 'team_leader',
+    name: '팀장',
+    description: '1차 결재권자',
+    stepNumber: 1,
+    sortOrder: 3,
+    canApprove: true,
+    canManageExpense: false,
+    canAccessAdmin: false,
+    canExportData: false,
+  },
+  {
+    code: 'admin_assistant',
+    name: '행정간사',
+    description: '지출관리, 데이터 내보내기 권한',
+    stepNumber: null,
+    sortOrder: 4,
+    canApprove: false,
+    canManageExpense: true,
+    canAccessAdmin: false,
+    canExportData: true,
+  },
+  {
+    code: 'user',
+    name: '사용자',
+    description: '일반 사용자',
+    stepNumber: null,
+    sortOrder: 5,
+    canApprove: false,
+    canManageExpense: false,
+    canAccessAdmin: false,
+    canExportData: false,
+  },
+];
+
+// 역할 코드 → ID 캐시
+const roleIdCache = new Map<string, string>();
+
+/**
+ * 역할 마스터 데이터 시드
+ */
+async function seedRoles() {
+  console.log('\n🔑 Seeding roles...');
+
+  for (const roleData of rolesData) {
+    const role = await prisma.role.upsert({
+      where: { code: roleData.code },
+      update: {
+        name: roleData.name,
+        description: roleData.description,
+        stepNumber: roleData.stepNumber,
+        sortOrder: roleData.sortOrder,
+        canApprove: roleData.canApprove,
+        canManageExpense: roleData.canManageExpense,
+        canAccessAdmin: roleData.canAccessAdmin,
+        canExportData: roleData.canExportData,
+      },
+      create: roleData,
+    });
+    roleIdCache.set(roleData.code, role.id);
+    console.log(`  ✓ ${roleData.code}: ${roleData.name}`);
+  }
+
+  console.log(`✅ Upserted ${rolesData.length} roles`);
+}
+
 // 사용자 시드 데이터
 // - baseRole: User.role에 저장 (admin, user만 사용)
 // - yearRole: UserYearRole에 저장 (연도별 역할)
@@ -70,18 +171,24 @@ async function seedUsers() {
 
   for (const userData of usersData) {
     try {
-      // 1. User 생성/업데이트 (기본 역할만)
+      // roleId 조회
+      const baseRoleId = roleIdCache.get(userData.baseRole);
+      const yearRoleId = userData.yearRole ? roleIdCache.get(userData.yearRole) : null;
+
+      // 1. User 생성/업데이트 (기본 역할)
       const user = await prisma.user.upsert({
         where: { userid: userData.userid },
         update: {
           username: userData.username,
           role: userData.baseRole,
+          roleId: baseRoleId,
           department: userData.department,
         },
         create: {
           userid: userData.userid,
           username: userData.username,
           role: userData.baseRole,
+          roleId: baseRoleId,
           department: userData.department,
         },
       });
@@ -98,12 +205,14 @@ async function seedUsers() {
           },
           update: {
             role: userData.yearRole,
+            roleId: yearRoleId,
             department: userData.department,
           },
           create: {
             userId: user.id,
             year: CURRENT_YEAR,
             role: userData.yearRole,
+            roleId: yearRoleId,
             department: userData.department,
           },
         });
@@ -288,8 +397,8 @@ const budgetMasterData: BudgetMasterItem[] = [
   // (가칭)행정위
   { committee: '(가칭)행정위', department: '행정비', category: '교역자사례비', subcategory: '사택관리비', detail: '담임목사 전세자금대출이자', manager: '신창국', accountCode: '500.0', description: '전세자금대출이자' },
   { committee: '(가칭)행정위', department: '행정비', category: '교역자사례비', subcategory: '사택관리비', detail: '담임목사 이사비용', manager: '신창국', accountCode: '501.0', description: '부동산 중개수수료, 이사비용' },
-  { committee: '(가칭)행정위', department: '행정비', category: '교역자사례비', subcategory: '사택관리비', detail: '전임사역자 사택관리비', manager: '신창국', accountCode: '502.0', description: null },
-  { committee: '(가칭)행정위', department: '행정비', category: '예배사역비', subcategory: '강사사례비', detail: '강사사례비', manager: '신창국', accountCode: '510.0', description: null },
+  { committee: '(가칭)행정위', department: '행정비', category: '교역자사례비', subcategory: '사택관리비', detail: '전임사역자 사택관리비', manager: '신창국', accountCode: '502.0', description: '월 관리비, 도시가스, 전기료' },
+  { committee: '(가칭)행정위', department: '행정비', category: '예배사역비', subcategory: '강사사례비', detail: '강사사례비', manager: '신창국', accountCode: '510.0', description: '외부 강사 사례비, 특별 집회 강사비' },
   { committee: '(가칭)행정위', department: '행정비', category: '양육사역비', subcategory: '도서구입비', detail: '도서구입비', manager: '신창국', accountCode: '520.0', description: '담임목사 도서구입비, 교회 비치용(전교인사용) 도서구입' },
   { committee: '(가칭)행정위', department: '행정비', category: '섬김사역비', subcategory: '경조비', detail: '경조비', manager: '신창국', accountCode: '530.0', description: null },
   { committee: '(가칭)행정위', department: '행정비', category: '섬김사역비', subcategory: '주일식사비', detail: '주일식사비', manager: '신창국', accountCode: '531.0', description: null },
@@ -613,6 +722,9 @@ async function updateDepartmentLeaders() {
 
 async function main() {
   console.log('🌱 Starting seed...');
+
+  // 역할 마스터 데이터 시드 (먼저 실행)
+  await seedRoles();
 
   // 사용자 시드
   await seedUsers();

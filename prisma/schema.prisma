@@ -533,7 +533,7 @@ enum ApprovalAction {
 // 사용자 관리 (User Management)
 // ========================================
 
-// 사용자 역할
+// 사용자 역할 (레거시 - 마이그레이션 후 제거 예정)
 enum UserRole {
   admin            // 시스템 관리자
   finance_head     // 재정팀장 (3차/최종 결재)
@@ -543,13 +543,43 @@ enum UserRole {
   user             // 일반 사용자
 }
 
+// 역할 마스터 테이블
+model Role {
+  id           String   @id @default(cuid())
+  code         String   @unique    // admin, finance_head, accountant, team_leader, admin_assistant, user
+  name         String              // 관리자, 재정팀장, 회계, 팀장, 행정간사, 사용자
+  description  String?             // 역할 설명
+  stepNumber   Int?                // 결재 단계 (1, 2, 3, null)
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+
+  // 권한 플래그
+  canApprove       Boolean @default(false)  // 결재 권한
+  canManageExpense Boolean @default(false)  // 지출 관리 권한
+  canAccessAdmin   Boolean @default(false)  // 관리자 메뉴 접근
+  canExportData    Boolean @default(false)  // 데이터 내보내기 권한
+
+  // 관계
+  users         User[]          @relation("UserRole")
+  userYearRoles UserYearRole[]  @relation("YearRole")
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([code])
+  @@index([stepNumber])
+  @@index([isActive])
+}
+
 // 사용자 테이블
 model User {
   id          String    @id @default(cuid())
   userid      String    @unique           // 로그인 아이디 (예: 청연정혜종)
   username    String                      // 표시 이름 (예: 정혜종)
   password    String?                     // 해시된 비밀번호 (향후 인증용)
-  role        UserRole  @default(user)    // 기본 역할 (admin, user)
+  role        UserRole  @default(user)    // 기본 역할 (레거시, 마이그레이션 후 제거)
+  roleId      String?                     // 새 역할 테이블 참조
+  roleRef     Role?     @relation("UserRole", fields: [roleId], references: [id])
   department  String?                     // 소속 부서 (참고용)
   isActive    Boolean   @default(true)    // 활성 상태
 
@@ -567,6 +597,7 @@ model User {
   updatedAt   DateTime  @updatedAt
 
   @@index([role])
+  @@index([roleId])
   @@index([department])
   @@index([isActive])
 }
@@ -578,7 +609,9 @@ model UserYearRole {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   year        Int                         // 연도 (예: 2024, 2025)
-  role        UserRole                    // 해당 연도의 역할
+  role        UserRole                    // 해당 연도의 역할 (레거시, 마이그레이션 후 제거)
+  roleId      String?                     // 새 역할 테이블 참조
+  roleRef     Role?     @relation("YearRole", fields: [roleId], references: [id])
   department  String?                     // 소속 부서 (팀장인 경우)
 
   createdAt   DateTime  @default(now())
@@ -587,6 +620,7 @@ model UserYearRole {
   @@unique([userId, year])                // 사용자당 연도별 1개의 역할만 가능
   @@index([year])
   @@index([role])
+  @@index([roleId])
   @@index([userId])
 }
 

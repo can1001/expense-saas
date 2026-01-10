@@ -4,6 +4,7 @@ import {
   findUsers,
   createUser,
   findUserByUserid,
+  getRoleByCode,
 } from '@/lib/services/user-service';
 
 // GET /api/users - 사용자 목록 조회
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
     const role = searchParams.get('role') as UserRole | null;
     const isActive = searchParams.get('isActive');
     const search = searchParams.get('search') ?? undefined;
+    const includeRoleRef = searchParams.get('includeRoleRef') === 'true';
 
     const { users, total } = await findUsers({
       page,
@@ -22,6 +24,7 @@ export async function GET(request: NextRequest) {
       role: role ?? undefined,
       isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
       search,
+      includeRoleRef,
     });
 
     return NextResponse.json({
@@ -46,7 +49,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userid, username, role, department, password } = body;
+    const { userid, username, role, roleId, department, password } = body;
 
     // 필수 필드 검증
     if (!userid || !username) {
@@ -65,7 +68,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 역할 검증
+    // 역할 검증 (role enum 또는 roleId로 전달 가능)
     const validRoles: UserRole[] = ['admin', 'finance_head', 'accountant', 'team_leader', 'admin_assistant', 'user'];
     if (role && !validRoles.includes(role)) {
       return NextResponse.json(
@@ -74,10 +77,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // roleId로 전달된 경우 role 코드 조회
+    let resolvedRole = role ?? 'user';
+    let resolvedRoleId = roleId;
+
+    if (roleId && !role) {
+      const roleRef = await getRoleByCode(roleId);
+      if (roleRef) {
+        resolvedRole = roleRef.code as UserRole;
+        resolvedRoleId = roleRef.id;
+      }
+    }
+
     const user = await createUser({
       userid,
       username,
-      role: role ?? 'user',
+      role: resolvedRole,
+      roleId: resolvedRoleId,
       department,
       password,
     });

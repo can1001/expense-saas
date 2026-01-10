@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { User, UserRole, UserYearRole } from '@prisma/client';
+import { User, UserRole, UserYearRole, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 // 현재 연도
@@ -10,9 +10,10 @@ export interface UserWithYearRole extends User {
   yearRoles?: UserYearRole[];
   effectiveRole?: UserRole;      // 현재 연도 기준 유효 역할
   effectiveDepartment?: string | null;  // 현재 연도 기준 부서
+  roleRef?: Role | null;         // Role 테이블 참조 정보
 }
 
-// 역할별 결재 단계 매핑
+// 역할별 결재 단계 매핑 (레거시 - Role 테이블의 stepNumber로 대체 예정)
 export const ROLE_STEP_MAP: Record<UserRole, number | null> = {
   admin: null,            // 시스템 관리자 (결재 없음, 모든 권한)
   team_leader: 1,         // 1차 결재
@@ -22,7 +23,7 @@ export const ROLE_STEP_MAP: Record<UserRole, number | null> = {
   user: null,             // 결재 권한 없음
 };
 
-// 역할 한글명
+// 역할 한글명 (레거시 - Role 테이블의 name으로 대체 예정)
 export const ROLE_NAMES: Record<UserRole, string> = {
   admin: '관리자',
   finance_head: '재정팀장',
@@ -33,15 +34,85 @@ export const ROLE_NAMES: Record<UserRole, string> = {
 };
 
 // ========================================
+// Role 테이블 기반 함수들
+// ========================================
+
+// Role 캐시 (성능 최적화)
+let roleCache: Role[] | null = null;
+let roleCacheTime: number = 0;
+const ROLE_CACHE_TTL = 60000; // 1분
+
+/**
+ * 모든 역할 조회 (캐시 사용)
+ */
+export async function getAllRoles(forceRefresh = false): Promise<Role[]> {
+  const now = Date.now();
+  if (!forceRefresh && roleCache && now - roleCacheTime < ROLE_CACHE_TTL) {
+    return roleCache;
+  }
+
+  roleCache = await prisma.role.findMany({
+    where: { isActive: true },
+    orderBy: { sortOrder: 'asc' },
+  });
+  roleCacheTime = now;
+  return roleCache;
+}
+
+/**
+ * 역할 코드로 Role 조회
+ */
+export async function getRoleByCode(code: string): Promise<Role | null> {
+  const roles = await getAllRoles();
+  return roles.find(r => r.code === code) ?? null;
+}
+
+/**
+ * 역할 ID로 Role 조회
+ */
+export async function getRoleById(id: string): Promise<Role | null> {
+  const roles = await getAllRoles();
+  return roles.find(r => r.id === id) ?? null;
+}
+
+/**
+ * 결재 단계로 Role 조회
+ */
+export async function getRoleByStep(stepNumber: number): Promise<Role | null> {
+  const roles = await getAllRoles();
+  return roles.find(r => r.stepNumber === stepNumber) ?? null;
+}
+
+/**
+ * Role 테이블에서 역할명 가져오기
+ */
+export async function getRoleNameFromTable(roleCode: string): Promise<string> {
+  const role = await getRoleByCode(roleCode);
+  return role?.name ?? roleCode;
+}
+
+/**
+ * Role 테이블에서 결재 단계 가져오기
+ */
+export async function getApprovalStepFromTable(roleCode: string): Promise<number | null> {
+  const role = await getRoleByCode(roleCode);
+  return role?.stepNumber ?? null;
+}
+
+// ========================================
 // 사용자 조회 함수들
 // ========================================
 
 /**
  * ID로 사용자 조회
  */
-export async function findUserById(id: string): Promise<User | null> {
+export async function findUserById(
+  id: string,
+  includeRoleRef = false
+): Promise<(User & { roleRef?: Role | null }) | null> {
   return prisma.user.findUnique({
     where: { id },
+    include: includeRoleRef ? { roleRef: true } : undefined,
   });
 }
 
@@ -154,17 +225,26 @@ export async function createUser(data: {
   userid: string;
   username: string;
   role?: UserRole;
+  roleId?: string;
   department?: string;
   password?: string;
 }): Promise<User> {
   const plainPassword = data.password || DEFAULT_PASSWORD;
   const hashedPassword = await hashPassword(plainPassword);
 
+  // roleId가 없으면 role enum에서 찾아서 설정
+  let roleId = data.roleId;
+  if (!roleId && data.role) {
+    const roleRef = await getRoleByCode(data.role);
+    roleId = roleRef?.id;
+  }
+
   return prisma.user.create({
     data: {
       userid: data.userid,
       username: data.username,
       role: data.role ?? 'user',
+      roleId,
       department: data.department,
       password: hashedPassword,
     },
@@ -179,16 +259,26 @@ export async function updateUser(
   data: {
     username?: string;
     role?: UserRole;
+    roleId?: string;
     department?: string;
     password?: string;
     isActive?: boolean;
   }
 ): Promise<User> {
-  const updateData = { ...data };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateData: any = { ...data };
 
   // 비밀번호가 있으면 해시화
   if (updateData.password) {
     updateData.password = await hashPassword(updateData.password);
+  }
+
+  // role이 변경되면 roleId도 업데이트
+  if (updateData.role && !updateData.roleId) {
+    const roleRef = await getRoleByCode(updateData.role);
+    if (roleRef) {
+      updateData.roleId = roleRef.id;
+    }
   }
 
   return prisma.user.update({
@@ -226,7 +316,8 @@ export async function findUsers(options?: {
   role?: UserRole;
   isActive?: boolean;
   search?: string;
-}): Promise<{ users: User[]; total: number }> {
+  includeRoleRef?: boolean;
+}): Promise<{ users: (User & { roleRef?: Role | null })[]; total: number }> {
   const page = options?.page ?? 1;
   const pageSize = options?.pageSize ?? 20;
   const skip = (page - 1) * pageSize;
@@ -256,6 +347,7 @@ export async function findUsers(options?: {
       skip,
       take: pageSize,
       orderBy: [{ role: 'asc' }, { username: 'asc' }],
+      include: options?.includeRoleRef ? { roleRef: true } : undefined,
     }),
     prisma.user.count({ where }),
   ]);
@@ -399,14 +491,22 @@ export async function setYearRole(
   userId: string,
   year: number,
   role: UserRole,
-  department?: string
+  department?: string,
+  roleId?: string
 ): Promise<UserYearRole> {
+  // roleId가 없으면 role enum에서 찾아서 설정
+  let resolvedRoleId = roleId;
+  if (!resolvedRoleId) {
+    const roleRef = await getRoleByCode(role);
+    resolvedRoleId = roleRef?.id;
+  }
+
   return prisma.userYearRole.upsert({
     where: {
       userId_year: { userId, year },
     },
-    update: { role, department },
-    create: { userId, year, role, department },
+    update: { role, roleId: resolvedRoleId, department },
+    create: { userId, year, role, roleId: resolvedRoleId, department },
   });
 }
 
