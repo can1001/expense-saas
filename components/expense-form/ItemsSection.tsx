@@ -4,11 +4,13 @@
 
 'use client';
 
+import { useState, useRef, useCallback } from 'react';
 import { Control, useFieldArray, UseFormRegister, UseFormSetValue, useWatch, FieldErrors } from 'react-hook-form';
 import { ExpenseFormData, defaultExpenseItem, calculateAmount } from '@/lib/schemas/expense-schema';
 import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_SM, SECTION_CARD, SECTION_TITLE } from '@/lib/constants/styles';
 import { VoiceInputButton } from '@/components/mobile/VoiceInput';
 import LocationPicker from '@/components/mobile/LocationPicker';
+import MemoTooltip from './MemoTooltip';
 
 interface ItemsSectionProps {
   control: Control<ExpenseFormData>;
@@ -35,6 +37,56 @@ export default function ItemsSection({
   // items 배열 전체를 감시하여 총액 계산
   const items = useWatch({ control, name: 'items' });
   const totalAmount = items?.reduce((sum, item) => sum + (item?.amount || 0), 0) || 0;
+
+  // 적요 예제 툴팁 상태
+  const [memoExamples, setMemoExamples] = useState<Record<number, string[]>>({});
+  const [tooltipOpen, setTooltipOpen] = useState<Record<number, boolean>>({});
+  const [memoLoading, setMemoLoading] = useState<Record<number, boolean>>({});
+  const descriptionRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // 적요 예제 로드
+  const loadMemoExamples = useCallback(async (index: number, budgetDetailName: string) => {
+    if (!budgetDetailName) {
+      setMemoExamples((prev) => ({ ...prev, [index]: [] }));
+      return;
+    }
+
+    setMemoLoading((prev) => ({ ...prev, [index]: true }));
+    try {
+      const res = await fetch(`/api/budget/memo-examples?budgetDetailName=${encodeURIComponent(budgetDetailName)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMemoExamples((prev) => ({ ...prev, [index]: data.examples || [] }));
+      }
+    } catch (error) {
+      console.error('적요 예제 로드 실패:', error);
+    } finally {
+      setMemoLoading((prev) => ({ ...prev, [index]: false }));
+    }
+  }, []);
+
+  // 적요 예제 선택
+  const handleMemoSelect = (index: number, example: string) => {
+    setValue(`items.${index}.description`, example);
+    setTooltipOpen((prev) => ({ ...prev, [index]: false }));
+    descriptionRefs.current[index]?.focus();
+  };
+
+  // 적요 필드 포커스
+  const handleDescriptionFocus = (index: number) => {
+    const budgetDetail = items?.[index]?.budgetDetail;
+    if (budgetDetail && !memoExamples[index]) {
+      loadMemoExamples(index, budgetDetail);
+    }
+    setTooltipOpen((prev) => ({ ...prev, [index]: true }));
+  };
+
+  // 적요 필드 블러 (약간의 딜레이 후 닫기 - 클릭 이벤트 처리를 위해)
+  const handleDescriptionBlur = (index: number) => {
+    setTimeout(() => {
+      setTooltipOpen((prev) => ({ ...prev, [index]: false }));
+    }, 150);
+  };
 
   const handleAddItem = () => {
     if (fields.length >= 10) {
@@ -127,7 +179,16 @@ export default function ItemsSection({
                 </label>
                 {detailOptions.length > 0 ? (
                   <select
-                    {...register(`items.${index}.budgetDetail`)}
+                    {...register(`items.${index}.budgetDetail`, {
+                      onChange: (e) => {
+                        const newValue = e.target.value;
+                        if (newValue) {
+                          loadMemoExamples(index, newValue);
+                        } else {
+                          setMemoExamples((prev) => ({ ...prev, [index]: [] }));
+                        }
+                      },
+                    })}
                     disabled={disabled}
                     className={`${SELECT_BASE} ${errors?.items?.[index]?.budgetDetail ? 'border-red-500' : ''}`}
                   >
@@ -153,22 +214,37 @@ export default function ItemsSection({
               </div>
 
               {/* 적요 */}
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   적요 <span className="text-red-500">*</span>
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 relative">
                   <input
                     type="text"
                     {...register(`items.${index}.description`)}
+                    ref={(el) => {
+                      descriptionRefs.current[index] = el;
+                      register(`items.${index}.description`).ref(el);
+                    }}
                     disabled={disabled}
                     placeholder="상세 설명"
+                    onFocus={() => handleDescriptionFocus(index)}
+                    onBlur={() => handleDescriptionBlur(index)}
                     className={`${INPUT_BASE} flex-1 ${errors?.items?.[index]?.description ? 'border-red-500' : ''}`}
                   />
                   {/* 모바일 음성 입력 버튼 */}
                   <VoiceInputButton
                     onTranscript={(text) => setValue(`items.${index}.description`, text)}
                     disabled={disabled}
+                  />
+                  {/* 적요 예제 툴팁 */}
+                  <MemoTooltip
+                    examples={memoExamples[index] || []}
+                    isOpen={tooltipOpen[index] && (memoExamples[index]?.length > 0 || memoLoading[index])}
+                    onSelect={(example) => handleMemoSelect(index, example)}
+                    onClose={() => setTooltipOpen((prev) => ({ ...prev, [index]: false }))}
+                    inputRef={{ current: descriptionRefs.current[index] }}
+                    loading={memoLoading[index]}
                   />
                 </div>
                 {errors?.items?.[index]?.description && (

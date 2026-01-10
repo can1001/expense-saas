@@ -379,10 +379,126 @@ lib/
 ├── change-history.ts          # 신규 (변경 이력 헬퍼 함수)
 └── services/user-service.ts   # Role 테이블 조회 함수 추가
 
+hooks/
+└── useRoles.ts                # 신규 (Role 테이블 조회 훅)
+
 components/expense-form/
-└── ItemsSection.tsx           # LocationPicker 주석 처리
+├── ItemsSection.tsx           # LocationPicker 주석 처리, 적요 툴팁 통합
+└── MemoTooltip.tsx            # 신규 (적요 예제 툴팁 컴포넌트)
 
 docs/
 ├── ACCOUNTING_MEMO_SPEC.md    # 적요 툴팁 설계 문서
 └── CHANGELOG_2026-01-10.md    # 이 파일
 ```
+
+---
+
+## 11. Role 테이블 기반 프론트엔드 마이그레이션 (Phase 3)
+
+### 배경
+Role 테이블 도입(#10)에 따라 프론트엔드 컴포넌트에서 하드코딩된 역할 상수를 동적 Role 데이터로 교체합니다.
+
+### 생성 파일
+- `hooks/useRoles.ts` - Role 테이블 조회 훅 (1분 캐싱, 헬퍼 함수)
+
+### 변경 파일
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `components/Header.tsx` | ROLE_NAMES 제거 → useRoles().getRoleName() 사용 |
+| `app/admin/users/page.tsx` | ROLE_LABELS/ROLE_COLORS 제거 → useRoles() 사용 |
+| `app/admin/users/[id]/edit/page.tsx` | ROLE_OPTIONS 제거 → getRoleOptions(roles) 사용 |
+| `app/admin/year-roles/page.tsx` | YEAR_ROLE_OPTIONS 제거 → getYearRoleOptions(roles) 사용 |
+| `app/admin/year-roles-summary/page.tsx` | ROLE_COLORS 제거 → getRoleColor() 사용 |
+| `app/admin/roles/page.tsx` | ROLE_COLORS import 방식 변경 |
+
+### useRoles 훅 제공 기능
+
+```typescript
+// 공개 상수
+export const ROLE_COLORS: Record<string, { bg: string; text: string; border?: string }>;
+
+// 훅 반환값
+interface UseRolesResult {
+  roles: Role[];
+  loading: boolean;
+  error: string | null;
+  getRoleName: (code: string) => string;
+  getRoleColor: (code: string) => { bg: string; text: string; border?: string };
+  canAccessAdminMenu: (code: string) => boolean;
+  canAccessExtendedMenu: (code: string) => boolean;
+  refetch: () => void;
+}
+
+// 유틸리티 함수
+export function getRoleOptions(roles: Role[], exclude?: string[]): { value: string; label: string }[];
+export function getYearRoleOptions(roles: Role[]): { value: string; label: string }[];
+```
+
+### 결과
+- 8개 파일에서 하드코딩된 역할 상수 제거
+- 모든 역할 정보가 Role 테이블에서 동적으로 로드
+- 빌드 검증 완료
+
+---
+
+## 12. 적요 예제 툴팁 기능 구현
+
+### 배경
+지출결의서 세목 선택 시 해당 세목에 맞는 적요 예제를 자동으로 보여주어 사용자 입력 편의성을 높입니다.
+
+### 생성 파일
+- `app/api/budget/memo-examples/route.ts` - 적요 예제 조회 API
+- `components/expense-form/MemoTooltip.tsx` - 적요 예제 툴팁 컴포넌트
+
+### 변경 파일
+- `components/expense-form/ItemsSection.tsx` - MemoTooltip 통합
+
+### API 엔드포인트
+
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| GET | `/api/budget/memo-examples?budgetDetailId=xxx` | 세목 ID로 예제 조회 |
+| GET | `/api/budget/memo-examples?budgetDetailName=xxx` | 세목 이름으로 예제 조회 |
+
+### 응답 형식
+```json
+{
+  "examples": ["출장 교통비", "택시비", "주차비"],
+  "budgetDetail": {
+    "id": "...",
+    "name": "여비교통비"
+  }
+}
+```
+
+### MemoTooltip 컴포넌트 기능
+
+| 기능 | 설명 |
+|------|------|
+| 예제 목록 표시 | BudgetDetail.description을 콤마로 분리하여 표시 |
+| 키보드 탐색 | ↑↓ 방향키로 선택 이동 |
+| 선택 입력 | Enter 또는 클릭으로 적요 필드에 입력 |
+| 닫기 | ESC 또는 외부 클릭 시 닫기 |
+| 로딩 표시 | 예제 로드 중 스피너 표시 |
+
+### 사용 흐름
+1. 세목(budgetDetail) 선택 → 예제 자동 로드
+2. 적요 필드 포커스 → 예제 툴팁 표시
+3. 예제 선택 → 적요 필드에 자동 입력
+
+### UI 미리보기
+```
+┌──────────────────────┐
+│ 적요 예제            │
+├──────────────────────┤
+│ ▸ 출장 교통비       │ ← 선택됨 (Enter로 입력)
+│   택시비            │
+│   주차비            │
+└──────────────────────┘
+↑↓ 이동, Enter 선택, ESC 닫기
+```
+
+### 결과
+- 빌드 검증 완료
+- `/expenses/new` 페이지에서 사용 가능
