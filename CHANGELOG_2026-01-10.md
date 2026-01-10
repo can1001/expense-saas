@@ -933,3 +933,178 @@ import { LayoutDashboard, Wand2, CheckCircle } from 'lucide-react';
 
 ### 접근 경로
 `/approvals/[id]` - 결재 상세 페이지 (결재자로 로그인 시)
+
+---
+
+## 22. 결재 서명/도장 기능 구현
+
+### 배경
+결재 승인 시 서명 또는 도장을 입력하고, 저장된 서명/도장을 재사용할 수 있도록 함.
+결재 완료된 문서의 PDF 출력 시 서명/도장이 표시됨.
+
+### Phase 1: 데이터 모델 및 API
+
+#### 새 Prisma 모델 (UserSignature)
+
+```prisma
+model UserSignature {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // "signature" | "stamp"
+  name        String   // "기본 서명", "도장 1" 등
+  imageData   String   @db.Text  // base64 인코딩 이미지
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+```
+
+#### ApprovalStep 필드 추가
+
+```prisma
+model ApprovalStep {
+  // ... 기존 필드
+  signatureType   String?   // "signature" | "stamp" | "realtime"
+  signatureData   String?   @db.Text  // base64 이미지 데이터
+}
+```
+
+#### 생성 파일
+
+| 파일 | 설명 |
+|------|------|
+| `app/api/users/me/signatures/route.ts` | 서명/도장 목록 조회 및 등록 API (GET, POST) |
+| `app/api/users/me/signatures/[id]/route.ts` | 서명/도장 조회/수정/삭제 API (GET, PUT, DELETE) |
+| `app/api/users/me/signatures/[id]/default/route.ts` | 기본 서명/도장 설정 API (PUT) |
+
+#### 변경 파일
+- `app/api/expenses/[id]/approve/route.ts` - 결재 승인 시 서명 데이터 저장
+
+### Phase 2: 서명 UI 컴포넌트
+
+#### 생성 파일
+
+| 파일 | 설명 |
+|------|------|
+| `components/signature/SignatureCanvas.tsx` | 캔버스 기반 실시간 서명 입력 |
+| `components/signature/SignatureSelector.tsx` | 실시간 서명 또는 저장된 서명/도장 선택 |
+| `components/signature/index.ts` | 컴포넌트 export |
+
+#### 변경 파일
+- `components/approval/ApprovalActionButtons.tsx` - 결재 승인 모달에 서명 선택 통합
+
+#### SignatureCanvas 기능
+
+| 기능 | 설명 |
+|------|------|
+| 캔버스 그리기 | HTML5 Canvas API 사용 |
+| 마우스/터치 지원 | 모바일 호환 |
+| 지우기 | 캔버스 초기화 |
+| 완료 | base64 PNG 이미지 반환 |
+
+#### SignatureSelector 기능
+
+| 기능 | 설명 |
+|------|------|
+| 모드 선택 | 실시간 서명 / 저장된 서명/도장 |
+| 기본 자동 선택 | isDefault가 true인 서명 자동 선택 |
+| 서명/도장 목록 | 그리드로 표시, 선택 상태 표시 |
+
+### Phase 3: 서명 관리 페이지
+
+#### 생성 파일
+
+| 파일 | 설명 |
+|------|------|
+| `components/signature/SignatureManager.tsx` | 서명/도장 등록/삭제/기본설정 관리 |
+| `app/mypage/signatures/page.tsx` | 마이페이지 서명 관리 페이지 |
+
+#### SignatureManager 기능
+
+| 기능 | 설명 |
+|------|------|
+| 서명/도장 추가 | 서명은 캔버스, 도장은 이미지 업로드 |
+| 삭제 | 확인 후 삭제 |
+| 기본 설정 | 타입별 기본 서명/도장 설정 |
+| 목록 표시 | 서명/도장 분리 표시 |
+
+### Phase 4: PDF 연동
+
+#### 변경 파일
+
+| 파일 | 설명 |
+|------|------|
+| `components/approval/ApprovalLineDisplay.tsx` | 결재선에 서명 이미지 표시 |
+| `components/PDFDocument.tsx` | PDF 출력 시 결재선 및 서명 이미지 렌더링 |
+
+#### PDF 결재선 표시
+
+```
+┌─────────┬─────────┬─────────┬─────────┐
+│ 담당자   │ 팀장    │ 회계    │ 재정팀장 │
+├─────────┼─────────┼─────────┼─────────┤
+│ [서명]  │ [도장]  │ [서명]  │ 대기    │
+├─────────┼─────────┼─────────┼─────────┤
+│ 김철수  │ 박영희  │ 이회계  │ 정재정  │
+├─────────┼─────────┼─────────┼─────────┤
+│ 01/10   │ 01/10   │ 01/11   │         │
+└─────────┴─────────┴─────────┴─────────┘
+```
+
+### 사용 방법
+
+1. **서명/도장 등록**: `/mypage/signatures` 에서 서명/도장 등록
+2. **결재 승인**: 승인 버튼 클릭 → 실시간 서명 또는 저장된 서명/도장 선택
+3. **결재 확인**: 결재 상세 페이지에서 서명 확인
+4. **PDF 출력**: PDF 출력 시 결재선에 서명 표시
+
+### API 엔드포인트 요약
+
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| GET | `/api/users/me/signatures` | 내 서명/도장 목록 |
+| POST | `/api/users/me/signatures` | 서명/도장 등록 |
+| GET | `/api/users/me/signatures/[id]` | 서명/도장 상세 |
+| PUT | `/api/users/me/signatures/[id]` | 서명/도장 수정 |
+| DELETE | `/api/users/me/signatures/[id]` | 서명/도장 삭제 |
+| PUT | `/api/users/me/signatures/[id]/default` | 기본 설정 |
+
+### 파일 변경 요약
+
+```
+prisma/
+└── schema.prisma              # UserSignature 모델, ApprovalStep 필드 추가
+
+app/api/users/me/signatures/
+├── route.ts                   # 신규 (GET, POST)
+├── [id]/route.ts              # 신규 (GET, PUT, DELETE)
+└── [id]/default/route.ts      # 신규 (PUT)
+
+app/api/expenses/[id]/
+└── approve/route.ts           # 수정 (서명 데이터 저장)
+
+app/mypage/signatures/
+└── page.tsx                   # 신규 (서명 관리 페이지)
+
+components/signature/
+├── SignatureCanvas.tsx        # 신규 (캔버스 서명)
+├── SignatureSelector.tsx      # 신규 (서명/도장 선택)
+├── SignatureManager.tsx       # 신규 (서명/도장 관리)
+└── index.ts                   # 신규 (export)
+
+components/approval/
+├── ApprovalActionButtons.tsx  # 수정 (서명 모달 통합)
+└── ApprovalLineDisplay.tsx    # 수정 (서명 이미지 표시)
+
+components/
+└── PDFDocument.tsx            # 수정 (결재선 서명 렌더링)
+```
+
+### 접근 경로
+
+| 경로 | 설명 |
+|------|------|
+| `/mypage/signatures` | 내 서명/도장 관리 |
+| `/approvals/[id]` | 결재 상세 (서명 확인) |
+| `/expenses/[id]` | 지출결의서 상세 (PDF 출력)

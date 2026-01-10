@@ -173,6 +173,19 @@ describe('validators', () => {
       }
     });
 
+    it('handles Date object for expenseDate', () => {
+      const date = new Date('2024-03-20');
+      const expenseWithDate = {
+        ...validExpense,
+        expenseDate: date,
+      };
+      const result = createExpenseSchema.safeParse(expenseWithDate);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.expenseDate).toBe(date);
+      }
+    });
+
     it('allows omitting requestTeam (server derives it from committee/department)', () => {
       const result = createExpenseSchema.safeParse(validExpense);
       expect(result.success).toBe(true);

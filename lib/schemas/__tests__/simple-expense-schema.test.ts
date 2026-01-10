@@ -161,5 +161,150 @@ describe('simple-expense-schema', () => {
       const result = createSimpleExpenseSchema.safeParse(validData);
       expect(result.success).toBe(true);
     });
+
+    it('should transform expenseDate string to Date', () => {
+      const validData = {
+        expenseDate: '2024-01-15',
+        items: [
+          {
+            budgetCategory: '사무행정비',
+            budgetSubcategory: '회의비',
+            budgetDetail: '다과비',
+            description: '회의 다과',
+            unitPrice: 10000,
+            quantity: 5,
+            amount: 50000,
+            order: 1,
+          },
+        ],
+        requestDate: '2024-01-15',
+        applicantName: '홍길동',
+        bankName: '우리은행',
+        accountNumber: '123-456-789',
+        accountHolder: '홍길동',
+      };
+
+      const result = createSimpleExpenseSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.expenseDate).toBeInstanceOf(Date);
+      }
+    });
+
+    it('should transform expenseDate null to null', () => {
+      const validData = {
+        expenseDate: null,
+        items: [
+          {
+            budgetCategory: '사무행정비',
+            budgetSubcategory: '회의비',
+            budgetDetail: '다과비',
+            description: '회의 다과',
+            unitPrice: 10000,
+            quantity: 5,
+            amount: 50000,
+            order: 1,
+          },
+        ],
+        requestDate: '2024-01-15',
+        applicantName: '홍길동',
+        bankName: '우리은행',
+        accountNumber: '123-456-789',
+        accountHolder: '홍길동',
+      };
+
+      const result = createSimpleExpenseSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.expenseDate).toBeNull();
+      }
+    });
+
+    it('should keep expenseDate as Date object', () => {
+      const date = new Date('2024-01-15');
+      const validData = {
+        expenseDate: date,
+        items: [
+          {
+            budgetCategory: '사무행정비',
+            budgetSubcategory: '회의비',
+            budgetDetail: '다과비',
+            description: '회의 다과',
+            unitPrice: 10000,
+            quantity: 5,
+            amount: 50000,
+            order: 1,
+          },
+        ],
+        requestDate: '2024-01-15',
+        applicantName: '홍길동',
+        bankName: '우리은행',
+        accountNumber: '123-456-789',
+        accountHolder: '홍길동',
+      };
+
+      const result = createSimpleExpenseSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.expenseDate).toBe(date);
+      }
+    });
+
+    it('should transform requestDate string to Date', () => {
+      const validData = {
+        items: [
+          {
+            budgetCategory: '사무행정비',
+            budgetSubcategory: '회의비',
+            budgetDetail: '다과비',
+            description: '회의 다과',
+            unitPrice: 10000,
+            quantity: 5,
+            amount: 50000,
+            order: 1,
+          },
+        ],
+        requestDate: '2024-01-15',
+        applicantName: '홍길동',
+        bankName: '우리은행',
+        accountNumber: '123-456-789',
+        accountHolder: '홍길동',
+      };
+
+      const result = createSimpleExpenseSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.requestDate).toBeInstanceOf(Date);
+      }
+    });
+
+    it('should keep requestDate as Date object', () => {
+      const date = new Date('2024-01-15');
+      const validData = {
+        items: [
+          {
+            budgetCategory: '사무행정비',
+            budgetSubcategory: '회의비',
+            budgetDetail: '다과비',
+            description: '회의 다과',
+            unitPrice: 10000,
+            quantity: 5,
+            amount: 50000,
+            order: 1,
+          },
+        ],
+        requestDate: date,
+        applicantName: '홍길동',
+        bankName: '우리은행',
+        accountNumber: '123-456-789',
+        accountHolder: '홍길동',
+      };
+
+      const result = createSimpleExpenseSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.requestDate).toBe(date);
+      }
+    });
   });
 });

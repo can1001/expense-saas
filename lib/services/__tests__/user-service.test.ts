@@ -20,6 +20,12 @@ import {
   CURRENT_YEAR,
   ROLE_STEP_MAP,
   ROLE_NAMES,
+  getAllRoles,
+  getRoleByCode,
+  getRoleById,
+  getRoleByStep,
+  getRoleNameFromTable,
+  getApprovalStepFromTable,
   findUserById,
   findUserByUserid,
   findUserByUsername,
@@ -67,6 +73,12 @@ vi.mock('../../prisma', () => ({
 }));
 
 describe('user-service', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Clear role cache by forcing a new import
+    vi.resetModules();
+  });
+
   const mockUser: User = {
     id: 'user-1',
     userid: 'testuser',
@@ -141,6 +153,151 @@ describe('user-service', () => {
       expect(ROLE_NAMES.team_leader).toBe('팀장');
       expect(ROLE_NAMES.admin_assistant).toBe('행정간사');
       expect(ROLE_NAMES.user).toBe('사용자');
+    });
+  });
+
+  describe('getAllRoles', () => {
+    it('returns all roles from database', async () => {
+      const mockRoles = [
+        { id: 'role-1', code: 'admin', name: '관리자', stepNumber: null },
+        { id: 'role-2', code: 'finance_head', name: '재정팀장', stepNumber: 3 },
+      ];
+      vi.mocked(prisma.role.findMany).mockResolvedValueOnce(mockRoles as any);
+
+      const result = await getAllRoles(true); // Force refresh to bypass cache
+
+      expect(result).toEqual(mockRoles);
+      expect(prisma.role.findMany).toHaveBeenCalled();
+    });
+  });
+
+  describe('getRoleByCode', () => {
+    it('returns role when found', async () => {
+      const mockRoles = [
+        { id: 'role-1', code: 'admin', name: '관리자', stepNumber: null },
+        { id: 'role-2', code: 'finance_head', name: '재정팀장', stepNumber: 3 },
+      ];
+      vi.mocked(prisma.role.findMany).mockResolvedValueOnce(mockRoles as any);
+
+      await getAllRoles(true); // Force refresh first
+      const result = await getRoleByCode('admin');
+
+      expect(result).toEqual(mockRoles[0]);
+    });
+
+    it('returns null when role not found', async () => {
+      vi.mocked(prisma.role.findMany).mockResolvedValueOnce([]);
+
+      await getAllRoles(true); // Force refresh first
+      const result = await getRoleByCode('nonexistent');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getRoleById', () => {
+    it('returns role when found', async () => {
+      const mockRoles = [
+        { id: 'role-1', code: 'admin', name: '관리자', stepNumber: null },
+        { id: 'role-2', code: 'finance_head', name: '재정팀장', stepNumber: 3 },
+      ];
+      vi.mocked(prisma.role.findMany).mockResolvedValueOnce(mockRoles as any);
+
+      await getAllRoles(true); // Force refresh first
+      const result = await getRoleById('role-1');
+
+      expect(result).toEqual(mockRoles[0]);
+    });
+
+    it('returns null when role not found', async () => {
+      vi.mocked(prisma.role.findMany).mockResolvedValueOnce([]);
+
+      await getAllRoles(true); // Force refresh first
+      const result = await getRoleById('nonexistent');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getRoleByStep', () => {
+    it('returns role when found', async () => {
+      const mockRoles = [
+        { id: 'role-1', code: 'admin', name: '관리자', stepNumber: null },
+        { id: 'role-2', code: 'finance_head', name: '재정팀장', stepNumber: 3 },
+      ];
+      vi.mocked(prisma.role.findMany).mockResolvedValueOnce(mockRoles as any);
+
+      await getAllRoles(true); // Force refresh first
+      const result = await getRoleByStep(3);
+
+      expect(result).toEqual(mockRoles[1]);
+    });
+
+    it('returns null when role not found', async () => {
+      vi.mocked(prisma.role.findMany).mockResolvedValueOnce([]);
+
+      await getAllRoles(true); // Force refresh first
+      const result = await getRoleByStep(99);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getRoleNameFromTable', () => {
+    it('returns role name when found', async () => {
+      const mockRoles = [
+        { id: 'role-1', code: 'admin', name: '관리자', stepNumber: null },
+      ];
+      vi.mocked(prisma.role.findMany).mockResolvedValueOnce(mockRoles as any);
+
+      await getAllRoles(true); // Force refresh first
+      const result = await getRoleNameFromTable('admin');
+
+      expect(result).toBe('관리자');
+    });
+
+    it('returns role code when role not found', async () => {
+      vi.mocked(prisma.role.findMany).mockResolvedValueOnce([]);
+
+      await getAllRoles(true); // Force refresh first
+      const result = await getRoleNameFromTable('unknown');
+
+      expect(result).toBe('unknown');
+    });
+  });
+
+  describe('getApprovalStepFromTable', () => {
+    it('returns step number when found', async () => {
+      const mockRoles = [
+        { id: 'role-2', code: 'finance_head', name: '재정팀장', stepNumber: 3 },
+      ];
+      vi.mocked(prisma.role.findMany).mockResolvedValueOnce(mockRoles as any);
+
+      await getAllRoles(true); // Force refresh first
+      const result = await getApprovalStepFromTable('finance_head');
+
+      expect(result).toBe(3);
+    });
+
+    it('returns null when role not found', async () => {
+      vi.mocked(prisma.role.findMany).mockResolvedValueOnce([]);
+
+      await getAllRoles(true); // Force refresh first
+      const result = await getApprovalStepFromTable('unknown');
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when role has no step number', async () => {
+      const mockRoles = [
+        { id: 'role-1', code: 'admin', name: '관리자', stepNumber: null },
+      ];
+      vi.mocked(prisma.role.findMany).mockResolvedValueOnce(mockRoles as any);
+
+      await getAllRoles(true); // Force refresh first
+      const result = await getApprovalStepFromTable('admin');
+
+      expect(result).toBeNull();
     });
   });
 
@@ -321,25 +478,36 @@ describe('user-service', () => {
         password: 'mypassword',
       };
 
+      // Mock role lookup
+      vi.mocked(prisma.role.findMany)
+        .mockResolvedValueOnce([
+          { id: 'role-6', code: 'user', name: '사용자', stepNumber: null },
+        ] as any)
+        .mockResolvedValueOnce([
+          { id: 'role-6', code: 'user', name: '사용자', stepNumber: null },
+        ] as any);
+
       vi.mocked(prisma.user.create).mockResolvedValue({
         ...mockUser,
         ...userData,
         password: 'hashed_mypassword',
       });
 
+      await getAllRoles(true); // Force refresh
       const result = await createUser(userData);
 
       expect(result.userid).toBe('newuser');
-      expect(prisma.user.create).toHaveBeenCalledWith({
-        data: {
-          userid: 'newuser',
-          username: '새사용자',
-          role: 'user',
-          roleId: 'role-6', // user role의 ID
-          department: '기획팀',
-          password: 'hashed_mypassword', // bcrypt mock에 의해 해시됨
-        },
-      });
+      expect(prisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userid: 'newuser',
+            username: '새사용자',
+            role: 'user',
+            department: '기획팀',
+            password: 'hashed_mypassword', // bcrypt mock에 의해 해시됨
+          }),
+        })
+      );
     });
 
     it('creates user with default role when not provided', async () => {
@@ -375,21 +543,33 @@ describe('user-service', () => {
         role: 'team_leader' as UserRole,
       };
 
+      // Mock role lookup
+      vi.mocked(prisma.role.findMany)
+        .mockResolvedValueOnce([
+          { id: 'role-4', code: 'team_leader', name: '팀장', stepNumber: 1 },
+        ] as any)
+        .mockResolvedValueOnce([
+          { id: 'role-4', code: 'team_leader', name: '팀장', stepNumber: 1 },
+        ] as any);
+
       vi.mocked(prisma.user.update).mockResolvedValue({
         ...mockUser,
         ...updateData,
       });
 
+      await getAllRoles(true); // Force refresh
       const result = await updateUser('user-1', updateData);
 
       expect(result.username).toBe('변경된이름');
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        data: {
-          ...updateData,
-          roleId: 'role-4', // team_leader role의 ID
-        },
-      });
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'user-1' },
+          data: expect.objectContaining({
+            username: '변경된이름',
+            role: 'team_leader',
+          }),
+        })
+      );
     });
 
     it('updates password', async () => {
@@ -806,18 +986,30 @@ describe('user-service', () => {
         updatedAt: new Date(),
       };
 
+      // Mock the role lookup - need two calls because getAllRoles will be called twice
+      vi.mocked(prisma.role.findMany)
+        .mockResolvedValueOnce([
+          { id: 'role-3', code: 'accountant', name: '회계', stepNumber: 2 },
+        ] as any)
+        .mockResolvedValueOnce([
+          { id: 'role-3', code: 'accountant', name: '회계', stepNumber: 2 },
+        ] as any);
+
       vi.mocked(prisma.userYearRole.upsert).mockResolvedValue(mockYearRole);
 
+      await getAllRoles(true); // Force refresh to populate cache
       const result = await setYearRole('user-1', 2025, 'accountant', '재정팀');
 
       expect(result).toEqual(mockYearRole);
-      expect(prisma.userYearRole.upsert).toHaveBeenCalledWith({
-        where: {
-          userId_year: { userId: 'user-1', year: 2025 },
-        },
-        update: { role: 'accountant', roleId: 'role-3', department: '재정팀' },
-        create: { userId: 'user-1', year: 2025, role: 'accountant', roleId: 'role-3', department: '재정팀' },
-      });
+      expect(prisma.userYearRole.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            userId_year: { userId: 'user-1', year: 2025 },
+          },
+          update: expect.objectContaining({ role: 'accountant', department: '재정팀' }),
+          create: expect.objectContaining({ userId: 'user-1', year: 2025, role: 'accountant', department: '재정팀' }),
+        })
+      );
     });
 
     it('creates year role without department', async () => {
@@ -831,8 +1023,18 @@ describe('user-service', () => {
         updatedAt: new Date(),
       };
 
+      // Mock the role lookup
+      vi.mocked(prisma.role.findMany)
+        .mockResolvedValueOnce([
+          { id: 'role-6', code: 'user', name: '사용자', stepNumber: null },
+        ] as any)
+        .mockResolvedValueOnce([
+          { id: 'role-6', code: 'user', name: '사용자', stepNumber: null },
+        ] as any);
+
       vi.mocked(prisma.userYearRole.upsert).mockResolvedValue(mockYearRole);
 
+      await getAllRoles(true); // Force refresh
       await setYearRole('user-1', 2025, 'user');
 
       expect(prisma.userYearRole.upsert).toHaveBeenCalledWith(

@@ -406,7 +406,7 @@ export default function ExpenseDetailPage() {
               ) : (
                 <>
                   <FileSpreadsheet className="w-5 h-5" />
-                  웹교적
+                  엑셀 다운로드
                 </>
               )}
             </button>

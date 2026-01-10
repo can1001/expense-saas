@@ -268,6 +268,216 @@ describe('useExpenseFormSubmit', () => {
       // 수정 모드에서는 첨부파일 저장 API 호출 안함
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
+
+    describe('edit mode + submit (status: PENDING)', () => {
+      it('should save as DRAFT first, then call submit API', async () => {
+        // Step 1: PUT으로 저장 (status: DRAFT)
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ id: 'expense-123' }),
+          })
+          // Step 2: submit API 호출
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ id: 'expense-123', status: 'PENDING' }),
+          });
+
+        const { result } = renderHook(() =>
+          useExpenseFormSubmit({ ...defaultOptions, expenseId: 'expense-123' })
+        );
+
+        await act(async () => {
+          await result.current.handleSubmit({
+            committee: '기획위원회',
+            status: 'PENDING', // 제출
+          });
+        });
+
+        // 2번 호출되어야 함
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+
+        // 첫 번째 호출: PUT으로 저장 (status: DRAFT)
+        expect(mockFetch).toHaveBeenNthCalledWith(
+          1,
+          '/api/expenses/expense-123',
+          expect.objectContaining({
+            method: 'PUT',
+            body: expect.stringContaining('"status":"DRAFT"'),
+          })
+        );
+
+        // 두 번째 호출: submit API
+        expect(mockFetch).toHaveBeenNthCalledWith(
+          2,
+          '/api/expenses/expense-123/submit',
+          expect.objectContaining({
+            method: 'POST',
+          })
+        );
+
+        expect(mockAlert).toHaveBeenCalledWith('지출결의서가 성공적으로 제출되었습니다.');
+        expect(mockPush).toHaveBeenCalledWith('/expenses/expense-123');
+      });
+
+      it('should handle save error in edit + submit flow', async () => {
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 400,
+          text: () => Promise.resolve(JSON.stringify({ error: '저장 실패' })),
+        });
+
+        const { result } = renderHook(() =>
+          useExpenseFormSubmit({ ...defaultOptions, expenseId: 'expense-123' })
+        );
+
+        let submitResult: { success: boolean; error?: string };
+        await act(async () => {
+          submitResult = await result.current.handleSubmit({
+            committee: '기획위원회',
+            status: 'PENDING',
+          });
+        });
+
+        expect(submitResult!.success).toBe(false);
+        expect(submitResult!.error).toBe('저장 실패');
+        expect(mockFetch).toHaveBeenCalledTimes(1); // submit API 호출 안됨
+      });
+
+      it('should handle submit API error in edit + submit flow', async () => {
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ id: 'expense-123' }),
+          })
+          .mockResolvedValueOnce({
+            ok: false,
+            status: 400,
+            text: () => Promise.resolve(JSON.stringify({ error: '제출 실패', details: '결재선 생성 실패' })),
+          });
+
+        const { result } = renderHook(() =>
+          useExpenseFormSubmit({ ...defaultOptions, expenseId: 'expense-123' })
+        );
+
+        let submitResult: { success: boolean; error?: string };
+        await act(async () => {
+          submitResult = await result.current.handleSubmit({
+            committee: '기획위원회',
+            status: 'PENDING',
+          });
+        });
+
+        expect(submitResult!.success).toBe(false);
+        expect(submitResult!.error).toBe('제출 실패: 결재선 생성 실패');
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+      });
+
+      it('should handle non-JSON error response in save step', async () => {
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          text: () => Promise.resolve('Internal Server Error'),
+        });
+
+        const { result } = renderHook(() =>
+          useExpenseFormSubmit({ ...defaultOptions, expenseId: 'expense-123' })
+        );
+
+        let submitResult: { success: boolean; error?: string };
+        await act(async () => {
+          submitResult = await result.current.handleSubmit({
+            committee: '기획위원회',
+            status: 'PENDING',
+          });
+        });
+
+        expect(submitResult!.error).toBe('서버 오류 (500): Internal Server Error');
+      });
+
+      it('should handle non-JSON error response in submit step', async () => {
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ id: 'expense-123' }),
+          })
+          .mockResolvedValueOnce({
+            ok: false,
+            status: 500,
+            text: () => Promise.resolve('Internal Server Error'),
+          });
+
+        const { result } = renderHook(() =>
+          useExpenseFormSubmit({ ...defaultOptions, expenseId: 'expense-123' })
+        );
+
+        let submitResult: { success: boolean; error?: string };
+        await act(async () => {
+          submitResult = await result.current.handleSubmit({
+            committee: '기획위원회',
+            status: 'PENDING',
+          });
+        });
+
+        expect(submitResult!.error).toBe('서버 오류 (500): Internal Server Error');
+      });
+
+      it('should handle save error with details in edit + submit flow', async () => {
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 400,
+          text: () => Promise.resolve(JSON.stringify({
+            error: '저장 실패',
+            details: '필수 필드가 누락되었습니다'
+          })),
+        });
+
+        const { result } = renderHook(() =>
+          useExpenseFormSubmit({ ...defaultOptions, expenseId: 'expense-123' })
+        );
+
+        let submitResult: { success: boolean; error?: string };
+        await act(async () => {
+          submitResult = await result.current.handleSubmit({
+            committee: '기획위원회',
+            status: 'PENDING',
+          });
+        });
+
+        expect(submitResult!.success).toBe(false);
+        expect(submitResult!.error).toBe('저장 실패: 필수 필드가 누락되었습니다');
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+      });
+
+      it('should handle submit API error without details in edit + submit flow', async () => {
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ id: 'expense-123' }),
+          })
+          .mockResolvedValueOnce({
+            ok: false,
+            status: 400,
+            text: () => Promise.resolve(JSON.stringify({ error: '제출 실패' })),
+          });
+
+        const { result } = renderHook(() =>
+          useExpenseFormSubmit({ ...defaultOptions, expenseId: 'expense-123' })
+        );
+
+        let submitResult: { success: boolean; error?: string };
+        await act(async () => {
+          submitResult = await result.current.handleSubmit({
+            committee: '기획위원회',
+            status: 'PENDING',
+          });
+        });
+
+        expect(submitResult!.success).toBe(false);
+        expect(submitResult!.error).toBe('제출 실패');
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+      });
+    });
   });
 
   describe('error handling', () => {
@@ -414,6 +624,26 @@ describe('useExpenseFormSubmit', () => {
 
       const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(callBody.expenseDate).toBe('2025-01-15');
+    });
+  });
+
+  describe('submit with status PENDING', () => {
+    it('should call submit API when status is PENDING in create mode', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ id: 'new-expense-id' }),
+      });
+
+      const { result } = renderHook(() => useExpenseFormSubmit(defaultOptions));
+
+      await act(async () => {
+        await result.current.handleSubmit({
+          committee: '기획위원회',
+          status: 'PENDING',
+        });
+      });
+
+      expect(mockAlert).toHaveBeenCalledWith('지출결의서가 성공적으로 제출되었습니다.');
     });
   });
 });

@@ -1,9 +1,27 @@
 'use client';
 
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 import { Expense } from '@/lib/types';
+
+interface ApprovalStep {
+  id: string;
+  stepNumber: number;
+  stepName: string;
+  approverName: string;
+  status: string;
+  approvedAt?: Date | null;
+  signatureType?: string | null;
+  signatureData?: string | null;
+}
+
+interface ApprovalLine {
+  id: string;
+  currentStep: number;
+  totalSteps: number;
+  steps: ApprovalStep[];
+}
 
 // 한글 폰트 등록 (옵션: 웹 폰트 사용)
 // Font.register({
@@ -118,13 +136,47 @@ const styles = StyleSheet.create({
     borderTop: '1px solid #E5E7EB',
     paddingTop: 10,
   },
+  approvalTable: {
+    marginTop: 10,
+    border: '1px solid #ddd',
+  },
+  approvalHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderBottom: '1px solid #ddd',
+  },
+  approvalHeaderCell: {
+    flex: 1,
+    padding: 6,
+    fontSize: 8,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    borderRight: '1px solid #ddd',
+  },
+  approvalRow: {
+    flexDirection: 'row',
+  },
+  approvalCell: {
+    flex: 1,
+    padding: 6,
+    fontSize: 8,
+    textAlign: 'center',
+    borderRight: '1px solid #ddd',
+    borderBottom: '1px solid #ddd',
+  },
+  signatureImage: {
+    width: 50,
+    height: 25,
+    objectFit: 'contain',
+  },
 });
 
 interface PDFDocumentProps {
   expense: Expense;
+  approvalLine?: ApprovalLine | null;
 }
 
-export const ExpensePDFDocument: React.FC<PDFDocumentProps> = ({ expense }) => {
+export const ExpensePDFDocument: React.FC<PDFDocumentProps> = ({ expense, approvalLine }) => {
   const formatCurrency = (amount: number) => {
     return `${amount.toLocaleString('ko-KR')}원`;
   };
@@ -249,6 +301,73 @@ export const ExpensePDFDocument: React.FC<PDFDocumentProps> = ({ expense }) => {
             <Text style={styles.value}>{expense.accountHolder}</Text>
           </View>
         </View>
+
+        {/* 결재선 */}
+        {approvalLine && approvalLine.steps.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>결재선</Text>
+            <View style={styles.approvalTable}>
+              {/* 헤더 - 직책 */}
+              <View style={styles.approvalHeader}>
+                {approvalLine.steps.map((step, index) => (
+                  <Text key={`h1-${step.id}`} style={{
+                    ...styles.approvalHeaderCell,
+                    borderRight: index === approvalLine.steps.length - 1 ? 'none' : '1px solid #ddd',
+                  }}>
+                    {step.stepName}
+                  </Text>
+                ))}
+              </View>
+              {/* 서명/도장 */}
+              <View style={styles.approvalRow}>
+                {approvalLine.steps.map((step, index) => (
+                  <View key={`sig-${step.id}`} style={{
+                    ...styles.approvalCell,
+                    height: 40,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    borderRight: index === approvalLine.steps.length - 1 ? 'none' : '1px solid #ddd',
+                  }}>
+                    {step.status === 'APPROVED' && step.signatureData ? (
+                      <Image src={step.signatureData} style={styles.signatureImage} />
+                    ) : step.status === 'APPROVED' ? (
+                      <Text style={{ fontSize: 8, color: '#10B981' }}>승인</Text>
+                    ) : step.status === 'REJECTED' ? (
+                      <Text style={{ fontSize: 8, color: '#EF4444' }}>반려</Text>
+                    ) : (
+                      <Text style={{ fontSize: 8, color: '#9CA3AF' }}>대기</Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+              {/* 결재자 이름 */}
+              <View style={styles.approvalRow}>
+                {approvalLine.steps.map((step, index) => (
+                  <Text key={`name-${step.id}`} style={{
+                    ...styles.approvalCell,
+                    borderRight: index === approvalLine.steps.length - 1 ? 'none' : '1px solid #ddd',
+                  }}>
+                    {step.approverName}
+                  </Text>
+                ))}
+              </View>
+              {/* 결재 일시 */}
+              <View style={styles.approvalRow}>
+                {approvalLine.steps.map((step, index) => (
+                  <Text key={`date-${step.id}`} style={{
+                    ...styles.approvalCell,
+                    fontSize: 7,
+                    color: '#6B7280',
+                    borderRight: index === approvalLine.steps.length - 1 ? 'none' : '1px solid #ddd',
+                    borderBottom: 'none',
+                  }}>
+                    {step.approvedAt ? format(new Date(step.approvedAt), 'MM/dd HH:mm') : ''}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* 푸터 */}
         <View style={styles.footer}>

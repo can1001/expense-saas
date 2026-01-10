@@ -18,6 +18,8 @@ interface ApprovalStep {
   rejectedAt?: Date | null;
   comment?: string | null;
   isRequired: boolean;
+  signatureType?: string | null;
+  signatureData?: string | null;
 }
 
 interface ApprovalLine {
@@ -192,6 +194,17 @@ export default function ApprovalLineDisplay({
                     {getStatusText(step.status)}
                   </span>
                 </div>
+
+                {/* 서명/도장 표시 */}
+                {step.signatureData && step.status === 'APPROVED' && (
+                  <div className="mt-2 flex justify-center">
+                    <img
+                      src={step.signatureData}
+                      alt={`${step.approverName} ${step.signatureType === 'stamp' ? '도장' : '서명'}`}
+                      className="max-w-[80px] max-h-[40px] object-contain"
+                    />
+                  </div>
+                )}
 
                 {/* 결재 일시 및 의견 */}
                 {(step.approvedAt || step.rejectedAt || step.comment) && (

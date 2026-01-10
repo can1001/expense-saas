@@ -63,7 +63,8 @@
       "Bash(node /tmp/test-query.mjs:*)",
       "Bash(pkill:*)",
       "Bash(npx next build:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(npx vitest:*)"
     ],
     "deny": [],
     "ask": []
