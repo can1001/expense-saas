@@ -52,7 +52,7 @@ export async function PUT(
     }
 
     // 역할 검증
-    const validRoles: UserRole[] = ['admin', 'finance_head', 'accountant', 'team_leader', 'user'];
+    const validRoles: UserRole[] = ['admin', 'finance_head', 'accountant', 'team_leader', 'admin_assistant', 'user'];
     if (role && !validRoles.includes(role)) {
       return NextResponse.json(
         { error: 'Invalid role' },

@@ -543,6 +543,74 @@ async function seedBudgetMasterLegacy() {
   console.log(`✅ Inserted ${successCount}/${budgetMasterData.length} budget master items`);
 }
 
+/**
+ * UserYearRole 기반으로 Department.leaderId 업데이트
+ */
+async function updateDepartmentLeaders() {
+  console.log('\n👔 Updating department leaders...');
+
+  // team_leader 역할을 가진 사용자들 조회
+  const teamLeaders = await prisma.userYearRole.findMany({
+    where: {
+      role: 'team_leader',
+      year: CURRENT_YEAR,
+      department: { not: null },
+    },
+    include: {
+      user: true,
+    },
+  });
+
+  let updatedCount = 0;
+
+  for (const yearRole of teamLeaders) {
+    if (!yearRole.department) continue;
+
+    // department 형식: '기획위원회/홍보팀' 또는 '교육훈련위원회'
+    const parts = yearRole.department.split('/');
+
+    if (parts.length !== 2) {
+      // 위원회만 있는 경우 (위원장) - Committee.leaderId 업데이트
+      const committeeName = parts[0];
+      await prisma.committee.updateMany({
+        where: { name: committeeName },
+        data: { leaderId: yearRole.userId },
+      });
+      continue;
+    }
+
+    const [committeeName, departmentName] = parts;
+
+    // 해당 위원회 찾기
+    const committee = await prisma.committee.findUnique({
+      where: { name: committeeName },
+    });
+
+    if (!committee) {
+      console.log(`  ⚠️ Committee not found: ${committeeName}`);
+      continue;
+    }
+
+    // Department 업데이트
+    const result = await prisma.department.updateMany({
+      where: {
+        committeeId: committee.id,
+        name: departmentName,
+      },
+      data: {
+        leaderId: yearRole.userId,
+      },
+    });
+
+    if (result.count > 0) {
+      updatedCount++;
+      console.log(`  ✓ ${committeeName}/${departmentName} → ${yearRole.user.username}`);
+    }
+  }
+
+  console.log(`✅ Updated ${updatedCount} department leaders`);
+}
+
 async function main() {
   console.log('🌱 Starting seed...');
 
@@ -551,6 +619,9 @@ async function main() {
 
   // 정규화된 예산 테이블 시드
   await seedNormalizedBudget();
+
+  // Department 팀장 연결
+  await updateDepartmentLeaders();
 
   // BudgetMaster 레거시 테이블 시드 (호환성)
   await seedBudgetMasterLegacy();

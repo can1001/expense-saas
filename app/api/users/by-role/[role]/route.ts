@@ -11,10 +11,10 @@ export async function GET(
     const { role } = await params;
 
     // 역할 검증
-    const validRoles: UserRole[] = ['admin', 'finance_head', 'accountant', 'team_leader', 'user'];
+    const validRoles: UserRole[] = ['admin', 'finance_head', 'accountant', 'team_leader', 'admin_assistant', 'user'];
     if (!validRoles.includes(role as UserRole)) {
       return NextResponse.json(
-        { error: 'Invalid role. Valid roles: admin, finance_head, accountant, team_leader, user' },
+        { error: 'Invalid role. Valid roles: admin, finance_head, accountant, team_leader, admin_assistant, user' },
         { status: 400 }
       );
     }
