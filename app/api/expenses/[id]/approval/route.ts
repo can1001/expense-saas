@@ -6,8 +6,63 @@ import {
 } from '@/lib/approval-engine';
 
 /**
+ * 세목별 예산 정보 조회 (결재자용)
+ */
+async function getBudgetInfoForItems(
+  items: { budgetDetail: string; amount: number }[],
+  year: number
+) {
+  // 세목 이름 목록 추출 (중복 제거)
+  const budgetDetailNames = [...new Set(items.map((item) => item.budgetDetail))];
+
+  // BudgetDetail + BudgetDetailYear 조회
+  const budgetDetails = await prisma.budgetDetail.findMany({
+    where: {
+      name: { in: budgetDetailNames },
+      isActive: true,
+    },
+    include: {
+      yearSettings: {
+        where: { year },
+      },
+    },
+  });
+
+  // 세목별 청구금액 합산
+  const requestAmountByDetail: Record<string, number> = {};
+  for (const item of items) {
+    requestAmountByDetail[item.budgetDetail] =
+      (requestAmountByDetail[item.budgetDetail] || 0) + item.amount;
+  }
+
+  // 예산 정보 매핑
+  return budgetDetailNames.map((detailName) => {
+    const detail = budgetDetails.find((d) => d.name === detailName);
+    const yearSetting = detail?.yearSettings?.[0];
+
+    const budgetAmount = yearSetting?.budgetAmount ?? 0;
+    const usedAmount = yearSetting?.usedAmount ?? 0;
+    const remainingAmount = budgetAmount - usedAmount;
+    const requestAmount = requestAmountByDetail[detailName] || 0;
+    const afterApproval = remainingAmount - requestAmount;
+
+    return {
+      budgetDetailName: detailName,
+      budgetAmount,
+      usedAmount,
+      remainingAmount,
+      requestAmount,
+      afterApproval,
+      isOverBudget: afterApproval < 0,
+    };
+  });
+}
+
+/**
  * GET /api/expenses/[id]/approval
  * 결재선 조회
+ * Query params:
+ *   - approverName: 현재 사용자 이름 (결재자인 경우 예산 정보 포함)
  */
 export async function GET(
   request: NextRequest,
@@ -15,6 +70,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const approverName = searchParams.get('approverName');
 
     const expense = await prisma.expense.findUnique({
       where: { id },
@@ -23,9 +80,16 @@ export async function GET(
         status: true,
         applicantName: true,
         requestAmount: true,
+        requestDate: true,
         submittedAt: true,
         approvedAt: true,
         rejectedAt: true,
+        items: {
+          select: {
+            budgetDetail: true,
+            amount: true,
+          },
+        },
         approvalLine: {
           include: {
             steps: {
@@ -49,6 +113,22 @@ export async function GET(
       orderBy: { createdAt: 'desc' },
     });
 
+    // 결재자인지 확인 (결재선에 포함된 사람)
+    const isApprover =
+      approverName &&
+      expense.approvalLine?.steps.some(
+        (step) => step.approverName === approverName
+      );
+
+    // 결재자인 경우 예산 정보 추가
+    let budgetInfo = null;
+    if (isApprover && expense.items.length > 0) {
+      const year = expense.requestDate
+        ? new Date(expense.requestDate).getFullYear()
+        : new Date().getFullYear();
+      budgetInfo = await getBudgetInfoForItems(expense.items, year);
+    }
+
     return NextResponse.json({
       expense: {
         id: expense.id,
@@ -61,6 +141,7 @@ export async function GET(
       },
       approvalLine: expense.approvalLine,
       logs,
+      budgetInfo, // 결재자인 경우에만 포함
     });
   } catch (error: any) {
     console.error('Get approval error:', error);

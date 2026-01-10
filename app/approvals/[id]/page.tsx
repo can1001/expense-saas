@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import ApprovalStatusBadge from '@/components/approval/ApprovalStatusBadge';
 import ApprovalLineDisplay from '@/components/approval/ApprovalLineDisplay';
 import ApprovalActionButtons from '@/components/approval/ApprovalActionButtons';
+import { BudgetInfoPanel } from '@/components/approval/BudgetInfoPanel';
 import { Expense } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { ArrowLeft, Building2, User, Calendar, CreditCard, FileText, Clock } from 'lucide-react';
@@ -41,20 +42,28 @@ export default function ApprovalDetailPage() {
   }, []);
 
   useEffect(() => {
-    if (id) {
+    if (id && currentUser) {
+      fetchData(currentUser.username);
+    } else if (id && currentUser === null) {
+      // 로그인 정보 없이도 기본 데이터는 로드
       fetchData();
     }
-  }, [id]);
+  }, [id, currentUser]);
 
-  const fetchData = async () => {
+  const fetchData = async (username?: string) => {
     try {
       setLoading(true);
       setError(null);
 
+      // 결재 API URL 구성 (결재자인 경우 예산 정보 포함)
+      const approvalUrl = username
+        ? `/api/expenses/${id}/approval?approverName=${encodeURIComponent(username)}`
+        : `/api/expenses/${id}/approval`;
+
       // 지출결의서와 결재 정보를 함께 조회
       const [expenseRes, approvalRes] = await Promise.all([
         fetch(`/api/expenses/${id}`),
-        fetch(`/api/expenses/${id}/approval`),
+        fetch(approvalUrl),
       ]);
 
       if (!expenseRes.ok) {
@@ -345,6 +354,11 @@ export default function ApprovalDetailPage() {
               )}
             </div>
 
+            {/* 예산 현황 (결재자에게만 표시) */}
+            {approvalData?.budgetInfo && approvalData.budgetInfo.length > 0 && (
+              <BudgetInfoPanel budgetInfo={approvalData.budgetInfo} />
+            )}
+
             {/* 결재 액션 버튼 */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -368,7 +382,7 @@ export default function ApprovalDetailPage() {
                 currentUserName={currentUser?.username || ''}
                 currentApproverName={getCurrentApproverName()}
                 applicantName={expense.applicantName}
-                onSuccess={fetchData}
+                onSuccess={() => fetchData(currentUser?.username)}
               />
               {currentUser && getCurrentApproverName() !== currentUser.username &&
                 ['PENDING', 'APPROVED_STEP_1', 'APPROVED_STEP_2'].includes(expense.status || '') && (
