@@ -54,6 +54,62 @@ export function useExpenseFormSubmit(options: UseExpenseFormSubmitOptions) {
       try {
         setLoading(true);
 
+        const isEditMode = !!expenseId;
+        const isSubmit = data.status === 'PENDING';
+
+        // 수정 모드 + 제출: 2단계 호출 (PUT으로 저장 → submit API로 결재선 생성)
+        if (isEditMode && isSubmit) {
+          // Step 1: PUT으로 데이터 저장 (status: DRAFT)
+          const saveResponse = await fetch(`${apiEndpoint}/${expenseId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...data,
+              status: 'DRAFT', // 저장만 먼저
+              expenseDate: (data.expenseDate as string | null) || null,
+            }),
+          });
+
+          if (!saveResponse.ok) {
+            const responseText = await saveResponse.text();
+            let errorMsg = '저장에 실패했습니다.';
+            try {
+              const errorData = JSON.parse(responseText);
+              errorMsg = errorData.details
+                ? `${errorData.error}: ${errorData.details}`
+                : errorData.error || '저장에 실패했습니다.';
+            } catch {
+              errorMsg = `서버 오류 (${saveResponse.status}): ${responseText || '응답 없음'}`;
+            }
+            throw new Error(errorMsg);
+          }
+
+          // Step 2: submit API 호출로 결재선 생성
+          const submitResponse = await fetch(`${apiEndpoint}/${expenseId}/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+
+          if (!submitResponse.ok) {
+            const responseText = await submitResponse.text();
+            let errorMsg = '제출에 실패했습니다.';
+            try {
+              const errorData = JSON.parse(responseText);
+              errorMsg = errorData.details
+                ? `${errorData.error}: ${errorData.details}`
+                : errorData.error || '제출에 실패했습니다.';
+            } catch {
+              errorMsg = `서버 오류 (${submitResponse.status}): ${responseText || '응답 없음'}`;
+            }
+            throw new Error(errorMsg);
+          }
+
+          alert('지출결의서가 성공적으로 제출되었습니다.');
+          router.push(`${redirectPath}/${expenseId}`);
+          return { success: true, id: expenseId };
+        }
+
+        // 기존 로직: 신규 생성 또는 저장
         const url = expenseId ? `${apiEndpoint}/${expenseId}` : apiEndpoint;
         const method = expenseId ? 'PUT' : 'POST';
 
@@ -112,9 +168,11 @@ export function useExpenseFormSubmit(options: UseExpenseFormSubmitOptions) {
         }
 
         alert(
-          expenseId
-            ? '지출결의서가 성공적으로 수정되었습니다.'
-            : '지출결의서가 성공적으로 등록되었습니다.'
+          isSubmit
+            ? '지출결의서가 성공적으로 제출되었습니다.'
+            : expenseId
+              ? '지출결의서가 성공적으로 수정되었습니다.'
+              : '지출결의서가 성공적으로 등록되었습니다.'
         );
 
         router.push(`${redirectPath}/${result.id}`);
