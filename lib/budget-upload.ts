@@ -322,6 +322,7 @@ export async function uploadBudgetData(
     await prisma.$transaction(async (tx) => {
       // replace 모드: 관계 테이블 초기화
       if (mode === 'replace') {
+        await tx.budgetDetailYear.deleteMany();  // 연도별 설정 먼저 삭제
         await tx.departmentBudgetDetail.deleteMany();
         await tx.budgetDetail.deleteMany();
         await tx.budgetSubcategory.deleteMany();
