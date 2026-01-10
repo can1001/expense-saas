@@ -34,6 +34,7 @@ export const ADMIN_SIDEBAR_MENU: SidebarGroup[] = [
     items: [
       { href: '/admin/committees', label: '위원회 관리', icon: Building2 },
       { href: '/admin/departments', label: '사역팀(부) 관리', icon: Users2 },
+      { href: '/admin/leaders-upload', label: '팀장 일괄 등록', icon: Upload },
     ],
   },
   {
