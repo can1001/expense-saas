@@ -12,6 +12,13 @@ import {
   type UploadMode,
 } from '../budget-upload';
 
+// bcrypt mock
+vi.mock('bcryptjs', () => ({
+  default: {
+    hash: vi.fn().mockResolvedValue('hashed_password'),
+  },
+}));
+
 // Prisma mock (정규화된 테이블)
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -322,6 +329,11 @@ describe('budget-upload', () => {
         departmentBudgetDetail: {
           upsert: vi.fn().mockResolvedValue({ id: 'dbd-1' }),
           deleteMany: vi.fn(),
+        },
+        user: {
+          findFirst: vi.fn().mockResolvedValue(null), // User not found by username
+          findUnique: vi.fn().mockResolvedValue(null), // User not found by userid
+          create: vi.fn().mockResolvedValue({ id: 'user-1', username: '김대현', userid: '청연김대현' }),
         },
       });
 
