@@ -60,6 +60,9 @@ vi.mock('../../prisma', () => ({
       upsert: vi.fn(),
       deleteMany: vi.fn(),
     },
+    role: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -100,8 +103,20 @@ describe('user-service', () => {
     updatedAt: new Date('2025-01-01'),
   };
 
+  // Mock roles data
+  const mockRoles = [
+    { id: 'role-1', code: 'admin', name: '관리자', stepNumber: null, sortOrder: 0, isActive: true },
+    { id: 'role-2', code: 'finance_head', name: '재정팀장', stepNumber: 3, sortOrder: 1, isActive: true },
+    { id: 'role-3', code: 'accountant', name: '회계', stepNumber: 2, sortOrder: 2, isActive: true },
+    { id: 'role-4', code: 'team_leader', name: '팀장', stepNumber: 1, sortOrder: 3, isActive: true },
+    { id: 'role-5', code: 'admin_assistant', name: '행정간사', stepNumber: null, sortOrder: 4, isActive: true },
+    { id: 'role-6', code: 'user', name: '사용자', stepNumber: null, sortOrder: 5, isActive: true },
+  ];
+
   beforeEach(() => {
     vi.clearAllMocks();
+    // Setup default mock for role.findMany
+    vi.mocked(prisma.role.findMany).mockResolvedValue(mockRoles);
   });
 
   describe('Constants', () => {
@@ -320,6 +335,7 @@ describe('user-service', () => {
           userid: 'newuser',
           username: '새사용자',
           role: 'user',
+          roleId: 'role-6', // user role의 ID
           department: '기획팀',
           password: 'hashed_mypassword', // bcrypt mock에 의해 해시됨
         },
@@ -369,7 +385,10 @@ describe('user-service', () => {
       expect(result.username).toBe('변경된이름');
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
-        data: updateData,
+        data: {
+          ...updateData,
+          roleId: 'role-4', // team_leader role의 ID
+        },
       });
     });
 
@@ -796,8 +815,8 @@ describe('user-service', () => {
         where: {
           userId_year: { userId: 'user-1', year: 2025 },
         },
-        update: { role: 'accountant', department: '재정팀' },
-        create: { userId: 'user-1', year: 2025, role: 'accountant', department: '재정팀' },
+        update: { role: 'accountant', roleId: 'role-3', department: '재정팀' },
+        create: { userId: 'user-1', year: 2025, role: 'accountant', roleId: 'role-3', department: '재정팀' },
       });
     });
 
