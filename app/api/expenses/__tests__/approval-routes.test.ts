@@ -40,6 +40,11 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
+// Mock approval-line-service
+vi.mock('@/lib/services/approval-line-service', () => ({
+  calculateApprovalLineForExpense: vi.fn(),
+}));
+
 // Import route handlers after mocking
 import { POST as submitPOST } from '../[id]/submit/route';
 import { POST as approvePOST } from '../[id]/approve/route';
@@ -47,12 +52,41 @@ import { POST as rejectPOST } from '../[id]/reject/route';
 import { POST as withdrawPOST } from '../[id]/withdraw/route';
 import { GET as approvalGET, PUT as approvalPUT } from '../[id]/approval/route';
 import { prisma } from '@/lib/prisma';
+import { calculateApprovalLineForExpense } from '@/lib/services/approval-line-service';
 
 describe('Approval API Routes', () => {
   const mockPrisma = prisma as any;
+  const mockCalculateApprovalLine = calculateApprovalLineForExpense as ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Default mock for calculateApprovalLineForExpense
+    mockCalculateApprovalLine.mockResolvedValue({
+      managerId: 'manager-id',
+      managerName: '김재정',
+      managerEmail: 'manager@church.org',
+      isDirectApproval: false,
+      totalSteps: 2,
+      steps: [
+        {
+          stepNumber: 1,
+          stepName: '팀장',
+          approverName: '김재정',
+          approverEmail: 'manager@church.org',
+          role: '담당자',
+          isAutoApproved: false,
+        },
+        {
+          stepNumber: 2,
+          stepName: '회계',
+          approverName: '박회계',
+          approverEmail: 'accountant@church.org',
+          role: '회계',
+          isAutoApproved: false,
+        },
+      ],
+    });
   });
 
   afterEach(() => {
@@ -74,6 +108,7 @@ describe('Approval API Routes', () => {
         budgetSubcategory: '회의비',
         requestAmount: 300000,
         applicantName: '홍길동',
+        requestDate: new Date('2025-01-15'),
         items: [
           {
             id: 'item-1',
@@ -210,6 +245,7 @@ describe('Approval API Routes', () => {
         budgetSubcategory: '회의비',
         requestAmount: 300000,
         applicantName: '신창국', // 재정팀장 (팀장도 본인)
+        requestDate: new Date('2025-01-15'),
         items: [
           {
             id: 'item-1',
@@ -259,7 +295,42 @@ describe('Approval API Routes', () => {
       };
 
       mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
-      mockPrisma.budgetMaster.findFirst.mockResolvedValue(null);
+
+      // Mock approval line for auto-approve scenario (담당자 = 재정팀장)
+      mockCalculateApprovalLine.mockResolvedValue({
+        managerId: 'manager-id',
+        managerName: '신창국',
+        managerEmail: 'cfo@church.org',
+        isDirectApproval: true,
+        totalSteps: 3,
+        steps: [
+          {
+            stepNumber: 1,
+            stepName: '팀장(전결)',
+            approverName: '신창국',
+            approverEmail: 'cfo@church.org',
+            role: '담당자',
+            isAutoApproved: true,
+          },
+          {
+            stepNumber: 2,
+            stepName: '회계',
+            approverName: '윤운문',
+            approverEmail: 'accountant@church.org',
+            role: '회계',
+            isAutoApproved: false,
+          },
+          {
+            stepNumber: 3,
+            stepName: '재정팀장',
+            approverName: '신창국',
+            approverEmail: 'cfo@church.org',
+            role: '재정팀장',
+            isAutoApproved: false,
+          },
+        ],
+      });
+
       mockPrisma.$transaction.mockImplementation(async (callback) => {
         return await callback({
           approvalLine: {
