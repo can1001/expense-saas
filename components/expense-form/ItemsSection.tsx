@@ -174,7 +174,7 @@ export default function ItemsSection({
                 {errors?.items?.[index]?.description && (
                   <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.items[index].description.message}</p>
                 )}
-                {/* 모바일 위치 입력 - 첫 번째 항목에서만 표시 */}
+                {/* 모바일 위치 입력 - 임시 비활성화
                 {index === 0 && (
                   <div className="mt-2">
                     <LocationPicker
@@ -186,6 +186,7 @@ export default function ItemsSection({
                     />
                   </div>
                 )}
+                */}
               </div>
 
               {/* 단가 & 수량 - 모바일에서 2열 그리드 */}
