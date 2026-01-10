@@ -12,7 +12,8 @@ import {
   UserCog,
   BarChart3,
   Eye,
-  Wand2
+  Wand2,
+  ClipboardCheck
 } from 'lucide-react';
 
 interface QuickLinkItem {
@@ -100,6 +101,13 @@ const quickLinks: QuickLinkItem[] = [
     description: '위원회/사역팀별 팀장 현황',
     icon: BarChart3,
     color: 'bg-amber-500',
+  },
+  {
+    href: '/admin/year-setup-status',
+    title: '연도별 설정 현황',
+    description: '역할/담당자/예산 설정 완료율 확인',
+    icon: ClipboardCheck,
+    color: 'bg-red-500',
   },
 ];
 

@@ -81,6 +81,7 @@ export default function BudgetWizardPage() {
   const [selectedCategory, setSelectedCategory] = useState<BudgetCategory | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<BudgetSubcategory | null>(null);
   const [budgetDetails, setBudgetDetails] = useState<BudgetDetailInput[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   // 신규 등록 모드
   const [isAddingNew, setIsAddingNew] = useState(false);
@@ -298,7 +299,7 @@ export default function BudgetWizardPage() {
           departmentId: selectedDepartment.id,
           subcategoryId: selectedSubcategory.id,
           details: budgetDetails,
-          year: new Date().getFullYear(),
+          year: selectedYear,
         }),
       });
 
@@ -368,6 +369,7 @@ export default function BudgetWizardPage() {
     setSelectedCategory(null);
     setSelectedSubcategory(null);
     setBudgetDetails([]);
+    setSelectedYear(new Date().getFullYear());
     setResult(null);
     setIsAddingNew(false);
   };
@@ -717,6 +719,27 @@ export default function BudgetWizardPage() {
         {/* Step 5: 예산(세목) 등록 */}
         {currentStep === 5 && (
           <div className="space-y-6">
+            {/* 연도 선택 */}
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-4">
+                <label className="text-sm font-medium text-blue-800">적용 연도:</label>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  className={`${SELECT_BASE} w-32`}
+                >
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((year) => (
+                    <option key={year} value={year}>
+                      {year}년
+                    </option>
+                  ))}
+                </select>
+                <span className="text-xs text-blue-600">
+                  담당자/예산금액이 이 연도에 적용됩니다
+                </span>
+              </div>
+            </div>
+
             <div className="p-4 bg-gray-50 rounded-lg text-sm space-y-1">
               <div>
                 위원회: <span className="font-semibold">{selectedCommittee?.name}</span> &gt;
@@ -850,6 +873,7 @@ export default function BudgetWizardPage() {
             {result.success && (
               <div className="bg-gray-50 rounded-lg p-4 text-sm text-left max-w-md mx-auto mb-6">
                 <div className="space-y-1">
+                  <div className="text-blue-600 font-semibold">적용 연도: {selectedYear}년</div>
                   <div>위원회: {selectedCommittee?.name}</div>
                   <div>사역팀: {selectedDepartment?.name}</div>
                   <div>예산(항): {selectedCategory?.name}</div>

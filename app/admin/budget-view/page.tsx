@@ -12,12 +12,14 @@ import {
   FileText,
   AlertCircle,
   BarChart3,
+  Download,
 } from 'lucide-react';
 import {
   SECTION_CARD,
   SELECT_BASE,
   INPUT_BASE,
   SPINNER_MD,
+  BTN_OUTLINE,
 } from '@/lib/constants/styles';
 
 interface BudgetDetailItem {
@@ -67,6 +69,7 @@ export default function BudgetViewPage() {
   const [search, setSearch] = useState('');
   const [committeeFilter, setCommitteeFilter] = useState('');
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [committees, setCommittees] = useState<Committee[]>([]);
   const [allCommittees, setAllCommittees] = useState<CommitteeOption[]>([]);
@@ -161,6 +164,41 @@ export default function BudgetViewPage() {
     if (percent >= 100) return 'bg-red-500';
     if (percent >= 80) return 'bg-amber-500';
     return 'bg-green-500';
+  };
+
+  // Excel 내보내기
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      // 서버에서 Excel 파일 생성
+      const params = new URLSearchParams({
+        year: String(year),
+        committeeId: committeeFilter,
+        format: 'excel',
+      });
+
+      const res = await fetch(`/api/budget/hierarchy/export?${params}`);
+
+      if (!res.ok) {
+        throw new Error('내보내기 실패');
+      }
+
+      // 파일 다운로드
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `예산현황_${year}년.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Excel 내보내기에 실패했습니다.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   if (loading && committees.length === 0) {
@@ -276,6 +314,14 @@ export default function BudgetViewPage() {
               전체 접기
             </button>
           </div>
+          <button
+            onClick={handleExport}
+            disabled={exporting || committees.length === 0}
+            className={`${BTN_OUTLINE} flex items-center gap-2 disabled:opacity-50`}
+          >
+            <Download className="w-4 h-4" />
+            {exporting ? '내보내는 중...' : 'Excel 다운로드'}
+          </button>
         </div>
       </div>
 

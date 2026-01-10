@@ -590,6 +590,73 @@ model UserYearRole {
   @@index([userId])
 }
 
+// ========================================
+// 변경 이력 추적 (Change History)
+// ========================================
+
+// 사용자 연도별 역할 변경 이력
+model UserYearRoleHistory {
+  id              String    @id @default(cuid())
+
+  userYearRoleId  String?   // 삭제된 경우 null일 수 있음
+  userId          String    // 대상 사용자
+  year            Int       // 적용 연도
+
+  // 변경 정보
+  action          String    // CREATE, UPDATE, DELETE
+  changedBy       String    // 변경 수행자 이름
+  changedById     String?   // 변경 수행자 ID
+
+  // 변경 전 값
+  previousRole    String?   // 이전 역할
+  previousDept    String?   // 이전 소속 부서
+
+  // 변경 후 값
+  newRole         String?   // 새 역할
+  newDept         String?   // 새 소속 부서
+
+  // 메타
+  changedAt       DateTime  @default(now())
+
+  @@index([userId])
+  @@index([year])
+  @@index([changedAt])
+  @@index([action])
+}
+
+// 예산 세목 연도별 설정 변경 이력
+model BudgetDetailYearHistory {
+  id                  String    @id @default(cuid())
+
+  budgetDetailYearId  String?   // 삭제된 경우 null일 수 있음
+  budgetDetailId      String    // 대상 세목
+  budgetDetailName    String?   // 세목명 (조회 편의용)
+  year                Int       // 적용 연도
+
+  // 변경 정보
+  action              String    // CREATE, UPDATE, DELETE
+  changedBy           String    // 변경 수행자 이름
+  changedById         String?   // 변경 수행자 ID
+
+  // 변경 전 값
+  previousManagerId   String?   // 이전 담당자 ID
+  previousManagerName String?   // 이전 담당자 이름
+  previousBudgetAmt   Int?      // 이전 예산금액
+
+  // 변경 후 값
+  newManagerId        String?   // 새 담당자 ID
+  newManagerName      String?   // 새 담당자 이름
+  newBudgetAmt        Int?      // 새 예산금액
+
+  // 메타
+  changedAt           DateTime  @default(now())
+
+  @@index([budgetDetailId])
+  @@index([year])
+  @@index([changedAt])
+  @@index([action])
+}
+
 // 감사 로그 (모든 결재 액션 기록)
 model ApprovalLog {
   id              String          @id @default(cuid())
