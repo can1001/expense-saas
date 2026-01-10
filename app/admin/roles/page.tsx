@@ -17,6 +17,7 @@ import {
   SPINNER_LG,
   FLEX_CENTER,
 } from '@/lib/constants/styles';
+import { ROLE_COLORS } from '@/hooks/useRoles';
 
 interface Role {
   id: string;
@@ -35,15 +36,6 @@ interface Role {
     userYearRoles: number;
   };
 }
-
-const ROLE_COLORS: Record<string, string> = {
-  admin: 'bg-red-500',
-  finance_head: 'bg-purple-500',
-  accountant: 'bg-blue-500',
-  team_leader: 'bg-green-500',
-  admin_assistant: 'bg-orange-500',
-  user: 'bg-gray-500',
-};
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -416,7 +408,7 @@ export default function RolesPage() {
             {/* 역할 헤더 */}
             <div className="flex items-center justify-between p-4 border-b">
               <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 ${ROLE_COLORS[role.code] || 'bg-gray-500'} rounded-lg flex items-center justify-center`}>
+                <div className={`w-12 h-12 ${ROLE_COLORS[role.code]?.bg?.replace('bg-', 'bg-').replace('-100', '-500') || 'bg-gray-500'} rounded-lg flex items-center justify-center`}>
                   <Shield className="w-6 h-6 text-white" />
                 </div>
                 <div>

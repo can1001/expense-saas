@@ -4,22 +4,13 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X } from 'lucide-react';
-
-type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'user';
-
-const ROLE_NAMES: Record<UserRole, string> = {
-  admin: '관리자',
-  finance_head: '재정팀장',
-  accountant: '회계',
-  team_leader: '팀장',
-  user: '사용자',
-};
+import { useRoles } from '@/hooks/useRoles';
 
 interface UserInfo {
   id: string;
   userid: string;
   username: string;
-  role: UserRole;
+  role: string;
   department?: string;
 }
 
@@ -31,6 +22,7 @@ function MobileDrawer({
   user,
   loading,
   onLogout,
+  getRoleName,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -38,6 +30,7 @@ function MobileDrawer({
   user: UserInfo | null;
   loading: boolean;
   onLogout: () => void;
+  getRoleName: (code: string) => string;
 }) {
   // ESC 키로 닫기
   useEffect(() => {
@@ -96,7 +89,7 @@ function MobileDrawer({
               </div>
               <div>
                 <p className="font-medium text-gray-900">{user.username}</p>
-                <p className="text-sm text-blue-600">{ROLE_NAMES[user.role]}</p>
+                <p className="text-sm text-blue-600">{getRoleName(user.role)}</p>
               </div>
             </div>
           ) : (
@@ -161,6 +154,9 @@ export default function Header() {
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // Role 테이블에서 역할 정보 가져오기
+  const { getRoleName, canAccessAdminMenu } = useRoles();
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -215,8 +211,8 @@ export default function Header() {
       icon: CheckSquare,
       active: pathname.startsWith('/approvals'),
     },
-    // admin 메뉴 (관리자만 표시)
-    ...(user?.role === 'admin'
+    // admin 메뉴 (관리 권한 있는 역할만 표시)
+    ...(user && canAccessAdminMenu(user.role)
       ? [
           {
             href: '/admin',
@@ -283,7 +279,7 @@ export default function Header() {
                     <User className="w-4 h-4" />
                     <span>{user.username}</span>
                     <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
-                      {ROLE_NAMES[user.role]}
+                      {getRoleName(user.role)}
                     </span>
                   </div>
                   <button
@@ -333,6 +329,7 @@ export default function Header() {
         user={user}
         loading={loading}
         onLogout={handleLogout}
+        getRoleName={getRoleName}
       />
     </>
   );

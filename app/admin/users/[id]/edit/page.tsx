@@ -19,6 +19,7 @@ import {
   SPINNER_LG,
   FLEX_CENTER,
 } from '@/lib/constants/styles';
+import { useRoles, getRoleOptions } from '@/hooks/useRoles';
 
 interface User {
   id: string;
@@ -29,18 +30,12 @@ interface User {
   isActive: boolean;
 }
 
-const ROLE_OPTIONS = [
-  { value: 'user', label: '사용자' },
-  { value: 'team_leader', label: '팀장' },
-  { value: 'admin_assistant', label: '행정간사' },
-  { value: 'accountant', label: '회계' },
-  { value: 'finance_head', label: '재정팀장' },
-  { value: 'admin', label: '관리자' },
-];
-
 export default function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+
+  // Role 테이블에서 역할 정보 가져오기
+  const { roles } = useRoles();
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -252,7 +247,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                 onChange={handleChange}
                 className={SELECT_BASE}
               >
-                {ROLE_OPTIONS.map((option) => (
+                {getRoleOptions(roles).map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>

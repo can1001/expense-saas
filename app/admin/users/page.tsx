@@ -22,6 +22,7 @@ import {
   SPINNER_LG,
   FLEX_CENTER,
 } from '@/lib/constants/styles';
+import { useRoles } from '@/hooks/useRoles';
 
 interface User {
   id: string;
@@ -40,27 +41,12 @@ interface Pagination {
   totalPages: number;
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: '관리자',
-  finance_head: '재정팀장',
-  accountant: '회계',
-  team_leader: '팀장',
-  admin_assistant: '행정간사',
-  user: '사용자',
-};
-
-const ROLE_COLORS: Record<string, string> = {
-  admin: 'bg-red-100 text-red-800',
-  finance_head: 'bg-purple-100 text-purple-800',
-  accountant: 'bg-blue-100 text-blue-800',
-  team_leader: 'bg-green-100 text-green-800',
-  admin_assistant: 'bg-yellow-100 text-yellow-800',
-  user: 'bg-gray-100 text-gray-800',
-};
-
 function UsersPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Role 테이블에서 역할 정보 가져오기
+  const { roles, getRoleName, getRoleColor } = useRoles();
 
   const [users, setUsers] = useState<User[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
@@ -180,8 +166,8 @@ function UsersPageContent() {
               className={SELECT_BASE}
             >
               <option value="">전체</option>
-              {Object.entries(ROLE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
+              {roles.map((role) => (
+                <option key={role.code} value={role.code}>{role.name}</option>
               ))}
             </select>
           </div>
@@ -245,8 +231,8 @@ function UsersPageContent() {
                         <td className={TABLE_CELL}>{user.userid}</td>
                         <td className={TABLE_CELL}>{user.username}</td>
                         <td className={TABLE_CELL}>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${ROLE_COLORS[user.role] ?? 'bg-gray-100 text-gray-800'}`}>
-                            {ROLE_LABELS[user.role] ?? user.role}
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(user.role).bg} ${getRoleColor(user.role).text}`}>
+                            {getRoleName(user.role)}
                           </span>
                         </td>
                         <td className={TABLE_CELL}>{user.department ?? '-'}</td>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import {
   SECTION_CARD,
@@ -20,6 +20,7 @@ import {
   FLEX_CENTER,
   ALERT_ERROR,
 } from '@/lib/constants/styles';
+import { useRoles, getYearRoleOptions } from '@/hooks/useRoles';
 
 interface User {
   id: string;
@@ -49,30 +50,6 @@ interface BudgetItem {
   department: string;
 }
 
-const YEAR_ROLE_OPTIONS = [
-  { value: '', label: '(선택 안함)' },
-  { value: 'team_leader', label: '팀장 (1차 결재)' },
-  { value: 'accountant', label: '회계 (2차 결재)' },
-  { value: 'finance_head', label: '재정팀장 (3차 결재)' },
-  { value: 'admin_assistant', label: '행정간사' },
-];
-
-const BULK_ROLE_OPTIONS = [
-  { value: 'team_leader', label: '팀장 (1차 결재)' },
-  { value: 'accountant', label: '회계 (2차 결재)' },
-  { value: 'finance_head', label: '재정팀장 (3차 결재)' },
-  { value: 'admin_assistant', label: '행정간사' },
-];
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: '관리자',
-  finance_head: '재정팀장',
-  accountant: '회계',
-  team_leader: '팀장',
-  admin_assistant: '행정간사',
-  user: '사용자',
-};
-
 export default function YearRolesPage() {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
@@ -82,6 +59,20 @@ export default function YearRolesPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [changes, setChanges] = useState<Record<string, { role: string; department: string }>>({});
+
+  // Role 테이블에서 역할 정보 가져오기
+  const { roles, getRoleName } = useRoles();
+
+  // 연도별 역할 옵션 (admin, user 제외)
+  const yearRoleOptions = useMemo(() => {
+    const options = getYearRoleOptions(roles);
+    return [{ value: '', label: '(선택 안함)' }, ...options];
+  }, [roles]);
+
+  // 일괄 역할 옵션 (선택 안함 제외)
+  const bulkRoleOptions = useMemo(() => {
+    return getYearRoleOptions(roles);
+  }, [roles]);
 
   // 체크박스 선택 상태
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
@@ -273,7 +264,7 @@ export default function YearRolesPage() {
     setRowCommittees(newRowCommittees);
 
     const deptInfo = bulkDepartment ? ` / ${bulkDepartment}` : '';
-    setSuccess(`${selectedUsers.size}명에게 ${ROLE_LABELS[bulkRole]}${deptInfo} 역할이 적용되었습니다. "변경사항 저장"을 클릭하세요.`);
+    setSuccess(`${selectedUsers.size}명에게 ${getRoleName(bulkRole)}${deptInfo} 역할이 적용되었습니다. "변경사항 저장"을 클릭하세요.`);
   };
 
   const handleSaveAll = async () => {
@@ -462,7 +453,7 @@ export default function YearRolesPage() {
               onChange={(e) => setBulkRole(e.target.value)}
               className={`${SELECT_BASE} w-48`}
             >
-              {BULK_ROLE_OPTIONS.map((option) => (
+              {bulkRoleOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -595,7 +586,7 @@ export default function YearRolesPage() {
                         <td className={TABLE_CELL}>{user.username}</td>
                         <td className={TABLE_CELL}>
                           <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                            {ROLE_LABELS[user.role] ?? user.role}
+                            {getRoleName(user.role)}
                           </span>
                         </td>
                         <td className={TABLE_CELL}>
@@ -604,7 +595,7 @@ export default function YearRolesPage() {
                             onChange={(e) => handleRoleChange(user.id, e.target.value)}
                             className={`${SELECT_BASE} ${BTN_SM} w-44`}
                           >
-                            {YEAR_ROLE_OPTIONS.map((option) => (
+                            {yearRoleOptions.map((option) => (
                               <option key={option.value} value={option.value}>
                                 {option.label}
                               </option>

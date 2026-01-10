@@ -19,6 +19,7 @@ import {
   FLEX_CENTER,
   ALERT_ERROR,
 } from '@/lib/constants/styles';
+import { useRoles } from '@/hooks/useRoles';
 
 interface User {
   id: string;
@@ -56,13 +57,6 @@ interface RoleChange {
   userId: string;
 }
 
-const ROLE_COLORS: Record<string, string> = {
-  team_leader: 'bg-green-100 text-green-800',
-  accountant: 'bg-blue-100 text-blue-800',
-  finance_head: 'bg-purple-100 text-purple-800',
-  admin_assistant: 'bg-yellow-100 text-yellow-800',
-};
-
 export default function YearRolesSummaryPage() {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
@@ -70,6 +64,9 @@ export default function YearRolesSummaryPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Role 테이블에서 역할 정보 가져오기
+  const { getRoleColor } = useRoles();
 
   const [departmentRoles, setDepartmentRoles] = useState<DepartmentRoles[]>([]);
   const [committees, setCommittees] = useState<string[]>([]);
@@ -453,16 +450,16 @@ export default function YearRolesSummaryPage() {
                     <tr>
                       <th className={TABLE_HEADER_CELL}>사역팀(부)</th>
                       <th className={`${TABLE_HEADER_CELL} text-center`}>
-                        <span className={`px-2 py-1 text-xs rounded ${ROLE_COLORS.team_leader}`}>팀장 (1차)</span>
+                        <span className={`px-2 py-1 text-xs rounded ${getRoleColor('team_leader').bg} ${getRoleColor('team_leader').text}`}>팀장 (1차)</span>
                       </th>
                       <th className={`${TABLE_HEADER_CELL} text-center`}>
-                        <span className={`px-2 py-1 text-xs rounded ${ROLE_COLORS.accountant}`}>회계 (2차)</span>
+                        <span className={`px-2 py-1 text-xs rounded ${getRoleColor('accountant').bg} ${getRoleColor('accountant').text}`}>회계 (2차)</span>
                       </th>
                       <th className={`${TABLE_HEADER_CELL} text-center`}>
-                        <span className={`px-2 py-1 text-xs rounded ${ROLE_COLORS.finance_head}`}>재정팀장 (3차)</span>
+                        <span className={`px-2 py-1 text-xs rounded ${getRoleColor('finance_head').bg} ${getRoleColor('finance_head').text}`}>재정팀장 (3차)</span>
                       </th>
                       <th className={`${TABLE_HEADER_CELL} text-center`}>
-                        <span className={`px-2 py-1 text-xs rounded ${ROLE_COLORS.admin_assistant}`}>행정간사</span>
+                        <span className={`px-2 py-1 text-xs rounded ${getRoleColor('admin_assistant').bg} ${getRoleColor('admin_assistant').text}`}>행정간사</span>
                       </th>
                     </tr>
                   </thead>
@@ -471,16 +468,16 @@ export default function YearRolesSummaryPage() {
                       <tr key={`${dept.committee}-${dept.department}`}>
                         <td className={`${TABLE_CELL} font-medium`}>{dept.department}</td>
                         <td className={`${TABLE_CELL} text-center`}>
-                          <RoleSelect dept={dept} role="team_leader" colorClass={ROLE_COLORS.team_leader} />
+                          <RoleSelect dept={dept} role="team_leader" colorClass={`${getRoleColor('team_leader').bg} ${getRoleColor('team_leader').text}`} />
                         </td>
                         <td className={`${TABLE_CELL} text-center`}>
-                          <RoleSelect dept={dept} role="accountant" colorClass={ROLE_COLORS.accountant} />
+                          <RoleSelect dept={dept} role="accountant" colorClass={`${getRoleColor('accountant').bg} ${getRoleColor('accountant').text}`} />
                         </td>
                         <td className={`${TABLE_CELL} text-center`}>
-                          <RoleSelect dept={dept} role="finance_head" colorClass={ROLE_COLORS.finance_head} />
+                          <RoleSelect dept={dept} role="finance_head" colorClass={`${getRoleColor('finance_head').bg} ${getRoleColor('finance_head').text}`} />
                         </td>
                         <td className={`${TABLE_CELL} text-center`}>
-                          <RoleSelect dept={dept} role="admin_assistant" colorClass={ROLE_COLORS.admin_assistant} />
+                          <RoleSelect dept={dept} role="admin_assistant" colorClass={`${getRoleColor('admin_assistant').bg} ${getRoleColor('admin_assistant').text}`} />
                         </td>
                       </tr>
                     ))}
