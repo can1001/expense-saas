@@ -97,6 +97,18 @@ function getCellValueAsString(cell: ExcelJS.Cell | undefined): string | null {
     return String(value);
   }
 
+  // 수식 셀 처리 (formula 또는 sharedFormula가 있는 경우)
+  if (typeof value === 'object' && 'result' in value) {
+    const formulaValue = value as { result: unknown };
+    if (typeof formulaValue.result === 'string') {
+      return formulaValue.result.trim() || null;
+    }
+    if (typeof formulaValue.result === 'number') {
+      return String(formulaValue.result);
+    }
+    return formulaValue.result ? String(formulaValue.result).trim() : null;
+  }
+
   if (typeof value === 'object' && 'text' in value) {
     return (value as { text: string }).text?.trim() || null;
   }
@@ -165,6 +177,15 @@ function getCellValueAsNumber(cell: ExcelJS.Cell | undefined): number | null {
     const result = (value as { result: unknown }).result;
     if (typeof result === 'number') {
       return Math.floor(result);
+    }
+    // 수식 결과가 문자열인 경우도 처리
+    if (typeof result === 'string') {
+      const trimmed = result.trim().replace(/,/g, '');
+      if (trimmed === '') {
+        return null;
+      }
+      const parsed = parseInt(trimmed, 10);
+      return isNaN(parsed) ? null : parsed;
     }
   }
 
@@ -550,6 +571,9 @@ export async function uploadBudgetData(
           });
         }
       }
+    }, {
+      timeout: 300000, // 5분 타임아웃 (대용량 업로드 대비)
+      maxWait: 10000,  // 최대 대기 시간 10초
     });
 
     return {
