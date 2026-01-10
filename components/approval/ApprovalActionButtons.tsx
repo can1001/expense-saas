@@ -209,7 +209,7 @@ export default function ApprovalActionButtons({
                   ? '승인 의견을 입력하세요 (선택사항)'
                   : '반려 사유를 입력하세요 (필수)'
               }
-              className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900"
               required={action === 'reject'}
             />
             <div className="flex gap-2 mt-4">
