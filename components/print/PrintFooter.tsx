@@ -57,7 +57,7 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
       </table>
 
       {/* 최종확인 - 1줄 통합형 */}
-      <table className="confirmation-table">
+      {/* <table className="confirmation-table">
         <tbody>
           <tr>
             <td className="confirm-cell">
@@ -74,7 +74,7 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
             </td>
           </tr>
         </tbody>
-      </table>
+      </table> */}
 
       {/* 교회명 + 버전 */}
       <div className="church-footer">

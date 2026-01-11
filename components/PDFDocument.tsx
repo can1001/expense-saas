@@ -496,7 +496,7 @@ export const ExpensePDFDocument: React.FC<PDFDocumentProps> = ({ expense, approv
         </View>
 
         {/* 최종확인 - 1줄 통합형 */}
-        <View style={styles.confirmationSection}>
+        {/* <View style={styles.confirmationSection}>
           <View style={styles.confirmationRow}>
             <Text style={styles.confirmCell}>
               <Text style={styles.confirmLabel}>재정팀 검토  </Text>
@@ -511,7 +511,7 @@ export const ExpensePDFDocument: React.FC<PDFDocumentProps> = ({ expense, approv
               <Text style={styles.confirmDate}>____.____.____</Text>
             </Text>
           </View>
-        </View>
+        </View> */}
 
         {/* 푸터 */}
         <View style={styles.footer}>

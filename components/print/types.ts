@@ -27,13 +27,13 @@ export interface ApprovalLine {
 }
 
 // 최종확인 단계 타입 (재정팀 검토, 회계 승인, 지급 완료)
-export interface ConfirmationStep {
-  type: 'finance_review' | 'accounting_approval' | 'payment_complete';
-  label: string;
-  signatureData?: string | null;
-  completedAt?: Date | null;
-  completedBy?: string | null;
-}
+// export interface ConfirmationStep {
+//   type: 'finance_review' | 'accounting_approval' | 'payment_complete';
+//   label: string;
+//   signatureData?: string | null;
+//   completedAt?: Date | null;
+//   completedBy?: string | null;
+// }
 
 // 프린트용 통화 포맷 함수 (원 기호 없이 숫자만)
 export const formatCurrency = (amount: number): string => {
