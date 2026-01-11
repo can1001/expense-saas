@@ -1,262 +1,330 @@
 'use client';
 
 import React from 'react';
-import { Expense, formatCurrency } from './types';
+import { Expense, formatCurrency, ApprovalLine } from './types';
 
 interface PrintHeaderProps {
   expense: Expense;
-  teamLeaderName?: string | null;
-  financeManagerName?: string | null;
+  approvalLine?: ApprovalLine | null;
 }
 
 function formatNameForPrint(name: string): string {
   const trimmed = name.trim();
   if (!trimmed) return '';
-  // 한글 이름은 보통 2~4글자이므로 글자 사이에 공백을 넣어 인쇄물 스타일을 맞춤
   return trimmed.split('').join(' ');
 }
 
-export default function PrintHeader({ expense, teamLeaderName, financeManagerName }: PrintHeaderProps) {
-  // 지출일자 분리 (없으면 빈칸)
+export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps) {
   const expenseDate = expense.expenseDate ? new Date(expense.expenseDate) : null;
   const expenseYear = expenseDate ? expenseDate.getFullYear() : '';
   const expenseMonth = expenseDate ? expenseDate.getMonth() + 1 : '';
   const expenseDay = expenseDate ? expenseDate.getDate() : '';
 
+  // 결재 단계 (없으면 기본 3단계)
+  const steps = approvalLine?.steps || [];
+  const hasApprovalLine = steps.length > 0;
+
   return (
-    <table className="print-header-table">
-      <colgroup><col style={{ width: '85px' }} /><col style={{ width: '100px' }} /><col style={{ width: 'auto' }} /><col style={{ width: '90px' }} /></colgroup>
-      <tbody>
-        {/* ===== 1행: 로고 + 지출결의서 제목 + 재정팀장 ===== */}
-        <tr style={{ height: '25px' }}>
-          {/* 1열: 로고 (4행 병합) */}
-          <td rowSpan={4} className="logo-cell">
-            <div className="logo-container">
-              <img src="/logo.png" alt="교회 로고" className="logo-image" />
-            </div>
-          </td>
-          {/* 2-3열: 지출결의서 제목 (2열 병합, 2행 병합) */}
-          <td colSpan={2} rowSpan={2} className="title-cell">
-            지 출 결 의 서
-          </td>
-          {/* 4열: 재정팀장 */}
-          <td className="approval-title">재정팀장</td>
-        </tr>
+    <div className="print-header-container">
+      {/* 상단: 로고 + 제목 + 결재란 */}
+      <div className="header-top">
+        {/* 로고 */}
+        <div className="logo-section">
+          <img src="/logo.png" alt="교회 로고" className="logo-image" />
+        </div>
 
-        {/* ===== 2행: 재정팀장 서명란 (2행 병합 시작) ===== */}
-        <tr style={{ height: '25px' }}>
-          {/* 1열: 로고 계속 */}
-          {/* 2-3열: 제목 계속 */}
-          {/* 4열: 재정팀장 서명란 (2행 병합) */}
-          <td rowSpan={2} className="approval-sign"></td>
-        </tr>
+        {/* 제목 */}
+        <div className="title-section">
+          <h1 className="title-text">지 출 결 의 서</h1>
+        </div>
 
-        {/* ===== 3행: 예산항목 + 재정팀장 서명란 계속 ===== */}
-        <tr style={{ height: '25px' }}>
-          {/* 1열: 로고 계속 */}
-          {/* 2열: 예산항목 라벨 (2행 병합) */}
-          <td rowSpan={2} className="label-cell">
-            예 산 항 목<br />
-            <span className="sub-label">(계정과목)</span>
-          </td>
-          {/* 3열: 예산항목 값 (2행 병합) */}
-          <td rowSpan={2} className="value-cell budget-value">
-            {expense.budgetCategory} / {expense.budgetSubcategory}
-          </td>
-          {/* 4열: 재정팀장 서명란 계속 */}
-        </tr>
+        {/* 결재란 */}
+        <div className="approval-section">
+          <table className="approval-table">
+            <thead>
+              <tr>
+                {hasApprovalLine ? (
+                  steps.map((step) => (
+                    <th key={`h-${step.id}`} className="approval-header">
+                      {step.stepName}
+                    </th>
+                  ))
+                ) : (
+                  <>
+                    <th className="approval-header">담당</th>
+                    <th className="approval-header">팀장</th>
+                    <th className="approval-header">회계</th>
+                  </>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                {hasApprovalLine ? (
+                  steps.map((step) => (
+                    <td key={`s-${step.id}`} className="approval-sign-cell">
+                      {step.status === 'APPROVED' && step.signatureData ? (
+                        <img src={step.signatureData} alt="서명" className="signature-image" />
+                      ) : step.status === 'APPROVED' ? (
+                        <span className="approved-mark">승인</span>
+                      ) : step.status === 'REJECTED' ? (
+                        <span className="rejected-mark">반려</span>
+                      ) : (
+                        <span className="pending-mark"></span>
+                      )}
+                    </td>
+                  ))
+                ) : (
+                  <>
+                    <td className="approval-sign-cell"></td>
+                    <td className="approval-sign-cell"></td>
+                    <td className="approval-sign-cell"></td>
+                  </>
+                )}
+              </tr>
+              <tr>
+                {hasApprovalLine ? (
+                  steps.map((step) => (
+                    <td key={`n-${step.id}`} className="approval-name-cell">
+                      {formatNameForPrint(step.approverName)}
+                    </td>
+                  ))
+                ) : (
+                  <>
+                    <td className="approval-name-cell"></td>
+                    <td className="approval-name-cell"></td>
+                    <td className="approval-name-cell"></td>
+                  </>
+                )}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-        {/* ===== 4행: 예산항목 계속 + 재정팀장 이름 ===== */}
-        <tr style={{ height: '25px' }}>
-          {/* 1열: 로고 계속 */}
-          {/* 2열: 예산항목 라벨 계속 */}
-          {/* 3열: 예산항목 값 계속 */}
-          {/* 4열: 재정팀장 이름 */}
-          <td className="approval-name">
-            {financeManagerName ? formatNameForPrint(financeManagerName) : ''}
-          </td>
-        </tr>
-
-        {/* ===== 5행: 사역팀(부)장 + 지출일자 + 회계 ===== */}
-        <tr style={{ height: '25px' }}>
-          {/* 1열: 사역팀(부)장 (1행) */}
-          <td className="left-approval-cell">
-            사역팀(부)장
-          </td>
-          {/* 2열: 지출일자 라벨 (2행 병합) */}
-          <td rowSpan={2} className="label-cell">
-            지 출 일 자
-          </td>
-          {/* 3열: 지출일자 값 (2행 병합) */}
-          <td rowSpan={2} className="value-cell">
-            <div className="notice-box">
-              {expenseYear} 년 {expenseMonth} 월 {expenseDay} 일
-            </div>
-          </td>
-          {/* 4열: 회계 */}
-          <td className="approval-title">회계</td>
-        </tr>
-
-        {/* ===== 6행: 재정팀장 전결 영역(공란, 2행 병합) + 지출일자 계속 + 회계 서명란 (2행 병합 시작) ===== */}
-        <tr style={{ height: '25px' }}>
-          {/* 1열: 재정팀장 전결 영역(공란, rowSpan=2로 병합) */}
-          <td rowSpan={2} className="left-approval-cell"></td>
-          {/* 2열: 지출일자 라벨 계속 */}
-          {/* 3열: 지출일자 값 계속 */}
-          {/* 4열: 회계 서명란 (2행 병합) */}
-          <td rowSpan={2} className="approval-sign"></td>
-        </tr>
-
-        {/* ===== 7행: 재정팀장 전결 영역(공란 계속) + 청구금액 + 회계 서명란 계속 ===== */}
-        <tr style={{ height: '25px' }}>
-          {/* 1열: 재정팀장 전결 영역(rowSpan=2로 위에서 병합됨) */}
-          {/* 2열: 청구금액 라벨 (2행 병합) */}
-          <td rowSpan={2} className="label-cell">
-            청 구 금 액
-          </td>
-          {/* 3열: 청구금액 값 (2행 병합) */}
-          <td rowSpan={2} className="value-cell amount-value">
-            ₩ {formatCurrency(expense.requestAmount)} 원
-          </td>
-          {/* 4열: 회계 서명란 계속 */}
-        </tr>
-
-        {/* ===== 8행: 팀장 이름 + 청구금액 계속 + 윤운문 ===== */}
-        <tr style={{ height: '25px' }}>
-          {/* 1열: 팀장 이름 (1행) */}
-          <td className="left-approval-cell name-cell">
-            {teamLeaderName ? formatNameForPrint(teamLeaderName) : ''}
-          </td>
-          {/* 2열: 청구금액 라벨 계속 */}
-          {/* 3열: 청구금액 값 계속 */}
-          {/* 4열: 윤운문 */}
-          <td className="approval-name">윤 운 문</td>
-        </tr>
-      </tbody>
+      {/* 예산/지출 정보 - 2행 그리드형 */}
+      <table className="info-table">
+        <tbody>
+          <tr>
+            <td className="header-info-cell">
+              <span className="info-label">예산항목:</span>
+              <span className="info-value">{expense.budgetCategory} / {expense.budgetSubcategory}</span>
+            </td>
+            <td className="header-info-cell">
+              <span className="info-label">지출일자:</span>
+              <span className="info-value">{expenseYear}년 {String(expenseMonth).padStart(2, '0')}월 {String(expenseDay).padStart(2, '0')}일</span>
+            </td>
+          </tr>
+          <tr>
+            <td colSpan={2} className="amount-row">
+              <span className="amount-label">청 구 금 액</span>
+              <span className="amount-separator">:</span>
+              <span className="amount-value">₩ {formatCurrency(expense.requestAmount)} 원</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       <style jsx>{`
-        .print-header-table {
-          width: 100%;
-          border-collapse: collapse;
-          table-layout: fixed;
+        .print-header-container {
+          margin-bottom: 10px;
         }
 
-        .print-header-table td,
-        .print-header-table th {
-          border: 1px solid #000;
-          vertical-align: middle;
-        }
-
-        /* ===== 로고 셀 ===== */
-        .logo-cell {
-          padding: 8px;
-          text-align: center;
-          vertical-align: middle;
-          background-color: #fff;
-        }
-
-        .logo-container {
+        /* 상단: 로고 + 제목 + 결재란 */
+        .header-top {
           display: flex;
-          justify-content: center;
+          align-items: stretch;
+          border: 1px solid #000;
+          margin-bottom: 0;
+        }
+
+        /* 로고 */
+        .logo-section {
+          width: 80px;
+          display: flex;
           align-items: center;
+          justify-content: center;
+          padding: 10px;
+          border-right: 1px solid #000;
         }
 
         .logo-image {
-          width: 70px;
+          width: 60px;
           height: auto;
+        }
+
+        /* 제목 */
+        .title-section {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 15px;
+          border-right: 1px solid #000;
+        }
+
+        .title-text {
+          font-size: 22pt;
+          font-weight: bold;
+          letter-spacing: 15px;
+          margin: 0;
+        }
+
+        /* 결재란 */
+        .approval-section {
+          width: auto;
+          min-width: 180px;
+        }
+
+        .approval-table {
+          width: 100%;
+          height: 100%;
+          border-collapse: collapse;
+        }
+
+        .approval-header {
+          background-color: #f5f5f5;
+          font-size: 8pt;
+          font-weight: bold;
+          text-align: center;
+          padding: 4px 8px;
+          border-bottom: 1px solid #000;
+          border-right: 1px solid #000;
+          min-width: 55px;
+        }
+
+        .approval-header:last-child {
+          border-right: none;
+        }
+
+        .approval-sign-cell {
+          height: 45px;
+          text-align: center;
+          vertical-align: middle;
+          border-bottom: 1px solid #000;
+          border-right: 1px solid #000;
+          padding: 4px;
+        }
+
+        .approval-sign-cell:last-child {
+          border-right: none;
+        }
+
+        .signature-image {
+          max-width: 45px;
+          max-height: 35px;
           object-fit: contain;
         }
 
-        /* ===== 제목 셀 ===== */
-        .title-cell {
-          font-size: 22pt;
-          font-weight: bold;
-          text-align: center;
-          letter-spacing: 18px;
-          padding: 12px;
-        }
-
-        /* ===== 결재란 (중첩 테이블 제거, 메인 테이블에 직접 구성) ===== */
-        .approval-title {
-          background-color: #fff;
-          height: 25px;
-          font-weight: bold;
-          text-align: center;
+        .approved-mark {
+          color: #10B981;
           font-size: 9pt;
-          padding: 2px;
-        }
-
-        .approval-sign {
-          height: 50px; /* rowSpan=2이므로 25px × 2 = 50px */
-          background-color: #fff;
-        }
-
-        .approval-name {
-          height: 25px;
-          font-size: 8pt;
-          letter-spacing: 3px;
-          text-align: center;
-          background-color: #fff;
-        }
-
-        /* ===== 라벨/값 셀 ===== */
-        .label-cell {
-          background-color: #fff;
           font-weight: bold;
-          text-align: center;
-          font-size: 10pt;
-          padding: 8px 4px;
         }
 
-        .sub-label {
+        .rejected-mark {
+          color: #EF4444;
+          font-size: 9pt;
+          font-weight: bold;
+        }
+
+        .pending-mark {
+          display: block;
+          height: 35px;
+        }
+
+        .approval-name-cell {
           font-size: 8pt;
-          font-weight: normal;
+          text-align: center;
+          padding: 4px;
+          border-right: 1px solid #000;
+          letter-spacing: 2px;
         }
 
-        .value-cell {
-          padding: 8px 12px;
-          text-align: center;
+        .approval-name-cell:last-child {
+          border-right: none;
+        }
+
+        /* 정보 테이블 - 2행 그리드형 */
+        .info-table {
+          width: 100%;
+          border-collapse: collapse;
+          border: 1px solid #000;
+          border-top: none;
+        }
+
+        .info-table td {
+          border: 1px solid #000;
+          padding: 10px 12px;
           vertical-align: middle;
         }
 
-        .budget-value {
-          font-weight: bold;
-          font-size: 12pt;
-        }
-
-        .notice-box {
-          background-color: #fff;
-          padding: 8px 12px;
-          font-size: 10pt;
-          color: #000;
-          line-height: 1.5;
+        .header-info-cell {
           text-align: center;
-          letter-spacing: 8px;
+          font-size: 10pt;
+          width: 50%;
         }
 
-        .amount-value {
+        .header-info-cell .info-label {
+          font-weight: 600;
+          color: #333;
+          margin-right: 8px;
+        }
+
+        .header-info-cell .info-value {
+          font-weight: 700;
+        }
+
+        /* 청구금액 행 - 강조 */
+        .amount-row {
+          text-align: center;
+          padding: 12px 20px;
+          background-color: #fafafa;
+        }
+
+        .amount-row .amount-label {
+          font-size: 12pt;
+          font-weight: 600;
+          letter-spacing: 8px;
+          color: #333;
+        }
+
+        .amount-row .amount-separator {
+          font-size: 14pt;
+          font-weight: bold;
+          margin: 0 15px;
+        }
+
+        .amount-row .amount-value {
           font-size: 16pt;
           font-weight: bold;
+          color: #000;
+          letter-spacing: 2px;
         }
 
-        /* ===== 좌측 결재선 ===== */
-        .left-approval-cell {
-          background-color: #fff;
-          text-align: center;
-          vertical-align: middle;
-          padding: 4px 2px;
-          font-size: 8pt;
-          font-weight: bold;
-          height: 25px; /* rowSpan=1 기본 높이 */}
+        @media print {
+          .print-header-container {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
 
-        /* rowSpan=2인 경우 자동으로 50px (25px × 2)가 됨 */
+          .approval-header {
+            background-color: #f5f5f5 !important;
+          }
 
-        .name-cell {
-          /* 신창국 셀 */
-          font-size: 9pt;
-          letter-spacing: 3px;
+          .approved-mark {
+            color: #10B981 !important;
+          }
+
+          .rejected-mark {
+            color: #EF4444 !important;
+          }
+
+          .amount-row {
+            background-color: #fafafa !important;
+          }
         }
       `}</style>
-    </table>
+    </div>
   );
 }
