@@ -48,39 +48,58 @@ export default function BudgetSelector({
     fetchNextLevel({});
   }, []);
 
-  // 선택값 변경 시 다음 레벨 로드
+  // 위원회 선택 시 → 부서 로드
   useEffect(() => {
-    if (value.committee && !value.department) {
-      fetchNextLevel({ committee: value.committee });
+    if (value.committee) {
+      const needsFetch = departments.length === 0 ||
+        (value.department && !departments.includes(value.department));
+      if (needsFetch) {
+        fetchNextLevel({ committee: value.committee });
+      }
     }
-  }, [value.committee]);
+  }, [value.committee, value.department, departments.length]);
 
+  // 부서 선택 시 → 카테고리(항) 로드
   useEffect(() => {
-    if (value.committee && value.department && !value.category) {
-      fetchNextLevel({ committee: value.committee, department: value.department });
+    if (value.committee && value.department) {
+      const needsFetch = categories.length === 0 ||
+        (value.category && !categories.includes(value.category));
+      if (needsFetch) {
+        fetchNextLevel({ committee: value.committee, department: value.department });
+      }
     }
-  }, [value.department]);
+  }, [value.committee, value.department, value.category, categories.length]);
 
+  // 카테고리 선택 시 → 서브카테고리(목) 로드
   useEffect(() => {
-    if (value.committee && value.department && value.category && !value.subcategory) {
-      fetchNextLevel({
-        committee: value.committee,
-        department: value.department,
-        category: value.category,
-      });
+    if (value.committee && value.department && value.category) {
+      const needsFetch = subcategories.length === 0 ||
+        (value.subcategory && !subcategories.includes(value.subcategory));
+      if (needsFetch) {
+        fetchNextLevel({
+          committee: value.committee,
+          department: value.department,
+          category: value.category,
+        });
+      }
     }
-  }, [value.category]);
+  }, [value.committee, value.department, value.category, value.subcategory, subcategories.length]);
 
+  // 서브카테고리 선택 시 → 세목 로드
   useEffect(() => {
     if (value.committee && value.department && value.category && value.subcategory) {
-      fetchNextLevel({
-        committee: value.committee,
-        department: value.department,
-        category: value.category,
-        subcategory: value.subcategory,
-      });
+      const needsFetch = details.length === 0 ||
+        (value.detail && !details.includes(value.detail));
+      if (needsFetch) {
+        fetchNextLevel({
+          committee: value.committee,
+          department: value.department,
+          category: value.category,
+          subcategory: value.subcategory,
+        });
+      }
     }
-  }, [value.subcategory]);
+  }, [value.committee, value.department, value.category, value.subcategory, value.detail, details.length]);
 
   const fetchNextLevel = async (params: {
     committee?: string;
