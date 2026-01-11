@@ -102,21 +102,24 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
         </div>
       </div>
 
-      {/* 예산/지출 정보 - 1줄 콤팩트형 */}
+      {/* 예산/지출 정보 - 2행 그리드형 */}
       <table className="info-table">
         <tbody>
           <tr>
             <td className="header-info-cell">
               <span className="info-label">예산항목:</span>
-              <span className="info-value">{expense.budgetCategory}/{expense.budgetSubcategory}</span>
+              <span className="info-value">{expense.budgetCategory} / {expense.budgetSubcategory}</span>
             </td>
             <td className="header-info-cell">
               <span className="info-label">지출일자:</span>
-              <span className="info-value">{expenseYear}.{String(expenseMonth).padStart(2, '0')}.{String(expenseDay).padStart(2, '0')}</span>
+              <span className="info-value">{expenseYear}년 {String(expenseMonth).padStart(2, '0')}월 {String(expenseDay).padStart(2, '0')}일</span>
             </td>
-            <td className="header-info-cell amount-cell">
-              <span className="info-label">청구금액:</span>
-              <span className="info-value amount">₩ {formatCurrency(expense.requestAmount)} 원</span>
+          </tr>
+          <tr>
+            <td colSpan={2} className="amount-row">
+              <span className="amount-label">청 구 금 액</span>
+              <span className="amount-separator">:</span>
+              <span className="amount-value">₩ {formatCurrency(expense.requestAmount)} 원</span>
             </td>
           </tr>
         </tbody>
@@ -242,7 +245,7 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
           border-right: none;
         }
 
-        /* 정보 테이블 - 1줄 콤팩트형 */
+        /* 정보 테이블 - 2행 그리드형 */
         .info-table {
           width: 100%;
           border-collapse: collapse;
@@ -259,6 +262,7 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
         .header-info-cell {
           text-align: center;
           font-size: 10pt;
+          width: 50%;
         }
 
         .header-info-cell .info-label {
@@ -271,14 +275,31 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
           font-weight: 700;
         }
 
-        .header-info-cell.amount-cell {
-          min-width: 200px;
+        /* 청구금액 행 - 강조 */
+        .amount-row {
+          text-align: center;
+          padding: 12px 20px;
+          background-color: #fafafa;
         }
 
-        .header-info-cell .info-value.amount {
+        .amount-row .amount-label {
+          font-size: 12pt;
+          font-weight: 600;
+          letter-spacing: 8px;
+          color: #333;
+        }
+
+        .amount-row .amount-separator {
           font-size: 14pt;
           font-weight: bold;
+          margin: 0 15px;
+        }
+
+        .amount-row .amount-value {
+          font-size: 16pt;
+          font-weight: bold;
           color: #000;
+          letter-spacing: 2px;
         }
 
         @media print {
@@ -297,6 +318,10 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
 
           .rejected-mark {
             color: #EF4444 !important;
+          }
+
+          .amount-row {
+            background-color: #fafafa !important;
           }
         }
       `}</style>
