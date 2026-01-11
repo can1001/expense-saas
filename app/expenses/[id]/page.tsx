@@ -278,6 +278,9 @@ export default function ExpenseDetailPage() {
     );
   }
 
+  // 수정/삭제 가능한 상태 확인 (DRAFT, REJECTED, WITHDRAWN만 가능)
+  const canEdit = ['DRAFT', 'REJECTED', 'WITHDRAWN'].includes(expense.status || '');
+
   return (
     <>
       {/* 프린트용 양식 (화면에서는 숨김, 프린트 시에만 표시) */}
@@ -389,21 +392,25 @@ export default function ExpenseDetailPage() {
                 </>
               )}
             </button>
-            <button
-              onClick={() => router.push(`/expenses/${id}/edit`)}
-              disabled={deleteLoading}
-              className={BTN_SECONDARY}
-            >
-              수정
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={deleteLoading}
-              className={BTN_DANGER}
-            >
-              {deleteLoading && <div className={SPINNER}></div>}
-              삭제
-            </button>
+            {canEdit && (
+              <>
+                <button
+                  onClick={() => router.push(`/expenses/${id}/edit`)}
+                  disabled={deleteLoading}
+                  className={BTN_SECONDARY}
+                >
+                  수정
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleteLoading}
+                  className={BTN_DANGER}
+                >
+                  {deleteLoading && <div className={SPINNER}></div>}
+                  삭제
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -742,25 +749,29 @@ export default function ExpenseDetailPage() {
           )}
           <span className="text-sm font-medium">엑셀</span>
         </button>
-        <button
-          onClick={() => router.push(`/expenses/${id}/edit`)}
-          disabled={deleteLoading}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors min-h-[48px]"
-        >
-          <Edit2 className="w-5 h-5" />
-          <span className="text-sm font-medium">수정</span>
-        </button>
-        <button
-          onClick={handleDelete}
-          disabled={deleteLoading}
-          className="flex items-center justify-center px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors min-h-[48px] min-w-[48px]"
-        >
-          {deleteLoading ? (
-            <div className={SPINNER}></div>
-          ) : (
-            <Trash2 className="w-5 h-5" />
-          )}
-        </button>
+        {canEdit && (
+          <>
+            <button
+              onClick={() => router.push(`/expenses/${id}/edit`)}
+              disabled={deleteLoading}
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors min-h-[48px]"
+            >
+              <Edit2 className="w-5 h-5" />
+              <span className="text-sm font-medium">수정</span>
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleteLoading}
+              className="flex items-center justify-center px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors min-h-[48px] min-w-[48px]"
+            >
+              {deleteLoading ? (
+                <div className={SPINNER}></div>
+              ) : (
+                <Trash2 className="w-5 h-5" />
+              )}
+            </button>
+          </>
+        )}
       </div>
       </div>
 

@@ -50,13 +50,19 @@ export async function PUT(
     // 유효성 검증
     const validatedData = updateExpenseSchema.parse(body);
 
-    // 현재 데이터 조회 (청구팀 자동 생성/검증을 위해)
+    // 현재 데이터 조회 (상태 확인 및 청구팀 자동 생성/검증을 위해)
     const existing = await prisma.expense.findUnique({
       where: { id },
-      select: { committee: true, department: true },
+      select: { status: true, committee: true, department: true },
     });
     if (!existing) {
       throw new ApiError('지출결의서를 찾을 수 없습니다.', 404);
+    }
+
+    // 수정 가능한 상태인지 확인
+    const EDITABLE_STATUSES = ['DRAFT', 'REJECTED', 'WITHDRAWN'];
+    if (!EDITABLE_STATUSES.includes(existing.status)) {
+      throw new ApiError('제출된 지출결의서는 수정할 수 없습니다.', 403);
     }
 
     const finalCommittee = validatedData.committee ?? existing.committee;
@@ -155,6 +161,9 @@ export async function PUT(
   }
 }
 
+// 수정/삭제 가능한 상태
+const EDITABLE_STATUSES = ['DRAFT', 'REJECTED', 'WITHDRAWN'];
+
 // DELETE /api/expenses/[id] - 지출결의서 삭제
 export async function DELETE(
   request: NextRequest,
@@ -162,6 +171,20 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+
+    // 상태 확인
+    const expense = await prisma.expense.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+
+    if (!expense) {
+      throw new ApiError('지출결의서를 찾을 수 없습니다.', 404);
+    }
+
+    if (!EDITABLE_STATUSES.includes(expense.status)) {
+      throw new ApiError('제출된 지출결의서는 삭제할 수 없습니다.', 403);
+    }
 
     // 첨부파일 정보 가져오기
     const attachments = await prisma.expenseAttachment.findMany({
