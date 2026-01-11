@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { getSessionUserId } from '@/lib/auth';
 
 /**
- * 현재 로그인한 사용자 조회 (쿠키 기반)
+ * 현재 로그인한 사용자 조회 (세션 기반)
  */
 async function getCurrentUser() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get('userId')?.value;
+  const userId = await getSessionUserId();
 
   if (!userId) {
     return null;
