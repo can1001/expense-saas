@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       const committeeDept = `${dd.department.committee.name}/${deptName}`;
 
       // 팀장 찾기 (부서 이름 또는 전체 경로로)
-      let leaderId = departmentToLeader.get(deptName) || departmentToLeader.get(committeeDept);
+      const leaderId = departmentToLeader.get(deptName) || departmentToLeader.get(committeeDept);
 
       // 팀장이 없으면 스킵
       if (!leaderId) {

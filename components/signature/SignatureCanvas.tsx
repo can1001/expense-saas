@@ -18,6 +18,29 @@ export function SignatureCanvas({
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
 
+  // 좌표 계산 (마우스/터치 지원)
+  const getCoordinates = (
+    e: React.MouseEvent | React.TouchEvent,
+    canvas: HTMLCanvasElement
+  ) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    if ('touches' in e) {
+      const touch = e.touches[0];
+      return {
+        x: (touch.clientX - rect.left) * scaleX,
+        y: (touch.clientY - rect.top) * scaleY,
+      };
+    }
+
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
+  };
+
   // 캔버스 초기화
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -79,29 +102,6 @@ export function SignatureCanvas({
   const stopDrawing = useCallback(() => {
     setIsDrawing(false);
   }, []);
-
-  // 좌표 계산 (마우스/터치 지원)
-  const getCoordinates = (
-    e: React.MouseEvent | React.TouchEvent,
-    canvas: HTMLCanvasElement
-  ) => {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    if ('touches' in e) {
-      const touch = e.touches[0];
-      return {
-        x: (touch.clientX - rect.left) * scaleX,
-        y: (touch.clientY - rect.top) * scaleY,
-      };
-    }
-
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
-    };
-  };
 
   // 지우기
   const clear = () => {
