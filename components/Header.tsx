@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X } from 'lucide-react';
+import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown } from 'lucide-react';
 import { useRoles } from '@/hooks/useRoles';
 
 interface UserInfo {
@@ -125,6 +125,31 @@ function MobileDrawer({
           })}
         </nav>
 
+        {/* 마이페이지 메뉴 */}
+        {user && (
+          <div className="px-4 pb-4 border-t border-gray-200 pt-4">
+            <p className="px-4 text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+              내 정보
+            </p>
+            <Link
+              href="/mypage/password"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <Key className="w-5 h-5" />
+              비밀번호 변경
+            </Link>
+            <Link
+              href="/mypage/signatures"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <PenLine className="w-5 h-5" />
+              서명/도장 관리
+            </Link>
+          </div>
+        )}
+
         {/* 로그아웃 버튼 */}
         {user && (
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
@@ -153,6 +178,8 @@ export default function Header() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Role 테이블에서 역할 정보 가져오기
   const { getRoleName, canAccessAdminMenu } = useRoles();
@@ -177,10 +204,27 @@ export default function Header() {
     fetchUser();
   }, [pathname]);
 
-  // 페이지 변경 시 드로어 닫기
+  // 페이지 변경 시 드로어/메뉴 닫기
   useEffect(() => {
     setIsDrawerOpen(false);
+    setIsUserMenuOpen(false);
   }, [pathname]);
+
+  // 사용자 메뉴 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    if (isUserMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isUserMenuOpen]);
 
   const handleLogout = async () => {
     try {
@@ -269,27 +313,57 @@ export default function Header() {
               </nav>
             </div>
 
-            {/* 오른쪽 영역 - 사용자 정보 (데스크톱) */}
+            {/* 오른쪽 영역 - 사용자 드롭다운 메뉴 (데스크톱) */}
             <div className="hidden md:flex items-center gap-4">
               {loading ? (
                 <div className="h-8 w-24 bg-gray-200 rounded animate-pulse" />
               ) : user ? (
-                <>
-                  <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
                     <User className="w-4 h-4" />
                     <span>{user.username}</span>
                     <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
                       {getRoleName(user.role)}
                     </span>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>로그아웃</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
-                </>
+
+                  {/* 드롭다운 메뉴 */}
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <Link
+                        href="/mypage/password"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <Key className="w-4 h-4" />
+                        비밀번호 변경
+                      </Link>
+                      <Link
+                        href="/mypage/signatures"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <PenLine className="w-4 h-4" />
+                        서명/도장 관리
+                      </Link>
+                      <div className="border-t border-gray-200 my-1" />
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          handleLogout();
+                        }}
+                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        로그아웃
+                      </button>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <Link
                   href="/login"
