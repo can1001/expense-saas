@@ -53,16 +53,20 @@ export async function PUT(
     // 현재 데이터 조회 (상태 확인 및 청구팀 자동 생성/검증을 위해)
     const existing = await prisma.expense.findUnique({
       where: { id },
-      select: { status: true, committee: true, department: true },
+      select: { status: true, paymentStatus: true, committee: true, department: true },
     });
     if (!existing) {
       throw new ApiError('지출결의서를 찾을 수 없습니다.', 404);
     }
 
     // 수정 가능한 상태인지 확인
-    const EDITABLE_STATUSES = ['DRAFT', 'REJECTED', 'WITHDRAWN'];
-    if (!EDITABLE_STATUSES.includes(existing.status)) {
-      throw new ApiError('제출된 지출결의서는 수정할 수 없습니다.', 403);
+    const BASIC_EDITABLE = ['DRAFT', 'REJECTED', 'WITHDRAWN'];
+    const isBasicEditable = BASIC_EDITABLE.includes(existing.status);
+    const isApprovedPending = existing.status === 'APPROVED_FINAL' &&
+                              existing.paymentStatus === 'PENDING';
+
+    if (!isBasicEditable && !isApprovedPending) {
+      throw new ApiError('이 상태에서는 수정할 수 없습니다.', 403);
     }
 
     const finalCommittee = validatedData.committee ?? existing.committee;

@@ -145,17 +145,19 @@ export default function MobileFilterPanel({
             </select>
           </div>
 
-          {/* 지출 상태 */}
+          {/* 지급 상태 */}
           <div>
-            <label className={labelClasses}>지출 상태</label>
+            <label className={labelClasses}>지급 상태</label>
             <select
               value={filters.paymentStatus}
               onChange={(e) => onFilterChange('paymentStatus', e.target.value)}
               className={selectClasses}
             >
               <option value="">전체</option>
-              <option value="PENDING">지출예정</option>
-              <option value="COMPLETED">지출완료</option>
+              <option value="PENDING">지급대기</option>
+              <option value="HOLD">지급보류</option>
+              <option value="CANCELLED">지급취소</option>
+              <option value="COMPLETED">지급완료</option>
             </select>
           </div>
 
