@@ -1,11 +1,51 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import ExpenseForm from '@/components/ExpenseForm';
+import { SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 
 export default function EditExpensePage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
+  const [canEdit, setCanEdit] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const res = await fetch(`/api/expenses/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          const editableStatuses = ['DRAFT', 'REJECTED', 'WITHDRAWN'];
+          if (!editableStatuses.includes(data.status)) {
+            alert('제출된 지출결의서는 수정할 수 없습니다.');
+            router.push(`/expenses/${id}`);
+          } else {
+            setCanEdit(true);
+          }
+        } else {
+          alert('지출결의서를 찾을 수 없습니다.');
+          router.push('/expenses');
+        }
+      } catch {
+        alert('오류가 발생했습니다.');
+        router.push('/expenses');
+      }
+    };
+    checkStatus();
+  }, [id, router]);
+
+  if (canEdit === null) {
+    return (
+      <div className={`min-h-screen bg-gray-50 ${FLEX_CENTER}`}>
+        <div className="text-center">
+          <div className={`inline-block ${SPINNER_LG}`}></div>
+          <p className="mt-4 text-gray-600">확인 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
