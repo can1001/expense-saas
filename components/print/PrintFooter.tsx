@@ -8,7 +8,6 @@ interface PrintFooterProps {
 }
 
 export default function PrintFooter({ expense }: PrintFooterProps) {
-  // 청구일자 분리
   const requestDate = new Date(expense.requestDate);
   const year = requestDate.getFullYear();
   const month = requestDate.getMonth() + 1;
@@ -16,48 +15,63 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
 
   return (
     <div className="print-footer-container">
-      {/* 청구내역 테이블 */}
-      <table className="footer-table">
+      {/* 청구내역 - 1줄 콤팩트형 */}
+      <table className="request-table">
         <tbody>
-          {/* 1행: 청구일자 + 재정팀 출납필 (8열) */}
           <tr>
-            <td rowSpan={2} className="section-label">
-              청<br />구<br />내<br />역
+            <td className="request-info-cell">
+              <span className="info-label">청구일자:</span>
+              <span className="info-value">{year}.{String(month).padStart(2, '0')}.{String(day).padStart(2, '0')}</span>
             </td>
-            <td className="label-cell">○ 청구 일자:</td>
-            <td className="value-cell">{year} 년</td>
-            <td className="value-cell">{month} 월</td>
-            <td className="value-cell">{day} 일</td>
-            <td className="value-cell">(재정팀)</td>
-            <td className="value-cell">출납필</td>
-            <td className="value-cell"><span className="seal-mark">(인)</span></td>
-          </tr>
-
-          {/* 2행: 청구팀 + 청구인 서명 (핵심) */}
-          <tr>
-            <td className="label-cell">○ 청구팀(부):</td>
-            <td colSpan={2} className="team-cell">
-              <span className="committee">{expense.committee}</span>
-              <span className="divider">　</span>
-              <span className="team">{expense.department}</span>
+            <td className="request-info-cell">
+              <span className="info-label">청구팀(부):</span>
+              <span className="info-value">{expense.committee}/{expense.department}</span>
             </td>
-            <td className="label-cell requester">○ 청구인:</td>
-            <td className="name-cell">{expense.applicantName}</td>
-            <td className="signature-cell applicant">
+            <td className="request-info-cell requester-cell">
+              <span className="info-label">청구인:</span>
+              <span className="info-value">{expense.applicantName}</span>
               <span className="seal-mark">(인)</span>
             </td>
           </tr>
+        </tbody>
+      </table>
 
-          {/* 3행: 은행 정보 (핵심) */}
+      {/* 입금정보 - 1줄 콤팩트형 */}
+      <table className="bank-table">
+        <tbody>
           <tr>
-            <td className="label-cell">○ </td>
-            <td className="bank-name-cell">{expense.bankName}</td>
-            <td className="label-cell">○ 계좌번호:</td>
-            <td colSpan={2} className="account-number-cell">
-              {expense.accountNumber}
+            <td className="bank-info-cell">
+              <span className="info-label">은행:</span>
+              <span className="info-value">{expense.bankName}</span>
             </td>
-            <td className="label-cell">○ 예금주</td>
-            <td className="account-holder-cell">{expense.accountHolder}</td>
+            <td className="bank-info-cell account-cell">
+              <span className="info-label">계좌번호:</span>
+              <span className="info-value">{expense.accountNumber}</span>
+            </td>
+            <td className="bank-info-cell">
+              <span className="info-label">예금주:</span>
+              <span className="info-value">{expense.accountHolder}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* 최종확인 - 1줄 통합형 */}
+      <table className="confirmation-table">
+        <tbody>
+          <tr>
+            <td className="confirm-cell">
+              <span className="confirm-label">재정팀 검토</span>
+              <span className="seal-mark">(인)</span>
+            </td>
+            <td className="confirm-cell">
+              <span className="confirm-label">회계 승인</span>
+              <span className="seal-mark">(인)</span>
+            </td>
+            <td className="confirm-cell">
+              <span className="confirm-label">지급완료</span>
+              <span className="confirm-date">____.____.____</span>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -65,23 +79,22 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
       {/* 교회명 + 버전 */}
       <div className="church-footer">
         <span className="church-name">청 연 교 회</span>
-        <span className="version-text">지출결의서 Ver.4.1.3</span>
+        <span className="version-text">지출결의서 Ver.4.1.4</span>
       </div>
 
       <style jsx>{`
-        /* 컨테이너 */
         .print-footer-container {
           margin-top: 16px;
         }
 
-        /* 테이블 기본 스타일 */
-        .footer-table {
+        /* 청구내역 테이블 */
+        .request-table {
           width: 100%;
           border-collapse: collapse;
           table-layout: fixed;
         }
 
-        .footer-table td {
+        .request-table td {
           border: 1px solid #000;
           padding: 8px 10px;
           vertical-align: middle;
@@ -89,7 +102,23 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
           background-color: #fff;
         }
 
-        /* 청구내역 세로 라벨 (rowSpan=2) */
+        /* 입금정보 테이블 */
+        .bank-table {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: fixed;
+          margin-top: 8px;
+        }
+
+        .bank-table td {
+          border: 1px solid #000;
+          padding: 8px 10px;
+          vertical-align: middle;
+          font-size: 10pt;
+          background-color: #fff;
+        }
+
+        /* 섹션 라벨 */
         .section-label {
           width: 35px;
           text-align: center;
@@ -102,7 +131,11 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
           background-color: #f8f9fa;
         }
 
-        /* 라벨 셀 - 굵게, 중앙 정렬 */
+        .bank-label {
+          line-height: 1.4;
+        }
+
+        /* 라벨 셀 */
         .label-cell {
           text-align: center;
           font-weight: 600;
@@ -111,52 +144,29 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
           font-size: 10pt;
         }
 
-        /* 값 셀 - 중앙 정렬 */
-        .value-cell {
+        /* 청구내역 1줄 콤팩트형 셀 */
+        .request-info-cell {
           text-align: center;
           font-size: 10pt;
+          padding: 10px 12px;
         }
 
-        .value-cell.date-blank {
-          min-width: 50px;
+        .request-info-cell.requester-cell {
+          min-width: 140px;
         }
 
-        .label-cell.requester {
-          width: 90px;
-        }
-
-        /* 1행: 청구일자 셀 */
-        .date-cell {
-          text-align: left;
-          padding-left: 12px;
-          font-size: 10pt;
-        }
-
-        .date-year {
+        .info-label {
           font-weight: 600;
-          font-size: 10.5pt;
+          color: #333;
+          margin-right: 8px;
         }
 
-        .date-blank {
-          display: inline-block;
-          border-bottom: 1px solid #333;
-          min-width: 45px;
-          text-align: center;
+        .info-value {
+          font-weight: 700;
         }
 
-        /* 1행: 재정팀 출납필 서명 셀 */
-        .signature-cell {
-          text-align: center;
-          font-weight: 600;
-          font-size: 10pt;
-        }
-
-        .signature-cell.treasurer {
-          padding: 8px 12px;
-        }
-
-        .signature-cell.applicant {
-          width: 60px;
+        .request-info-cell .seal-mark {
+          margin-left: 10px;
         }
 
         .seal-mark {
@@ -164,55 +174,54 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
           font-weight: 700;
           color: #d32f2f;
           font-size: 10.5pt;
-          margin-left: 4px;
         }
 
-        /* 2행: 청구팀(부) 셀 */
-        .team-cell {
-          text-align: left;
-          padding-left: 12px;
-          font-size: 10pt;
-        }
-
-        .committee {
-          font-weight: 600;
-        }
-
-        .divider {
-          display: inline-block;
-          width: 8px;
-        }
-
-        .team {
-          font-weight: 600;
-        }
-
-        /* 2행: 청구인 이름 셀 */
-        .name-cell {
+        /* 입금정보 1줄 콤팩트형 셀 */
+        .bank-info-cell {
           text-align: center;
-          font-weight: 700;
-          font-size: 11pt;
+          font-size: 10pt;
+          padding: 10px 12px;
         }
 
-        /* 3행: 은행 정보 셀들 */
-        .bank-name-cell {
-          text-align: center;
-          font-weight: 600;
-          font-size: 10pt;
+        .bank-info-cell.account-cell {
+          flex: 2;
+          min-width: 180px;
         }
 
-        .account-number-cell {
-          text-align: left;
-          padding-left: 12px;
-          font-weight: 600;
-          font-size: 10pt;
+        .bank-info-cell .info-value {
           letter-spacing: 0.3px;
         }
 
-        .account-holder-cell {
-          text-align: center;
-          font-weight: 600;
+        /* 최종확인 테이블 */
+        .confirmation-table {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: fixed;
+          margin-top: 8px;
+        }
+
+        .confirmation-table td {
+          border: 1px solid #000;
+          padding: 10px 12px;
+          vertical-align: middle;
           font-size: 10pt;
+          background-color: #fff;
+        }
+
+        /* 최종확인 1줄 통합형 셀 */
+        .confirm-cell {
+          text-align: center;
+        }
+
+        .confirm-label {
+          font-weight: 600;
+          color: #333;
+          margin-right: 12px;
+        }
+
+        .confirm-date {
+          font-weight: 700;
+          letter-spacing: 1px;
         }
 
         /* 교회명 + 버전 */
@@ -224,7 +233,7 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
           padding: 10px 20px;
           border-top: 2.5px solid #000;
           border-bottom: 1px solid #333;
-          background: linear-gradient(to bottom, #ffffff 0%, #f9fafb 100%);
+          background-color: #f5f5f5;
         }
 
         .church-name {
@@ -248,7 +257,9 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
             page-break-inside: avoid;
           }
 
-          .footer-table td {
+          .request-table td,
+          .bank-table td,
+          .confirmation-table td {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }

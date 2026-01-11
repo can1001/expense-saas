@@ -2,19 +2,18 @@
 
 import React from 'react';
 import { PrintHeader, PrintItems, PrintFooter } from './print';
-import type { Expense } from './print/types';
+import type { Expense, ApprovalLine } from './print/types';
 
 interface PrintableExpenseProps {
   expense: Expense;
-  teamLeaderName?: string | null;
-  financeManagerName?: string | null;
+  approvalLine?: ApprovalLine | null;
 }
 
-export default function PrintableExpense({ expense, teamLeaderName, financeManagerName }: PrintableExpenseProps) {
+export default function PrintableExpense({ expense, approvalLine }: PrintableExpenseProps) {
   return (
     <div className="print-only">
       {/* 1. 지출결의서 상단 (헤더) */}
-      <PrintHeader expense={expense} teamLeaderName={teamLeaderName} financeManagerName={financeManagerName} />
+      <PrintHeader expense={expense} approvalLine={approvalLine} />
 
       {/* 2. 세목 입력부분 (테이블) */}
       <PrintItems

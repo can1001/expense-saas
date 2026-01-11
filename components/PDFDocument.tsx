@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 import { Expense } from '@/lib/types';
 
@@ -23,151 +23,319 @@ interface ApprovalLine {
   steps: ApprovalStep[];
 }
 
-// 한글 폰트 등록 (옵션: 웹 폰트 사용)
-// Font.register({
-//   family: 'NotoSansKR',
-//   src: 'https://fonts.gstatic.com/s/notosanskr/v12/Pby7FmXiEBPT4ITbgNA5CgmOsn7uwpYcuH8y.ttf',
-// });
-
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
+    padding: 30,
     fontSize: 10,
     fontFamily: 'Helvetica',
   },
-  header: {
-    marginBottom: 20,
-    textAlign: 'center',
+  // 헤더 영역 (로고 + 제목 + 결재란)
+  headerRow: {
+    flexDirection: 'row',
+    border: '1px solid #000',
+    marginBottom: 0,
+  },
+  logoSection: {
+    width: 60,
+    padding: 8,
+    borderRight: '1px solid #000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoImage: {
+    width: 45,
+    height: 45,
+    objectFit: 'contain',
+  },
+  titleSection: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRight: '1px solid #000',
+    padding: 10,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
+    letterSpacing: 8,
   },
-  subtitle: {
-    fontSize: 10,
-    color: '#666',
-    marginBottom: 5,
+  // 결재란
+  approvalSection: {
+    flexDirection: 'row',
+    width: 165,
   },
-  section: {
-    marginBottom: 15,
-    padding: 10,
-    border: '1px solid #ddd',
-    borderRadius: 4,
+  approvalColumn: {
+    flex: 1,
+    borderRight: '1px solid #000',
   },
-  sectionTitle: {
+  approvalColumnLast: {
+    flex: 1,
+  },
+  approvalHeader: {
+    backgroundColor: '#f5f5f5',
+    padding: 4,
+    fontSize: 7,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    borderBottom: '1px solid #000',
+  },
+  approvalSignCell: {
+    height: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderBottom: '1px solid #000',
+  },
+  signatureImage: {
+    width: 40,
+    height: 25,
+    objectFit: 'contain',
+  },
+  approvedText: {
+    fontSize: 7,
+    color: '#10B981',
+    fontWeight: 'bold',
+  },
+  rejectedText: {
+    fontSize: 7,
+    color: '#EF4444',
+    fontWeight: 'bold',
+  },
+  approvalNameCell: {
+    padding: 3,
+    fontSize: 7,
+    textAlign: 'center',
+  },
+  // 정보 테이블 - 1줄 콤팩트형
+  infoTable: {
+    border: '1px solid #000',
+    borderTop: 'none',
+  },
+  infoRowLast: {
+    flexDirection: 'row',
+  },
+  headerInfoCell: {
+    flex: 1,
+    padding: 8,
+    fontSize: 9,
+    textAlign: 'center',
+    borderRight: '1px solid #000',
+  },
+  headerInfoCellLast: {
+    flex: 1,
+    padding: 8,
+    fontSize: 9,
+    textAlign: 'center',
+  },
+  headerInfoLabel: {
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  headerInfoValue: {
+    fontWeight: 'bold',
+  },
+  headerAmountValue: {
     fontSize: 12,
     fontWeight: 'bold',
-    marginBottom: 8,
-    paddingBottom: 4,
-    borderBottom: '2px solid #3B82F6',
-    color: '#3B82F6',
   },
-  row: {
-    flexDirection: 'row',
-    marginBottom: 5,
-  },
-  label: {
-    width: '30%',
-    fontWeight: 'bold',
-    color: '#374151',
-  },
-  value: {
-    width: '70%',
-    color: '#1F2937',
-  },
-  table: {
+  // 세부 항목 테이블
+  itemsSection: {
     marginTop: 10,
+    border: '1px solid #000',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#3B82F6',
-    padding: 8,
-    color: 'white',
+    backgroundColor: '#c8e6c9',
+    borderBottom: '1px solid #000',
+  },
+  tableHeaderCell: {
+    padding: 6,
+    fontSize: 8,
     fontWeight: 'bold',
-    fontSize: 9,
+    textAlign: 'center',
+    borderRight: '1px solid #000',
+  },
+  tableHeaderCellLast: {
+    padding: 6,
+    fontSize: 8,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   tableRow: {
     flexDirection: 'row',
-    borderBottom: '1px solid #E5E7EB',
-    padding: 8,
-    fontSize: 9,
+    borderBottom: '1px solid #000',
   },
-  tableRowAlt: {
+  tableRowLast: {
     flexDirection: 'row',
-    borderBottom: '1px solid #E5E7EB',
-    padding: 8,
-    backgroundColor: '#F9FAFB',
-    fontSize: 9,
   },
   tableCell: {
-    flex: 1,
+    padding: 5,
+    fontSize: 8,
+    textAlign: 'center',
+    borderRight: '1px solid #000',
+  },
+  tableCellLeft: {
+    padding: 5,
+    fontSize: 8,
+    textAlign: 'left',
+    borderRight: '1px solid #000',
   },
   tableCellRight: {
-    flex: 1,
+    padding: 5,
+    fontSize: 8,
+    textAlign: 'right',
+    borderRight: '1px solid #000',
+  },
+  tableCellRightLast: {
+    padding: 5,
+    fontSize: 8,
     textAlign: 'right',
   },
   tableFooter: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
-    padding: 10,
-    fontWeight: 'bold',
-    fontSize: 10,
+    backgroundColor: '#f5f5f5',
   },
   totalLabel: {
-    flex: 5,
+    flex: 1,
+    padding: 8,
+    fontSize: 10,
+    fontWeight: 'bold',
     textAlign: 'right',
-    marginRight: 10,
+    borderRight: '1px solid #000',
   },
   totalAmount: {
-    flex: 1,
+    width: 100,
+    padding: 8,
+    fontSize: 11,
+    fontWeight: 'bold',
     textAlign: 'right',
-    color: '#3B82F6',
-    fontSize: 12,
   },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
-    textAlign: 'center',
-    color: '#9CA3AF',
-    fontSize: 8,
-    borderTop: '1px solid #E5E7EB',
-    paddingTop: 10,
-  },
-  approvalTable: {
+  // 청구내역 섹션
+  requestSection: {
     marginTop: 10,
-    border: '1px solid #ddd',
+    border: '1px solid #000',
   },
-  approvalHeader: {
+  requestRow: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
-    borderBottom: '1px solid #ddd',
+    borderBottom: '1px solid #000',
   },
-  approvalHeaderCell: {
-    flex: 1,
+  requestRowLast: {
+    flexDirection: 'row',
+  },
+  sectionLabel: {
+    width: 35,
+    backgroundColor: '#f5f5f5',
+    padding: 8,
+    fontSize: 8,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    borderRight: '1px solid #000',
+    justifyContent: 'center',
+  },
+  requestLabel: {
+    width: 70,
+    backgroundColor: '#f5f5f5',
     padding: 6,
     fontSize: 8,
     fontWeight: 'bold',
     textAlign: 'center',
-    borderRight: '1px solid #ddd',
+    borderRight: '1px solid #000',
   },
-  approvalRow: {
-    flexDirection: 'row',
-  },
-  approvalCell: {
+  requestValue: {
     flex: 1,
     padding: 6,
     fontSize: 8,
     textAlign: 'center',
-    borderRight: '1px solid #ddd',
-    borderBottom: '1px solid #ddd',
+    borderRight: '1px solid #000',
   },
-  signatureImage: {
-    width: 50,
-    height: 25,
-    objectFit: 'contain',
+  requestValueLast: {
+    flex: 1,
+    padding: 6,
+    fontSize: 8,
+    textAlign: 'center',
+  },
+  sealMark: {
+    color: '#d32f2f',
+    fontWeight: 'bold',
+  },
+  // 청구내역 1줄 콤팩트형
+  requestInfoCell: {
+    flex: 1,
+    padding: 8,
+    fontSize: 8,
+    textAlign: 'center',
+    borderRight: '1px solid #000',
+  },
+  requestInfoCellLast: {
+    flex: 1,
+    padding: 8,
+    fontSize: 8,
+    textAlign: 'center',
+  },
+  infoLabel: {
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  infoValue: {
+    fontWeight: 'bold',
+  },
+  // 입금정보 섹션
+  bankSection: {
+    marginTop: 8,
+    border: '1px solid #000',
+  },
+  bankRow: {
+    flexDirection: 'row',
+    borderBottom: '1px solid #000',
+  },
+  bankRowLast: {
+    flexDirection: 'row',
+  },
+  // 최종확인 1줄 통합형
+  confirmationSection: {
+    marginTop: 8,
+    border: '1px solid #000',
+  },
+  confirmationRow: {
+    flexDirection: 'row',
+  },
+  confirmCell: {
+    flex: 1,
+    padding: 8,
+    fontSize: 8,
+    textAlign: 'center',
+    borderRight: '1px solid #000',
+  },
+  confirmCellLast: {
+    flex: 1,
+    padding: 8,
+    fontSize: 8,
+    textAlign: 'center',
+  },
+  confirmLabel: {
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  confirmDate: {
+    fontWeight: 'bold',
+  },
+  // 푸터
+  footer: {
+    marginTop: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 10,
+    borderTop: '2px solid #000',
+  },
+  churchName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    letterSpacing: 8,
+    color: '#26a69a',
+  },
+  versionText: {
+    fontSize: 7,
+    color: '#666',
   },
 });
 
@@ -178,200 +346,177 @@ interface PDFDocumentProps {
 
 export const ExpensePDFDocument: React.FC<PDFDocumentProps> = ({ expense, approvalLine }) => {
   const formatCurrency = (amount: number) => {
-    return `${amount.toLocaleString('ko-KR')}원`;
+    return amount.toLocaleString('ko-KR');
   };
+
+  const expenseDate = expense.expenseDate ? new Date(expense.expenseDate) : null;
+  const requestDate = new Date(expense.requestDate);
+
+  const steps = approvalLine?.steps || [];
+  const hasApprovalLine = steps.length > 0;
+
+  // 결재란 기본 3열
+  const defaultSteps = [
+    { id: '1', stepName: '담당', approverName: '', status: 'PENDING', signatureData: null },
+    { id: '2', stepName: '팀장', approverName: '', status: 'PENDING', signatureData: null },
+    { id: '3', stepName: '회계', approverName: '', status: 'PENDING', signatureData: null },
+  ];
+
+  const displaySteps = hasApprovalLine ? steps : defaultSteps;
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* 헤더 */}
-        <View style={styles.header}>
-          <Text style={styles.title}>지출결의서</Text>
-          <Text style={styles.subtitle}>
-            작성일: {format(new Date(expense.createdAt), 'yyyy-MM-dd HH:mm')}
-          </Text>
-          <Text style={styles.subtitle}>문서번호: {expense.id}</Text>
-        </View>
+        {/* 헤더: 로고 + 제목 + 결재란 */}
+        <View style={styles.headerRow}>
+          {/* 로고 */}
+          <View style={styles.logoSection}>
+            <Image src="/logo.png" style={styles.logoImage} />
+          </View>
 
-        {/* 예산 정보 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>예산 정보</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>위원회:</Text>
-            <Text style={styles.value}>{expense.committee}</Text>
+          {/* 제목 */}
+          <View style={styles.titleSection}>
+            <Text style={styles.title}>지 출 결 의 서</Text>
           </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>사역팀(부):</Text>
-            <Text style={styles.value}>{expense.department}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>예산(항):</Text>
-            <Text style={styles.value}>{expense.budgetCategory}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>예산(목):</Text>
-            <Text style={styles.value}>{expense.budgetSubcategory}</Text>
-          </View>
-        </View>
 
-        {/* 지출 정보 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>지출 정보</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>지출일자:</Text>
-            <Text style={styles.value}>
-              {expense.expenseDate
-                ? format(new Date(expense.expenseDate), 'yyyy-MM-dd')
-                : '미정'}
-            </Text>
-          </View>
-        </View>
-
-        {/* 세부 항목 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>세부 항목</Text>
-          <View style={styles.table}>
-            <View style={styles.tableHeader}>
-              <Text style={{ ...styles.tableCell, width: '8%' }}>순서</Text>
-              <Text style={{ ...styles.tableCell, width: '20%' }}>예산(세목)</Text>
-              <Text style={{ ...styles.tableCell, width: '25%' }}>적요</Text>
-              <Text style={{ ...styles.tableCellRight, width: '15%' }}>단가</Text>
-              <Text style={{ ...styles.tableCellRight, width: '12%' }}>수량</Text>
-              <Text style={{ ...styles.tableCellRight, width: '20%' }}>금액</Text>
-            </View>
-            {expense.items.map((item, index) => (
+          {/* 결재란 */}
+          <View style={styles.approvalSection}>
+            {displaySteps.map((step, index) => (
               <View
-                key={item.id}
-                style={index % 2 === 0 ? styles.tableRow : styles.tableRowAlt}
+                key={step.id}
+                style={index === displaySteps.length - 1 ? styles.approvalColumnLast : styles.approvalColumn}
               >
-                <Text style={{ ...styles.tableCell, width: '8%' }}>{item.order}</Text>
-                <Text style={{ ...styles.tableCell, width: '20%' }}>{item.budgetDetail}</Text>
-                <Text style={{ ...styles.tableCell, width: '25%' }}>{item.description}</Text>
-                <Text style={{ ...styles.tableCellRight, width: '15%' }}>
-                  {item.unitPrice.toLocaleString()}
-                </Text>
-                <Text style={{ ...styles.tableCellRight, width: '12%' }}>{item.quantity}</Text>
-                <Text style={{ ...styles.tableCellRight, width: '20%' }}>
-                  {formatCurrency(item.amount)}
+                <Text style={styles.approvalHeader}>{step.stepName}</Text>
+                <View style={styles.approvalSignCell}>
+                  {step.status === 'APPROVED' && step.signatureData ? (
+                    <Image src={step.signatureData} style={styles.signatureImage} />
+                  ) : step.status === 'APPROVED' ? (
+                    <Text style={styles.approvedText}>승인</Text>
+                  ) : step.status === 'REJECTED' ? (
+                    <Text style={styles.rejectedText}>반려</Text>
+                  ) : null}
+                </View>
+                <Text style={styles.approvalNameCell}>
+                  {step.approverName ? step.approverName.split('').join(' ') : ''}
                 </Text>
               </View>
             ))}
-            <View style={styles.tableFooter}>
-              <Text style={styles.totalLabel}>총 청구금액:</Text>
-              <Text style={styles.totalAmount}>{formatCurrency(expense.requestAmount)}</Text>
-            </View>
           </View>
         </View>
 
-        {/* 신청 정보 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>신청 정보</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>청구 일자:</Text>
-            <Text style={styles.value}>
-              {format(new Date(expense.requestDate), 'yyyy-MM-dd')}
+        {/* 예산/지출 정보 - 1줄 콤팩트형 */}
+        <View style={styles.infoTable}>
+          <View style={styles.infoRowLast}>
+            <Text style={styles.headerInfoCell}>
+              <Text style={styles.headerInfoLabel}>예산항목: </Text>
+              <Text style={styles.headerInfoValue}>{expense.budgetCategory}/{expense.budgetSubcategory}</Text>
             </Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>청구팀:</Text>
-            <Text style={styles.value}>{expense.committee} {expense.department}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>청구인:</Text>
-            <Text style={styles.value}>
-              {expense.applicantName}
-              {expense.applicantTitle && ` (${expense.applicantTitle})`}
+            <Text style={styles.headerInfoCell}>
+              <Text style={styles.headerInfoLabel}>지출일자: </Text>
+              <Text style={styles.headerInfoValue}>{expenseDate ? format(expenseDate, 'yyyy.MM.dd') : '미정'}</Text>
+            </Text>
+            <Text style={styles.headerInfoCellLast}>
+              <Text style={styles.headerInfoLabel}>청구금액: </Text>
+              <Text style={styles.headerAmountValue}>₩ {formatCurrency(expense.requestAmount)} 원</Text>
             </Text>
           </View>
         </View>
 
-        {/* 은행 정보 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>은행 정보</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>은행명:</Text>
-            <Text style={styles.value}>{expense.bankName}</Text>
+        {/* 세부 항목 테이블 */}
+        <View style={styles.itemsSection}>
+          {/* 헤더 */}
+          <View style={styles.tableHeader}>
+            <Text style={{ ...styles.tableHeaderCell, width: '10%' }}>세목</Text>
+            <Text style={{ ...styles.tableHeaderCell, flex: 1 }}>적요</Text>
+            <Text style={{ ...styles.tableHeaderCell, width: '15%' }}>단가</Text>
+            <Text style={{ ...styles.tableHeaderCell, width: '10%' }}>수량</Text>
+            <Text style={{ ...styles.tableHeaderCellLast, width: '18%' }}>금액</Text>
           </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>계좌번호:</Text>
-            <Text style={styles.value}>{expense.accountNumber}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>예금주:</Text>
-            <Text style={styles.value}>{expense.accountHolder}</Text>
+
+          {/* 항목들 */}
+          {expense.items.map((item, index) => (
+            <View
+              key={item.id}
+              style={index === expense.items.length - 1 ? styles.tableRowLast : styles.tableRow}
+            >
+              <Text style={{ ...styles.tableCell, width: '10%' }}>{item.budgetDetail}</Text>
+              <Text style={{ ...styles.tableCellLeft, flex: 1 }}>{item.description}</Text>
+              <Text style={{ ...styles.tableCellRight, width: '15%' }}>
+                {formatCurrency(item.unitPrice)}
+              </Text>
+              <Text style={{ ...styles.tableCell, width: '10%' }}>{item.quantity}</Text>
+              <Text style={{ ...styles.tableCellRightLast, width: '18%' }}>
+                {formatCurrency(item.amount)}
+              </Text>
+            </View>
+          ))}
+
+          {/* 합계 */}
+          <View style={styles.tableFooter}>
+            <Text style={styles.totalLabel}>합 계</Text>
+            <Text style={styles.totalAmount}>{formatCurrency(expense.requestAmount)} 원</Text>
           </View>
         </View>
 
-        {/* 결재선 */}
-        {approvalLine && approvalLine.steps.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>결재선</Text>
-            <View style={styles.approvalTable}>
-              {/* 헤더 - 직책 */}
-              <View style={styles.approvalHeader}>
-                {approvalLine.steps.map((step, index) => (
-                  <Text key={`h1-${step.id}`} style={{
-                    ...styles.approvalHeaderCell,
-                    borderRight: index === approvalLine.steps.length - 1 ? 'none' : '1px solid #ddd',
-                  }}>
-                    {step.stepName}
-                  </Text>
-                ))}
-              </View>
-              {/* 서명/도장 */}
-              <View style={styles.approvalRow}>
-                {approvalLine.steps.map((step, index) => (
-                  <View key={`sig-${step.id}`} style={{
-                    ...styles.approvalCell,
-                    height: 40,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    borderRight: index === approvalLine.steps.length - 1 ? 'none' : '1px solid #ddd',
-                  }}>
-                    {step.status === 'APPROVED' && step.signatureData ? (
-                      <Image src={step.signatureData} style={styles.signatureImage} />
-                    ) : step.status === 'APPROVED' ? (
-                      <Text style={{ fontSize: 8, color: '#10B981' }}>승인</Text>
-                    ) : step.status === 'REJECTED' ? (
-                      <Text style={{ fontSize: 8, color: '#EF4444' }}>반려</Text>
-                    ) : (
-                      <Text style={{ fontSize: 8, color: '#9CA3AF' }}>대기</Text>
-                    )}
-                  </View>
-                ))}
-              </View>
-              {/* 결재자 이름 */}
-              <View style={styles.approvalRow}>
-                {approvalLine.steps.map((step, index) => (
-                  <Text key={`name-${step.id}`} style={{
-                    ...styles.approvalCell,
-                    borderRight: index === approvalLine.steps.length - 1 ? 'none' : '1px solid #ddd',
-                  }}>
-                    {step.approverName}
-                  </Text>
-                ))}
-              </View>
-              {/* 결재 일시 */}
-              <View style={styles.approvalRow}>
-                {approvalLine.steps.map((step, index) => (
-                  <Text key={`date-${step.id}`} style={{
-                    ...styles.approvalCell,
-                    fontSize: 7,
-                    color: '#6B7280',
-                    borderRight: index === approvalLine.steps.length - 1 ? 'none' : '1px solid #ddd',
-                    borderBottom: 'none',
-                  }}>
-                    {step.approvedAt ? format(new Date(step.approvedAt), 'MM/dd HH:mm') : ''}
-                  </Text>
-                ))}
-              </View>
-            </View>
+        {/* 청구내역 - 1줄 콤팩트형 */}
+        <View style={styles.requestSection}>
+          <View style={styles.requestRowLast}>
+            <Text style={styles.requestInfoCell}>
+              <Text style={styles.infoLabel}>청구일자: </Text>
+              <Text style={styles.infoValue}>{format(requestDate, 'yyyy.MM.dd')}</Text>
+            </Text>
+            <Text style={styles.requestInfoCell}>
+              <Text style={styles.infoLabel}>청구팀(부): </Text>
+              <Text style={styles.infoValue}>{expense.committee}/{expense.department}</Text>
+            </Text>
+            <Text style={styles.requestInfoCellLast}>
+              <Text style={styles.infoLabel}>청구인: </Text>
+              <Text style={styles.infoValue}>{expense.applicantName}</Text>
+              <Text style={styles.sealMark}>  (인)</Text>
+            </Text>
           </View>
-        )}
+        </View>
+
+        {/* 입금정보 - 1줄 콤팩트형 */}
+        <View style={styles.bankSection}>
+          <View style={styles.bankRowLast}>
+            <Text style={styles.requestInfoCell}>
+              <Text style={styles.infoLabel}>은행: </Text>
+              <Text style={styles.infoValue}>{expense.bankName}</Text>
+            </Text>
+            <Text style={{ ...styles.requestInfoCell, flex: 2 }}>
+              <Text style={styles.infoLabel}>계좌번호: </Text>
+              <Text style={styles.infoValue}>{expense.accountNumber}</Text>
+            </Text>
+            <Text style={styles.requestInfoCellLast}>
+              <Text style={styles.infoLabel}>예금주: </Text>
+              <Text style={styles.infoValue}>{expense.accountHolder}</Text>
+            </Text>
+          </View>
+        </View>
+
+        {/* 최종확인 - 1줄 통합형 */}
+        <View style={styles.confirmationSection}>
+          <View style={styles.confirmationRow}>
+            <Text style={styles.confirmCell}>
+              <Text style={styles.confirmLabel}>재정팀 검토  </Text>
+              <Text style={styles.sealMark}>(인)</Text>
+            </Text>
+            <Text style={styles.confirmCell}>
+              <Text style={styles.confirmLabel}>회계 승인  </Text>
+              <Text style={styles.sealMark}>(인)</Text>
+            </Text>
+            <Text style={styles.confirmCellLast}>
+              <Text style={styles.confirmLabel}>지급완료  </Text>
+              <Text style={styles.confirmDate}>____.____.____</Text>
+            </Text>
+          </View>
+        </View>
 
         {/* 푸터 */}
         <View style={styles.footer}>
-          <Text>이 문서는 지출결의서 관리 시스템에서 자동으로 생성되었습니다.</Text>
+          <Text style={styles.churchName}>청 연 교 회</Text>
+          <Text style={styles.versionText}>지출결의서 Ver.4.1.4</Text>
         </View>
       </Page>
     </Document>
