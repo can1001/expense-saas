@@ -281,6 +281,10 @@ export default function ExpenseDetailPage() {
   // 수정/삭제 가능한 상태 확인 (DRAFT, REJECTED, WITHDRAWN만 가능)
   const canEdit = ['DRAFT', 'REJECTED', 'WITHDRAWN'].includes(expense.status || '');
 
+  // 엑셀 다운로드 가능 역할 확인 (행정간사, 회계, 재정팀장, admin만 가능)
+  const canDownloadExcel = currentUser &&
+    ['행정간사', '회계', '재정팀장', 'admin'].includes(currentUser.role);
+
   return (
     <>
       {/* 프린트용 양식 (화면에서는 숨김, 프린트 시에만 표시) */}
@@ -374,24 +378,26 @@ export default function ExpenseDetailPage() {
               <Printer className="w-5 h-5" />
               프린트
             </button>
-            <button
-              onClick={handleDownloadWebExcel}
-              disabled={webExcelLoading}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
-              title="웹 교적 등록용 엑셀 다운로드"
-            >
-              {webExcelLoading ? (
-                <>
-                  <div className={SPINNER}></div>
-                  생성 중...
-                </>
-              ) : (
-                <>
-                  <FileSpreadsheet className="w-5 h-5" />
-                  엑셀 다운로드
-                </>
-              )}
-            </button>
+            {canDownloadExcel && (
+              <button
+                onClick={handleDownloadWebExcel}
+                disabled={webExcelLoading}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                title="웹 교적 등록용 엑셀 다운로드"
+              >
+                {webExcelLoading ? (
+                  <>
+                    <div className={SPINNER}></div>
+                    생성 중...
+                  </>
+                ) : (
+                  <>
+                    <FileSpreadsheet className="w-5 h-5" />
+                    엑셀 다운로드
+                  </>
+                )}
+              </button>
+            )}
             {canEdit && (
               <>
                 <button
@@ -737,18 +743,20 @@ export default function ExpenseDetailPage() {
           <Printer className="w-5 h-5" />
           <span className="text-sm font-medium">프린트</span>
         </button>
-        <button
-          onClick={handleDownloadWebExcel}
-          disabled={webExcelLoading}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors min-h-[48px]"
-        >
-          {webExcelLoading ? (
-            <div className={SPINNER}></div>
-          ) : (
-            <FileSpreadsheet className="w-5 h-5" />
-          )}
-          <span className="text-sm font-medium">엑셀</span>
-        </button>
+        {canDownloadExcel && (
+          <button
+            onClick={handleDownloadWebExcel}
+            disabled={webExcelLoading}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors min-h-[48px]"
+          >
+            {webExcelLoading ? (
+              <div className={SPINNER}></div>
+            ) : (
+              <FileSpreadsheet className="w-5 h-5" />
+            )}
+            <span className="text-sm font-medium">엑셀</span>
+          </button>
+        )}
         {canEdit && (
           <>
             <button
