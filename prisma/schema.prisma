@@ -54,9 +54,12 @@ model Expense {
 
   // 지출 상태 (최종 승인 후 관리)
   paymentStatus     PaymentStatus        @default(PENDING)
-  paymentCompletedAt DateTime?           // 지출완료 시각
-  paymentCompletedBy String?             // 지출완료 처리자
-  paymentNote       String?              // 지출 메모
+  paymentCompletedAt DateTime?           // 지급완료 시각
+  paymentCompletedBy String?             // 지급완료 처리자
+  paymentNote       String?              // 지급 메모
+  paymentHoldReason String?              // 보류/취소 사유
+  paymentHoldAt     DateTime?            // 보류/취소 시각
+  paymentHoldBy     String?              // 보류/취소 처리자
 
   // 결재선 (1:1 관계)
   approvalLine      ApprovalLine?
@@ -438,8 +441,10 @@ enum ApprovalStatus {
 
 // 지출 상태 (최종 승인 후 관리)
 enum PaymentStatus {
-  PENDING     // 지출예정 (기본값)
-  COMPLETED   // 지출완료
+  PENDING     // 지급 대기 (기본값)
+  HOLD        // 지급 보류
+  CANCELLED   // 지급 취소
+  COMPLETED   // 지급 완료
 }
 
 // 결재선 (지출결의서당 1개, 스냅샷)
@@ -529,8 +534,10 @@ enum ApprovalAction {
   WITHDRAW         // 회수
   MODIFY_LINE      // 결재선 수정
   DELEGATE         // 위임/대리 지정
-  PAYMENT_COMPLETE // 지출완료 처리
-  PAYMENT_REVERT   // 지출예정으로 되돌림
+  PAYMENT_COMPLETE // 지급완료 처리
+  PAYMENT_REVERT   // 지급 대기로 되돌림
+  PAYMENT_HOLD     // 지급 보류
+  PAYMENT_CANCEL   // 지급 취소
 }
 
 // ========================================

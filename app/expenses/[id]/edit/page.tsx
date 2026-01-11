@@ -17,9 +17,12 @@ export default function EditExpensePage() {
         const res = await fetch(`/api/expenses/${id}`);
         if (res.ok) {
           const data = await res.json();
-          const editableStatuses = ['DRAFT', 'REJECTED', 'WITHDRAWN'];
-          if (!editableStatuses.includes(data.status)) {
-            alert('제출된 지출결의서는 수정할 수 없습니다.');
+          const basicEditable = ['DRAFT', 'REJECTED', 'WITHDRAWN'];
+          // 기본 수정 가능 상태이거나, 최종승인 + 지급대기 상태
+          const isEditable = basicEditable.includes(data.status) ||
+            (data.status === 'APPROVED_FINAL' && data.paymentStatus === 'PENDING');
+          if (!isEditable) {
+            alert('이 상태에서는 수정할 수 없습니다.');
             router.push(`/expenses/${id}`);
           } else {
             setCanEdit(true);

@@ -205,10 +205,8 @@ export default function ExpenseDetailPage() {
   };
 
   // 지출 상태 변경 핸들러
-  const handlePaymentStatusChange = async (note: string) => {
+  const handlePaymentStatusChange = async (newStatus: string, note: string, reason?: string) => {
     if (!expense) return;
-
-    const newStatus = expense.paymentStatus === 'PENDING' ? 'COMPLETED' : 'PENDING';
 
     setPaymentStatusLoading(true);
     try {
@@ -218,13 +216,14 @@ export default function ExpenseDetailPage() {
         body: JSON.stringify({
           paymentStatus: newStatus,
           note,
+          reason,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || '지출 상태 변경에 실패했습니다.');
+        throw new Error(data.error || '지급 상태 변경에 실패했습니다.');
       }
 
       // 상태 업데이트
@@ -234,12 +233,15 @@ export default function ExpenseDetailPage() {
         paymentCompletedAt: data.data.paymentCompletedAt,
         paymentCompletedBy: data.data.paymentCompletedBy,
         paymentNote: data.data.paymentNote,
+        paymentHoldReason: data.data.paymentHoldReason,
+        paymentHoldAt: data.data.paymentHoldAt,
+        paymentHoldBy: data.data.paymentHoldBy,
       });
 
       setShowPaymentModal(false);
       alert(data.message);
     } catch (err) {
-      alert(err instanceof Error ? err.message : '지출 상태 변경 중 오류가 발생했습니다.');
+      alert(err instanceof Error ? err.message : '지급 상태 변경 중 오류가 발생했습니다.');
     } finally {
       setPaymentStatusLoading(false);
     }
@@ -278,8 +280,12 @@ export default function ExpenseDetailPage() {
     );
   }
 
-  // 수정/삭제 가능한 상태 확인 (DRAFT, REJECTED, WITHDRAWN만 가능)
-  const canEdit = ['DRAFT', 'REJECTED', 'WITHDRAWN'].includes(expense.status || '');
+  // 수정/삭제 가능한 상태 확인
+  // 기본: DRAFT, REJECTED, WITHDRAWN
+  // 추가: APPROVED_FINAL이면서 paymentStatus가 PENDING인 경우
+  const basicEditable = ['DRAFT', 'REJECTED', 'WITHDRAWN'].includes(expense.status || '');
+  const approvedPending = expense.status === 'APPROVED_FINAL' && expense.paymentStatus === 'PENDING';
+  const canEdit = basicEditable || approvedPending;
 
   // 엑셀 다운로드 가능 역할 확인 (행정간사, 회계, 재정팀장, admin만 가능)
   const canDownloadExcel = currentUser &&
@@ -313,9 +319,15 @@ export default function ExpenseDetailPage() {
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                   expense.paymentStatus === 'COMPLETED'
                     ? 'bg-emerald-100 text-emerald-800'
+                    : expense.paymentStatus === 'HOLD'
+                    ? 'bg-orange-100 text-orange-800'
+                    : expense.paymentStatus === 'CANCELLED'
+                    ? 'bg-red-100 text-red-800'
                     : 'bg-amber-100 text-amber-800'
                 }`}>
-                  {expense.paymentStatus === 'COMPLETED' ? '지출완료' : '지출예정'}
+                  {expense.paymentStatus === 'COMPLETED' ? '지급완료' :
+                   expense.paymentStatus === 'HOLD' ? '지급보류' :
+                   expense.paymentStatus === 'CANCELLED' ? '지급취소' : '지급대기'}
                 </span>
               )}
             </div>
@@ -358,9 +370,15 @@ export default function ExpenseDetailPage() {
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                   expense.paymentStatus === 'COMPLETED'
                     ? 'bg-emerald-100 text-emerald-800'
+                    : expense.paymentStatus === 'HOLD'
+                    ? 'bg-orange-100 text-orange-800'
+                    : expense.paymentStatus === 'CANCELLED'
+                    ? 'bg-red-100 text-red-800'
                     : 'bg-amber-100 text-amber-800'
                 }`}>
-                  {expense.paymentStatus === 'COMPLETED' ? '지출완료' : '지출예정'}
+                  {expense.paymentStatus === 'COMPLETED' ? '지급완료' :
+                   expense.paymentStatus === 'HOLD' ? '지급보류' :
+                   expense.paymentStatus === 'CANCELLED' ? '지급취소' : '지급대기'}
                 </span>
               )}
             </div>
@@ -684,19 +702,25 @@ export default function ExpenseDetailPage() {
             expenseStatus={expense.status || 'DRAFT'}
           />
 
-          {/* 지출 상태 관리 (최종 승인된 경우에만 표시) */}
+          {/* 지급 상태 관리 (최종 승인된 경우에만 표시) */}
           {expense.status === 'APPROVED_FINAL' && (
             <div className={`${SECTION_CARD} mt-6 no-print`}>
-              <h2 className={SECTION_TITLE}>지출 상태 관리</h2>
+              <h2 className={SECTION_TITLE}>지급 상태 관리</h2>
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-3">
                     <span className={`px-4 py-2 rounded-full text-base font-medium ${
                       expense.paymentStatus === 'COMPLETED'
                         ? 'bg-emerald-100 text-emerald-800'
+                        : expense.paymentStatus === 'HOLD'
+                        ? 'bg-orange-100 text-orange-800'
+                        : expense.paymentStatus === 'CANCELLED'
+                        ? 'bg-red-100 text-red-800'
                         : 'bg-amber-100 text-amber-800'
                     }`}>
-                      {expense.paymentStatus === 'COMPLETED' ? '지출완료' : '지출예정'}
+                      {expense.paymentStatus === 'COMPLETED' ? '지급완료' :
+                       expense.paymentStatus === 'HOLD' ? '지급보류' :
+                       expense.paymentStatus === 'CANCELLED' ? '지급취소' : '지급대기'}
                     </span>
                   </div>
                   {expense.paymentStatus === 'COMPLETED' && expense.paymentCompletedAt && (
@@ -706,16 +730,24 @@ export default function ExpenseDetailPage() {
                       {expense.paymentNote && ` (${expense.paymentNote})`}
                     </p>
                   )}
+                  {(expense.paymentStatus === 'HOLD' || expense.paymentStatus === 'CANCELLED') && expense.paymentHoldAt && (
+                    <p className="mt-2 text-sm text-gray-500">
+                      {format(new Date(expense.paymentHoldAt), 'yyyy-MM-dd HH:mm')}에
+                      {expense.paymentHoldBy && ` ${expense.paymentHoldBy}님이`} 처리
+                      {expense.paymentHoldReason && (
+                        <span className="block mt-1 text-gray-600">
+                          사유: {expense.paymentHoldReason}
+                        </span>
+                      )}
+                    </p>
+                  )}
                 </div>
                 {canChangePaymentStatus && (
                   <button
                     onClick={() => setShowPaymentModal(true)}
-                    className={expense.paymentStatus === 'PENDING'
-                      ? 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
-                      : 'px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors'
-                    }
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    {expense.paymentStatus === 'PENDING' ? '지출완료 처리' : '지출예정으로 되돌리기'}
+                    상태 변경
                   </button>
                 )}
               </div>
@@ -783,12 +815,12 @@ export default function ExpenseDetailPage() {
       </div>
       </div>
 
-      {/* 지출 상태 변경 모달 */}
+      {/* 지급 상태 변경 모달 */}
       <PaymentStatusModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         onConfirm={handlePaymentStatusChange}
-        currentStatus={expense.paymentStatus || 'PENDING'}
+        currentStatus={(expense.paymentStatus || 'PENDING') as 'PENDING' | 'HOLD' | 'CANCELLED' | 'COMPLETED'}
         isProcessing={paymentStatusLoading}
       />
     </>

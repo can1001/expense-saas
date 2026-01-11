@@ -509,7 +509,7 @@ export default function RolesPage() {
         <h3 className="font-medium text-blue-800 mb-2">권한 설명</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-blue-700">
           <div><strong>결재 권한:</strong> 지출결의서 결재 (결재 단계 필요)</div>
-          <div><strong>지출 관리:</strong> 지출완료 처리, 상태 변경</div>
+          <div><strong>지출 관리:</strong> 지급완료 처리, 상태 변경</div>
           <div><strong>관리자 메뉴:</strong> 사용자, 예산, 역할 관리 접근</div>
           <div><strong>데이터 내보내기:</strong> Excel 등 다운로드</div>
         </div>

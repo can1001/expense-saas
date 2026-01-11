@@ -325,7 +325,7 @@ export default function ExpensesPage() {
       return;
     }
 
-    const statusText = newStatus === 'COMPLETED' ? '지출완료' : '지출예정';
+    const statusText = newStatus === 'COMPLETED' ? '지급완료' : '지급대기';
     const confirmed = confirm(`선택한 ${selectedIds.size}건을 ${statusText}로 변경하시겠습니까?\n\n※ 최종 승인된 항목만 변경됩니다.`);
 
     if (!confirmed) return;
@@ -462,7 +462,9 @@ export default function ExpensesPage() {
                   )}
                   {filters.paymentStatus && (
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-                      {filters.paymentStatus === 'PENDING' ? '지출예정' : '지출완료'}
+                      {filters.paymentStatus === 'PENDING' ? '지급대기' :
+                       filters.paymentStatus === 'HOLD' ? '지급보류' :
+                       filters.paymentStatus === 'CANCELLED' ? '지급취소' : '지급완료'}
                       <button onClick={() => handleFilterChange('paymentStatus', '')} className="hover:text-blue-900">×</button>
                     </span>
                   )}
@@ -580,7 +582,7 @@ export default function ExpensesPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      지출 상태
+                      지급 상태
                     </label>
                     <select
                       value={filters.paymentStatus}
@@ -588,8 +590,10 @@ export default function ExpensesPage() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
                     >
                       <option value="">전체</option>
-                      <option value="PENDING">지출예정</option>
-                      <option value="COMPLETED">지출완료</option>
+                      <option value="PENDING">지급대기</option>
+                      <option value="HOLD">지급보류</option>
+                      <option value="CANCELLED">지급취소</option>
+                      <option value="COMPLETED">지급완료</option>
                     </select>
                   </div>
                 </div>
@@ -678,7 +682,7 @@ export default function ExpensesPage() {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        일괄 지출완료
+                        일괄 지급완료
                       </>
                     )}
                   </button>
@@ -697,7 +701,7 @@ export default function ExpensesPage() {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        일괄 지출예정
+                        일괄 지급대기
                       </>
                     )}
                   </button>
@@ -804,7 +808,7 @@ export default function ExpensesPage() {
                     결재상태
                   </th>
                   <th className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
-                    지출상태
+                    지급상태
                   </th>
                 </tr>
               </thead>
@@ -906,12 +910,20 @@ export default function ExpensesPage() {
                       >
                         {expense.status === 'APPROVED_FINAL' ? (
                           expense.paymentStatus === 'COMPLETED' ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              지출완료
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                              지급완료
+                            </span>
+                          ) : expense.paymentStatus === 'HOLD' ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                              지급보류
+                            </span>
+                          ) : expense.paymentStatus === 'CANCELLED' ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              지급취소
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                              지출예정
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                              지급대기
                             </span>
                           )
                         ) : (

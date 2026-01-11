@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth';
 
 /**
  * PUT /api/expenses/bulk-payment-status
- * 지출 상태 일괄 변경 (지출예정 ↔ 지출완료)
+ * 지급 상태 일괄 변경 (지급대기 ↔ 지급완료)
  *
  * Body: {
  *   ids: string[],
@@ -126,7 +126,7 @@ export async function PUT(request: NextRequest) {
       actorRole: currentUser.role,
       previousStatus: expense.paymentStatus,
       newStatus: paymentStatus,
-      comment: note || (paymentStatus === 'COMPLETED' ? '지출완료 일괄 처리' : '지출예정으로 일괄 되돌림'),
+      comment: note || (paymentStatus === 'COMPLETED' ? '지급완료 일괄 처리' : '지급대기로 일괄 되돌림'),
       metadata: {
         bulkOperation: true,
         totalSelected: ids.length,
@@ -143,8 +143,8 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: paymentStatus === 'COMPLETED'
-        ? `${toUpdate.length}건이 지출완료로 변경되었습니다.`
-        : `${toUpdate.length}건이 지출예정으로 변경되었습니다.`,
+        ? `${toUpdate.length}건이 지급완료로 변경되었습니다.`
+        : `${toUpdate.length}건이 지급대기로 변경되었습니다.`,
       data: {
         updatedCount: toUpdate.length,
         skipped: {
@@ -157,7 +157,7 @@ export async function PUT(request: NextRequest) {
     console.error('Bulk payment status update error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: '지출 상태 일괄 변경 중 오류가 발생했습니다.', details: errorMessage },
+      { error: '지급 상태 일괄 변경 중 오류가 발생했습니다.', details: errorMessage },
       { status: 500 }
     );
   }

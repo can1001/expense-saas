@@ -36,7 +36,7 @@ function StatusBadge({ status }: { status?: string }) {
   );
 }
 
-// 지출 상태 배지 컴포넌트
+// 지급 상태 배지 컴포넌트
 function PaymentStatusBadge({ status, paymentStatus }: { status?: string; paymentStatus?: string }) {
   if (status !== 'APPROVED_FINAL') {
     return (
@@ -46,17 +46,18 @@ function PaymentStatusBadge({ status, paymentStatus }: { status?: string; paymen
     );
   }
 
-  if (paymentStatus === 'COMPLETED') {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-        지출완료
-      </span>
-    );
-  }
+  const config: Record<string, { bg: string; text: string; label: string }> = {
+    PENDING: { bg: 'bg-amber-100', text: 'text-amber-800', label: '지급대기' },
+    HOLD: { bg: 'bg-orange-100', text: 'text-orange-800', label: '지급보류' },
+    CANCELLED: { bg: 'bg-red-100', text: 'text-red-800', label: '지급취소' },
+    COMPLETED: { bg: 'bg-emerald-100', text: 'text-emerald-800', label: '지급완료' },
+  };
+
+  const { bg, text, label } = config[paymentStatus || 'PENDING'] || config.PENDING;
 
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-      지출예정
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${bg} ${text}`}>
+      {label}
     </span>
   );
 }
@@ -132,8 +133,12 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick }: 
     router.push(`/expenses/${expense.id}/edit`);
   };
 
-  // 수정 가능 여부 체크 (임시저장, 반려, 회수 상태만)
-  const canEdit = ['DRAFT', 'REJECTED', 'WITHDRAWN'].includes(expense.status || '');
+  // 수정 가능 여부 체크
+  // 기본: 임시저장, 반려, 회수 상태
+  // 추가: 최종승인 + 지급대기 상태
+  const basicEditable = ['DRAFT', 'REJECTED', 'WITHDRAWN'].includes(expense.status || '');
+  const approvedPending = expense.status === 'APPROVED_FINAL' && expense.paymentStatus === 'PENDING';
+  const canEdit = basicEditable || approvedPending;
 
   return (
     <div className="relative overflow-hidden rounded-lg" ref={cardRef}>

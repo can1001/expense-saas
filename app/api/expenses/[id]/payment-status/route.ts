@@ -4,11 +4,12 @@ import { getCurrentUser } from '@/lib/auth';
 
 /**
  * PUT /api/expenses/[id]/payment-status
- * 지출 상태 변경 (지출예정 → 지출완료)
+ * 지출 상태 변경
  *
  * Body: {
- *   paymentStatus: "PENDING" | "COMPLETED",
- *   note?: string
+ *   paymentStatus: "PENDING" | "HOLD" | "CANCELLED" | "COMPLETED",
+ *   note?: string,
+ *   reason?: string  // HOLD, CANCELLED일 때 필수
  * }
  */
 export async function PUT(
@@ -18,7 +19,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { paymentStatus, note } = body;
+    const { paymentStatus, note, reason } = body;
 
     // 현재 사용자 확인
     const currentUser = await getCurrentUser();
@@ -39,10 +40,18 @@ export async function PUT(
     }
 
     // 유효한 상태값 확인
-    const validStatuses = ['PENDING', 'COMPLETED'];
+    const validStatuses = ['PENDING', 'HOLD', 'CANCELLED', 'COMPLETED'];
     if (!validStatuses.includes(paymentStatus)) {
       return NextResponse.json(
-        { error: '유효하지 않은 상태값입니다. (PENDING 또는 COMPLETED)' },
+        { error: '유효하지 않은 상태값입니다. (PENDING, HOLD, CANCELLED, COMPLETED)' },
+        { status: 400 }
+      );
+    }
+
+    // HOLD, CANCELLED일 때 사유 필수
+    if ((paymentStatus === 'HOLD' || paymentStatus === 'CANCELLED') && !reason?.trim()) {
+      return NextResponse.json(
+        { error: paymentStatus === 'HOLD' ? '보류 사유를 입력해주세요.' : '취소 사유를 입력해주세요.' },
         { status: 400 }
       );
     }
@@ -69,8 +78,14 @@ export async function PUT(
 
     // 이미 같은 상태인 경우
     if (expense.paymentStatus === paymentStatus) {
+      const statusLabels: Record<string, string> = {
+        PENDING: '지급 대기',
+        HOLD: '지급 보류',
+        CANCELLED: '지급 취소',
+        COMPLETED: '지급 완료',
+      };
       return NextResponse.json(
-        { error: `이미 ${paymentStatus === 'COMPLETED' ? '지출완료' : '지출예정'} 상태입니다.` },
+        { error: `이미 ${statusLabels[paymentStatus]} 상태입니다.` },
         { status: 400 }
       );
     }
@@ -86,10 +101,24 @@ export async function PUT(
     if (paymentStatus === 'COMPLETED') {
       updateData.paymentCompletedAt = now;
       updateData.paymentCompletedBy = currentUser.username;
-    } else {
-      // PENDING으로 되돌리는 경우
+      // 완료 시 보류 정보 초기화
+      updateData.paymentHoldReason = null;
+      updateData.paymentHoldAt = null;
+      updateData.paymentHoldBy = null;
+    } else if (paymentStatus === 'HOLD' || paymentStatus === 'CANCELLED') {
+      updateData.paymentHoldReason = reason;
+      updateData.paymentHoldAt = now;
+      updateData.paymentHoldBy = currentUser.username;
+      // 보류/취소 시 완료 정보 초기화
       updateData.paymentCompletedAt = null;
       updateData.paymentCompletedBy = null;
+    } else {
+      // PENDING으로 되돌리는 경우 모든 정보 초기화
+      updateData.paymentCompletedAt = null;
+      updateData.paymentCompletedBy = null;
+      updateData.paymentHoldReason = null;
+      updateData.paymentHoldAt = null;
+      updateData.paymentHoldBy = null;
     }
 
     const updatedExpense = await prisma.expense.update({
@@ -97,35 +126,66 @@ export async function PUT(
       data: updateData,
     });
 
+    // 감사 로그 action 결정
+    type PaymentAction = 'PAYMENT_COMPLETE' | 'PAYMENT_HOLD' | 'PAYMENT_CANCEL' | 'PAYMENT_REVERT';
+    let action: PaymentAction;
+    let defaultComment: string;
+    switch (paymentStatus) {
+      case 'COMPLETED':
+        action = 'PAYMENT_COMPLETE';
+        defaultComment = '지급 완료 처리';
+        break;
+      case 'HOLD':
+        action = 'PAYMENT_HOLD';
+        defaultComment = `지급 보류: ${reason}`;
+        break;
+      case 'CANCELLED':
+        action = 'PAYMENT_CANCEL';
+        defaultComment = `지급 취소: ${reason}`;
+        break;
+      default:
+        action = 'PAYMENT_REVERT';
+        defaultComment = '지급 대기로 되돌림';
+    }
+
     // 감사 로그 생성
     await prisma.approvalLog.create({
       data: {
         expenseId: id,
-        action: paymentStatus === 'COMPLETED' ? 'PAYMENT_COMPLETE' : 'PAYMENT_REVERT',
+        action,
         actorName: currentUser.username,
         actorEmail: currentUser.userid,
         actorRole: currentUser.role,
         previousStatus: expense.paymentStatus,
         newStatus: paymentStatus,
-        comment: note || (paymentStatus === 'COMPLETED' ? '지출완료 처리' : '지출예정으로 되돌림'),
+        comment: note || defaultComment,
         metadata: {
           userAgent: request.headers.get('user-agent') || '',
           timestamp: now.toISOString(),
+          reason: reason || null,
         },
       },
     });
 
+    const statusMessages: Record<string, string> = {
+      PENDING: '지급 대기로 변경되었습니다.',
+      HOLD: '지급 보류로 변경되었습니다.',
+      CANCELLED: '지급 취소로 변경되었습니다.',
+      COMPLETED: '지급 완료로 변경되었습니다.',
+    };
+
     return NextResponse.json({
       success: true,
-      message: paymentStatus === 'COMPLETED'
-        ? '지출완료로 변경되었습니다.'
-        : '지출예정으로 변경되었습니다.',
+      message: statusMessages[paymentStatus],
       data: {
         id: updatedExpense.id,
         paymentStatus: updatedExpense.paymentStatus,
         paymentCompletedAt: updatedExpense.paymentCompletedAt,
         paymentCompletedBy: updatedExpense.paymentCompletedBy,
         paymentNote: updatedExpense.paymentNote,
+        paymentHoldReason: updatedExpense.paymentHoldReason,
+        paymentHoldAt: updatedExpense.paymentHoldAt,
+        paymentHoldBy: updatedExpense.paymentHoldBy,
       },
     });
   } catch (error: any) {

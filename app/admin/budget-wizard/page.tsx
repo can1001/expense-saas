@@ -185,7 +185,7 @@ export default function BudgetWizardPage() {
 
     try {
       let endpoint = '';
-      let body: Record<string, unknown> = { name: newName.trim() };
+      const body: Record<string, unknown> = { name: newName.trim() };
 
       switch (currentStep) {
         case 1:

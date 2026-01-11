@@ -49,7 +49,7 @@ export type ApprovalStatus =
   | 'WITHDRAWN';      // 회수
 
 // 지출 상태 타입 (최종 승인 후 관리)
-export type PaymentStatus = 'PENDING' | 'COMPLETED';
+export type PaymentStatus = 'PENDING' | 'HOLD' | 'CANCELLED' | 'COMPLETED';
 
 export interface Expense {
   id: string;
@@ -78,6 +78,9 @@ export interface Expense {
   paymentCompletedAt?: string | null;
   paymentCompletedBy?: string | null;
   paymentNote?: string | null;
+  paymentHoldReason?: string | null;
+  paymentHoldAt?: string | null;
+  paymentHoldBy?: string | null;
   // 메타
   createdAt: string;
   updatedAt: string;
