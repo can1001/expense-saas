@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
-import { Camera, X, RotateCcw, Check } from 'lucide-react';
+import { useRef, useState, useCallback, useEffect } from 'react';
+import { Camera, X, RotateCcw, Check, Loader2 } from 'lucide-react';
 
 interface CameraCaptureProps {
   onCapture: (file: File) => void;
@@ -11,18 +11,21 @@ interface CameraCaptureProps {
 export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [isSaving, setIsSaving] = useState(false);
 
   const startCamera = useCallback(async () => {
     try {
       setError(null);
 
       // 기존 스트림 정리
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
 
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -34,6 +37,7 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
         audio: false,
       });
 
+      streamRef.current = mediaStream;
       setStream(mediaStream);
 
       if (videoRef.current) {
@@ -43,12 +47,20 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
       console.error('Camera error:', err);
       setError('카메라에 접근할 수 없습니다. 카메라 권한을 확인해주세요.');
     }
-  }, [facingMode, stream]);
+  }, [facingMode]);
 
-  // 컴포넌트 마운트 시 카메라 시작
-  useState(() => {
+  // 컴포넌트 마운트 시 카메라 시작, 언마운트 시 정리
+  useEffect(() => {
     startCamera();
-  });
+
+    return () => {
+      // 정리: 스트림 중지
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, [startCamera]);
 
   const stopCamera = useCallback(() => {
     if (stream) {
@@ -71,27 +83,57 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
 
     ctx.drawImage(video, 0, 0);
 
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
-    setCapturedImage(imageData);
-    stopCamera();
+    // iOS Safari 호환: toBlob() 사용하여 Blob 직접 저장
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          setCapturedImage(url);
+          setCapturedBlob(blob);
+          stopCamera();
+        } else {
+          setError('이미지 캡처에 실패했습니다. 다시 시도해주세요.');
+        }
+      },
+      'image/jpeg',
+      0.8
+    );
   };
 
   const handleRetake = () => {
+    // 이전 이미지 URL 정리
+    if (capturedImage) {
+      URL.revokeObjectURL(capturedImage);
+    }
     setCapturedImage(null);
+    setCapturedBlob(null);
+    setError(null);
     startCamera();
   };
 
-  const handleConfirm = () => {
-    if (!capturedImage) return;
+  const handleConfirm = async () => {
+    if (!capturedBlob || isSaving) return;
 
-    // Base64를 File로 변환
-    fetch(capturedImage)
-      .then(res => res.blob())
-      .then(blob => {
-        const file = new File([blob], `receipt_${Date.now()}.jpg`, { type: 'image/jpeg' });
-        onCapture(file);
-        onClose();
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const file = new File([capturedBlob], `receipt_${Date.now()}.jpg`, {
+        type: 'image/jpeg',
       });
+
+      // 이미지 URL 정리
+      if (capturedImage) {
+        URL.revokeObjectURL(capturedImage);
+      }
+
+      onCapture(file);
+      onClose();
+    } catch (err) {
+      console.error('이미지 저장 실패:', err);
+      setError('이미지 저장에 실패했습니다. 다시 시도해주세요.');
+      setIsSaving(false);
+    }
   };
 
   const handleSwitchCamera = () => {
@@ -187,12 +229,19 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
             </button>
             <button
               onClick={handleConfirm}
+              disabled={isSaving}
               className="flex flex-col items-center gap-1 text-white"
             >
-              <div className="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center">
-                <Check className="w-6 h-6" />
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                isSaving ? 'bg-gray-400' : 'bg-blue-500'
+              }`}>
+                {isSaving ? (
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                ) : (
+                  <Check className="w-6 h-6" />
+                )}
               </div>
-              <span className="text-sm">사용하기</span>
+              <span className="text-sm">{isSaving ? '저장중...' : '사용하기'}</span>
             </button>
           </div>
         )}
