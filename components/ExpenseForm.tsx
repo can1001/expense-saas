@@ -259,12 +259,14 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         onDetailsLoaded={setDetailOptions}
       />
 
-      {/* 지출일자 */}
-      <ExpenseDateSection
-        register={register}
-        errors={errors}
-        disabled={loading || isSubmitting}
-      />
+      {/* 지출일자 - 수정 모드에서만 표시 (등록 시 숨김) */}
+      {expenseId && (
+        <ExpenseDateSection
+          register={register}
+          errors={errors}
+          disabled={loading || isSubmitting}
+        />
+      )}
 
       {/* 세부 항목 */}
       <ItemsSection
