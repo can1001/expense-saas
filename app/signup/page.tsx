@@ -75,7 +75,11 @@ export default function SignupPage() {
 
       if (!response.ok) {
         if (response.status === 409) {
-          setErrors({ userid: data.error || '이미 존재하는 아이디입니다.' });
+          if (data.field === 'username') {
+            setErrors({ username: data.error || '이미 존재하는 이름입니다.' });
+          } else {
+            setErrors({ userid: data.error || '이미 존재하는 아이디입니다.' });
+          }
         } else {
           setError(data.error || '회원가입에 실패했습니다.');
         }

@@ -3,6 +3,7 @@ import {
   findUsers,
   createUser,
   findUserByUserid,
+  findUserByUsername,
   getRoleByCode,
   UserRole,
 } from '@/lib/services/user-service';
@@ -59,11 +60,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 중복 확인
+    // 아이디 중복 확인
     const existingUser = await findUserByUserid(userid);
     if (existingUser) {
       return NextResponse.json(
         { error: 'User with this userid already exists' },
+        { status: 409 }
+      );
+    }
+
+    // 이름 중복 확인
+    const existingUserByName = await findUserByUsername(username);
+    if (existingUserByName) {
+      return NextResponse.json(
+        { error: 'User with this username already exists' },
         { status: 409 }
       );
     }

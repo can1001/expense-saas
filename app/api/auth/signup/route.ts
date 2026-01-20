@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createUser, findUserByUserid } from '@/lib/services/user-service';
+import { createUser, findUserByUserid, findUserByUsername } from '@/lib/services/user-service';
 
 // POST /api/auth/signup - 회원가입
 export async function POST(request: NextRequest) {
@@ -36,11 +36,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 중복 확인
+    // 아이디 중복 확인
     const existingUser = await findUserByUserid(userid.trim());
     if (existingUser) {
       return NextResponse.json(
-        { error: '이미 존재하는 아이디입니다.' },
+        { error: '이미 존재하는 아이디입니다.', field: 'userid' },
+        { status: 409 }
+      );
+    }
+
+    // 이름 중복 확인
+    const existingUserByName = await findUserByUsername(username.trim());
+    if (existingUserByName) {
+      return NextResponse.json(
+        { error: '이미 존재하는 이름입니다.', field: 'username' },
         { status: 409 }
       );
     }
