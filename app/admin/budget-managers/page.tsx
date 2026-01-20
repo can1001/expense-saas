@@ -51,9 +51,14 @@ interface BudgetDetail {
   yearSetting: YearSetting | null;
 }
 
-interface GroupedDetails {
-  [category: string]: {
-    [subcategory: string]: BudgetDetail[];
+// 5단계 트리 구조: 위원회 → 사역팀 → 항 → 목 → 세목
+interface TreeData {
+  [committee: string]: {
+    [department: string]: {
+      [category: string]: {
+        [subcategory: string]: BudgetDetail[];
+      };
+    };
   };
 }
 
@@ -66,6 +71,8 @@ export default function BudgetManagersPage() {
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [changes, setChanges] = useState<Map<string, { managerId?: string | null; budgetAmount?: number }>>(new Map());
+  const [expandedCommittees, setExpandedCommittees] = useState<Set<string>>(new Set());
+  const [expandedDepartments, setExpandedDepartments] = useState<Set<string>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedSubcategories, setExpandedSubcategories] = useState<Set<string>>(new Set());
   const [copyFromYear, setCopyFromYear] = useState(currentYear - 1);
@@ -87,9 +94,16 @@ export default function BudgetManagersPage() {
       setUsers(usersData.users || []);
       setChanges(new Map());
 
-      // 모든 카테고리 펼치기
-      const categories = new Set<string>(detailsData.details?.map((d: BudgetDetail) => d.category) || []);
-      setExpandedCategories(categories);
+      // 모든 위원회 펼치기
+      const committees = new Set<string>();
+      (detailsData.details || []).forEach((d: BudgetDetail) => {
+        if (d.departments.length === 0) {
+          committees.add('미지정');
+        } else {
+          d.departments.forEach((dept) => committees.add(dept.committee));
+        }
+      });
+      setExpandedCommittees(committees);
     } catch (error) {
       console.error('데이터 로드 실패:', error);
     } finally {
@@ -200,15 +214,25 @@ export default function BudgetManagersPage() {
     }
   };
 
-  // 카테고리별 그룹핑
-  const groupedDetails = details.reduce<GroupedDetails>((acc, detail) => {
-    if (!acc[detail.category]) {
-      acc[detail.category] = {};
-    }
-    if (!acc[detail.category][detail.subcategory]) {
-      acc[detail.category][detail.subcategory] = [];
-    }
-    acc[detail.category][detail.subcategory].push(detail);
+  // 5단계 트리 구조로 그룹핑: 위원회 → 사역팀 → 항 → 목 → 세목
+  const treeData = details.reduce<TreeData>((acc, detail) => {
+    // 부서가 없는 세목은 "미지정" 그룹으로
+    const depts = detail.departments.length > 0 ? detail.departments : [{ id: '', name: '미지정', committee: '미지정' }];
+
+    depts.forEach((dept) => {
+      const committee = dept.committee || '미지정';
+      const department = dept.name || '미지정';
+      const category = detail.category || '미분류';
+      const subcategory = detail.subcategory || '미분류';
+
+      if (!acc[committee]) acc[committee] = {};
+      if (!acc[committee][department]) acc[committee][department] = {};
+      if (!acc[committee][department][category]) acc[committee][department][category] = {};
+      if (!acc[committee][department][category][subcategory]) acc[committee][department][category][subcategory] = [];
+
+      acc[committee][department][category][subcategory].push(detail);
+    });
+
     return acc;
   }, {});
 
@@ -225,14 +249,40 @@ export default function BudgetManagersPage() {
     );
   };
 
+  // 위원회 토글
+  const toggleCommittee = (committee: string) => {
+    setExpandedCommittees((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(committee)) {
+        newSet.delete(committee);
+      } else {
+        newSet.add(committee);
+      }
+      return newSet;
+    });
+  };
+
+  // 사역팀 토글
+  const toggleDepartment = (key: string) => {
+    setExpandedDepartments((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(key)) {
+        newSet.delete(key);
+      } else {
+        newSet.add(key);
+      }
+      return newSet;
+    });
+  };
+
   // 카테고리 토글
-  const toggleCategory = (category: string) => {
+  const toggleCategory = (key: string) => {
     setExpandedCategories((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(category)) {
-        newSet.delete(category);
+      if (newSet.has(key)) {
+        newSet.delete(key);
       } else {
-        newSet.add(category);
+        newSet.add(key);
       }
       return newSet;
     });
@@ -328,121 +378,177 @@ export default function BudgetManagersPage() {
           <table className={TABLE_BASE}>
             <thead className={TABLE_HEADER}>
               <tr>
-                <th className={`${TABLE_HEADER_CELL} w-64`}>예산(항) / 예산(목) / 예산(세목)</th>
-                <th className={`${TABLE_HEADER_CELL} w-40`}>위원회/사역팀</th>
+                <th className={`${TABLE_HEADER_CELL} w-80`}>위원회 / 사역팀 / 항 / 목 / 세목</th>
                 <th className={`${TABLE_HEADER_CELL} w-40`}>담당자</th>
                 <th className={`${TABLE_HEADER_CELL} w-32 text-right`}>예산금액</th>
                 <th className={`${TABLE_HEADER_CELL} w-32 text-right`}>사용금액</th>
               </tr>
             </thead>
             <tbody className={TABLE_BODY}>
-              {Object.entries(groupedDetails).map(([category, subcategories]) => {
-                const isExpanded = expandedCategories.has(category);
-                const allItems = Object.values(subcategories).flat();
-                const filteredItems = filterDetails(allItems);
+              {Object.entries(treeData).map(([committee, departments]) => {
+                const isCommitteeExpanded = expandedCommittees.has(committee);
 
-                if (filteredItems.length === 0 && searchTerm) return null;
+                // 위원회 내 전체 세목 수 계산
+                const committeeDetailCount = Object.values(departments).reduce((sum, cats) =>
+                  sum + Object.values(cats).reduce((catSum, subs) =>
+                    catSum + Object.values(subs).reduce((subSum, items) => subSum + items.length, 0), 0), 0);
+
+                // 검색어가 있을 때 해당 위원회 내 검색 결과가 있는지 확인
+                const hasSearchResults = !searchTerm || Object.values(departments).some((cats) =>
+                  Object.values(cats).some((subs) =>
+                    Object.values(subs).some((items) => filterDetails(items).length > 0)));
+
+                if (!hasSearchResults) return null;
 
                 return (
-                  <React.Fragment key={category}>
-                    {/* 카테고리 헤더 */}
+                  <React.Fragment key={committee}>
+                    {/* 1단계: 위원회 헤더 */}
                     <tr
-                      className="bg-blue-50 cursor-pointer hover:bg-blue-100"
-                      onClick={() => toggleCategory(category)}
+                      className="bg-indigo-100 cursor-pointer hover:bg-indigo-200"
+                      onClick={() => toggleCommittee(committee)}
                     >
-                      <td colSpan={5} className="px-4 py-2">
-                        <div className="flex items-center gap-2 font-semibold text-blue-800">
-                          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                          <span>{category || '(미분류)'}</span>
-                          <span className="text-sm font-normal text-blue-600">({allItems.length}개 세목)</span>
+                      <td colSpan={4} className="px-4 py-2">
+                        <div className="flex items-center gap-2 font-bold text-indigo-900">
+                          {isCommitteeExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                          <span>{committee}</span>
+                          <span className="text-sm font-normal text-indigo-600">({committeeDetailCount}개 세목)</span>
                         </div>
                       </td>
                     </tr>
 
-                    {isExpanded &&
-                      Object.entries(subcategories).map(([subcategory, items]) => {
-                        const subKey = `${category}|${subcategory}`;
-                        const isSubExpanded = expandedSubcategories.has(subKey) || searchTerm;
-                        const filteredSubItems = filterDetails(items);
+                    {isCommitteeExpanded &&
+                      Object.entries(departments).map(([department, categories]) => {
+                        const deptKey = `${committee}|${department}`;
+                        const isDeptExpanded = expandedDepartments.has(deptKey) || !!searchTerm;
 
-                        if (filteredSubItems.length === 0 && searchTerm) return null;
+                        // 사역팀 내 전체 세목 수 계산
+                        const deptDetailCount = Object.values(categories).reduce((sum, subs) =>
+                          sum + Object.values(subs).reduce((subSum, items) => subSum + items.length, 0), 0);
+
+                        // 검색 결과 확인
+                        const hasDeptSearchResults = !searchTerm || Object.values(categories).some((subs) =>
+                          Object.values(subs).some((items) => filterDetails(items).length > 0));
+
+                        if (!hasDeptSearchResults) return null;
 
                         return (
-                          <React.Fragment key={subKey}>
-                            {/* 서브카테고리 헤더 */}
+                          <React.Fragment key={deptKey}>
+                            {/* 2단계: 사역팀 헤더 */}
                             <tr
-                              className="bg-gray-50 cursor-pointer hover:bg-gray-100"
-                              onClick={() => toggleSubcategory(subKey)}
+                              className="bg-blue-50 cursor-pointer hover:bg-blue-100"
+                              onClick={() => toggleDepartment(deptKey)}
                             >
-                              <td colSpan={5} className="px-4 py-2 pl-8">
-                                <div className="flex items-center gap-2 font-medium text-gray-700">
-                                  {isSubExpanded ? (
-                                    <ChevronDown className="w-4 h-4" />
-                                  ) : (
-                                    <ChevronRight className="w-4 h-4" />
-                                  )}
-                                  <span>{subcategory || '(미분류)'}</span>
-                                  <span className="text-sm font-normal text-gray-500">({items.length}개)</span>
+                              <td colSpan={4} className="px-4 py-2 pl-8">
+                                <div className="flex items-center gap-2 font-semibold text-blue-800">
+                                  {isDeptExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                  <span>{department}</span>
+                                  <span className="text-sm font-normal text-blue-600">({deptDetailCount}개 세목)</span>
                                 </div>
                               </td>
                             </tr>
 
-                            {/* 세목 목록 */}
-                            {isSubExpanded &&
-                              filteredSubItems.map((detail) => {
-                                const isChanged = changes.has(detail.id);
+                            {isDeptExpanded &&
+                              Object.entries(categories).map(([category, subcategories]) => {
+                                const catKey = `${deptKey}|${category}`;
+                                const isCatExpanded = expandedCategories.has(catKey) || !!searchTerm;
+
+                                // 항 내 전체 세목 수 계산
+                                const catDetailCount = Object.values(subcategories).reduce((sum, items) => sum + items.length, 0);
+
+                                // 검색 결과 확인
+                                const hasCatSearchResults = !searchTerm || Object.values(subcategories).some((items) => filterDetails(items).length > 0);
+
+                                if (!hasCatSearchResults) return null;
+
                                 return (
-                                  <tr
-                                    key={detail.id}
-                                    className={`hover:bg-gray-50 ${isChanged ? 'bg-yellow-50' : ''}`}
-                                  >
-                                    <td className={`${TABLE_CELL} pl-12`}>
-                                      <div className="font-medium">{detail.name || '(미지정)'}</div>
-                                      {detail.accountCode && (
-                                        <div className="text-xs text-gray-500">{detail.accountCode}</div>
-                                      )}
-                                    </td>
-                                    <td className={TABLE_CELL}>
-                                      {detail.departments.length > 0 ? (
-                                        <div className="text-xs text-gray-600">
-                                          {detail.departments
-                                            .slice(0, 2)
-                                            .map((d) => d.name)
-                                            .join(', ')}
-                                          {detail.departments.length > 2 && ` 외 ${detail.departments.length - 2}개`}
+                                  <React.Fragment key={catKey}>
+                                    {/* 3단계: 항 헤더 */}
+                                    <tr
+                                      className="bg-gray-100 cursor-pointer hover:bg-gray-200"
+                                      onClick={() => toggleCategory(catKey)}
+                                    >
+                                      <td colSpan={4} className="px-4 py-2 pl-12">
+                                        <div className="flex items-center gap-2 font-medium text-gray-700">
+                                          {isCatExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                          <span>{category}</span>
+                                          <span className="text-sm font-normal text-gray-500">({catDetailCount}개)</span>
                                         </div>
-                                      ) : (
-                                        <span className="text-gray-400">-</span>
-                                      )}
-                                    </td>
-                                    <td className={TABLE_CELL}>
-                                      <select
-                                        value={getCurrentManager(detail)}
-                                        onChange={(e) => handleManagerChange(detail.id, e.target.value || null)}
-                                        className={`${SELECT_BASE} text-sm py-1 ${isChanged ? 'ring-2 ring-yellow-400' : ''}`}
-                                      >
-                                        <option value="">선택</option>
-                                        {users.map((user) => (
-                                          <option key={user.id} value={user.id}>
-                                            {user.username}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </td>
-                                    <td className={`${TABLE_CELL} text-right`}>
-                                      <input
-                                        type="number"
-                                        value={getCurrentBudget(detail)}
-                                        onChange={(e) => handleBudgetChange(detail.id, parseInt(e.target.value) || 0)}
-                                        className={`${INPUT_BASE} text-sm py-1 text-right w-28 ${isChanged ? 'ring-2 ring-yellow-400' : ''}`}
-                                      />
-                                    </td>
-                                    <td className={`${TABLE_CELL} text-right`}>
-                                      <span className="text-gray-600">
-                                        {formatAmount(detail.yearSetting?.usedAmount || 0)}
-                                      </span>
-                                    </td>
-                                  </tr>
+                                      </td>
+                                    </tr>
+
+                                    {isCatExpanded &&
+                                      Object.entries(subcategories).map(([subcategory, items]) => {
+                                        const subKey = `${catKey}|${subcategory}`;
+                                        const isSubExpanded = expandedSubcategories.has(subKey) || !!searchTerm;
+                                        const filteredItems = filterDetails(items);
+
+                                        if (filteredItems.length === 0 && searchTerm) return null;
+
+                                        return (
+                                          <React.Fragment key={subKey}>
+                                            {/* 4단계: 목 헤더 */}
+                                            <tr
+                                              className="bg-gray-50 cursor-pointer hover:bg-gray-100"
+                                              onClick={() => toggleSubcategory(subKey)}
+                                            >
+                                              <td colSpan={4} className="px-4 py-2 pl-16">
+                                                <div className="flex items-center gap-2 text-gray-600">
+                                                  {isSubExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                                  <span>{subcategory}</span>
+                                                  <span className="text-sm font-normal text-gray-400">({items.length}개)</span>
+                                                </div>
+                                              </td>
+                                            </tr>
+
+                                            {/* 5단계: 세목 목록 */}
+                                            {isSubExpanded &&
+                                              filteredItems.map((detail) => {
+                                                const isChanged = changes.has(detail.id);
+                                                return (
+                                                  <tr
+                                                    key={`${subKey}|${detail.id}`}
+                                                    className={`hover:bg-gray-50 ${isChanged ? 'bg-yellow-50' : ''}`}
+                                                  >
+                                                    <td className={`${TABLE_CELL} pl-20`}>
+                                                      <div className="font-medium">{detail.name}</div>
+                                                      {detail.accountCode && (
+                                                        <div className="text-xs text-gray-500">{detail.accountCode}</div>
+                                                      )}
+                                                    </td>
+                                                    <td className={TABLE_CELL}>
+                                                      <select
+                                                        value={getCurrentManager(detail)}
+                                                        onChange={(e) => handleManagerChange(detail.id, e.target.value || null)}
+                                                        className={`${SELECT_BASE} text-sm py-1 ${isChanged ? 'ring-2 ring-yellow-400' : ''}`}
+                                                      >
+                                                        <option value="">선택</option>
+                                                        {users.map((user) => (
+                                                          <option key={user.id} value={user.id}>
+                                                            {user.username}
+                                                          </option>
+                                                        ))}
+                                                      </select>
+                                                    </td>
+                                                    <td className={`${TABLE_CELL} text-right`}>
+                                                      <input
+                                                        type="number"
+                                                        value={getCurrentBudget(detail)}
+                                                        onChange={(e) => handleBudgetChange(detail.id, parseInt(e.target.value) || 0)}
+                                                        className={`${INPUT_BASE} text-sm py-1 text-right w-28 ${isChanged ? 'ring-2 ring-yellow-400' : ''}`}
+                                                      />
+                                                    </td>
+                                                    <td className={`${TABLE_CELL} text-right`}>
+                                                      <span className="text-gray-600">
+                                                        {formatAmount(detail.yearSetting?.usedAmount || 0)}
+                                                      </span>
+                                                    </td>
+                                                  </tr>
+                                                );
+                                              })}
+                                          </React.Fragment>
+                                        );
+                                      })}
+                                  </React.Fragment>
                                 );
                               })}
                           </React.Fragment>
