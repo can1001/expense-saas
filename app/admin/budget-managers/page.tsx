@@ -301,9 +301,15 @@ export default function BudgetManagersPage() {
     });
   };
 
-  // 금액 포맷
+  // 금액 포맷 (표시용)
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('ko-KR').format(amount);
+  };
+
+  // 예산금액 입력 처리 (콤마 제거 후 숫자만 추출)
+  const handleBudgetInputChange = (detailId: string, inputValue: string) => {
+    const numericValue = parseInt(inputValue.replace(/[^0-9]/g, '')) || 0;
+    handleBudgetChange(detailId, numericValue);
   };
 
   if (loading) {
@@ -531,10 +537,11 @@ export default function BudgetManagersPage() {
                                                     </td>
                                                     <td className={`${TABLE_CELL} text-right`}>
                                                       <input
-                                                        type="number"
-                                                        value={getCurrentBudget(detail)}
-                                                        onChange={(e) => handleBudgetChange(detail.id, parseInt(e.target.value) || 0)}
-                                                        className={`${INPUT_BASE} text-sm py-1 text-right w-28 ${isChanged ? 'ring-2 ring-yellow-400' : ''}`}
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        value={formatAmount(getCurrentBudget(detail))}
+                                                        onChange={(e) => handleBudgetInputChange(detail.id, e.target.value)}
+                                                        className={`${INPUT_BASE} text-sm py-1 text-right w-32 ${isChanged ? 'ring-2 ring-yellow-400' : ''}`}
                                                       />
                                                     </td>
                                                     <td className={`${TABLE_CELL} text-right`}>
