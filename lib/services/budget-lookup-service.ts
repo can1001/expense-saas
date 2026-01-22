@@ -7,6 +7,32 @@
 
 import { prisma } from '@/lib/prisma';
 
+// 역할 코드 타입
+type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
+
+/**
+ * 연도별 역할 담당자 조회
+ */
+async function getYearRoleUser(year: number, role: UserRole): Promise<{ id: string; username: string } | null> {
+  const yearRole = await prisma.userYearRole.findFirst({
+    where: {
+      year,
+      role,
+      user: { isActive: true },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+        },
+      },
+    },
+  });
+
+  return yearRole?.user || null;
+}
+
 export interface BudgetHierarchyInfo {
   committee: string;
   department: string;
@@ -77,6 +103,70 @@ export async function lookupBudgetHierarchy(
     budgetCategory: detail.subcategory.category.name,
     budgetSubcategory: detail.subcategory.name,
     budgetDetailId: detail.id,
+  };
+}
+
+/**
+ * 세목 담당자가 재정팀장인지 확인
+ *
+ * @param budgetCategory 예산(항) 이름
+ * @param budgetSubcategory 예산(목) 이름
+ * @param budgetDetail 예산(세목) 이름
+ * @param year 연도
+ * @returns 재정팀장 담당 여부
+ */
+export async function isFinanceHeadManager(
+  budgetCategory: string,
+  budgetSubcategory: string,
+  budgetDetail: string,
+  year: number
+): Promise<{ isFinanceHead: boolean; managerName: string | null; financeHeadName: string | null }> {
+  // 1. BudgetDetail 찾기
+  const detail = await prisma.budgetDetail.findFirst({
+    where: {
+      name: budgetDetail,
+      subcategory: {
+        name: budgetSubcategory,
+        category: {
+          name: budgetCategory,
+        },
+      },
+    },
+  });
+
+  if (!detail) {
+    return { isFinanceHead: false, managerName: null, financeHeadName: null };
+  }
+
+  // 2. 연도별 담당자 조회
+  const budgetDetailYear = await prisma.budgetDetailYear.findUnique({
+    where: {
+      budgetDetailId_year: { budgetDetailId: detail.id, year },
+    },
+    include: {
+      manager: {
+        select: {
+          id: true,
+          username: true,
+        },
+      },
+    },
+  });
+
+  // 3. 재정팀장 조회
+  const financeHead = await getYearRoleUser(year, 'finance_head');
+
+  if (!financeHead) {
+    return { isFinanceHead: false, managerName: budgetDetailYear?.manager?.username || null, financeHeadName: null };
+  }
+
+  const manager = budgetDetailYear?.manager;
+  const isFinanceHead = manager?.id === financeHead.id;
+
+  return {
+    isFinanceHead,
+    managerName: manager?.username || null,
+    financeHeadName: financeHead.username,
   };
 }
 

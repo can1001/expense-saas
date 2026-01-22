@@ -306,5 +306,73 @@ describe('simple-expense-schema', () => {
         expect(result.data.requestDate).toBe(date);
       }
     });
+
+    describe('status field', () => {
+      const baseData = {
+        items: [
+          {
+            budgetCategory: '사무행정비',
+            budgetSubcategory: '회의비',
+            budgetDetail: '다과비',
+            description: '회의 다과',
+            unitPrice: 10000,
+            quantity: 5,
+            amount: 50000,
+            order: 1,
+          },
+        ],
+        requestDate: '2024-01-15',
+        applicantName: '홍길동',
+        bankName: '우리은행',
+        accountNumber: '123-456-789',
+        accountHolder: '홍길동',
+      };
+
+      it('should default status to DRAFT when not provided', () => {
+        const result = createSimpleExpenseSchema.safeParse(baseData);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.status).toBe('DRAFT');
+        }
+      });
+
+      it('should accept DRAFT status', () => {
+        const result = createSimpleExpenseSchema.safeParse({
+          ...baseData,
+          status: 'DRAFT',
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.status).toBe('DRAFT');
+        }
+      });
+
+      it('should accept PENDING status', () => {
+        const result = createSimpleExpenseSchema.safeParse({
+          ...baseData,
+          status: 'PENDING',
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.status).toBe('PENDING');
+        }
+      });
+
+      it('should reject invalid status values', () => {
+        const result = createSimpleExpenseSchema.safeParse({
+          ...baseData,
+          status: 'INVALID_STATUS',
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('should reject APPROVED status', () => {
+        const result = createSimpleExpenseSchema.safeParse({
+          ...baseData,
+          status: 'APPROVED',
+        });
+        expect(result.success).toBe(false);
+      });
+    });
   });
 });

@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   lookupBudgetHierarchy,
   lookupBudgetHierarchyById,
+  isFinanceHeadManager,
   BudgetHierarchyInfo,
 } from '../budget-lookup-service';
 import { prisma } from '@/lib/prisma';
@@ -18,6 +19,12 @@ vi.mock('@/lib/prisma', () => ({
       findUnique: vi.fn(),
     },
     departmentBudgetDetail: {
+      findFirst: vi.fn(),
+    },
+    budgetDetailYear: {
+      findUnique: vi.fn(),
+    },
+    userYearRole: {
       findFirst: vi.fn(),
     },
   },
@@ -309,6 +316,101 @@ describe('budget-lookup-service', () => {
 
       expect(result!.committee).toBe('기획위원회');
       expect(result!.department).toBe('재정팀');
+    });
+  });
+
+  describe('isFinanceHeadManager', () => {
+    const mockFinanceHead = { id: 'fh-1', username: '재정팀장' };
+    const mockManager = { id: 'mgr-1', username: '일반담당자' };
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('should return isFinanceHead true when manager is finance head', async () => {
+      vi.mocked(prisma.budgetDetail.findFirst).mockResolvedValue({ id: 'bd-1' } as any);
+      vi.mocked(prisma.budgetDetailYear.findUnique).mockResolvedValue({
+        manager: mockFinanceHead,
+      } as any);
+      vi.mocked(prisma.userYearRole.findFirst).mockResolvedValue({
+        user: mockFinanceHead,
+      } as any);
+
+      const result = await isFinanceHeadManager('사무행정비', '직원교육', '교육비', 2024);
+
+      expect(result.isFinanceHead).toBe(true);
+      expect(result.managerName).toBe('재정팀장');
+      expect(result.financeHeadName).toBe('재정팀장');
+    });
+
+    it('should return isFinanceHead false when manager is not finance head', async () => {
+      vi.mocked(prisma.budgetDetail.findFirst).mockResolvedValue({ id: 'bd-1' } as any);
+      vi.mocked(prisma.budgetDetailYear.findUnique).mockResolvedValue({
+        manager: mockManager,
+      } as any);
+      vi.mocked(prisma.userYearRole.findFirst).mockResolvedValue({
+        user: mockFinanceHead,
+      } as any);
+
+      const result = await isFinanceHeadManager('사무행정비', '직원교육', '교육비', 2024);
+
+      expect(result.isFinanceHead).toBe(false);
+      expect(result.managerName).toBe('일반담당자');
+      expect(result.financeHeadName).toBe('재정팀장');
+    });
+
+    it('should return isFinanceHead false when budget detail not found', async () => {
+      vi.mocked(prisma.budgetDetail.findFirst).mockResolvedValue(null);
+
+      const result = await isFinanceHeadManager('없는항', '없는목', '없는세목', 2024);
+
+      expect(result.isFinanceHead).toBe(false);
+      expect(result.managerName).toBeNull();
+      expect(result.financeHeadName).toBeNull();
+    });
+
+    it('should return isFinanceHead false when finance head not configured', async () => {
+      vi.mocked(prisma.budgetDetail.findFirst).mockResolvedValue({ id: 'bd-1' } as any);
+      vi.mocked(prisma.budgetDetailYear.findUnique).mockResolvedValue({
+        manager: mockManager,
+      } as any);
+      vi.mocked(prisma.userYearRole.findFirst).mockResolvedValue(null);
+
+      const result = await isFinanceHeadManager('사무행정비', '직원교육', '교육비', 2024);
+
+      expect(result.isFinanceHead).toBe(false);
+      expect(result.managerName).toBe('일반담당자');
+      expect(result.financeHeadName).toBeNull();
+    });
+
+    it('should return isFinanceHead false when manager not assigned', async () => {
+      vi.mocked(prisma.budgetDetail.findFirst).mockResolvedValue({ id: 'bd-1' } as any);
+      vi.mocked(prisma.budgetDetailYear.findUnique).mockResolvedValue({
+        manager: null,
+      } as any);
+      vi.mocked(prisma.userYearRole.findFirst).mockResolvedValue({
+        user: mockFinanceHead,
+      } as any);
+
+      const result = await isFinanceHeadManager('사무행정비', '직원교육', '교육비', 2024);
+
+      expect(result.isFinanceHead).toBe(false);
+      expect(result.managerName).toBeNull();
+      expect(result.financeHeadName).toBe('재정팀장');
+    });
+
+    it('should return isFinanceHead false when budgetDetailYear not found', async () => {
+      vi.mocked(prisma.budgetDetail.findFirst).mockResolvedValue({ id: 'bd-1' } as any);
+      vi.mocked(prisma.budgetDetailYear.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.userYearRole.findFirst).mockResolvedValue({
+        user: mockFinanceHead,
+      } as any);
+
+      const result = await isFinanceHeadManager('사무행정비', '직원교육', '교육비', 2024);
+
+      expect(result.isFinanceHead).toBe(false);
+      expect(result.managerName).toBeNull();
+      expect(result.financeHeadName).toBe('재정팀장');
     });
   });
 });

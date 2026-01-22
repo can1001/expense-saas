@@ -7,7 +7,7 @@ import {
 } from '@/lib/schemas/simple-expense-schema';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { getCurrentUser } from '@/lib/auth';
-import { lookupBudgetHierarchy } from '@/lib/services/budget-lookup-service';
+import { lookupBudgetHierarchy, isFinanceHeadManager } from '@/lib/services/budget-lookup-service';
 import { deriveRequestTeam } from '@/lib/domain/request-team';
 import {
   calculateApprovalLineForExpense,
@@ -102,6 +102,28 @@ export async function POST(request: NextRequest) {
     // 유효성 검증
     const validatedData = createSimpleExpenseSchema.parse(body);
 
+    const year = validatedData.requestDate.getFullYear();
+
+    // 간편 지출결의서는 세목 담당자가 재정팀장인 경우만 등록 가능
+    // 모든 항목의 세목을 검증
+    for (const item of validatedData.items) {
+      const result = await isFinanceHeadManager(
+        item.budgetCategory,
+        item.budgetSubcategory,
+        item.budgetDetail,
+        year
+      );
+
+      if (!result.isFinanceHead) {
+        throw new ApiError(
+          `간편 지출결의서는 재정팀장이 담당하는 세목만 등록 가능합니다. ` +
+          `"${item.budgetDetail}" 세목의 담당자는 "${result.managerName || '미지정'}"입니다. ` +
+          `(재정팀장: ${result.financeHeadName || '미지정'})`,
+          400
+        );
+      }
+    }
+
     // 항목들을 예산(항/목) 기준으로 그룹핑
     const groupedItems = groupItemsByBudget(validatedData.items);
     const groupCount = groupedItems.size;
@@ -109,7 +131,6 @@ export async function POST(request: NextRequest) {
     // 상태 처리
     const isSubmit = validatedData.status === 'PENDING';
     const now = new Date();
-    const year = validatedData.requestDate.getFullYear();
 
     // 각 그룹별로 Expense 생성
     const createdExpenses: { id: string; requestAmount: number; committee: string; department: string }[] = [];
