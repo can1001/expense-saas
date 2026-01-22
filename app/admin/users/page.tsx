@@ -23,6 +23,7 @@ import {
   FLEX_CENTER,
 } from '@/lib/constants/styles';
 import { useRoles } from '@/hooks/useRoles';
+import { downloadUserExcel, UserForExcel } from '@/lib/user-excel-export';
 
 interface User {
   id: string;
@@ -52,6 +53,7 @@ function UsersPageContent() {
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   // 필터 상태
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
@@ -129,12 +131,51 @@ function UsersPageContent() {
     }
   };
 
+  const handleExcelDownload = async () => {
+    setDownloading(true);
+    try {
+      // 전체 사용자 목록 조회 (페이지네이션 없이)
+      const params = new URLSearchParams();
+      params.set('pageSize', '10000'); // 충분히 큰 수
+      if (search) params.set('search', search);
+      if (roleFilter) params.set('role', roleFilter);
+      if (activeFilter) params.set('isActive', activeFilter);
+
+      const response = await fetch(`/api/users?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch users for export');
+
+      const data = await response.json();
+      const usersForExcel: UserForExcel[] = data.users.map((user: User) => ({
+        userid: user.userid,
+        username: user.username,
+        role: user.role,
+        roleName: getRoleName(user.role),
+        department: user.department,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+      }));
+
+      downloadUserExcel(usersForExcel, getRoleName);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '엑셀 다운로드 실패');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">사용자 관리</h1>
         <div className="flex gap-2">
+          <button
+            onClick={handleExcelDownload}
+            disabled={downloading}
+            className={BTN_OUTLINE}
+          >
+            {downloading ? '다운로드 중...' : '엑셀 다운로드'}
+          </button>
           <Link href="/admin/users-upload" className={BTN_OUTLINE}>
             일괄 등록
           </Link>
