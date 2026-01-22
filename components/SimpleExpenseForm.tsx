@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -73,11 +73,14 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
     defaultValues: defaultSimpleExpenseFormData as SimpleExpenseFormData,
   });
 
-  // 폼 제출 훅
+  // 제출 모드 상태 (저장 / 제출)
+  const [submitMode, setSubmitMode] = useState<'save' | 'submit'>('save');
+
+  // 폼 제출 훅 - Expense 테이블에 저장 (리다이렉트 /expenses로 변경)
   const { handleSubmit: handleFormSubmit } = useExpenseFormSubmit({
     expenseId,
     apiEndpoint: '/api/simple-expenses',
-    redirectPath: '/expenses/simple',
+    redirectPath: '/expenses',
     attachments,
     setLoading,
     setError,
@@ -172,7 +175,9 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
 
   // onSubmit 핸들러 - useExpenseFormSubmit 훅 사용
   const onSubmit = (data: SimpleExpenseFormData) => {
-    handleFormSubmit(data);
+    // submitMode에 따라 status 결정 (저장: DRAFT, 제출: PENDING)
+    const status = submitMode === 'submit' ? 'PENDING' : 'DRAFT';
+    handleFormSubmit({ ...data, status });
   };
 
   // 수정 모드 데이터 로딩 중
@@ -351,13 +356,31 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
         >
           취소
         </button>
+        {/* 저장 버튼 (DRAFT 상태) */}
         <button
-          type="submit"
+          type="button"
+          onClick={() => {
+            setSubmitMode('save');
+            handleSubmit(onSubmit)();
+          }}
+          disabled={loading || isSubmitting}
+          className={`${BTN_OUTLINE} ${BTN_LG} disabled:cursor-not-allowed border-blue-500 text-blue-600 hover:bg-blue-50`}
+        >
+          {(loading || isSubmitting) && submitMode === 'save' && <div className={SPINNER}></div>}
+          {loading || isSubmitting && submitMode === 'save' ? '저장 중...' : '저장'}
+        </button>
+        {/* 제출 버튼 (PENDING 상태) */}
+        <button
+          type="button"
+          onClick={() => {
+            setSubmitMode('submit');
+            handleSubmit(onSubmit)();
+          }}
           disabled={loading || isSubmitting}
           className={`${BTN_PRIMARY} ${BTN_LG} disabled:cursor-not-allowed`}
         >
-          {(loading || isSubmitting) && <div className={SPINNER}></div>}
-          {loading || isSubmitting ? '저장 중...' : '저장'}
+          {(loading || isSubmitting) && submitMode === 'submit' && <div className={SPINNER}></div>}
+          {loading || isSubmitting && submitMode === 'submit' ? '제출 중...' : '제출'}
         </button>
       </div>
     </form>

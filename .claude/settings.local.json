@@ -64,7 +64,8 @@
       "Bash(pkill:*)",
       "Bash(npx next build:*)",
       "Bash(npx tsx:*)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

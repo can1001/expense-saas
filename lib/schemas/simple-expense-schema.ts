@@ -158,6 +158,9 @@ export const createSimpleExpenseSchema = z.object({
   bankName: z.string().min(1, '은행명을 입력해주세요'),
   accountNumber: z.string().min(1, '계좌번호를 입력해주세요'),
   accountHolder: z.string().min(1, '예금주를 입력해주세요'),
+
+  // 상태 (저장/제출)
+  status: z.enum(['DRAFT', 'PENDING']).optional().default('DRAFT'),
 });
 
 export const updateSimpleExpenseSchema = createSimpleExpenseSchema.partial();
