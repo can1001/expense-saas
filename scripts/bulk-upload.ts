@@ -34,9 +34,9 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// 금액 계산 함수 (10원 단위 절삭)
+// 금액 계산 함수 (절삭 없음)
 function calculateAmount(unitPrice: number, quantity: number): number {
-  return Math.floor((unitPrice * quantity) / 10) * 10;
+  return unitPrice * quantity;
 }
 
 // Excel 행 데이터 타입

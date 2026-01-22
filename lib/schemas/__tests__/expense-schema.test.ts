@@ -137,15 +137,16 @@ describe('expenseFormSchema', () => {
 });
 
 describe('calculateAmount', () => {
-  it('should calculate amount correctly (unitPrice × quantity, 10원 단위 절사)', () => {
+  it('should calculate amount correctly (unitPrice × quantity, 절삭 없음)', () => {
     expect(calculateAmount(10000, 5)).toBe(50000); // 10000 * 5 = 50000
-    expect(calculateAmount(1234, 3)).toBe(3700);   // 1234 * 3 = 3702 → 3700
-    expect(calculateAmount(9999, 1)).toBe(9990);   // 9999 * 1 = 9999 → 9990
+    expect(calculateAmount(1234, 3)).toBe(3702);   // 1234 * 3 = 3702
+    expect(calculateAmount(9999, 1)).toBe(9999);   // 9999 * 1 = 9999
+    expect(calculateAmount(37182, 2)).toBe(74364); // 37182 * 2 = 74364
   });
 
-  it('should handle rounding down to nearest 10', () => {
-    expect(calculateAmount(155, 1)).toBe(150);  // 155 → 150 (10원 단위 절사)
-    expect(calculateAmount(199, 1)).toBe(190);  // 199 → 190 (10원 단위 절사)
+  it('should preserve exact calculation without rounding', () => {
+    expect(calculateAmount(155, 1)).toBe(155);  // 155 * 1 = 155
+    expect(calculateAmount(199, 1)).toBe(199);  // 199 * 1 = 199
   });
 
   it('should handle zero quantity', () => {
