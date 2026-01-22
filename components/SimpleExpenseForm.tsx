@@ -212,7 +212,7 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
       )}
 
       {/* 지출일자 */}
-      <div className={SECTION_CARD}>
+      {/* <div className={SECTION_CARD}>
         <h2 className={SECTION_TITLE}>지출일자</h2>
         <div>
           <label htmlFor="expenseDate" className={LABEL_BASE}>
@@ -229,7 +229,7 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
             재정팀에서 입력합니다. (비워두어도 됩니다)
           </p>
         </div>
-      </div>
+      </div> */}
 
       {/* 세부 항목 (예산 선택 포함) */}
       <SimpleItemsSection
