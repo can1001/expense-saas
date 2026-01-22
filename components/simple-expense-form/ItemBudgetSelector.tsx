@@ -1,12 +1,18 @@
 /**
  * 항목별 예산 선택기 컴포넌트
- * 각 세부 항목에서 예산(항/목/세목) 선택
+ * 세목 선택 시 항/목 자동 설정
  */
 
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { SELECT_BASE, INPUT_DISABLED, SPINNER } from '@/lib/constants/styles';
+
+interface BudgetDetailInfo {
+  name: string;
+  category: string;
+  subcategory: string;
+}
 
 interface ItemBudgetSelectorProps {
   value: {
@@ -27,61 +33,17 @@ export default function ItemBudgetSelector({
   onChange,
   disabled = false,
 }: ItemBudgetSelectorProps) {
-  const [categories, setCategories] = useState<string[]>([]);
-  const [subcategories, setSubcategories] = useState<string[]>([]);
-  const [details, setDetails] = useState<string[]>([]);
+  const [allDetails, setAllDetails] = useState<BudgetDetailInfo[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 예산(항) 목록 로드
-  const fetchCategories = useCallback(async () => {
+  // 모든 세목 목록 로드 (부모 정보 포함)
+  const fetchAllDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/budget/simple', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      if (!response.ok) throw new Error('Failed to fetch categories');
-      const data = await response.json();
-      setCategories(data.options || []);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // 예산(목) 목록 로드
-  const fetchSubcategories = useCallback(async (category: string) => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/budget/simple', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category }),
-      });
-      if (!response.ok) throw new Error('Failed to fetch subcategories');
-      const data = await response.json();
-      setSubcategories(data.options || []);
-    } catch (error) {
-      console.error('Error fetching subcategories:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // 예산(세목) 목록 로드
-  const fetchDetails = useCallback(async (category: string, subcategory: string) => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/budget/simple', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, subcategory }),
-      });
+      const response = await fetch('/api/budget/simple/all-details');
       if (!response.ok) throw new Error('Failed to fetch details');
       const data = await response.json();
-      setDetails(data.options || []);
+      setAllDetails(data.details || []);
     } catch (error) {
       console.error('Error fetching details:', error);
     } finally {
@@ -91,105 +53,68 @@ export default function ItemBudgetSelector({
 
   // 초기 로드
   useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
+    fetchAllDetails();
+  }, [fetchAllDetails]);
 
-  // category 변경 시 subcategories 로드
-  useEffect(() => {
-    if (value.category) {
-      fetchSubcategories(value.category);
-    } else {
-      setSubcategories([]);
-      setDetails([]);
+  // 세목 선택 시 항/목 자동 설정
+  const handleDetailChange = (detailName: string) => {
+    if (!detailName) {
+      onChange({ category: '', subcategory: '', detail: '' });
+      return;
     }
-  }, [value.category, fetchSubcategories]);
 
-  // subcategory 변경 시 details 로드
-  useEffect(() => {
-    if (value.category && value.subcategory) {
-      fetchDetails(value.category, value.subcategory);
+    // 선택한 세목의 부모 정보 찾기
+    const selectedDetail = allDetails.find((d) => d.name === detailName);
+    if (selectedDetail) {
+      onChange({
+        category: selectedDetail.category,
+        subcategory: selectedDetail.subcategory,
+        detail: detailName,
+      });
     } else {
-      setDetails([]);
+      onChange({ ...value, detail: detailName });
     }
-  }, [value.category, value.subcategory, fetchDetails]);
-
-  const handleCategoryChange = (newCategory: string) => {
-    onChange({
-      category: newCategory,
-      subcategory: '',
-      detail: '',
-    });
-    setSubcategories([]);
-    setDetails([]);
-  };
-
-  const handleSubcategoryChange = (newSubcategory: string) => {
-    onChange({
-      ...value,
-      subcategory: newSubcategory,
-      detail: '',
-    });
-    setDetails([]);
-  };
-
-  const handleDetailChange = (newDetail: string) => {
-    onChange({
-      ...value,
-      detail: newDetail,
-    });
   };
 
   const selectClasses = `${SELECT_BASE} ${disabled ? INPUT_DISABLED : ''} text-sm py-1.5`;
+  const readonlyClasses = `${SELECT_BASE} text-sm py-1.5 bg-gray-100 text-gray-700`;
 
   return (
-    <div className="grid grid-cols-3 gap-2">
-      {/* 예산(항) */}
-      <select
-        value={value.category || ''}
-        onChange={(e) => handleCategoryChange(e.target.value)}
-        disabled={disabled || categories.length === 0}
-        className={selectClasses}
-      >
-        <option value="">예산(항)</option>
-        {categories.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
+    <div className="space-y-2">
+      {/* 세목 선택 (메인) */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">세목 선택</label>
+        <select
+          value={value.detail || ''}
+          onChange={(e) => handleDetailChange(e.target.value)}
+          disabled={disabled || allDetails.length === 0}
+          className={selectClasses}
+        >
+          <option value="">세목을 선택하세요</option>
+          {allDetails.map((detail) => (
+            <option key={`${detail.category}-${detail.subcategory}-${detail.name}`} value={detail.name}>
+              {detail.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      {/* 예산(목) */}
-      <select
-        value={value.subcategory || ''}
-        onChange={(e) => handleSubcategoryChange(e.target.value)}
-        disabled={disabled || !value.category || subcategories.length === 0}
-        className={selectClasses}
-      >
-        <option value="">예산(목)</option>
-        {subcategories.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-
-      {/* 예산(세목) */}
-      <select
-        value={value.detail || ''}
-        onChange={(e) => handleDetailChange(e.target.value)}
-        disabled={disabled || !value.subcategory || details.length === 0}
-        className={selectClasses}
-      >
-        <option value="">예산(세목)</option>
-        {details.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
+      {/* 항/목 자동 표시 (읽기 전용) */}
+      {value.detail && (
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">예산(항)</label>
+            <div className={readonlyClasses}>{value.category || '-'}</div>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">예산(목)</label>
+            <div className={readonlyClasses}>{value.subcategory || '-'}</div>
+          </div>
+        </div>
+      )}
 
       {loading && (
-        <div className="col-span-3 flex items-center gap-1 text-xs text-gray-500">
+        <div className="flex items-center gap-1 text-xs text-gray-500">
           <div className={`${SPINNER} w-3 h-3`}></div>
           <span>로딩 중...</span>
         </div>
