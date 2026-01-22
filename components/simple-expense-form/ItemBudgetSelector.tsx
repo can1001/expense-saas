@@ -81,6 +81,20 @@ export default function ItemBudgetSelector({
 
   return (
     <div className="space-y-2">
+      {/* 항/목 자동 표시 (읽기 전용) - 세목 위에 표시 */}
+      {value.detail && (
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">예산(항)</label>
+            <div className={readonlyClasses}>{value.category || '-'}</div>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">예산(목)</label>
+            <div className={readonlyClasses}>{value.subcategory || '-'}</div>
+          </div>
+        </div>
+      )}
+
       {/* 세목 선택 (메인) */}
       <div>
         <label className="block text-xs text-gray-500 mb-1">세목 선택</label>
@@ -98,20 +112,6 @@ export default function ItemBudgetSelector({
           ))}
         </select>
       </div>
-
-      {/* 항/목 자동 표시 (읽기 전용) */}
-      {value.detail && (
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">예산(항)</label>
-            <div className={readonlyClasses}>{value.category || '-'}</div>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">예산(목)</label>
-            <div className={readonlyClasses}>{value.subcategory || '-'}</div>
-          </div>
-        </div>
-      )}
 
       {loading && (
         <div className="flex items-center gap-1 text-xs text-gray-500">
