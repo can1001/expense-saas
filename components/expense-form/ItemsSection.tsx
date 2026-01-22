@@ -173,7 +173,7 @@ export default function ItemsSection({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               {/* 예산(세목) */}
-              <div>
+              <div className="md:col-span-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   예산(세목) <span className="text-red-500">*</span>
                 </label>
@@ -213,8 +213,8 @@ export default function ItemsSection({
                 )}
               </div>
 
-              {/* 적요 */}
-              <div className="relative">
+              {/* 적요 - 한 행 전체 너비 */}
+              <div className="relative md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   적요 <span className="text-red-500">*</span>
                 </label>
@@ -250,19 +250,6 @@ export default function ItemsSection({
                 {errors?.items?.[index]?.description && (
                   <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.items[index].description.message}</p>
                 )}
-                {/* 모바일 위치 입력 - 임시 비활성화
-                {index === 0 && (
-                  <div className="mt-2">
-                    <LocationPicker
-                      onLocationSelect={(location) => {
-                        const currentDesc = items?.[index]?.description || '';
-                        const newDesc = currentDesc ? `${currentDesc} (${location})` : location;
-                        setValue(`items.${index}.description`, newDesc);
-                      }}
-                    />
-                  </div>
-                )}
-                */}
               </div>
 
               {/* 단가 & 수량 - 모바일에서 2열 그리드 */}
