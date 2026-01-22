@@ -201,7 +201,7 @@ export default function SimpleExpenseDetailPage() {
           </div>
 
           {/* 지출 정보 */}
-          <div className={SECTION_CARD}>
+          {/* <div className={SECTION_CARD}>
             <h2 className={SECTION_TITLE}>지출 정보</h2>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">지출일자</label>
@@ -211,7 +211,7 @@ export default function SimpleExpenseDetailPage() {
                   : '미정'}
               </p>
             </div>
-          </div>
+          </div> */}
 
           {/* 세부 항목 */}
           <div className={SECTION_CARD}>
