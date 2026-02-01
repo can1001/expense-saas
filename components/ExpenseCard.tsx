@@ -218,11 +218,11 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick }: 
             <span className="text-sm text-gray-500">{expense.committee}</span>
           </div>
 
-          {/* 예산 정보 */}
+          {/* 예산 정보 (첫 번째 항목 기준) */}
           <div className="text-sm text-gray-600 mb-3">
-            <span className="font-medium">{expense.budgetCategory}</span>
+            <span className="font-medium">{expense.items?.[0]?.budgetCategory || '-'}</span>
             <span className="text-gray-400 mx-1">&gt;</span>
-            <span>{expense.budgetSubcategory}</span>
+            <span>{expense.items?.[0]?.budgetSubcategory || '-'}</span>
           </div>
 
           {/* 하단: 금액 + 지출상태 */}

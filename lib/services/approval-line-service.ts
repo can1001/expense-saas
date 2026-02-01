@@ -359,10 +359,10 @@ export async function submitExpenseWithApprovalLine(expenseId: string) {
     throw new Error('지출결의서 항목이 없습니다.');
   }
 
-  // 결재선 산출
+  // 결재선 산출 (항/목/세목 모두 첫 번째 항목에서 가져옴)
   const approvalLineInfo = await calculateApprovalLineForExpense(
-    expense.budgetCategory,
-    expense.budgetSubcategory,
+    firstItem.budgetCategory,
+    firstItem.budgetSubcategory,
     firstItem.budgetDetail,
     year
   );

@@ -409,7 +409,7 @@ export const ExpensePDFDocument: React.FC<PDFDocumentProps> = ({ expense, approv
           <View style={styles.infoRowLast}>
             <Text style={styles.headerInfoCell}>
               <Text style={styles.headerInfoLabel}>예산항목: </Text>
-              <Text style={styles.headerInfoValue}>{expense.budgetCategory}/{expense.budgetSubcategory}</Text>
+              <Text style={styles.headerInfoValue}>{expense.items?.[0]?.budgetCategory || '-'}/{expense.items?.[0]?.budgetSubcategory || '-'}</Text>
             </Text>
             <Text style={styles.headerInfoCell}>
               <Text style={styles.headerInfoLabel}>지출일자: </Text>

@@ -115,14 +115,17 @@ export async function GET(request: NextRequest) {
         (step) => step.approverName === approverName
       );
 
+      // 첫 번째 항목에서 예산 정보 가져오기
+      const firstItem = line.expense.items[0];
+
       return {
         id: line.expense.id,
         expense: {
           id: line.expense.id,
           committee: line.expense.committee,
           department: line.expense.department,
-          budgetCategory: line.expense.budgetCategory,
-          budgetSubcategory: line.expense.budgetSubcategory,
+          budgetCategory: firstItem?.budgetCategory || '',
+          budgetSubcategory: firstItem?.budgetSubcategory || '',
           requestAmount: line.expense.requestAmount,
           applicantName: line.expense.applicantName,
           status: line.expense.status,

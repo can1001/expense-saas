@@ -44,8 +44,11 @@ export async function generateExpenseExcel(expense: Expense) {
 
   // 4. 데이터 매핑 (셀 위치에 값 채우기)
 
-  // 예산 정보
-  const budgetValue = `${expense.budgetCategory} / ${expense.budgetSubcategory}`;
+  // 예산 정보 (첫 번째 항목에서 가져오기)
+  const firstItem = expense.items[0];
+  const budgetValue = firstItem
+    ? `${firstItem.budgetCategory || '-'} / ${firstItem.budgetSubcategory || '-'}`
+    : '- / -';
   // E3 셀에 예산항목 입력
   const e3Cell = sheet.getCell('E3');
   if (e3Cell) {

@@ -98,6 +98,9 @@ export default function ExpensesPage() {
 
   // 검색 및 필터링
   const filteredExpenses = expenses.filter(expense => {
+    // 첫 번째 항목의 예산 정보 (항/목은 이제 items에 있음)
+    const firstItemCategory = expense.items?.[0]?.budgetCategory || '';
+
     // 텍스트 검색
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -105,7 +108,7 @@ export default function ExpensesPage() {
         expense.applicantName.toLowerCase().includes(query) ||
         expense.committee.toLowerCase().includes(query) ||
         expense.department.toLowerCase().includes(query) ||
-        expense.budgetCategory.toLowerCase().includes(query);
+        firstItemCategory.toLowerCase().includes(query);
 
       if (!matchesSearch) return false;
     }
@@ -120,8 +123,8 @@ export default function ExpensesPage() {
       return false;
     }
 
-    // 예산항목 필터
-    if (filters.budgetCategory && expense.budgetCategory !== filters.budgetCategory) {
+    // 예산항목 필터 (첫 번째 항목 기준)
+    if (filters.budgetCategory && firstItemCategory !== filters.budgetCategory) {
       return false;
     }
 
@@ -197,10 +200,12 @@ export default function ExpensesPage() {
   const mobileVisibleExpenses = filteredExpenses.slice(0, mobileVisibleCount);
   const hasMoreMobile = mobileVisibleCount < filteredExpenses.length;
 
-  // 필터 옵션 추출
+  // 필터 옵션 추출 (첫 번째 항목의 예산 정보 사용)
   const uniqueCommittees = Array.from(new Set(expenses.map(e => e.committee))).sort();
   const uniqueDepartments = Array.from(new Set(expenses.map(e => e.department))).sort();
-  const uniqueCategories = Array.from(new Set(expenses.map(e => e.budgetCategory))).sort();
+  const uniqueCategories = Array.from(new Set(
+    expenses.map(e => e.items?.[0]?.budgetCategory).filter(Boolean)
+  )).sort() as string[];
 
   // 활성화된 필터 개수 계산
   const activeFilterCount = Object.values(filters).filter(v => v !== '').length;
@@ -850,8 +855,8 @@ export default function ExpensesPage() {
                         onClick={() => handleRowClick(expense.id)}
                       >
                         <div className="flex flex-col">
-                          <span className="font-medium">{expense.budgetCategory}</span>
-                          <span className="text-gray-500 text-xs">{expense.budgetSubcategory}</span>
+                          <span className="font-medium">{expense.items?.[0]?.budgetCategory || '-'}</span>
+                          <span className="text-gray-500 text-xs">{expense.items?.[0]?.budgetSubcategory || '-'}</span>
                         </div>
                       </td>
                       <td

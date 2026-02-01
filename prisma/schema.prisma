@@ -20,8 +20,6 @@ model Expense {
   // 기본 정보
   committee         String               // 위원회
   department        String               // 사역팀(부)
-  budgetCategory    String               // 예산(항)
-  budgetSubcategory String               // 예산(목)
 
   // 지출일자 (재정팀 입력)
   expenseDate       DateTime?
@@ -72,7 +70,6 @@ model Expense {
   @@index([userId])
   @@index([committee])
   @@index([department])
-  @@index([budgetCategory, budgetSubcategory])
   @@index([requestDate])
   @@index([createdAt])
   @@index([status])
@@ -85,17 +82,20 @@ model ExpenseItem {
   id           String   @id @default(cuid())
   expenseId    String
   expense      Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  
-  budgetDetail String   // 예산(세목)
-  description  String   // 적요 (상세 설명)
-  unitPrice    Int      // 단가
-  quantity     Int      // 인원(수량)
-  amount       Int      // 금액 = TRUNC(unitPrice × quantity / 10) * 10
-  
+
+  budgetCategory    String   @default("") // 예산(항)
+  budgetSubcategory String   @default("") // 예산(목)
+  budgetDetail      String   // 예산(세목)
+  description       String   // 적요 (상세 설명)
+  unitPrice         Int      // 단가
+  quantity          Int      // 인원(수량)
+  amount            Int      // 금액 = TRUNC(unitPrice × quantity / 10) * 10
+
   order        Int      // 순서 (1~10)
   createdAt    DateTime @default(now())
-  
+
   @@index([expenseId])
+  @@index([budgetCategory, budgetSubcategory])
 }
 
 // 첨부파일 (영수증 이미지 등)

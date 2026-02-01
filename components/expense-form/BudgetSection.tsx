@@ -1,5 +1,8 @@
 /**
  * 예산 정보 섹션 컴포넌트
+ *
+ * 일반 지출결의서에서 위원회/사역팀/항/목을 선택합니다.
+ * 항/목은 첫 번째 항목(items.0)에 저장됩니다.
  */
 
 'use client';
@@ -36,11 +39,11 @@ export default function BudgetSection({
             control={control}
             render={({ field: departmentField, fieldState: departmentFieldState }) => (
               <Controller
-                name="budgetCategory"
+                name="items.0.budgetCategory"
                 control={control}
                 render={({ field: categoryField, fieldState: categoryFieldState }) => (
                   <Controller
-                    name="budgetSubcategory"
+                    name="items.0.budgetSubcategory"
                     control={control}
                     render={({ field: subcategoryField, fieldState: subcategoryFieldState }) => (
                       <div>

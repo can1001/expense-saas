@@ -11,6 +11,16 @@ import { deriveRequestTeam } from '@/lib/domain/request-team';
  * 세부 항목 스키마
  */
 export const expenseItemSchema = z.object({
+  budgetCategory: z
+    .string()
+    .min(1, '예산(항)을 선택해주세요.')
+    .max(50, '예산(항) 이름이 너무 깁니다.'),
+
+  budgetSubcategory: z
+    .string()
+    .min(1, '예산(목)을 선택해주세요.')
+    .max(50, '예산(목) 이름이 너무 깁니다.'),
+
   budgetDetail: z
     .string()
     .min(1, '예산(세목)을 입력해주세요.')
@@ -54,16 +64,6 @@ export const expenseFormSchema = z
     .string()
     .min(1, '사역팀(부)을 선택해주세요.')
     .max(50, '사역팀(부) 이름이 너무 깁니다.'),
-
-  budgetCategory: z
-    .string()
-    .min(1, '예산(항)을 선택해주세요.')
-    .max(50, '예산(항) 이름이 너무 깁니다.'),
-
-  budgetSubcategory: z
-    .string()
-    .min(1, '예산(목)을 선택해주세요.')
-    .max(50, '예산(목) 이름이 너무 깁니다.'),
 
   // 지출일자 (선택사항)
   expenseDate: z
@@ -142,6 +142,8 @@ export type ExpenseFormData = z.infer<typeof expenseFormSchema>;
  * 기본값
  */
 export const defaultExpenseItem: ExpenseItem = {
+  budgetCategory: '',
+  budgetSubcategory: '',
   budgetDetail: '',
   description: '',
   unitPrice: 1,

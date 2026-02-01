@@ -21,17 +21,17 @@ export interface ExcelRow {
   메모: string;
 }
 
-// 지출결의서 항목 인터페이스
+// 지출결의서 항목 인터페이스 (항/목/세목 포함)
 export interface ExpenseItemForExcel {
-  budgetDetail: string;
+  budgetCategory: string;    // 예산(항)
+  budgetSubcategory: string; // 예산(목)
+  budgetDetail: string;      // 예산(세목)
   description: string;
   amount: number;
 }
 
 // 지출결의서 인터페이스
 export interface ExpenseForExcel {
-  budgetCategory: string;
-  budgetSubcategory: string;
   accountHolder: string;
   bankName: string;
   accountNumber: string;
@@ -65,8 +65,8 @@ export function expenseToExcelRows(
 
   for (const item of expense.items) {
     rows.push({
-      항: expense.budgetCategory,
-      목: expense.budgetSubcategory,
+      항: item.budgetCategory || '',
+      목: item.budgetSubcategory || '',
       세목: item.budgetDetail,
       세세목: '',
       지급방법: '이체',

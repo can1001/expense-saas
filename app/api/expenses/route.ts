@@ -114,9 +114,17 @@ export async function POST(request: NextRequest) {
       throw new ApiError('청구팀은 선택한 위원회/사역팀과 동일해야 합니다.', 400);
     }
 
-    // 항목별 금액 계산 및 순서 할당
+    // 첫 번째 항목에서 예산 정보 가져오기
+    const firstItem = validatedData.items[0];
+
+    // 항목별 금액 계산 및 순서 할당 (항/목/세목 포함)
     const itemsWithCalculatedAmount = validatedData.items.map((item, index) => ({
-      ...item,
+      budgetCategory: item.budgetCategory,
+      budgetSubcategory: item.budgetSubcategory,
+      budgetDetail: item.budgetDetail,
+      description: item.description,
+      unitPrice: item.unitPrice,
+      quantity: item.quantity,
       amount: calculateAmount(item.unitPrice, item.quantity),
       order: index + 1,
     }));
@@ -139,14 +147,13 @@ export async function POST(request: NextRequest) {
     let finalStatus: ApprovalStatus = isSubmit ? 'PENDING' : 'DRAFT';
 
     if (isSubmit) {
-      // 정규화된 테이블 기반 결재선 자동 산출
-      const firstItem = itemsWithCalculatedAmount[0];
+      // 정규화된 테이블 기반 결재선 자동 산출 (첫 번째 항목 기준)
       const year = validatedData.requestDate.getFullYear();
 
       try {
         approvalLineInfo = await calculateApprovalLineForExpense(
-          validatedData.budgetCategory,
-          validatedData.budgetSubcategory,
+          firstItem.budgetCategory,
+          firstItem.budgetSubcategory,
           firstItem.budgetDetail,
           year
         );
@@ -186,14 +193,12 @@ export async function POST(request: NextRequest) {
 
     // 트랜잭션으로 데이터베이스에 저장
     const expense = await prisma.$transaction(async (tx) => {
-      // 1. 지출결의서 생성
+      // 1. 지출결의서 생성 (budgetCategory, budgetSubcategory는 items에만 저장)
       const createdExpense = await tx.expense.create({
         data: {
           userId: currentUser.id,
           committee: validatedData.committee,
           department: validatedData.department,
-          budgetCategory: validatedData.budgetCategory,
-          budgetSubcategory: validatedData.budgetSubcategory,
           expenseDate: validatedData.expenseDate,
           requestAmount,
           requestDate: validatedData.requestDate,

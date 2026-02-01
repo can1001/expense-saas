@@ -107,6 +107,59 @@ export async function lookupBudgetHierarchy(
 }
 
 /**
+ * 세목의 담당자 ID 조회
+ *
+ * @param budgetCategory 예산(항) 이름
+ * @param budgetSubcategory 예산(목) 이름
+ * @param budgetDetail 예산(세목) 이름
+ * @param year 연도
+ * @returns 담당자 ID (없으면 null)
+ */
+export async function getManagerIdForDetail(
+  budgetCategory: string,
+  budgetSubcategory: string,
+  budgetDetail: string,
+  year: number
+): Promise<{ managerId: string | null; managerName: string | null }> {
+  // 1. BudgetDetail 찾기
+  const detail = await prisma.budgetDetail.findFirst({
+    where: {
+      name: budgetDetail,
+      subcategory: {
+        name: budgetSubcategory,
+        category: {
+          name: budgetCategory,
+        },
+      },
+    },
+  });
+
+  if (!detail) {
+    return { managerId: null, managerName: null };
+  }
+
+  // 2. 연도별 담당자 조회
+  const budgetDetailYear = await prisma.budgetDetailYear.findUnique({
+    where: {
+      budgetDetailId_year: { budgetDetailId: detail.id, year },
+    },
+    include: {
+      manager: {
+        select: {
+          id: true,
+          username: true,
+        },
+      },
+    },
+  });
+
+  return {
+    managerId: budgetDetailYear?.manager?.id || null,
+    managerName: budgetDetailYear?.manager?.username || null,
+  };
+}
+
+/**
  * 세목 담당자가 재정팀장인지 확인
  *
  * @param budgetCategory 예산(항) 이름

@@ -81,10 +81,10 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   const committee = watch('committee');
   const department = watch('department');
 
-  // 결재선 미리보기용 감시
-  const budgetCategory = watch('budgetCategory');
-  const budgetSubcategory = watch('budgetSubcategory');
+  // 결재선 미리보기용 감시 (항/목은 첫 번째 항목에서)
   const items = watch('items');
+  const budgetCategory = items?.[0]?.budgetCategory || '';
+  const budgetSubcategory = items?.[0]?.budgetSubcategory || '';
   const requestDate = watch('requestDate');
 
   // 폼 제출 훅
@@ -144,12 +144,10 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   };
 
   const loadInitialData = (data: Record<string, unknown>) => {
-    // 폼 데이터 로드
+    // 폼 데이터 로드 (항/목은 items에서 가져옴)
     reset({
       committee: data.committee as string,
       department: data.department as string,
-      budgetCategory: data.budgetCategory as string,
-      budgetSubcategory: data.budgetSubcategory as string,
       expenseDate: data.expenseDate
         ? new Date(data.expenseDate as string).toISOString().split('T')[0]
         : undefined,
@@ -162,6 +160,8 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       accountNumber: data.accountNumber as string,
       accountHolder: data.accountHolder as string,
       items: (data.items as Array<Record<string, unknown>>).map((item) => ({
+        budgetCategory: (item.budgetCategory as string) || '',
+        budgetSubcategory: (item.budgetSubcategory as string) || '',
         budgetDetail: item.budgetDetail as string,
         description: item.description as string,
         unitPrice: item.unitPrice as number,
@@ -239,13 +239,11 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
           <ul className="list-disc list-inside space-y-1 text-xs sm:text-sm">
             {errors.committee && <li>{errors.committee.message}</li>}
             {errors.department && <li>{errors.department.message}</li>}
-            {errors.budgetCategory && <li>{errors.budgetCategory.message}</li>}
-            {errors.budgetSubcategory && <li>{errors.budgetSubcategory.message}</li>}
             {errors.applicantName && <li>{errors.applicantName.message}</li>}
             {errors.bankName && <li>{errors.bankName.message}</li>}
             {errors.accountNumber && <li>{errors.accountNumber.message}</li>}
             {errors.accountHolder && <li>{errors.accountHolder.message}</li>}
-            {errors.items && <li>{errors.items.message}</li>}
+            {errors.items && <li>{errors.items.message || '항목 정보를 확인해주세요'}</li>}
           </ul>
         </div>
       )}

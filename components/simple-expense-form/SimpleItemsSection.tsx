@@ -1,10 +1,12 @@
 /**
  * 간편 지출결의서 세부 항목 섹션
  * 각 항목별 예산(항/목/세목) 선택 기능 포함
+ * 첫 번째 항목과 동일한 담당자의 세목만 선택 가능
  */
 
 'use client';
 
+import { useState, useCallback } from 'react';
 import { Control, useFieldArray, UseFormRegister, UseFormSetValue, useWatch, FieldErrors } from 'react-hook-form';
 import {
   SimpleExpenseFormData,
@@ -34,6 +36,9 @@ export default function SimpleItemsSection({
     name: 'items',
   });
 
+  // 첫 번째 항목의 담당자 ID (결재선 비교용)
+  const [firstItemManagerId, setFirstItemManagerId] = useState<string | null>(null);
+
   // items 배열 전체를 감시하여 총액 계산
   const items = useWatch({ control, name: 'items' });
   const totalAmount = items?.reduce((sum, item) => sum + (item?.amount || 0), 0) || 0;
@@ -46,22 +51,41 @@ export default function SimpleItemsSection({
     append(defaultSimpleExpenseItem);
   };
 
-  const handleRemoveItem = (index: number) => {
+  const handleRemoveItem = useCallback((index: number) => {
     if (fields.length === 1) {
       alert('최소 1개의 항목이 필요합니다.');
       return;
     }
     remove(index);
-  };
 
-  const handleBudgetChange = (
+    // 첫 번째 항목이 삭제된 경우, 새로운 첫 번째 항목의 담당자로 업데이트 필요
+    // (API에서 담당자 정보를 다시 가져올 때 자동 업데이트됨)
+    if (index === 0) {
+      setFirstItemManagerId(null);
+    }
+  }, [fields.length, remove]);
+
+  const handleBudgetChange = useCallback((
     index: number,
-    value: { category: string; subcategory: string; detail: string }
+    value: { category: string; subcategory: string; detail: string; managerId?: string | null }
   ) => {
     setValue(`items.${index}.budgetCategory`, value.category);
     setValue(`items.${index}.budgetSubcategory`, value.subcategory);
     setValue(`items.${index}.budgetDetail`, value.detail);
-  };
+
+    // 첫 번째 항목인 경우 담당자 ID 저장
+    if (index === 0) {
+      setFirstItemManagerId(value.managerId || null);
+
+      // 첫 번째 항목 세목이 변경되면 이후 항목들의 세목 초기화
+      // (결재선이 달라질 수 있으므로)
+      for (let i = 1; i < fields.length; i++) {
+        setValue(`items.${i}.budgetCategory`, '');
+        setValue(`items.${i}.budgetSubcategory`, '');
+        setValue(`items.${i}.budgetDetail`, '');
+      }
+    }
+  }, [setValue, fields.length]);
 
   const handleUnitPriceOrQuantityChange = (
     index: number,
@@ -122,6 +146,11 @@ export default function SimpleItemsSection({
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   예산항목 <span className="text-red-500">*</span>
+                  {index > 0 && firstItemManagerId && (
+                    <span className="text-xs text-gray-500 ml-2">
+                      (첫 번째 항목과 동일 결재선만 선택 가능)
+                    </span>
+                  )}
                 </label>
                 <ItemBudgetSelector
                   value={{
@@ -131,6 +160,8 @@ export default function SimpleItemsSection({
                   }}
                   onChange={(value) => handleBudgetChange(index, value)}
                   disabled={disabled}
+                  firstItemManagerId={firstItemManagerId}
+                  isFirstItem={index === 0}
                 />
                 {(errors?.items?.[index]?.budgetCategory ||
                   errors?.items?.[index]?.budgetSubcategory ||

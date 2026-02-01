@@ -108,7 +108,7 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
           <tr>
             <td className="header-info-cell">
               <span className="info-label">예산항목:</span>
-              <span className="info-value">{expense.budgetCategory} / {expense.budgetSubcategory}</span>
+              <span className="info-value">{expense.items?.[0]?.budgetCategory || '-'} / {expense.items?.[0]?.budgetSubcategory || '-'}</span>
             </td>
             <td className="header-info-cell">
               <span className="info-label">지출일자:</span>

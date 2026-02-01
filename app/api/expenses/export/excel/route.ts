@@ -82,16 +82,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 엑셀 형식으로 변환
+    // 엑셀 형식으로 변환 (항/목 정보는 items에서 가져옴)
     const expensesForExcel: ExpenseForExcel[] = expenses.map((expense) => ({
-      budgetCategory: expense.budgetCategory,
-      budgetSubcategory: expense.budgetSubcategory,
       accountHolder: expense.accountHolder,
       bankName: expense.bankName,
       accountNumber: expense.accountNumber,
       expenseDate: expense.expenseDate,
       requestDate: expense.requestDate,
       items: expense.items.map((item) => ({
+        budgetCategory: item.budgetCategory,
+        budgetSubcategory: item.budgetSubcategory,
         budgetDetail: item.budgetDetail,
         description: item.description,
         amount: item.amount,

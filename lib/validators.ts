@@ -17,8 +17,6 @@ export const expenseItemSchema = baseSchema.extend({
 export const createExpenseSchema = z.object({
   committee: z.string().min(1, '위원회를 선택해주세요'),
   department: z.string().min(1, '사역팀(부)을 선택해주세요'),
-  budgetCategory: z.string().min(1, '예산(항)을 선택해주세요'),
-  budgetSubcategory: z.string().min(1, '예산(목)을 선택해주세요'),
 
   expenseDate: z.union([z.string(), z.date(), z.null()]).optional().transform(val => {
     if (!val || val === null) return null;

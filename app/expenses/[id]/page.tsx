@@ -347,7 +347,7 @@ export default function ExpenseDetailPage() {
             </div>
             <div className="mb-3">
               <h2 className="text-lg font-bold text-gray-900">{expense.applicantName}</h2>
-              <p className="text-sm text-gray-600">{expense.budgetCategory} &gt; {expense.budgetSubcategory}</p>
+              <p className="text-sm text-gray-600">{expense.items?.[0]?.budgetCategory || '-'} &gt; {expense.items?.[0]?.budgetSubcategory || '-'}</p>
             </div>
             <div className="pt-3 border-t border-gray-100">
               <div className="flex items-center justify-between">
@@ -466,8 +466,8 @@ export default function ExpenseDetailPage() {
             <div className="pt-3 grid grid-cols-2 gap-x-4">
               <InfoRow label="위원회" value={expense.committee} />
               <InfoRow label="사역팀(부)" value={expense.department} />
-              <InfoRow label="예산(항)" value={expense.budgetCategory} />
-              <InfoRow label="예산(목)" value={expense.budgetSubcategory} />
+              <InfoRow label="예산(항)" value={expense.items?.[0]?.budgetCategory || '-'} />
+              <InfoRow label="예산(목)" value={expense.items?.[0]?.budgetSubcategory || '-'} />
             </div>
           </Accordion>
 
@@ -507,11 +507,11 @@ export default function ExpenseDetailPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">예산(항)</label>
-                <p className="text-gray-900">{expense.budgetCategory}</p>
+                <p className="text-gray-900">{expense.items?.[0]?.budgetCategory || '-'}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">예산(목)</label>
-                <p className="text-gray-900">{expense.budgetSubcategory}</p>
+                <p className="text-gray-900">{expense.items?.[0]?.budgetSubcategory || '-'}</p>
               </div>
             </div>
           </div>

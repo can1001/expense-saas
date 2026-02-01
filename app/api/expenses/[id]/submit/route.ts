@@ -66,12 +66,12 @@ export async function POST(
     // 연도 추출 (청구일자 기준)
     const year = expense.requestDate.getFullYear();
 
-    // 정규화된 테이블 기반 결재선 자동 산출
+    // 정규화된 테이블 기반 결재선 자동 산출 (첫 번째 항목에서 예산 정보 가져옴)
     let approvalLineInfo: ApprovalLineInfo;
     try {
       approvalLineInfo = await calculateApprovalLineForExpense(
-        expense.budgetCategory,
-        expense.budgetSubcategory,
+        firstItem.budgetCategory,
+        firstItem.budgetSubcategory,
         firstItem.budgetDetail,
         year
       );

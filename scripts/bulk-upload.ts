@@ -229,8 +229,10 @@ async function createExpense(rows: ExcelRow[]): Promise<{ success: boolean; id?:
     };
   }
 
-  // 항목 데이터 생성
+  // 항목 데이터 생성 (항/목/세목 포함)
   const items = rows.map((row, index) => ({
+    budgetCategory: row.category.trim(),
+    budgetSubcategory: row.subcategory.trim(),
     budgetDetail: row.detail.trim(),
     description: row.description.trim(),
     unitPrice: Math.floor(Number(row.unitPrice)),
@@ -279,8 +281,6 @@ async function createExpense(rows: ExcelRow[]): Promise<{ success: boolean; id?:
         userId: user.id,
         committee: budgetInfo.committee,
         department: budgetInfo.department,
-        budgetCategory: firstRow.category.trim(),
-        budgetSubcategory: firstRow.subcategory.trim(),
         expenseDate,
         requestAmount,
         requestDate,

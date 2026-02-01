@@ -149,7 +149,7 @@ export default function ApprovalDetailPage() {
                 )}
               </div>
               <h1 className="text-2xl font-bold text-gray-900">
-                {expense.budgetCategory} - {expense.budgetSubcategory}
+                {expense.items?.[0]?.budgetCategory || '-'} - {expense.items?.[0]?.budgetSubcategory || '-'}
               </h1>
               <p className="text-gray-500 mt-1">
                 작성일: {format(new Date(expense.createdAt), 'yyyy-MM-dd HH:mm')}
@@ -185,11 +185,11 @@ export default function ApprovalDetailPage() {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-500">예산(항)</label>
-                  <p className="font-medium text-gray-900">{expense.budgetCategory}</p>
+                  <p className="font-medium text-gray-900">{expense.items?.[0]?.budgetCategory || '-'}</p>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-500">예산(목)</label>
-                  <p className="font-medium text-gray-900">{expense.budgetSubcategory}</p>
+                  <p className="font-medium text-gray-900">{expense.items?.[0]?.budgetSubcategory || '-'}</p>
                 </div>
               </div>
             </div>

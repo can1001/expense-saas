@@ -95,9 +95,14 @@ export async function PUT(
       where: { expenseId: id },
     });
 
-    // 항목별 금액 계산 및 순서 할당
+    // 항목별 금액 계산 및 순서 할당 (항/목/세목 포함)
     const itemsWithCalculatedAmount = validatedData.items?.map((item, index) => ({
-      ...item,
+      budgetCategory: item.budgetCategory,
+      budgetSubcategory: item.budgetSubcategory,
+      budgetDetail: item.budgetDetail,
+      description: item.description,
+      unitPrice: item.unitPrice,
+      quantity: item.quantity,
       amount: calculateAmount(item.unitPrice, item.quantity),
       order: index + 1,
     })) || [];
@@ -117,14 +122,12 @@ export async function PUT(
       // submittedAt은 그대로 유지 (재저장 시)
     }
 
-    // 데이터베이스 업데이트
+    // 데이터베이스 업데이트 (budgetCategory, budgetSubcategory는 items에만 저장)
     const expense = await prisma.expense.update({
       where: { id },
       data: {
         ...(validatedData.committee && { committee: validatedData.committee }),
         ...(validatedData.department && { department: validatedData.department }),
-        ...(validatedData.budgetCategory && { budgetCategory: validatedData.budgetCategory }),
-        ...(validatedData.budgetSubcategory && { budgetSubcategory: validatedData.budgetSubcategory }),
         ...(validatedData.expenseDate !== undefined && { expenseDate: validatedData.expenseDate }),
         ...(requestAmount !== undefined && { requestAmount }),
         ...(validatedData.requestDate && { requestDate: validatedData.requestDate }),

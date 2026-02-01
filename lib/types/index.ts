@@ -9,7 +9,9 @@
 
 export interface ExpenseItem {
   id?: string;
-  budgetDetail: string;
+  budgetCategory: string;    // 예산(항)
+  budgetSubcategory: string; // 예산(목)
+  budgetDetail: string;      // 예산(세목)
   description: string;
   unitPrice: number;
   quantity: number;
@@ -55,8 +57,6 @@ export interface Expense {
   id: string;
   committee: string;
   department: string;
-  budgetCategory: string;
-  budgetSubcategory: string;
   expenseDate?: string | null;
   requestAmount: number;
   requestDate: string;
@@ -94,8 +94,6 @@ export interface Expense {
 export interface ExpenseFormData {
   committee: string;
   department: string;
-  budgetCategory: string;
-  budgetSubcategory: string;
   expenseDate?: string;
   items: ExpenseItem[];
   requestDate: string;
@@ -118,14 +116,13 @@ export interface ExpenseListItem {
   id: string;
   committee: string;
   department: string;
-  budgetCategory: string;
-  budgetSubcategory: string;
   requestAmount: number;
   applicantName: string;
   requestDate: string;
   createdAt: string;
   status?: ApprovalStatus;
   paymentStatus?: PaymentStatus;
+  items?: ExpenseItem[];  // 첫 번째 항목에서 예산 정보 조회용
 }
 
 export interface ExpenseListResponse {

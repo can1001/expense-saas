@@ -1,6 +1,7 @@
 /**
  * 항목별 예산 선택기 컴포넌트
  * 세목 선택 시 항/목 자동 설정
+ * 결재선이 다른 세목은 비활성화 처리
  */
 
 'use client';
@@ -12,6 +13,15 @@ interface BudgetDetailInfo {
   name: string;
   category: string;
   subcategory: string;
+  managerId: string | null;
+  managerName: string | null;
+}
+
+interface BudgetValue {
+  category: string;
+  subcategory: string;
+  detail: string;
+  managerId?: string | null;
 }
 
 interface ItemBudgetSelectorProps {
@@ -20,18 +30,20 @@ interface ItemBudgetSelectorProps {
     subcategory: string;
     detail: string;
   };
-  onChange: (value: {
-    category: string;
-    subcategory: string;
-    detail: string;
-  }) => void;
+  onChange: (value: BudgetValue) => void;
   disabled?: boolean;
+  /** 첫 번째 항목의 담당자 ID (결재선 비교용) */
+  firstItemManagerId?: string | null;
+  /** 첫 번째 항목 여부 */
+  isFirstItem?: boolean;
 }
 
 export default function ItemBudgetSelector({
   value,
   onChange,
   disabled = false,
+  firstItemManagerId,
+  isFirstItem = false,
 }: ItemBudgetSelectorProps) {
   const [allDetails, setAllDetails] = useState<BudgetDetailInfo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -56,10 +68,10 @@ export default function ItemBudgetSelector({
     fetchAllDetails();
   }, [fetchAllDetails]);
 
-  // 세목 선택 시 항/목 자동 설정
+  // 세목 선택 시 항/목 자동 설정 (담당자 정보 포함)
   const handleDetailChange = (detailName: string) => {
     if (!detailName) {
-      onChange({ category: '', subcategory: '', detail: '' });
+      onChange({ category: '', subcategory: '', detail: '', managerId: null });
       return;
     }
 
@@ -70,10 +82,18 @@ export default function ItemBudgetSelector({
         category: selectedDetail.category,
         subcategory: selectedDetail.subcategory,
         detail: detailName,
+        managerId: selectedDetail.managerId,
       });
     } else {
-      onChange({ ...value, detail: detailName });
+      onChange({ ...value, detail: detailName, managerId: null });
     }
+  };
+
+  // 결재선이 다른지 확인 (첫 번째 항목이 아니고, 담당자가 다른 경우)
+  const isDetailDisabled = (detail: BudgetDetailInfo): boolean => {
+    if (isFirstItem) return false;
+    if (!firstItemManagerId) return false;
+    return detail.managerId !== firstItemManagerId;
   };
 
   const selectClasses = `${SELECT_BASE} ${disabled ? INPUT_DISABLED : ''} text-sm py-1.5`;
@@ -105,11 +125,18 @@ export default function ItemBudgetSelector({
           className={selectClasses}
         >
           <option value="">세목을 선택하세요</option>
-          {allDetails.map((detail) => (
-            <option key={`${detail.category}-${detail.subcategory}-${detail.name}`} value={detail.name}>
-              {detail.name}
-            </option>
-          ))}
+          {allDetails.map((detail) => {
+            const isDisabled = isDetailDisabled(detail);
+            return (
+              <option
+                key={`${detail.category}-${detail.subcategory}-${detail.name}`}
+                value={detail.name}
+                disabled={isDisabled}
+              >
+                {detail.name}{isDisabled ? ' (결재선 다름)' : ''}
+              </option>
+            );
+          })}
         </select>
       </div>
 
