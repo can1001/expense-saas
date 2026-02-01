@@ -81,7 +81,7 @@ export default function ExpensesPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/expenses');
+      const response = await fetch('/api/expenses?limit=10000');
 
       if (!response.ok) {
         throw new Error('데이터를 불러오는데 실패했습니다.');
