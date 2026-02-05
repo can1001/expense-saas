@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 import HomeClient from '@/components/HomeClient';
 
 export default async function Home() {
@@ -10,5 +11,16 @@ export default async function Home() {
     redirect('/login');
   }
 
-  return <HomeClient user={user} />;
+  // 현재 연도의 세목 담당자인지 확인
+  const currentYear = new Date().getFullYear();
+  const budgetManagerCount = await prisma.budgetDetailYear.count({
+    where: {
+      managerId: user.id,
+      year: currentYear,
+      isActive: true,
+    },
+  });
+  const isBudgetManager = budgetManagerCount > 0;
+
+  return <HomeClient user={user} isBudgetManager={isBudgetManager} />;
 }

@@ -17,11 +17,13 @@ interface UserInfo {
 
 interface Props {
   user: UserInfo;
+  isBudgetManager?: boolean;  // 세목 담당자 여부
 }
 
-export default function HomeClient({ user }: Props) {
+export default function HomeClient({ user, isBudgetManager = false }: Props) {
   const showExtendedMenu = canAccessExtendedMenu(user.role);
-  const showApprovalMenu = canAccessApprovalMenu(user.role);
+  // 세목 담당자도 결재함 접근 가능
+  const showApprovalMenu = canAccessApprovalMenu(user.role) || isBudgetManager;
   const showAdminMenu = canAccessAdminMenu(user.role);
 
   return (

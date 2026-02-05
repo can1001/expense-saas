@@ -214,8 +214,10 @@ export interface ExpenseItem {
 - `components/ExpenseCard.tsx`
 - `components/PDFDocument.tsx`
 - `components/print/PrintHeader.tsx`
+- `components/HomeClient.tsx` (세목 담당자 결재함 접근)
 
 ### 페이지
+- `app/page.tsx` (세목 담당자 결재함 접근)
 - `app/expenses/page.tsx`
 - `app/expenses/[id]/page.tsx`
 - `app/approvals/[id]/page.tsx`
@@ -264,6 +266,57 @@ npm run build
 | `finance_head` | 재정팀장 |
 | `accountant` | 회계 |
 | `admin_assistant` | 행정간사 |
+
+## 결재함 접근 권한 (세목 담당자 추가)
+
+### 변경 내용
+
+세목 담당자(BudgetDetailYear.managerId)인 경우에도 메인화면에서 "결재 & 관리" 섹션의 결재함이 표시되도록 변경했습니다.
+
+### 수정 파일
+
+**파일**: `app/page.tsx`
+
+```typescript
+// 현재 연도의 세목 담당자인지 확인
+const currentYear = new Date().getFullYear();
+const budgetManagerCount = await prisma.budgetDetailYear.count({
+  where: {
+    managerId: user.id,
+    year: currentYear,
+    isActive: true,
+  },
+});
+const isBudgetManager = budgetManagerCount > 0;
+
+return <HomeClient user={user} isBudgetManager={isBudgetManager} />;
+```
+
+**파일**: `components/HomeClient.tsx`
+
+```typescript
+interface Props {
+  user: UserInfo;
+  isBudgetManager?: boolean;  // 세목 담당자 여부
+}
+
+export default function HomeClient({ user, isBudgetManager = false }: Props) {
+  // 세목 담당자도 결재함 접근 가능
+  const showApprovalMenu = canAccessApprovalMenu(user.role) || isBudgetManager;
+  // ...
+}
+```
+
+### 결재함 접근 권한 (최종)
+
+| 조건 | 결재함 표시 |
+|------|------------|
+| `admin` (관리자) | ✅ |
+| `finance_head` (재정팀장) | ✅ |
+| `accountant` (회계) | ✅ |
+| `team_leader` (팀장) | ✅ |
+| **세목 담당자** (현재 연도 BudgetDetailYear.managerId) | ✅ |
+| 일반 `user` | ❌ |
 
 ## 롤백 방법
 
