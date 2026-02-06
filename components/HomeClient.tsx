@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Header from '@/components/Header';
 import { canAccessExtendedMenu, canAccessApprovalMenu, canAccessAdminMenu, ROLE_NAMES } from '@/lib/constants/menu-permissions';
 import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, TEXT_STAT, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
 
@@ -27,8 +28,10 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
   const showAdminMenu = canAccessAdminMenu(user.role);
 
   return (
-    <main className={`min-h-screen ${PADDING_PAGE} bg-gradient-to-br from-blue-50 to-indigo-100`}>
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <main className={`${PADDING_PAGE} bg-gradient-to-br from-blue-50 to-indigo-100`}>
+        <div className="max-w-4xl mx-auto">
         {/* 헤더 */}
         <div className={`text-center ${MARGIN_SECTION}`}>
           <h1 className={`${TEXT_HERO} text-gray-900 mb-2 sm:mb-4`}>
@@ -381,7 +384,8 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
             </div>
           </div>
         )}
-      </div>
-    </main>
+        </div>
+      </main>
+    </div>
   );
 }

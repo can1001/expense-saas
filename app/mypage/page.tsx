@@ -1,22 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Key, PenLine } from 'lucide-react';
+import { Key, PenLine } from 'lucide-react';
+import Header from '@/components/Header';
 import { SECTION_CARD, PADDING_CARD } from '@/lib/constants/styles';
 
 export default function MyPage() {
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      {/* 헤더 */}
-      <div className="flex items-center gap-4 mb-6">
-        <Link
-          href="/"
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <h1 className="text-2xl font-bold">마이페이지</h1>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        {/* 페이지 제목 */}
+        <h1 className="text-2xl font-bold mb-6">마이페이지</h1>
 
       {/* 메뉴 카드 */}
       <div className="grid gap-4">
@@ -83,6 +78,7 @@ export default function MyPage() {
             </svg>
           </div>
         </Link>
+        </div>
       </div>
     </div>
   );

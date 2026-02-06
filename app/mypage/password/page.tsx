@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import Header from '@/components/Header';
 import {
   SECTION_CARD,
   SECTION_TITLE,
@@ -112,17 +112,11 @@ export default function ChangePasswordPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-md">
-      {/* 헤더 */}
-      <div className="flex items-center gap-4 mb-6">
-        <Link
-          href="/"
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <h1 className="text-2xl font-bold">비밀번호 변경</h1>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <div className="container mx-auto px-4 py-8 max-w-md">
+        {/* 페이지 제목 */}
+        <h1 className="text-2xl font-bold mb-6">비밀번호 변경</h1>
 
       {/* 에러 메시지 */}
       {error && <div className={`${ALERT_ERROR} mb-6`}>{error}</div>}
@@ -215,7 +209,8 @@ export default function ChangePasswordPage() {
             {saving ? '변경 중...' : '비밀번호 변경'}
           </button>
         </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
