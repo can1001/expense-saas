@@ -186,7 +186,7 @@ export const TEXT_HERO = 'text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold
 export const TEXT_PAGE_TITLE = 'text-xl sm:text-2xl md:text-3xl font-bold';
 
 // 섹션 제목
-export const TEXT_SECTION_TITLE = 'text-lg sm:text-xl md:text-2xl font-bold';
+export const TEXT_SECTION_TITLE = 'block text-lg sm:text-xl md:text-2xl font-bold';
 
 // 카드 제목
 export const TEXT_CARD_TITLE = 'text-base sm:text-lg md:text-xl font-bold';

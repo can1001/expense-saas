@@ -87,12 +87,14 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
                   />
                 </svg>
               </div>
-              <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
-                새 지출결의서 작성
-              </h2>
-              <p className="text-sm sm:text-base text-gray-600">
-                위원회/사역팀 선택 방식의 지출결의서
-              </p>
+              <div>
+                <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
+                  새 지출결의서 작성
+                </h2>
+                <p className="text-sm sm:text-base text-gray-600">
+                  위원회/사역팀 선택 방식의 지출결의서
+                </p>
+              </div>
             </Link>
 
             <Link
@@ -129,12 +131,14 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
                   />
                 </svg>
               </div>
-              <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
-                지출결의서 목록
-              </h2>
-              <p className="text-sm sm:text-base text-gray-600">
-                저장된 지출결의서를 조회하고 관리하세요
-              </p>
+              <div>
+                <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
+                  지출결의서 목록
+                </h2>
+                <p className="text-sm sm:text-base text-gray-600">
+                  저장된 지출결의서를 조회하고 관리하세요
+                </p>
+              </div>
             </Link>
           </div>
         </div>
@@ -168,12 +172,14 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
                   </div>
                   <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded">NEW</span>
                 </div>
-                <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
-                  간편 지출결의서 작성
-                </h2>
-                <p className="text-sm sm:text-base text-gray-600">
-                  각 항목별로 예산(항/목/세목)을 선택하는 방식
-                </p>
+                <div>
+                  <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
+                    간편 지출결의서 작성
+                  </h2>
+                  <p className="text-sm sm:text-base text-gray-600">
+                    각 항목별로 예산(항/목/세목)을 선택하는 방식
+                  </p>
+                </div>
               </Link>
 
               <Link
@@ -198,12 +204,14 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
                   </div>
                   <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded">NEW</span>
                 </div>
-                <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
-                  간편 지출결의서 목록
-                </h2>
-                <p className="text-sm sm:text-base text-gray-600">
-                  간편 양식 지출결의서를 조회하고 관리하세요
-                </p>
+                <div>
+                  <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
+                    간편 지출결의서 목록
+                  </h2>
+                  <p className="text-sm sm:text-base text-gray-600">
+                    간편 양식 지출결의서를 조회하고 관리하세요
+                  </p>
+                </div>
               </Link>
             </div>
           </div>
@@ -251,12 +259,14 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
                       />
                     </svg>
                   </div>
-                  <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
-                    결재함
-                  </h2>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    결재 대기 중인 지출결의서를 처리하세요
-                  </p>
+                  <div>
+                    <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
+                      결재함
+                    </h2>
+                    <p className="text-sm sm:text-base text-gray-600">
+                      결재 대기 중인 지출결의서를 처리하세요
+                    </p>
+                  </div>
                 </Link>
               )}
 
@@ -301,12 +311,14 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
                       />
                     </svg>
                   </div>
-                  <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
-                    관리
-                  </h2>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    사용자, 예산, 역할 등 시스템 관리
-                  </p>
+                  <div>
+                    <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
+                      관리
+                    </h2>
+                    <p className="text-sm sm:text-base text-gray-600">
+                      사용자, 예산, 역할 등 시스템 관리
+                    </p>
+                  </div>
                 </Link>
               )}
             </div>
@@ -353,12 +365,14 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
                   />
                 </svg>
               </div>
-              <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
-                마이페이지
-              </h2>
-              <p className="text-sm sm:text-base text-gray-600">
-                비밀번호 변경, 서명/도장 관리
-              </p>
+              <div>
+                <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
+                  마이페이지
+                </h2>
+                <p className="text-sm sm:text-base text-gray-600">
+                  비밀번호 변경, 서명/도장 관리
+                </p>
+              </div>
             </Link>
           </div>
         </div>
