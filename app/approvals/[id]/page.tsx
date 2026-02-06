@@ -11,6 +11,7 @@ import { BudgetInfoPanel } from '@/components/approval/BudgetInfoPanel';
 import { Expense } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { ArrowLeft, Building2, User, Calendar, CreditCard, FileText, Clock } from 'lucide-react';
+import { MobileItemCard } from '@/components/ui/Accordion';
 
 export default function ApprovalDetailPage() {
   const router = useRouter();
@@ -195,54 +196,81 @@ export default function ApprovalDetailPage() {
             </div>
 
             {/* 세부 항목 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-gray-500" />
                 세부 항목
+                <span className="ml-auto text-sm font-normal text-gray-500">
+                  {expense.items.length}건
+                </span>
               </h2>
-              <div className="overflow-x-auto">
+
+              {/* 모바일: 카드 형식 */}
+              <div className="md:hidden space-y-3">
+                {expense.items.map((item) => (
+                  <MobileItemCard
+                    key={item.id}
+                    order={item.order}
+                    budgetDetail={item.budgetDetail}
+                    description={item.description}
+                    unitPrice={item.unitPrice}
+                    quantity={item.quantity}
+                    amount={item.amount}
+                  />
+                ))}
+                {/* 모바일 합계 */}
+                <div className="bg-blue-50 rounded-lg p-3 flex justify-between items-center">
+                  <span className="font-medium text-gray-700">총 청구금액</span>
+                  <span className="text-lg font-bold text-blue-600">
+                    {formatCurrency(expense.requestAmount)}
+                  </span>
+                </div>
+              </div>
+
+              {/* 데스크톱: 개선된 테이블 */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-100">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         순서
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         예산(세목)
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         적요
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         단가
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         수량
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         금액
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {expense.items.map((item) => (
-                      <tr key={item.id}>
+                  <tbody className="divide-y divide-gray-200">
+                    {expense.items.map((item, index) => (
+                      <tr key={item.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
                         <td className="px-4 py-3 text-sm text-gray-900">{item.order}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{item.budgetDetail}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{item.description}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.budgetDetail}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{item.description}</td>
                         <td className="px-4 py-3 text-sm text-right text-gray-900">
                           {item.unitPrice.toLocaleString('ko-KR')}
                         </td>
                         <td className="px-4 py-3 text-sm text-right text-gray-900">
                           {item.quantity}
                         </td>
-                        <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">
+                        <td className="px-4 py-3 text-sm text-right font-bold text-gray-900">
                           {formatCurrency(item.amount)}
                         </td>
                       </tr>
                     ))}
                   </tbody>
-                  <tfoot className="bg-gray-50">
+                  <tfoot className="bg-blue-50">
                     <tr>
                       <td
                         colSpan={5}
