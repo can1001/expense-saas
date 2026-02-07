@@ -374,15 +374,9 @@ export default function Header() {
               )}
             </div>
 
-            {/* 모바일 - 사용자 아이콘 */}
+            {/* 모바일 - 로그인 버튼만 표시 (사용자 아이콘은 드로어에서 표시) */}
             <div className="md:hidden">
-              {loading ? (
-                <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />
-              ) : user ? (
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-blue-600" />
-                </div>
-              ) : (
+              {!loading && !user && (
                 <Link
                   href="/login"
                   className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
