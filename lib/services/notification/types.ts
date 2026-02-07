@@ -53,6 +53,23 @@ export interface KakaoResult {
   error?: string;
 }
 
+// Notification Hub 결과 타입
+export interface NotificationHubResult {
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}
+
+// Notification Hub 발송 옵션
+export interface NotificationHubSendOptions {
+  channel: 'SMS' | 'LMS' | 'ALIMTALK';
+  to: string;
+  message: string;
+  title?: string;  // LMS용
+  templateCode?: string;  // ALIMTALK용
+  templateParams?: Record<string, string>;
+}
+
 // 알림톡 버튼
 export interface AlimtalkButton {
   type: 'WL' | 'AL' | 'DS' | 'BK' | 'MD';  // 웹링크, 앱링크, 배송조회, 봇키워드, 메시지전달
