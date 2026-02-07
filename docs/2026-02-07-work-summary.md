@@ -146,3 +146,46 @@ KAKAO_ALIMTALK_SENDER_KEY=""
 - `app/api/expenses/[id]/approve/route.ts` - 알림 트리거 추가
 - `app/api/expenses/[id]/reject/route.ts` - 알림 트리거 추가
 - `app/api/expenses/[id]/payment-status/route.ts` - 알림 트리거 추가
+
+---
+
+## 3. 단가 입력 버그 수정
+
+### 문제
+단가(unitPrice) 입력 시 1원 단위가 예상치 못하게 변경되는 현상
+
+### 원인
+`react-hook-form`의 `valueAsNumber: true`와 커스텀 `onChange` 핸들러가 동시에 값을 처리하여 충돌 발생
+
+```tsx
+// 문제가 있던 코드
+{...register(`items.${index}.unitPrice`, {
+  valueAsNumber: true,  // react-hook-form이 숫자로 변환
+  onChange: (e) => handleUnitPriceOrQuantityChange(...),  // 커스텀 핸들러도 변환
+})}
+```
+
+### 해결 방법
+- 커스텀 `onChange` 핸들러 제거
+- `useEffect`를 사용하여 금액(amount) 자동 계산 로직 분리
+
+```tsx
+// 수정된 코드
+useEffect(() => {
+  items?.forEach((item, index) => {
+    if (item) {
+      const calculatedAmount = calculateAmount(item.unitPrice || 0, item.quantity || 0);
+      if (item.amount !== calculatedAmount) {
+        setValue(`items.${index}.amount`, calculatedAmount);
+      }
+    }
+  });
+}, [items, setValue]);
+
+// input에서는 valueAsNumber만 사용
+{...register(`items.${index}.unitPrice`, { valueAsNumber: true })}
+```
+
+### 수정 파일
+- `components/expense-form/ItemsSection.tsx`
+- `components/simple-expense-form/SimpleItemsSection.tsx`
