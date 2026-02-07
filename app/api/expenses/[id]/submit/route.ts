@@ -4,6 +4,7 @@ import {
   calculateApprovalLineForExpense,
   ApprovalLineInfo,
 } from '@/lib/services/approval-line-service';
+import { notificationService } from '@/lib/services/notification';
 
 /**
  * POST /api/expenses/[id]/submit
@@ -232,6 +233,35 @@ export async function POST(
 
       return updatedExpense;
     });
+
+    // 알림 발송 (비동기, 실패해도 제출은 성공)
+    try {
+      // 첫 번째 대기 결재자에게 알림
+      const firstPendingStepInfo = approvalLineInfo.steps.find(
+        (s) => !s.isAutoApproved
+      );
+
+      if (firstPendingStepInfo) {
+        // 결재자 전화번호 조회
+        const approverUser = await prisma.user.findFirst({
+          where: { username: firstPendingStepInfo.approverName },
+          select: { phoneNumber: true },
+        });
+
+        if (approverUser?.phoneNumber) {
+          notificationService
+            .notifyOnSubmit(id, approverUser.phoneNumber, firstPendingStepInfo.approverName, {
+              applicantName: expense.applicantName,
+              requestAmount: expense.requestAmount,
+              department: expense.department,
+              budgetDetail: firstItem.budgetDetail,
+            })
+            .catch((err) => console.error('[Submit] 알림 발송 실패:', err));
+        }
+      }
+    } catch (notifyError) {
+      console.error('[Submit] 알림 처리 중 오류:', notifyError);
+    }
 
     return NextResponse.json({
       success: true,

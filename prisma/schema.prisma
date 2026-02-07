@@ -587,12 +587,16 @@ model User {
   department  String?                     // 소속 부서 (참고용)
   isActive    Boolean   @default(true)    // 활성 상태
 
+  // 연락처 정보
+  phoneNumber String?                     // 휴대폰 번호 (010-xxxx-xxxx)
+
   // 관계
   yearRoles          UserYearRole[]
   bankAccounts       SavedBankAccount[]         // 저장된 은행 계좌들
   expenses           Expense[]                  // 작성한 지출결의서들
   managedBudgets     BudgetDetailYear[]  @relation("BudgetDetailManager")  // 담당 예산 세목들
   signatures         UserSignature[]            // 저장된 서명/도장들
+  notificationPreference NotificationPreference? // 알림 설정
 
   // 리더 역할 (기본값 설정용)
   ledCommittees      Committee[]   @relation("CommitteeLeader")   // 담당 위원회
@@ -605,6 +609,7 @@ model User {
   @@index([roleId])
   @@index([department])
   @@index([isActive])
+  @@index([phoneNumber])
 }
 
 // 연도별 사용자 역할 (finance_head, accountant, team_leader, admin_assistant)
@@ -747,5 +752,85 @@ model ApprovalLog {
   @@index([expenseId])
   @@index([action])
   @@index([actorName])
+  @@index([createdAt])
+}
+
+// ========================================
+// 알림 시스템 (Notification System)
+// ========================================
+
+// 알림 채널
+enum NotificationChannel {
+  SMS
+  KAKAO
+}
+
+// 알림 이벤트 타입
+enum NotificationEventType {
+  SUBMIT           // 결재 요청
+  APPROVE          // 승인
+  REJECT           // 반려
+  WITHDRAW         // 회수
+  PAYMENT_COMPLETE // 지급 완료
+}
+
+// 알림 상태
+enum NotificationStatus {
+  PENDING   // 대기
+  SENT      // 발송 완료
+  FAILED    // 발송 실패
+}
+
+// 알림 설정 (사용자별)
+model NotificationPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 채널 활성화
+  smsEnabled      Boolean  @default(true)   // SMS 알림 활성화
+  kakaoEnabled    Boolean  @default(true)   // 카카오톡 알림 활성화
+
+  // 이벤트별 알림 설정
+  onSubmit           Boolean  @default(true)   // 결재 요청 시
+  onApprove          Boolean  @default(true)   // 승인 시
+  onReject           Boolean  @default(true)   // 반려 시
+  onPaymentComplete  Boolean  @default(true)   // 지급 완료 시
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// 알림 발송 로그
+model NotificationLog {
+  id               String               @id @default(cuid())
+
+  // 수신자 정보
+  recipientName    String               // 수신자 이름
+  recipientPhone   String               // 수신 번호
+
+  // 관련 지출결의서
+  expenseId        String?              // Expense ID (선택)
+
+  // 발송 정보
+  channel          NotificationChannel  // SMS, KAKAO
+  eventType        NotificationEventType// 이벤트 타입
+  message          String               // 발송 메시지
+
+  // 발송 결과
+  status           NotificationStatus   @default(PENDING)
+  providerMessageId String?             // 외부 서비스 메시지 ID
+  errorMessage     String?              // 에러 메시지
+
+  // 발송 시간
+  sentAt           DateTime?            // 발송 완료 시각
+
+  createdAt        DateTime             @default(now())
+
+  @@index([expenseId])
+  @@index([status])
+  @@index([eventType])
   @@index([createdAt])
 }

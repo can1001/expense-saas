@@ -5,6 +5,7 @@ import {
   calculateNextStep,
   calculateApprovalStatus,
 } from '@/lib/approval-engine';
+import { notificationService } from '@/lib/services/notification';
 
 /**
  * POST /api/expenses/[id]/approve
@@ -287,6 +288,52 @@ export async function POST(
 
       return updatedExpense;
     });
+
+    // 알림 발송 (비동기, 실패해도 승인은 성공)
+    try {
+      // 신청자에게 승인 알림
+      const applicantUser = await prisma.user.findFirst({
+        where: { username: expense.applicantName },
+        select: { phoneNumber: true },
+      });
+
+      if (applicantUser?.phoneNumber) {
+        notificationService
+          .notifyOnApprove(id, applicantUser.phoneNumber, {
+            applicantName: expense.applicantName,
+            requestAmount: expense.requestAmount,
+            approverName,
+            isComplete,
+          })
+          .catch((err) => console.error('[Approve] 신청자 알림 발송 실패:', err));
+      }
+
+      // 다음 결재자에게 알림 (최종 승인이 아닌 경우)
+      if (!isComplete) {
+        const nextStepData = result.approvalLine?.steps.find(
+          (s) => s.stepNumber === nextStep && s.status === 'PENDING'
+        );
+
+        if (nextStepData) {
+          const nextApproverUser = await prisma.user.findFirst({
+            where: { username: nextStepData.approverName },
+            select: { phoneNumber: true },
+          });
+
+          if (nextApproverUser?.phoneNumber) {
+            notificationService
+              .notifyOnSubmit(id, nextApproverUser.phoneNumber, nextStepData.approverName, {
+                applicantName: expense.applicantName,
+                requestAmount: expense.requestAmount,
+                department: expense.department,
+              })
+              .catch((err) => console.error('[Approve] 다음 결재자 알림 발송 실패:', err));
+          }
+        }
+      }
+    } catch (notifyError) {
+      console.error('[Approve] 알림 처리 중 오류:', notifyError);
+    }
 
     return NextResponse.json({
       success: true,
