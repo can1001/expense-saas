@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { NotificationChannel, NotificationEventType } from '@prisma/client';
-import { smsProvider } from './sms-provider';
-import { kakaoProvider } from './kakao-provider';
+import { notificationHubProvider } from './notification-hub-provider';
 import { getTemplateByEvent, renderTemplate } from './templates';
 import type {
   NotificationContext,
@@ -84,56 +83,51 @@ export class NotificationService {
     try {
       if (channel === 'SMS') {
         const message = renderTemplate(template.sms, context);
-        const smsResult = await smsProvider.sendAuto(
+        const hubResult = await notificationHubProvider.sendSMS(
           recipient.phoneNumber,
           message,
           '[지출결의]'
         );
 
         result = {
-          success: smsResult.success,
+          success: hubResult.success,
           channel,
-          messageId: smsResult.messageId,
-          error: smsResult.error,
+          messageId: hubResult.messageId,
+          error: hubResult.error,
         };
       } else if (channel === 'KAKAO') {
         // 카카오 알림톡은 심사된 템플릿 코드 필요
-        // 현재는 SMS 대체 발송으로 처리
-        const message = template.kakao
-          ? renderTemplate(template.kakao.body, context)
-          : renderTemplate(template.sms, context);
-
-        // 템플릿 코드가 설정된 경우에만 알림톡 발송 시도
         const kakaoTemplateCode = process.env[`KAKAO_TEMPLATE_${eventType}`];
 
-        if (kakaoTemplateCode && kakaoProvider.isConfigured()) {
-          const kakaoResult = await kakaoProvider.sendWithFallback(
+        if (kakaoTemplateCode && notificationHubProvider.isKakaoConfigured()) {
+          const hubResult = await notificationHubProvider.sendAlimtalkWithFallback(
             recipient.phoneNumber,
             kakaoTemplateCode,
             this.buildTemplateParams(context),
-            renderTemplate(template.sms, context)
+            renderTemplate(template.sms, context),
+            '[지출결의]'
           );
 
           result = {
-            success: kakaoResult.success,
+            success: hubResult.success,
             channel,
-            messageId: kakaoResult.messageId,
-            error: kakaoResult.error,
+            messageId: hubResult.messageId,
+            error: hubResult.error,
           };
         } else {
           // 카카오 미설정 시 SMS로 대체
           console.log('[NotificationService] 카카오 미설정 - SMS로 대체 발송');
-          const smsResult = await smsProvider.sendAuto(
+          const hubResult = await notificationHubProvider.sendSMS(
             recipient.phoneNumber,
             renderTemplate(template.sms, context),
             '[지출결의]'
           );
 
           result = {
-            success: smsResult.success,
+            success: hubResult.success,
             channel: 'SMS',
-            messageId: smsResult.messageId,
-            error: smsResult.error,
+            messageId: hubResult.messageId,
+            error: hubResult.error,
           };
         }
       } else {

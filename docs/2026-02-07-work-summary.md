@@ -189,3 +189,112 @@ useEffect(() => {
 ### 수정 파일
 - `components/expense-form/ItemsSection.tsx`
 - `components/simple-expense-form/SimpleItemsSection.tsx`
+
+---
+
+## 4. 지출결의서 유효성 검증 에러 메시지 개선
+
+### 문제
+"항목 정보를 확인해주세요" 라는 모호한 에러 메시지만 표시되어 어떤 항목의 어떤 필드에 문제가 있는지 알 수 없었음
+
+### 해결 방법
+각 항목별로 구체적인 필드 에러를 표시하도록 개선
+
+```tsx
+// 변경 후
+{Array.isArray(errors.items) && errors.items.map((itemError, idx) => {
+  const fieldErrors: string[] = [];
+  if (itemError.budgetCategory) fieldErrors.push(`예산(항): ${itemError.budgetCategory.message}`);
+  if (itemError.budgetSubcategory) fieldErrors.push(`예산(목): ${itemError.budgetSubcategory.message}`);
+  if (itemError.budgetDetail) fieldErrors.push(`세목: ${itemError.budgetDetail.message}`);
+  if (itemError.description) fieldErrors.push(`적요: ${itemError.description.message}`);
+  if (itemError.unitPrice) fieldErrors.push(`단가: ${itemError.unitPrice.message}`);
+  if (itemError.quantity) fieldErrors.push(`수량: ${itemError.quantity.message}`);
+  if (itemError.amount) fieldErrors.push(`금액: ${itemError.amount.message}`);
+  return (
+    <li key={idx}>
+      <span className="font-medium">[{idx + 1}행]</span> {fieldErrors.join(', ')}
+    </li>
+  );
+})}
+```
+
+### 수정 파일
+- `components/ExpenseForm.tsx`
+- `components/SimpleExpenseForm.tsx`
+
+---
+
+## 5. Render 배포 설정 개선
+
+### 문제
+프로덕션 배포 시 Prisma 스키마 변경사항이 DB에 반영되지 않아 500 에러 발생 (P2022: column does not exist)
+
+### 원인
+빌드 명령어에 `prisma db push`가 포함되어 있지 않았음
+
+### 해결 방법
+Render Build Command 수정:
+
+```bash
+# 변경 전
+npm install && npm run build
+
+# 변경 후
+npm install && npx prisma db push && npm run build
+```
+
+### 효과
+- 배포 시 자동으로 스키마 동기화
+- 새 컬럼/테이블 추가 시 수동 작업 불필요
+
+---
+
+## 6. 알림 시스템 운영 확인 방법
+
+### 확인 방법
+
+| 방법 | 설명 |
+|------|------|
+| **DB 로그** | `NotificationLog` 테이블에서 발송 기록 확인 |
+| **서버 로그** | Render Dashboard → Logs에서 `[NotificationService]` 로그 확인 |
+| **환경변수** | `NOTIFICATION_ENABLED=true` 설정 확인 |
+
+### 로그 테이블 필드
+
+| 필드 | 설명 |
+|------|------|
+| `status` | `SENT` (성공), `FAILED` (실패) |
+| `channel` | `SMS` 또는 `KAKAO` |
+| `eventType` | 발송 이벤트 유형 |
+| `errorMessage` | 실패 시 에러 메시지 |
+
+---
+
+## 파일 변경 요약 (최종)
+
+### 신규 생성
+- `lib/services/notification/types.ts`
+- `lib/services/notification/templates.ts`
+- `lib/services/notification/sms-provider.ts`
+- `lib/services/notification/kakao-provider.ts`
+- `lib/services/notification/notification-service.ts`
+- `lib/services/notification/index.ts`
+- `docs/2026-02-07-work-summary.md` (이 파일)
+
+### 수정
+- `prisma/schema.prisma` - 알림 관련 모델/enum 추가
+- `components/print/PrintHeader.tsx` - 배경색 변경
+- `components/print/PrintItems.tsx` - 예시 행 파란색, 합계 이중선
+- `components/print/PrintFooter.tsx` - 배경색 변경
+- `components/ExpenseForm.tsx` - 유효성 검증 에러 메시지 개선
+- `components/SimpleExpenseForm.tsx` - 유효성 검증 에러 메시지 개선
+- `components/expense-form/ItemsSection.tsx` - 단가 입력 버그 수정
+- `components/simple-expense-form/SimpleItemsSection.tsx` - 단가 입력 버그 수정
+- `app/api/expenses/[id]/submit/route.ts` - 알림 트리거 추가
+- `app/api/expenses/[id]/approve/route.ts` - 알림 트리거 추가
+- `app/api/expenses/[id]/reject/route.ts` - 알림 트리거 추가
+- `app/api/expenses/[id]/payment-status/route.ts` - 알림 트리거 추가
+
+### 배포 설정
+- Render Build Command: `npm install && npx prisma db push && npm run build`
