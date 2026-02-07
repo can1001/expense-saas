@@ -111,7 +111,7 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
           </tr>
           <tr>
             <td className="info-label-cell">지출일자</td>
-            <td className="info-value-cell">{expenseYear}년 {String(expenseMonth).padStart(2, '0')}월 {String(expenseDay).padStart(2, '0')}일</td>
+            <td className="info-value-cell">&nbsp;</td>
           </tr>
           <tr>
             <td className="info-label-cell">청구금액</td>
@@ -274,6 +274,7 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
         .info-value-cell {
           font-size: 10pt;
           padding: 10px 15px;
+          text-align: center;
         }
 
         .amount-cell {
