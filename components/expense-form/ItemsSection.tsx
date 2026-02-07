@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Control, useFieldArray, UseFormRegister, UseFormSetValue, useWatch, FieldErrors } from 'react-hook-form';
 import { ExpenseFormData, defaultExpenseItem, calculateAmount } from '@/lib/schemas/expense-schema';
 import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_SM, SECTION_CARD, SECTION_TITLE } from '@/lib/constants/styles';
@@ -104,19 +104,17 @@ export default function ItemsSection({
     remove(index);
   };
 
-  const handleUnitPriceOrQuantityChange = (index: number, field: 'unitPrice' | 'quantity', value: string) => {
-    const numValue = Number(value);
-    setValue(`items.${index}.${field}`, numValue);
-
-    // 금액 자동 계산
-    const currentItem = items?.[index];
-    if (currentItem) {
-      const unitPrice = field === 'unitPrice' ? numValue : currentItem.unitPrice;
-      const quantity = field === 'quantity' ? numValue : currentItem.quantity;
-      const amount = calculateAmount(unitPrice, quantity);
-      setValue(`items.${index}.amount`, amount);
-    }
-  };
+  // 단가/수량 변경 시 금액 자동 계산 (useEffect로 분리하여 register와 충돌 방지)
+  useEffect(() => {
+    items?.forEach((item, index) => {
+      if (item) {
+        const calculatedAmount = calculateAmount(item.unitPrice || 0, item.quantity || 0);
+        if (item.amount !== calculatedAmount) {
+          setValue(`items.${index}.amount`, calculatedAmount);
+        }
+      }
+    });
+  }, [items, setValue]);
 
   return (
     <div className={SECTION_CARD}>
@@ -260,10 +258,7 @@ export default function ItemsSection({
                   </label>
                   <input
                     type="number"
-                    {...register(`items.${index}.unitPrice`, {
-                      valueAsNumber: true,
-                      onChange: (e) => handleUnitPriceOrQuantityChange(index, 'unitPrice', e.target.value),
-                    })}
+                    {...register(`items.${index}.unitPrice`, { valueAsNumber: true })}
                     disabled={disabled}
                     min="1"
                     placeholder="0"
@@ -280,10 +275,7 @@ export default function ItemsSection({
                   </label>
                   <input
                     type="number"
-                    {...register(`items.${index}.quantity`, {
-                      valueAsNumber: true,
-                      onChange: (e) => handleUnitPriceOrQuantityChange(index, 'quantity', e.target.value),
-                    })}
+                    {...register(`items.${index}.quantity`, { valueAsNumber: true })}
                     disabled={disabled}
                     min="1"
                     placeholder="0"

@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Control, useFieldArray, UseFormRegister, UseFormSetValue, useWatch, FieldErrors } from 'react-hook-form';
 import {
   SimpleExpenseFormData,
@@ -87,23 +87,17 @@ export default function SimpleItemsSection({
     }
   }, [setValue, fields.length]);
 
-  const handleUnitPriceOrQuantityChange = (
-    index: number,
-    field: 'unitPrice' | 'quantity',
-    value: string
-  ) => {
-    const numValue = Number(value);
-    setValue(`items.${index}.${field}`, numValue);
-
-    // 금액 자동 계산
-    const currentItem = items?.[index];
-    if (currentItem) {
-      const unitPrice = field === 'unitPrice' ? numValue : currentItem.unitPrice;
-      const quantity = field === 'quantity' ? numValue : currentItem.quantity;
-      const amount = calculateAmount(unitPrice, quantity);
-      setValue(`items.${index}.amount`, amount);
-    }
-  };
+  // 단가/수량 변경 시 금액 자동 계산 (useEffect로 분리하여 register와 충돌 방지)
+  useEffect(() => {
+    items?.forEach((item, index) => {
+      if (item) {
+        const calculatedAmount = calculateAmount(item.unitPrice || 0, item.quantity || 0);
+        if (item.amount !== calculatedAmount) {
+          setValue(`items.${index}.amount`, calculatedAmount);
+        }
+      }
+    });
+  }, [items, setValue]);
 
   return (
     <div className={SECTION_CARD}>
@@ -195,11 +189,7 @@ export default function SimpleItemsSection({
                   </label>
                   <input
                     type="number"
-                    {...register(`items.${index}.unitPrice`, {
-                      valueAsNumber: true,
-                      onChange: (e) =>
-                        handleUnitPriceOrQuantityChange(index, 'unitPrice', e.target.value),
-                    })}
+                    {...register(`items.${index}.unitPrice`, { valueAsNumber: true })}
                     disabled={disabled}
                     min="1"
                     className={`${INPUT_BASE} ${errors?.items?.[index]?.unitPrice ? 'border-red-500' : ''}`}
@@ -217,11 +207,7 @@ export default function SimpleItemsSection({
                   </label>
                   <input
                     type="number"
-                    {...register(`items.${index}.quantity`, {
-                      valueAsNumber: true,
-                      onChange: (e) =>
-                        handleUnitPriceOrQuantityChange(index, 'quantity', e.target.value),
-                    })}
+                    {...register(`items.${index}.quantity`, { valueAsNumber: true })}
                     disabled={disabled}
                     min="1"
                     className={`${INPUT_BASE} ${errors?.items?.[index]?.quantity ? 'border-red-500' : ''}`}
