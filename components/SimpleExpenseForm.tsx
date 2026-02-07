@@ -206,7 +206,28 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
             {errors.bankName && <li>{errors.bankName.message}</li>}
             {errors.accountNumber && <li>{errors.accountNumber.message}</li>}
             {errors.accountHolder && <li>{errors.accountHolder.message}</li>}
-            {errors.items && <li>{errors.items.message}</li>}
+            {errors.items && (
+              <>
+                {errors.items.message && <li>{errors.items.message}</li>}
+                {Array.isArray(errors.items) && errors.items.map((itemError, idx) => {
+                  if (!itemError) return null;
+                  const fieldErrors: string[] = [];
+                  if (itemError.budgetCategory) fieldErrors.push(`예산(항): ${itemError.budgetCategory.message}`);
+                  if (itemError.budgetSubcategory) fieldErrors.push(`예산(목): ${itemError.budgetSubcategory.message}`);
+                  if (itemError.budgetDetail) fieldErrors.push(`세목: ${itemError.budgetDetail.message}`);
+                  if (itemError.description) fieldErrors.push(`적요: ${itemError.description.message}`);
+                  if (itemError.unitPrice) fieldErrors.push(`단가: ${itemError.unitPrice.message}`);
+                  if (itemError.quantity) fieldErrors.push(`수량: ${itemError.quantity.message}`);
+                  if (itemError.amount) fieldErrors.push(`금액: ${itemError.amount.message}`);
+                  if (fieldErrors.length === 0) return null;
+                  return (
+                    <li key={idx}>
+                      <span className="font-medium">[{idx + 1}행]</span> {fieldErrors.join(', ')}
+                    </li>
+                  );
+                })}
+              </>
+            )}
           </ul>
         </div>
       )}

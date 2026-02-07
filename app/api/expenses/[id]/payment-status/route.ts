@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { notificationService } from '@/lib/services/notification';
 
 /**
  * PUT /api/expenses/[id]/payment-status
@@ -166,6 +167,30 @@ export async function PUT(
         },
       },
     });
+
+    // 지급 완료 시 신청자에게 알림
+    if (paymentStatus === 'COMPLETED') {
+      try {
+        const applicantUser = await prisma.user.findFirst({
+          where: { username: expense.applicantName },
+          select: { phoneNumber: true },
+        });
+
+        if (applicantUser?.phoneNumber) {
+          notificationService
+            .notifyOnPaymentComplete(id, applicantUser.phoneNumber, {
+              applicantName: expense.applicantName,
+              requestAmount: expense.requestAmount,
+              bankName: expense.bankName,
+              accountNumber: expense.accountNumber,
+              paymentDate: now.toLocaleDateString('ko-KR'),
+            })
+            .catch((err) => console.error('[PaymentComplete] 알림 발송 실패:', err));
+        }
+      } catch (notifyError) {
+        console.error('[PaymentComplete] 알림 처리 중 오류:', notifyError);
+      }
+    }
 
     const statusMessages: Record<string, string> = {
       PENDING: '지급 대기로 변경되었습니다.',

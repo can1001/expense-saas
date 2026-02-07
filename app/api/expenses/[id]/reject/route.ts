@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { canApprove } from '@/lib/approval-engine';
+import { notificationService } from '@/lib/services/notification';
 
 /**
  * POST /api/expenses/[id]/reject
@@ -159,6 +160,28 @@ export async function POST(
 
       return updatedExpense;
     });
+
+    // 알림 발송 (비동기, 실패해도 반려는 성공)
+    try {
+      // 신청자에게 반려 알림
+      const applicantUser = await prisma.user.findFirst({
+        where: { username: expense.applicantName },
+        select: { phoneNumber: true },
+      });
+
+      if (applicantUser?.phoneNumber) {
+        notificationService
+          .notifyOnReject(id, applicantUser.phoneNumber, {
+            applicantName: expense.applicantName,
+            requestAmount: expense.requestAmount,
+            approverName,
+            rejectReason: comment,
+          })
+          .catch((err) => console.error('[Reject] 알림 발송 실패:', err));
+      }
+    } catch (notifyError) {
+      console.error('[Reject] 알림 처리 중 오류:', notifyError);
+    }
 
     return NextResponse.json({
       success: true,
