@@ -65,7 +65,8 @@
       "Bash(npx next build:*)",
       "Bash(npx tsx:*)",
       "Bash(npx vitest:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
