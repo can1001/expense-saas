@@ -302,7 +302,27 @@ npm install && npx prisma db push && npm run build
 
 ---
 
-## 8. 환경변수 샘플 파일 업데이트
+## 8. 모바일 헤더 UI 개선
+
+### 변경 내용
+모바일에서 햄버거 메뉴가 표시될 때 오른쪽 사용자 아이콘 숨김 처리
+
+| 상태 | 변경 전 | 변경 후 |
+|------|---------|---------|
+| 로그인 전 | 로그인 버튼 | 로그인 버튼 (동일) |
+| 로그인 후 | 사용자 아이콘 표시 | 숨김 (드로어에서 확인) |
+
+### 수정 파일
+- `components/Header.tsx`
+
+### 이유
+- 모바일 헤더 공간 절약
+- 사용자 정보는 드로어(슬라이드 메뉴)에서 이미 표시됨
+- 중복 UI 제거
+
+---
+
+## 9. 환경변수 샘플 파일 업데이트
 
 ### 변경 내용
 `.env.example` 파일에 알림 시스템 관련 환경변수 샘플 추가
@@ -351,11 +371,96 @@ KAKAO_TEMPLATE_PAYMENT_COMPLETE=""
 - `app/api/users/route.ts` - phoneNumber 처리 추가
 - `app/api/users/[id]/route.ts` - phoneNumber 처리 추가
 - `lib/services/user-service.ts` - createUser, updateUser에 phoneNumber 추가
+- `components/Header.tsx` - 모바일 사용자 아이콘 숨김 처리
 - `app/api/expenses/[id]/submit/route.ts` - 알림 트리거 추가
 - `app/api/expenses/[id]/approve/route.ts` - 알림 트리거 추가
 - `app/api/expenses/[id]/reject/route.ts` - 알림 트리거 추가
 - `app/api/expenses/[id]/payment-status/route.ts` - 알림 트리거 추가
 - `.env.example` - 알림 환경변수 샘플 추가
+- `lib/services/approval-line-service.ts` - 세목담당자 전결 로직 구현
 
 ### 배포 설정
 - Render Build Command: `npm install && npx prisma db push && npm run build`
+
+---
+
+## 10. 세목담당자 전결 로직 구현
+
+### 개요
+세목담당자가 직접 지출결의서를 등록할 경우, 1차 결재가 팀장 전결로 자동 처리되도록 결재선 로직 개선
+
+### 결재 흐름 규칙 (변경 후)
+
+| 조건 | 1차 결재 | 2차 결재 | 3차 결재 |
+|------|----------|----------|----------|
+| 일반 (담당자 ≠ 재정팀장, 신청자 ≠ 담당자) | 담당자 | 회계 | 재정팀장 |
+| 담당자 = 재정팀장 | 재정팀장(전결) ✓ | 회계 | 재정팀장 |
+| **신청자 = 담당자 (세목담당자 직접 등록)** | **팀장(전결) ✓** | 회계 | 재정팀장 |
+
+※ (전결) ✓ = 제출 시 자동 승인
+
+### 변경 내용
+
+#### `ApprovalLineInfo` 인터페이스 확장
+```typescript
+export interface ApprovalLineInfo {
+  // ... 기존 필드
+  isDirectApproval: boolean;      // 담당자가 재정팀장인 경우
+  isSubmitterManager: boolean;    // 신청자가 세목담당자인 경우 (NEW)
+  // ...
+}
+```
+
+#### 결재선 산출 함수 변경
+```typescript
+// 함수 시그니처 변경
+export async function calculateApprovalLine(
+  budgetDetailId: string,
+  year: number,
+  submitterId?: string  // 신청자 ID 추가
+): Promise<ApprovalLineInfo>
+
+// 신청자가 세목담당자인 경우 체크
+const isSubmitterManager = submitterId && manager && submitterId === manager.id;
+
+// 조건 분기 추가
+if (isSubmitterManager && teamLeader) {
+  // 팀장 전결 결재선 생성
+  steps.push({
+    stepNumber: 1,
+    stepName: '팀장(전결)',
+    role: 'team_leader',
+    approverId: teamLeader.id,
+    approverName: teamLeader.username,
+    isAutoApproved: true,  // 자동 승인
+  });
+}
+```
+
+#### 감사 로그 메시지 개선
+```typescript
+// 제출 시 로그
+if (approvalLineInfo.isDirectApproval) {
+  submitComment = '제출 완료 (재정팀장 전결 - 1차 자동승인)';
+} else if (approvalLineInfo.isSubmitterManager) {
+  submitComment = '제출 완료 (세목담당자 등록 - 팀장 전결 1차 자동승인)';
+}
+```
+
+### 수정 파일
+- `lib/services/approval-line-service.ts`
+  - `calculateApprovalLine()` - submitterId 파라미터 추가, 팀장 전결 로직 구현
+  - `calculateApprovalLineForExpense()` - submitterId 파라미터 추가
+  - `createApprovalLineForExpense()` - isSubmitterManager 조건 처리
+  - `submitExpenseWithApprovalLine()` - expense.userId 전달, 감사 로그 메시지 개선
+
+### 동작 방식
+1. 지출결의서 제출 시 `expense.userId`(신청자 ID)를 결재선 계산에 전달
+2. 해당 세목의 담당자 ID와 신청자 ID가 동일하면 `isSubmitterManager = true`
+3. 이 경우 1차 결재자를 팀장으로 설정하고 자동 승인 처리
+4. 결재선 상태: `currentStep = 2` (2차 회계 결재부터 시작)
+5. 지출결의서 상태: `APPROVED_STEP_1` (1차 승인 완료)
+
+### 주의사항
+- 팀장(`team_leader`) 역할이 해당 연도에 설정되어 있어야 함
+- 팀장이 없는 경우 일반 결재 흐름으로 처리 (담당자 → 회계 → 재정팀장)
