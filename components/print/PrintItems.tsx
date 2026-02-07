@@ -9,8 +9,8 @@ interface PrintItemsProps {
 }
 
 export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
-  // 빈 행 채우기 (최대 8행)
-  const emptyRows = Math.max(0, 8 - items.length);
+  // 빈 행 채우기 (최대 16행)
+  const emptyRows = Math.max(0, 16 - items.length);
 
   return (
     <div className="print-items-container">
