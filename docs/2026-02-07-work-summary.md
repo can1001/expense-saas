@@ -271,6 +271,61 @@ npm install && npx prisma db push && npm run build
 
 ---
 
+## 7. 사용자 연락처 필드 추가
+
+### 개요
+알림 발송을 위해 사용자 등록/수정 화면에 연락처(phoneNumber) 입력 필드 추가
+
+### 변경 내용
+
+#### UI 변경
+- 사용자 등록 폼에 연락처 필드 추가
+- 사용자 수정 폼에 연락처 필드 추가
+- 형식: `010-1234-5678`
+
+#### API 변경
+- POST `/api/users` - phoneNumber 파라미터 추가
+- PUT `/api/users/[id]` - phoneNumber 파라미터 추가
+
+### 수정 파일
+- `app/admin/users/new/page.tsx` - 등록 폼에 연락처 필드 추가
+- `app/admin/users/[id]/edit/page.tsx` - 수정 폼에 연락처 필드 추가
+- `app/api/users/route.ts` - POST API에서 phoneNumber 처리
+- `app/api/users/[id]/route.ts` - PUT API에서 phoneNumber 처리
+- `lib/services/user-service.ts` - createUser, updateUser 함수에 phoneNumber 추가
+
+### 사용 방법
+1. 관리자 → 사용자 관리 이동
+2. 사용자 추가 또는 수정
+3. 연락처 필드에 전화번호 입력
+4. 저장 후 해당 사용자에게 알림 발송 가능
+
+---
+
+## 8. 환경변수 샘플 파일 업데이트
+
+### 변경 내용
+`.env.example` 파일에 알림 시스템 관련 환경변수 샘플 추가
+
+```bash
+# 알림 시스템 (NHN Notification Hub)
+NOTIFICATION_ENABLED="true"
+NOTIFICATION_HUB_APP_KEY=""
+NOTIFICATION_HUB_USER_ACCESS_KEY=""
+NOTIFICATION_HUB_SECRET_ACCESS_KEY=""
+NOTIFICATION_HUB_SMS_SENDER=""
+NOTIFICATION_HUB_KAKAO_SENDER_KEY=""
+
+# 카카오 알림톡 템플릿 코드
+KAKAO_TEMPLATE_SUBMIT=""
+KAKAO_TEMPLATE_APPROVE=""
+KAKAO_TEMPLATE_REJECT=""
+KAKAO_TEMPLATE_WITHDRAW=""
+KAKAO_TEMPLATE_PAYMENT_COMPLETE=""
+```
+
+---
+
 ## 파일 변경 요약 (최종)
 
 ### 신규 생성
@@ -291,10 +346,16 @@ npm install && npx prisma db push && npm run build
 - `components/SimpleExpenseForm.tsx` - 유효성 검증 에러 메시지 개선
 - `components/expense-form/ItemsSection.tsx` - 단가 입력 버그 수정
 - `components/simple-expense-form/SimpleItemsSection.tsx` - 단가 입력 버그 수정
+- `app/admin/users/new/page.tsx` - 연락처 필드 추가
+- `app/admin/users/[id]/edit/page.tsx` - 연락처 필드 추가
+- `app/api/users/route.ts` - phoneNumber 처리 추가
+- `app/api/users/[id]/route.ts` - phoneNumber 처리 추가
+- `lib/services/user-service.ts` - createUser, updateUser에 phoneNumber 추가
 - `app/api/expenses/[id]/submit/route.ts` - 알림 트리거 추가
 - `app/api/expenses/[id]/approve/route.ts` - 알림 트리거 추가
 - `app/api/expenses/[id]/reject/route.ts` - 알림 트리거 추가
 - `app/api/expenses/[id]/payment-status/route.ts` - 알림 트리거 추가
+- `.env.example` - 알림 환경변수 샘플 추가
 
 ### 배포 설정
 - Render Build Command: `npm install && npx prisma db push && npm run build`
