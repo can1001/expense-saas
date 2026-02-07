@@ -80,7 +80,7 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
         /* 라벨 셀 */
         .label-cell {
           width: 100px;
-          background-color: #f0f0f0;
+          background-color: #f8f8f8;
           font-size: 10pt;
           font-weight: 600;
           text-align: center;
@@ -146,7 +146,7 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
           }
 
           .label-cell {
-            background-color: #f0f0f0 !important;
+            background-color: #f8f8f8 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }

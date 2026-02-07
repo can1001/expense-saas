@@ -86,11 +86,11 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
         .example-row {
           display: flex;
           align-items: center;
-          background-color: #fffde7;
+          background-color: #f0f7ff;
           border: 2px solid #000;
           border-bottom: none;
           font-size: 8pt;
-          color: #666;
+          color: #0066cc;
           padding: 4px 8px;
         }
 
@@ -139,7 +139,7 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
         }
 
         .items-table th {
-          background-color: #f0f0f0;
+          background-color: #f8f8f8;
           font-weight: bold;
           font-size: 10pt;
           height: 38px;
@@ -195,7 +195,8 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
         }
 
         .total-row {
-          background-color: #f0f0f0;
+          background-color: #f8f8f8;
+          border-top: 3px double #000;
           height: 40px;
         }
 
@@ -228,11 +229,12 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
           }
 
           .items-table th {
-            background-color: #f0f0f0 !important;
+            background-color: #f8f8f8 !important;
           }
 
           .total-row {
-            background-color: #f0f0f0 !important;
+            background-color: #f8f8f8 !important;
+            border-top: 3px double #000 !important;
           }
         }
       `}</style>

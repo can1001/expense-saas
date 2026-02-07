@@ -182,7 +182,7 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
         }
 
         .approval-header {
-          background-color: #f0f0f0;
+          background-color: #f8f8f8;
           font-size: 9pt;
           font-weight: bold;
           text-align: center;
@@ -262,7 +262,7 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
 
         .info-label-cell {
           width: 100px;
-          background-color: #f0f0f0;
+          background-color: #f8f8f8;
           font-size: 10pt;
           font-weight: 600;
           text-align: center;
@@ -299,7 +299,7 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
 
           .approval-header,
           .info-label-cell {
-            background-color: #f0f0f0 !important;
+            background-color: #f8f8f8 !important;
           }
 
           .approved-mark {
