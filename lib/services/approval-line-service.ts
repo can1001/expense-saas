@@ -2,8 +2,9 @@
  * 결재선 자동 산출 서비스
  *
  * 결재 흐름 규칙:
- * - 담당자 ≠ 재정팀장: 담당자 → 회계 → 재정팀장 (3단계)
+ * - 담당자 ≠ 재정팀장, 신청자 ≠ 담당자: 담당자 → 회계 → 재정팀장 (3단계)
  * - 담당자 = 재정팀장: 재정팀장(전결) → 회계 → 재정팀장 (3단계, 1차 자동승인)
+ * - 신청자 = 담당자 (세목담당자 직접 등록): 팀장(전결) → 회계 → 재정팀장 (3단계, 1차 자동승인)
  */
 
 import { prisma } from '@/lib/prisma';
@@ -34,6 +35,7 @@ export interface ApprovalLineInfo {
   managerId: string | null;
   managerName: string | null;
   isDirectApproval: boolean; // 담당자가 재정팀장인 경우 true
+  isSubmitterManager: boolean; // 신청자가 세목담당자인 경우 true (팀장 전결)
   totalSteps: number;
   steps: ApprovalStepInfo[];
   year: number;
@@ -69,11 +71,13 @@ async function getYearRoleUser(year: number, role: UserRole): Promise<{ id: stri
  *
  * @param budgetDetailId 예산 세목 ID
  * @param year 연도
+ * @param submitterId 신청자 ID (선택, 세목담당자 전결 판단용)
  * @returns 결재선 정보
  */
 export async function calculateApprovalLine(
   budgetDetailId: string,
-  year: number
+  year: number,
+  submitterId?: string
 ): Promise<ApprovalLineInfo> {
   // 1. 세목의 연도별 담당자 조회
   const budgetDetailYear = await prisma.budgetDetailYear.findUnique({
@@ -108,10 +112,11 @@ export async function calculateApprovalLine(
     isOverBudget: usedAmount > budgetAmount,
   };
 
-  // 2. 연도별 역할 담당자 조회 (재정팀장, 회계)
-  const [financeHead, accountant] = await Promise.all([
+  // 2. 연도별 역할 담당자 조회 (재정팀장, 회계, 팀장)
+  const [financeHead, accountant, teamLeader] = await Promise.all([
     getYearRoleUser(year, 'finance_head'),
     getYearRoleUser(year, 'accountant'),
+    getYearRoleUser(year, 'team_leader'),
   ]);
 
   if (!financeHead) {
@@ -124,6 +129,8 @@ export async function calculateApprovalLine(
 
   const manager = budgetDetailYear?.manager;
   const isDirectApproval = manager?.id === financeHead.id;
+  // 신청자가 세목담당자인 경우 (팀장 전결)
+  const isSubmitterManager = submitterId && manager && submitterId === manager.id;
 
   const steps: ApprovalStepInfo[] = [];
 
@@ -135,6 +142,32 @@ export async function calculateApprovalLine(
       role: 'finance_head',
       approverId: financeHead.id,
       approverName: financeHead.username,
+      isAutoApproved: true, // 제출 시 자동 승인
+    });
+    steps.push({
+      stepNumber: 2,
+      stepName: '회계',
+      role: 'accountant',
+      approverId: accountant.id,
+      approverName: accountant.username,
+      isAutoApproved: false,
+    });
+    steps.push({
+      stepNumber: 3,
+      stepName: '재정팀장',
+      role: 'finance_head',
+      approverId: financeHead.id,
+      approverName: financeHead.username,
+      isAutoApproved: false,
+    });
+  } else if (isSubmitterManager && teamLeader) {
+    // 신청자가 세목담당자인 경우 → 3단계 (팀장 1차 자동승인)
+    steps.push({
+      stepNumber: 1,
+      stepName: '팀장(전결)',
+      role: 'team_leader',
+      approverId: teamLeader.id,
+      approverName: teamLeader.username,
       isAutoApproved: true, // 제출 시 자동 승인
     });
     steps.push({
@@ -199,6 +232,7 @@ export async function calculateApprovalLine(
     managerId: manager?.id || null,
     managerName: manager?.username || null,
     isDirectApproval,
+    isSubmitterManager: !!isSubmitterManager,
     totalSteps: steps.length,
     steps,
     year,
@@ -209,15 +243,19 @@ export async function calculateApprovalLine(
 /**
  * 지출결의서용 결재선 생성 (ExpenseItem의 첫 번째 세목 기준)
  *
- * @param expenseItems 지출결의서 항목들 (budgetDetail 포함)
+ * @param budgetCategory 예산 항
+ * @param budgetSubcategory 예산 목
+ * @param budgetDetailName 예산 세목
  * @param year 연도
+ * @param submitterId 신청자 ID (선택, 세목담당자 전결 판단용)
  * @returns 결재선 정보
  */
 export async function calculateApprovalLineForExpense(
   budgetCategory: string,
   budgetSubcategory: string,
   budgetDetailName: string,
-  year: number
+  year: number,
+  submitterId?: string
 ): Promise<ApprovalLineInfo> {
   // 세목 이름으로 BudgetDetail 찾기
   const budgetDetail = await prisma.budgetDetail.findFirst({
@@ -251,6 +289,7 @@ export async function calculateApprovalLineForExpense(
       managerId: null,
       managerName: null,
       isDirectApproval: false,
+      isSubmitterManager: false,
       totalSteps: 3,
       steps: [
         {
@@ -282,7 +321,7 @@ export async function calculateApprovalLineForExpense(
     };
   }
 
-  return calculateApprovalLine(budgetDetail.id, year);
+  return calculateApprovalLine(budgetDetail.id, year, submitterId);
 }
 
 /**
@@ -302,10 +341,12 @@ export async function createApprovalLineForExpense(
   });
 
   // 새 결재선 생성
+  // 전결(재정팀장 or 세목담당자)인 경우 2단계부터 시작
+  const isAutoApprovedFirst = approvalLineInfo.isDirectApproval || approvalLineInfo.isSubmitterManager;
   const approvalLine = await prisma.approvalLine.create({
     data: {
       expenseId,
-      currentStep: approvalLineInfo.isDirectApproval ? 2 : 1, // 전결인 경우 2단계부터 시작
+      currentStep: isAutoApprovedFirst ? 2 : 1, // 전결인 경우 2단계부터 시작
       totalSteps: approvalLineInfo.totalSteps,
       isUrgent: false,
       snapshot: JSON.stringify(approvalLineInfo),
@@ -360,18 +401,22 @@ export async function submitExpenseWithApprovalLine(expenseId: string) {
   }
 
   // 결재선 산출 (항/목/세목 모두 첫 번째 항목에서 가져옴)
+  // 신청자 ID(userId)를 전달하여 세목담당자 전결 여부 판단
   const approvalLineInfo = await calculateApprovalLineForExpense(
     firstItem.budgetCategory,
     firstItem.budgetSubcategory,
     firstItem.budgetDetail,
-    year
+    year,
+    expense.userId // 신청자 ID
   );
 
   // 결재선 생성
   const approvalLine = await createApprovalLineForExpense(expenseId, approvalLineInfo);
 
   // 지출결의서 상태 업데이트
-  const newStatus = approvalLineInfo.isDirectApproval ? 'APPROVED_STEP_1' : 'PENDING';
+  // 전결인 경우(재정팀장 or 세목담당자) 1차 자동 승인
+  const isAutoApprovedFirst = approvalLineInfo.isDirectApproval || approvalLineInfo.isSubmitterManager;
+  const newStatus = isAutoApprovedFirst ? 'APPROVED_STEP_1' : 'PENDING';
 
   await prisma.expense.update({
     where: { id: expenseId },
@@ -382,6 +427,13 @@ export async function submitExpenseWithApprovalLine(expenseId: string) {
   });
 
   // 감사 로그 기록
+  let submitComment = '제출 완료';
+  if (approvalLineInfo.isDirectApproval) {
+    submitComment = '제출 완료 (재정팀장 전결 - 1차 자동승인)';
+  } else if (approvalLineInfo.isSubmitterManager) {
+    submitComment = '제출 완료 (세목담당자 등록 - 팀장 전결 1차 자동승인)';
+  }
+
   await prisma.approvalLog.create({
     data: {
       expenseId,
@@ -389,9 +441,7 @@ export async function submitExpenseWithApprovalLine(expenseId: string) {
       actorName: expense.applicantName,
       previousStatus: 'DRAFT',
       newStatus,
-      comment: approvalLineInfo.isDirectApproval
-        ? '제출 완료 (1차 전결 자동 승인)'
-        : '제출 완료',
+      comment: submitComment,
       afterSnapshot: JSON.stringify(approvalLineInfo),
     },
   });
