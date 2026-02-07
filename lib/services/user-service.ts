@@ -231,6 +231,7 @@ export async function createUser(data: {
   roleId?: string;
   department?: string;
   password?: string;
+  phoneNumber?: string;
 }): Promise<User> {
   const plainPassword = data.password || DEFAULT_PASSWORD;
   const hashedPassword = await hashPassword(plainPassword);
@@ -249,6 +250,7 @@ export async function createUser(data: {
       role: data.role ?? 'user',
       roleId,
       department: data.department,
+      phoneNumber: data.phoneNumber,
       password: hashedPassword,
     },
   });
@@ -265,6 +267,7 @@ export async function updateUser(
     roleId?: string;
     department?: string;
     password?: string;
+    phoneNumber?: string | null;
     isActive?: boolean;
   }
 ): Promise<User> {

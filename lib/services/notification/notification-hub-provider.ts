@@ -1,5 +1,8 @@
 import type { NotificationHubResult } from './types';
 
+/** 설정 미완료 경고는 한 번만 출력 (Next.js 다중 로드 대응) */
+let configWarnLogged = false;
+
 /**
  * NHN Notification Hub Provider
  *
@@ -36,7 +39,10 @@ export class NotificationHubProvider {
       this.appKey && this.userAccessKey && this.secretAccessKey && this.smsSender
     );
 
-    if (!this.isEnabled) {
+    const notificationEnabled =
+      process.env.NOTIFICATION_ENABLED === 'true' || process.env.NOTIFICATION_ENABLED === '1';
+    if (!this.isEnabled && notificationEnabled && !configWarnLogged) {
+      configWarnLogged = true;
       console.warn('[NotificationHubProvider] 설정이 완료되지 않았습니다. 환경변수를 확인하세요.');
     }
   }
@@ -64,6 +70,7 @@ export class NotificationHubProvider {
 
   /**
    * OAuth 토큰 발급
+   * Basic 인증: base64(userAccessKeyId:secretAccessKey)
    */
   private async getAccessToken(): Promise<string> {
     // 토큰이 유효한 경우 (만료 5분 전까지) 캐시 사용
@@ -73,29 +80,32 @@ export class NotificationHubProvider {
     }
 
     try {
+      // Basic 인증 헤더 생성
+      const credentials = `${this.userAccessKey}:${this.secretAccessKey}`;
+      const basicAuth = Buffer.from(credentials).toString('base64');
+
       const response = await fetch(`${this.oauthUrl}/oauth2/token/create`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${basicAuth}`,
         },
-        body: JSON.stringify({
-          auth: {
-            userAccessKeyId: this.userAccessKey,
-            secretAccessKey: this.secretAccessKey,
-          },
-        }),
+        body: 'grant_type=client_credentials',
       });
 
       const result = await response.json();
 
-      if (result.header?.isSuccessful && result.access?.token) {
-        const token = result.access.token as string;
+      // OAuth 응답 형식: { access_token, token_type, expires_in }
+      if (result.access_token) {
+        const token = result.access_token as string;
         this.accessToken = token;
-        // 토큰 유효기간 설정 (기본 12시간으로 가정)
-        this.tokenExpiry = now + 12 * 60 * 60 * 1000;
+        // expires_in은 초 단위 (기본 86400초 = 24시간)
+        const expiresIn = (result.expires_in || 86400) * 1000;
+        this.tokenExpiry = now + expiresIn;
         return token;
       } else {
-        throw new Error(result.header?.resultMessage || '토큰 발급 실패');
+        console.error('[NotificationHubProvider] 토큰 발급 응답:', result);
+        throw new Error(result.error_description || result.error || '토큰 발급 실패');
       }
     } catch (error) {
       console.error('[NotificationHubProvider] 토큰 발급 오류:', error);
@@ -123,36 +133,45 @@ export class NotificationHubProvider {
       const byteLength = Buffer.byteLength(message, 'utf8');
 
       // 90바이트 초과 시 LMS로 전환
-      const channel = byteLength > 90 ? 'LMS' : 'SMS';
+      const messageType = byteLength > 90 ? 'LMS' : 'SMS';
 
+      // Notification Hub API 요청 형식
       const requestBody: Record<string, unknown> = {
-        sender: this.normalizePhoneNumber(this.smsSender),
-        body: message,
+        sender: {
+          senderPhoneNumber: this.normalizePhoneNumber(this.smsSender),
+        },
         recipients: [
           {
-            phoneNumber: normalizedPhone,
+            contacts: [
+              {
+                contactType: 'PHONE_NUMBER',
+                contact: normalizedPhone,
+              },
+            ],
           },
         ],
+        content: {
+          messageType,
+          body: message,
+          ...(messageType === 'LMS' && title ? { title } : {}),
+        },
       };
 
-      // LMS의 경우 제목 추가
-      if (channel === 'LMS' && title) {
-        requestBody.title = title;
-      }
-
       const response = await fetch(
-        `${this.baseUrl}/message/v1.0/appkeys/${this.appKey}/${channel.toLowerCase()}/free-form-messages/NORMAL`,
+        `${this.baseUrl}/message/v1.0/${messageType}/free-form-messages/NORMAL`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json;charset=UTF-8',
-            'X-NHN-Authorization': token,
+            'X-NC-APP-KEY': this.appKey,
+            'X-NHN-Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify(requestBody),
         }
       );
 
       const result = await response.json();
+      console.log('[NotificationHubProvider] SMS 응답:', JSON.stringify(result, null, 2));
 
       if (result.header?.isSuccessful) {
         return {
@@ -162,7 +181,7 @@ export class NotificationHubProvider {
       } else {
         return {
           success: false,
-          error: result.header?.resultMessage || `${channel} 발송 실패`,
+          error: result.header?.resultMessage || `${messageType} 발송 실패`,
         };
       }
     } catch (error) {
@@ -218,12 +237,13 @@ export class NotificationHubProvider {
       };
 
       const response = await fetch(
-        `${this.baseUrl}/message/v1.0/appkeys/${this.appKey}/alimtalk/free-form-messages/NORMAL`,
+        `${this.baseUrl}/message/v1.0/ALIMTALK/free-form-messages/NORMAL`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json;charset=UTF-8',
-            'X-NHN-Authorization': token,
+            'X-NC-APP-KEY': this.appKey,
+            'X-NHN-Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify(requestBody),
         }
@@ -303,12 +323,13 @@ export class NotificationHubProvider {
       };
 
       const response = await fetch(
-        `${this.baseUrl}/message/v1.0/appkeys/${this.appKey}/alimtalk/free-form-messages/NORMAL`,
+        `${this.baseUrl}/message/v1.0/ALIMTALK/free-form-messages/NORMAL`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json;charset=UTF-8',
-            'X-NHN-Authorization': token,
+            'X-NC-APP-KEY': this.appKey,
+            'X-NHN-Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify(requestBody),
         }
