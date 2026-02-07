@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userid, username, role, roleId, department, password } = body;
+    const { userid, username, role, roleId, department, password, phoneNumber } = body;
 
     // 필수 필드 검증
     if (!userid || !username) {
@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
       roleId: resolvedRoleId,
       department,
       password,
+      phoneNumber,
     });
 
     return NextResponse.json(user, { status: 201 });

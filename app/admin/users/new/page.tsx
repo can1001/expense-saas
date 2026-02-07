@@ -39,6 +39,7 @@ export default function NewUserPage() {
     password: '',
     role: 'user',
     department: '',
+    phoneNumber: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -79,6 +80,7 @@ export default function NewUserPage() {
           password: formData.password || undefined,
           role: formData.role,
           department: formData.department.trim() || undefined,
+          phoneNumber: formData.phoneNumber.trim() || undefined,
         }),
       });
 
@@ -208,6 +210,25 @@ export default function NewUserPage() {
                 placeholder="예: 재정팀"
                 className={INPUT_BASE}
               />
+            </div>
+
+            {/* 연락처 */}
+            <div>
+              <label htmlFor="phoneNumber" className={LABEL_BASE}>
+                연락처
+              </label>
+              <input
+                type="tel"
+                id="phoneNumber"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                placeholder="예: 010-1234-5678"
+                className={INPUT_BASE}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                알림 발송에 사용됩니다. (선택)
+              </p>
             </div>
           </div>
         </div>

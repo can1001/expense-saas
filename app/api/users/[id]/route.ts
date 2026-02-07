@@ -44,7 +44,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { username, role, roleId, department, password, isActive } = body;
+    const { username, role, roleId, department, password, phoneNumber, isActive } = body;
 
     // 사용자 존재 확인
     const existingUser = await findUserById(id);
@@ -82,6 +82,7 @@ export async function PUT(
       roleId: resolvedRoleId,
       department,
       password,
+      phoneNumber,
       isActive,
     });
 
