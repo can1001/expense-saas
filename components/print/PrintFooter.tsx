@@ -7,6 +7,12 @@ interface PrintFooterProps {
   expense: Expense;
 }
 
+function formatNameForPrint(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return '';
+  return trimmed.split('').join(' ');
+}
+
 export default function PrintFooter({ expense }: PrintFooterProps) {
   const requestDate = new Date(expense.requestDate);
   const year = requestDate.getFullYear();
@@ -15,240 +21,117 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
 
   return (
     <div className="print-footer-container">
-      {/* 청구내역 - 1줄 콤팩트형 */}
-      <table className="request-table">
+      {/* 청구/입금 정보 테이블 */}
+      <table className="footer-table">
         <tbody>
+          {/* 청구 정보 */}
           <tr>
-            <td className="request-info-cell">
-              <span className="info-label">청구일자:</span>
-              <span className="info-value">{year}.{String(month).padStart(2, '0')}.{String(day).padStart(2, '0')}</span>
-            </td>
-            <td className="request-info-cell">
-              <span className="info-label">청구팀(부):</span>
-              <span className="info-value">{expense.committee}/{expense.department}</span>
-            </td>
-            <td className="request-info-cell requester-cell">
-              <span className="info-label">청구인:</span>
-              <span className="info-value">{expense.applicantName}</span>
+            <td className="label-cell">청구일자</td>
+            <td className="value-cell">{year}년 {String(month).padStart(2, '0')}월 {String(day).padStart(2, '0')}일</td>
+            <td className="label-cell">청 구 인</td>
+            <td className="value-cell requester-cell">
+              <span className="requester-name">{formatNameForPrint(expense.applicantName)}</span>
               <span className="seal-mark">(인)</span>
             </td>
+          </tr>
+          {/* 입금 정보 - 은행/계좌 */}
+          <tr>
+            <td className="label-cell">입금은행</td>
+            <td className="value-cell">{expense.bankName}</td>
+            <td className="label-cell">계좌번호</td>
+            <td className="value-cell">{expense.accountNumber}</td>
+          </tr>
+          {/* 입금 정보 - 예금주/청구팀 */}
+          <tr>
+            <td className="label-cell">예 금 주</td>
+            <td className="value-cell">{expense.accountHolder}</td>
+            <td className="label-cell">청구팀(부)</td>
+            <td className="value-cell">{expense.committee} / {expense.department}</td>
           </tr>
         </tbody>
       </table>
 
-      {/* 입금정보 - 1줄 콤팩트형 */}
-      <table className="bank-table">
-        <tbody>
-          <tr>
-            <td className="bank-info-cell">
-              <span className="info-label">은행:</span>
-              <span className="info-value">{expense.bankName}</span>
-            </td>
-            <td className="bank-info-cell account-cell">
-              <span className="info-label">계좌번호:</span>
-              <span className="info-value">{expense.accountNumber}</span>
-            </td>
-            <td className="bank-info-cell">
-              <span className="info-label">예금주:</span>
-              <span className="info-value">{expense.accountHolder}</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      {/* 최종확인 - 1줄 통합형 */}
-      {/* <table className="confirmation-table">
-        <tbody>
-          <tr>
-            <td className="confirm-cell">
-              <span className="confirm-label">재정팀 검토</span>
-              <span className="seal-mark">(인)</span>
-            </td>
-            <td className="confirm-cell">
-              <span className="confirm-label">회계 승인</span>
-              <span className="seal-mark">(인)</span>
-            </td>
-            <td className="confirm-cell">
-              <span className="confirm-label">지급완료</span>
-              <span className="confirm-date">____.____.____</span>
-            </td>
-          </tr>
-        </tbody>
-      </table> */}
-
-      {/* 교회명 + 버전 */}
+      {/* 교회명 푸터 */}
       <div className="church-footer">
         <span className="church-name">청 연 교 회</span>
-        <span className="version-text">지출결의서 Ver.4.1.4</span>
       </div>
 
       <style jsx>{`
         .print-footer-container {
-          margin-top: 16px;
+          margin-top: 0;
         }
 
-        /* 청구내역 테이블 */
-        .request-table {
+        /* 푸터 테이블 */
+        .footer-table {
           width: 100%;
           border-collapse: collapse;
-          table-layout: fixed;
+          border: 2px solid #000;
+          border-top: none;
         }
 
-        .request-table td {
-          border: 1px solid #000;
-          padding: 8px 10px;
-          vertical-align: middle;
-          font-size: 10pt;
-          background-color: #fff;
+        .footer-table tr {
+          border-bottom: 1px solid #000;
         }
 
-        /* 입금정보 테이블 */
-        .bank-table {
-          width: 100%;
-          border-collapse: collapse;
-          table-layout: fixed;
-          margin-top: 8px;
-        }
-
-        .bank-table td {
-          border: 1px solid #000;
-          padding: 8px 10px;
-          vertical-align: middle;
-          font-size: 10pt;
-          background-color: #fff;
-        }
-
-        /* 섹션 라벨 */
-        .section-label {
-          width: 35px;
-          text-align: center;
-          vertical-align: middle;
-          padding: 8px 4px;
-          font-weight: 700;
-          font-size: 10pt;
-          line-height: 1.6;
-          letter-spacing: 0.5px;
-          background-color: #f8f9fa;
-        }
-
-        .bank-label {
-          line-height: 1.4;
+        .footer-table tr:last-child {
+          border-bottom: none;
         }
 
         /* 라벨 셀 */
         .label-cell {
-          text-align: center;
+          width: 100px;
+          background-color: #f0f0f0;
+          font-size: 10pt;
           font-weight: 600;
-          white-space: nowrap;
-          background-color: #f8f9fa;
-          font-size: 10pt;
-        }
-
-        /* 청구내역 1줄 콤팩트형 셀 */
-        .request-info-cell {
           text-align: center;
-          font-size: 10pt;
           padding: 10px 12px;
+          border-right: 1px solid #000;
+          letter-spacing: 2px;
         }
 
-        .request-info-cell.requester-cell {
-          min-width: 140px;
+        /* 값 셀 */
+        .value-cell {
+          font-size: 10pt;
+          padding: 10px 15px;
+          border-right: 1px solid #000;
         }
 
-        .info-label {
+        .value-cell:last-child {
+          border-right: none;
+        }
+
+        /* 청구인 셀 */
+        .requester-cell {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .requester-name {
           font-weight: 600;
-          color: #333;
-          margin-right: 8px;
-        }
-
-        .info-value {
-          font-weight: 700;
-        }
-
-        .request-info-cell .seal-mark {
-          margin-left: 10px;
+          letter-spacing: 4px;
         }
 
         .seal-mark {
-          display: inline-block;
           font-weight: 700;
           color: #d32f2f;
-          font-size: 10.5pt;
+          font-size: 11pt;
+          margin-left: 10px;
         }
 
-        /* 입금정보 1줄 콤팩트형 셀 */
-        .bank-info-cell {
-          text-align: center;
-          font-size: 10pt;
-          padding: 10px 12px;
-        }
-
-        .bank-info-cell.account-cell {
-          flex: 2;
-          min-width: 180px;
-        }
-
-        .bank-info-cell .info-value {
-          letter-spacing: 0.3px;
-        }
-
-        /* 최종확인 테이블 */
-        .confirmation-table {
-          width: 100%;
-          border-collapse: collapse;
-          table-layout: fixed;
-          margin-top: 8px;
-        }
-
-        .confirmation-table td {
-          border: 1px solid #000;
-          padding: 10px 12px;
-          vertical-align: middle;
-          font-size: 10pt;
-          background-color: #fff;
-        }
-
-        /* 최종확인 1줄 통합형 셀 */
-        .confirm-cell {
-          text-align: center;
-        }
-
-        .confirm-label {
-          font-weight: 600;
-          color: #333;
-          margin-right: 12px;
-        }
-
-        .confirm-date {
-          font-weight: 700;
-          letter-spacing: 1px;
-        }
-
-        /* 교회명 + 버전 */
+        /* 교회명 푸터 */
         .church-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 18px;
-          padding: 10px 20px;
-          border-top: 2.5px solid #000;
-          border-bottom: 1px solid #333;
-          background-color: #f5f5f5;
+          margin-top: 20px;
+          text-align: center;
+          padding: 10px 0;
         }
 
         .church-name {
-          font-size: 20pt;
+          font-size: 16pt;
           font-weight: 700;
-          letter-spacing: 12px;
-          color: #26a69a;
-          text-shadow: 0.5px 0.5px 0 rgba(0, 0, 0, 0.1);
-        }
-
-        .version-text {
-          font-size: 8.5pt;
-          color: #666;
-          font-weight: 500;
-          text-align: right;
+          letter-spacing: 14px;
+          color: #333;
+          padding-left: 14px;
         }
 
         /* 프린트 최적화 */
@@ -257,20 +140,15 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
             page-break-inside: avoid;
           }
 
-          .request-table td,
-          .bank-table td,
-          .confirmation-table td {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+          .footer-table {
+            border: 2px solid #000 !important;
+            border-top: none !important;
           }
 
-          .church-footer {
+          .label-cell {
+            background-color: #f0f0f0 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
-          }
-
-          .church-name {
-            color: #26a69a !important;
           }
 
           .seal-mark {

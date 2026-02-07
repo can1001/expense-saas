@@ -102,24 +102,21 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
         </div>
       </div>
 
-      {/* 예산/지출 정보 - 2행 그리드형 */}
+      {/* 예산/지출 정보 */}
       <table className="info-table">
         <tbody>
           <tr>
-            <td className="header-info-cell">
-              <span className="info-label">예산항목:</span>
-              <span className="info-value">{expense.items?.[0]?.budgetCategory || '-'} / {expense.items?.[0]?.budgetSubcategory || '-'}</span>
-            </td>
-            <td className="header-info-cell">
-              <span className="info-label">지출일자:</span>
-              <span className="info-value">{expenseYear}년 {String(expenseMonth).padStart(2, '0')}월 {String(expenseDay).padStart(2, '0')}일</span>
-            </td>
+            <td className="info-label-cell">예산항목</td>
+            <td className="info-value-cell">{expense.items?.[0]?.budgetCategory || '-'} / {expense.items?.[0]?.budgetSubcategory || '-'}</td>
           </tr>
           <tr>
-            <td colSpan={2} className="amount-row">
-              <span className="amount-label">청 구 금 액</span>
-              <span className="amount-separator">:</span>
-              <span className="amount-value">₩ {formatCurrency(expense.requestAmount)} 원</span>
+            <td className="info-label-cell">지출일자</td>
+            <td className="info-value-cell">{expenseYear}년 {String(expenseMonth).padStart(2, '0')}월 {String(expenseDay).padStart(2, '0')}일</td>
+          </tr>
+          <tr>
+            <td className="info-label-cell">청구금액</td>
+            <td className="info-value-cell amount-cell">
+              금 {formatCurrency(expense.requestAmount)} 원정
             </td>
           </tr>
         </tbody>
@@ -127,29 +124,29 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
 
       <style jsx>{`
         .print-header-container {
-          margin-bottom: 10px;
+          margin-bottom: 0;
         }
 
         /* 상단: 로고 + 제목 + 결재란 */
         .header-top {
           display: flex;
           align-items: stretch;
-          border: 1px solid #000;
-          margin-bottom: 0;
+          border: 2px solid #000;
+          border-bottom: 1px solid #000;
         }
 
         /* 로고 */
         .logo-section {
-          width: 80px;
+          width: 90px;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 10px;
+          padding: 12px;
           border-right: 1px solid #000;
         }
 
         .logo-image {
-          width: 60px;
+          width: 65px;
           height: auto;
         }
 
@@ -159,15 +156,17 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 15px;
+          padding: 20px 15px;
           border-right: 1px solid #000;
         }
 
         .title-text {
-          font-size: 22pt;
+          font-size: 24pt;
           font-weight: bold;
-          letter-spacing: 15px;
+          letter-spacing: 12px;
           margin: 0;
+          padding-left: 12px;
+          white-space: nowrap;
         }
 
         /* 결재란 */
@@ -183,11 +182,11 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
         }
 
         .approval-header {
-          background-color: #f5f5f5;
-          font-size: 8pt;
+          background-color: #f0f0f0;
+          font-size: 9pt;
           font-weight: bold;
           text-align: center;
-          padding: 4px 8px;
+          padding: 6px 10px;
           border-bottom: 1px solid #000;
           border-right: 1px solid #000;
           min-width: 55px;
@@ -198,7 +197,7 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
         }
 
         .approval-sign-cell {
-          height: 45px;
+          height: 50px;
           text-align: center;
           vertical-align: middle;
           border-bottom: 1px solid #000;
@@ -212,94 +211,75 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
 
         .signature-image {
           max-width: 45px;
-          max-height: 35px;
+          max-height: 40px;
           object-fit: contain;
         }
 
         .approved-mark {
           color: #10B981;
-          font-size: 9pt;
+          font-size: 10pt;
           font-weight: bold;
         }
 
         .rejected-mark {
           color: #EF4444;
-          font-size: 9pt;
+          font-size: 10pt;
           font-weight: bold;
         }
 
         .pending-mark {
           display: block;
-          height: 35px;
+          height: 40px;
         }
 
         .approval-name-cell {
-          font-size: 8pt;
+          font-size: 9pt;
           text-align: center;
-          padding: 4px;
+          padding: 6px;
           border-right: 1px solid #000;
-          letter-spacing: 2px;
+          letter-spacing: 3px;
         }
 
         .approval-name-cell:last-child {
           border-right: none;
         }
 
-        /* 정보 테이블 - 2행 그리드형 */
+        /* 정보 테이블 */
         .info-table {
           width: 100%;
           border-collapse: collapse;
-          border: 1px solid #000;
+          border: 2px solid #000;
           border-top: none;
         }
 
-        .info-table td {
-          border: 1px solid #000;
-          padding: 10px 12px;
-          vertical-align: middle;
+        .info-table tr {
+          border-bottom: 1px solid #000;
         }
 
-        .header-info-cell {
-          text-align: center;
+        .info-table tr:last-child {
+          border-bottom: none;
+        }
+
+        .info-label-cell {
+          width: 100px;
+          background-color: #f0f0f0;
           font-size: 10pt;
-          width: 50%;
-        }
-
-        .header-info-cell .info-label {
           font-weight: 600;
-          color: #333;
-          margin-right: 8px;
-        }
-
-        .header-info-cell .info-value {
-          font-weight: 700;
-        }
-
-        /* 청구금액 행 - 강조 */
-        .amount-row {
           text-align: center;
-          padding: 12px 20px;
-          background-color: #fafafa;
+          padding: 10px 12px;
+          border-right: 1px solid #000;
+          letter-spacing: 2px;
         }
 
-        .amount-row .amount-label {
-          font-size: 12pt;
-          font-weight: 600;
-          letter-spacing: 8px;
-          color: #333;
+        .info-value-cell {
+          font-size: 10pt;
+          padding: 10px 15px;
         }
 
-        .amount-row .amount-separator {
+        .amount-cell {
           font-size: 14pt;
           font-weight: bold;
-          margin: 0 15px;
-        }
-
-        .amount-row .amount-value {
-          font-size: 16pt;
-          font-weight: bold;
-          color: #000;
-          letter-spacing: 2px;
+          letter-spacing: 1px;
         }
 
         @media print {
@@ -308,8 +288,19 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
             print-color-adjust: exact;
           }
 
-          .approval-header {
-            background-color: #f5f5f5 !important;
+          .header-top {
+            border: 2px solid #000 !important;
+            border-bottom: 1px solid #000 !important;
+          }
+
+          .info-table {
+            border: 2px solid #000 !important;
+            border-top: none !important;
+          }
+
+          .approval-header,
+          .info-label-cell {
+            background-color: #f0f0f0 !important;
           }
 
           .approved-mark {
@@ -318,10 +309,6 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
 
           .rejected-mark {
             color: #EF4444 !important;
-          }
-
-          .amount-row {
-            background-color: #fafafa !important;
           }
         }
       `}</style>

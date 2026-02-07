@@ -9,8 +9,8 @@ interface PrintItemsProps {
 }
 
 export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
-  // 빈 행 채우기 (최대 10행)
-  const emptyRows = Math.max(0, 10 - items.length);
+  // 빈 행 채우기 (최대 8행)
+  const emptyRows = Math.max(0, 8 - items.length);
 
   return (
     <div className="print-items-container">
@@ -32,16 +32,18 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
       <table className="items-table">
         <thead>
           <tr>
+            <th className="col-no">순번</th>
             <th className="col-detail">세 목</th>
             <th className="col-desc">적 요</th>
-            <th className="col-price">단가</th>
-            <th className="col-qty">인원<br />(수량)</th>
-            <th className="col-amount">금액</th>
+            <th className="col-price">단 가</th>
+            <th className="col-qty">수량</th>
+            <th className="col-amount">금 액</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => (
+          {items.map((item, index) => (
             <tr key={item.id}>
+              <td className="cell-no">{index + 1}</td>
               <td className="cell-detail">{item.budgetDetail}</td>
               <td className="cell-desc">{item.description}</td>
               <td className="cell-price">{formatCurrency(item.unitPrice)}</td>
@@ -52,6 +54,7 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
           {/* 빈 행 */}
           {Array.from({ length: emptyRows }).map((_, index) => (
             <tr key={`empty-${index}`} className="empty-row">
+              <td className="cell-no">&nbsp;</td>
               <td className="cell-detail">&nbsp;</td>
               <td className="cell-desc">&nbsp;</td>
               <td className="cell-price">&nbsp;</td>
@@ -62,7 +65,7 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
         </tbody>
         <tfoot>
           <tr className="total-row">
-            <td colSpan={4} className="total-label">합 계</td>
+            <td colSpan={5} className="total-label">합 계</td>
             <td className="total-amount">{formatCurrency(totalAmount)}</td>
           </tr>
         </tfoot>
@@ -70,7 +73,7 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
 
       <style jsx>{`
         .print-items-container {
-          margin-top: 8px;
+          margin-top: 0;
         }
 
         .notice-text {
@@ -84,7 +87,7 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
           display: flex;
           align-items: center;
           background-color: #fffde7;
-          border: 1px solid #000;
+          border: 2px solid #000;
           border-bottom: none;
           font-size: 8pt;
           color: #666;
@@ -92,18 +95,20 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
         }
 
         .example-label {
-          width: 15%;
+          width: 18%;
           font-weight: bold;
+          padding-left: 8%;
+          white-space: nowrap;
         }
 
         .example-content {
-          flex: 1;
+          width: 34%;
         }
 
         .example-price {
-          width: 12%;
+          width: 14%;
           text-align: right;
-          padding-right: 15px;
+          padding-right: 10px;
         }
 
         .example-qty {
@@ -112,47 +117,58 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
         }
 
         .example-amount {
-          width: 15%;
+          width: 18%;
           text-align: right;
-          padding-right: 8px;
+          padding-right: 10px;
         }
 
         .items-table {
           width: 100%;
           border-collapse: collapse;
+          border: 2px solid #000;
+          border-top: none;
+          border-bottom: none;
         }
 
         .items-table th,
         .items-table td {
           border: 1px solid #000;
-          padding: 6px 8px;
+          padding: 8px 10px;
           text-align: center;
           vertical-align: middle;
         }
 
         .items-table th {
-          background-color: #c8e6c9;
+          background-color: #f0f0f0;
           font-weight: bold;
           font-size: 10pt;
-          height: 35px;
+          height: 38px;
+          letter-spacing: 2px;
         }
 
-        .col-detail { width: 15%; }
-        .col-desc { width: 45%; }
-        .col-price { width: 12%; }
+        .col-no { width: 8%; }
+        .col-detail { width: 18%; }
+        .col-desc { width: 34%; }
+        .col-price { width: 14%; }
         .col-qty { width: 8%; }
-        .col-amount { width: 15%; }
+        .col-amount { width: 18%; }
 
         .items-table tbody tr {
-          height: 32px;
+          height: 34px;
         }
 
         .empty-row {
-          height: 32px;
+          height: 34px;
+        }
+
+        .cell-no {
+          font-size: 9pt;
         }
 
         .cell-detail {
           font-size: 9pt;
+          text-align: left;
+          padding-left: 8px !important;
         }
 
         .cell-desc {
@@ -175,25 +191,49 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
           text-align: right;
           padding-right: 10px !important;
           font-size: 9pt;
+          font-weight: 500;
         }
 
         .total-row {
-          background-color: #f5f5f5;
+          background-color: #f0f0f0;
+          height: 40px;
         }
 
         .total-label {
           text-align: right;
           padding-right: 20px !important;
           font-weight: bold;
-          font-size: 10pt;
-          letter-spacing: 5px;
+          font-size: 11pt;
+          letter-spacing: 8px;
         }
 
         .total-amount {
           text-align: right;
           padding-right: 10px !important;
           font-weight: bold;
-          font-size: 11pt;
+          font-size: 12pt;
+        }
+
+        @media print {
+          .example-row {
+            background-color: #fffde7 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .items-table {
+            border: 2px solid #000 !important;
+            border-top: none !important;
+            border-bottom: none !important;
+          }
+
+          .items-table th {
+            background-color: #f0f0f0 !important;
+          }
+
+          .total-row {
+            background-color: #f0f0f0 !important;
+          }
         }
       `}</style>
     </div>
