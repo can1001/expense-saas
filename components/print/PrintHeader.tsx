@@ -278,9 +278,7 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
         }
 
         .amount-cell {
-          font-size: 14pt;
-          font-weight: bold;
-          letter-spacing: 1px;
+          font-size: 10pt;
         }
 
         @media print {
