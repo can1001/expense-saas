@@ -61,19 +61,24 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
             <tbody>
               <tr>
                 {hasApprovalLine ? (
-                  steps.map((step) => (
-                    <td key={`s-${step.id}`} className="approval-sign-cell">
-                      {step.status === 'APPROVED' && step.signatureData ? (
-                        <img src={step.signatureData} alt="서명" className="signature-image" />
-                      ) : step.status === 'APPROVED' ? (
-                        <span className="approved-mark">승인</span>
-                      ) : step.status === 'REJECTED' ? (
-                        <span className="rejected-mark">반려</span>
-                      ) : (
-                        <span className="pending-mark"></span>
-                      )}
-                    </td>
-                  ))
+                  steps.map((step) => {
+                    const isAutoApproved = step.stepName.includes('전결');
+                    return (
+                      <td key={`s-${step.id}`} className="approval-sign-cell">
+                        {step.status === 'APPROVED' && isAutoApproved ? (
+                          <span className="auto-approved-mark">{step.stepName}</span>
+                        ) : step.status === 'APPROVED' && step.signatureData ? (
+                          <img src={step.signatureData} alt="서명" className="signature-image" />
+                        ) : step.status === 'APPROVED' ? (
+                          <span className="approved-mark">승인</span>
+                        ) : step.status === 'REJECTED' ? (
+                          <span className="rejected-mark">반려</span>
+                        ) : (
+                          <span className="pending-mark"></span>
+                        )}
+                      </td>
+                    );
+                  })
                 ) : (
                   <>
                     <td className="approval-sign-cell"></td>
@@ -221,6 +226,13 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
           font-weight: bold;
         }
 
+        .auto-approved-mark {
+          color: #2563EB;
+          font-size: 9pt;
+          font-weight: bold;
+          white-space: nowrap;
+        }
+
         .rejected-mark {
           color: #EF4444;
           font-size: 10pt;
@@ -308,6 +320,10 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
 
           .rejected-mark {
             color: #EF4444 !important;
+          }
+
+          .auto-approved-mark {
+            color: #2563EB !important;
           }
         }
       `}</style>
