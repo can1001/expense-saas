@@ -15,120 +15,113 @@ function formatNameForPrint(name: string): string {
 }
 
 export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps) {
-  const expenseDate = expense.expenseDate ? new Date(expense.expenseDate) : null;
-  const expenseYear = expenseDate ? expenseDate.getFullYear() : '';
-  const expenseMonth = expenseDate ? expenseDate.getMonth() + 1 : '';
-  const expenseDay = expenseDate ? expenseDate.getDate() : '';
-
-  // 결재 단계 (없으면 기본 3단계)
   const steps = approvalLine?.steps || [];
-  const hasApprovalLine = steps.length > 0;
+
+  // 지출일자에서 연도 추출
+  const expenseDate = expense.expenseDate ? new Date(expense.expenseDate) : new Date();
+  const year = expenseDate.getFullYear();
+
+  // 결재 단계별로 분리
+  const leftStep = steps.find(s => s.stepNumber === 1);
+  const rightSteps = steps.filter(s => s.stepNumber !== 1).sort((a, b) => b.stepNumber - a.stepNumber);
+
+  // 우측 결재 셀 (재정팀장, 회계)
+  const topRightStep = rightSteps[0]; // 재정팀장
+  const bottomRightStep = rightSteps[1]; // 회계
+
+  // 결재 상태 렌더링
+  const renderSignature = (step?: typeof steps[0]) => {
+    if (!step) return <span className="pending-mark"></span>;
+
+    const isAutoApproved = step.stepName.includes('전결');
+
+    if (step.status === 'APPROVED' && isAutoApproved) {
+      // "재정팀장(전결)" -> "재정팀장" + 줄바꿈 + "(전결)"
+      const title = step.stepName.replace('(전결)', '').trim();
+      return (
+        <span className="auto-approved-mark">
+          {title}<br/>(전결)
+        </span>
+      );
+    } else if (step.status === 'APPROVED' && step.signatureData) {
+      return <img src={step.signatureData} alt="서명" className="signature-image" />;
+    } else if (step.status === 'APPROVED') {
+      return <span className="approved-mark">승인</span>;
+    } else if (step.status === 'REJECTED') {
+      return <span className="rejected-mark">반려</span>;
+    }
+    return <span className="pending-mark"></span>;
+  };
 
   return (
     <div className="print-header-container">
-      {/* 상단: 로고 + 제목 + 결재란 */}
-      <div className="header-top">
-        {/* 로고 */}
-        <div className="logo-section">
-          <img src="/logo.png" alt="교회 로고" className="logo-image" />
-        </div>
-
-        {/* 제목 */}
-        <div className="title-section">
-          <h1 className="title-text">지 출 결 의 서</h1>
-        </div>
-
-        {/* 결재란 */}
-        <div className="approval-section">
-          <table className="approval-table">
-            <thead>
-              <tr>
-                {hasApprovalLine ? (
-                  steps.map((step) => {
-                    // 1차 결재 단계는 항상 사역팀(부)장으로 표시
-                    const displayName = step.stepNumber === 1
-                      ? '사역팀(부)장'
-                      : step.stepName;
-                    return (
-                      <th key={`h-${step.id}`} className="approval-header">
-                        {displayName}
-                      </th>
-                    );
-                  })
-                ) : (
-                  <>
-                    <th className="approval-header">사역팀(부)장</th>
-                    <th className="approval-header">회계</th>
-                    <th className="approval-header">재정팀장</th>
-                  </>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                {hasApprovalLine ? (
-                  steps.map((step) => {
-                    const isAutoApproved = step.stepName.includes('전결');
-                    return (
-                      <td key={`s-${step.id}`} className="approval-sign-cell">
-                        {step.status === 'APPROVED' && isAutoApproved ? (
-                          <span className="auto-approved-mark">{step.stepName}</span>
-                        ) : step.status === 'APPROVED' && step.signatureData ? (
-                          <img src={step.signatureData} alt="서명" className="signature-image" />
-                        ) : step.status === 'APPROVED' ? (
-                          <span className="approved-mark">승인</span>
-                        ) : step.status === 'REJECTED' ? (
-                          <span className="rejected-mark">반려</span>
-                        ) : (
-                          <span className="pending-mark"></span>
-                        )}
-                      </td>
-                    );
-                  })
-                ) : (
-                  <>
-                    <td className="approval-sign-cell"></td>
-                    <td className="approval-sign-cell"></td>
-                    <td className="approval-sign-cell"></td>
-                  </>
-                )}
-              </tr>
-              <tr>
-                {hasApprovalLine ? (
-                  steps.map((step) => (
-                    <td key={`n-${step.id}`} className="approval-name-cell">
-                      {formatNameForPrint(step.approverName)}
-                    </td>
-                  ))
-                ) : (
-                  <>
-                    <td className="approval-name-cell"></td>
-                    <td className="approval-name-cell"></td>
-                    <td className="approval-name-cell"></td>
-                  </>
-                )}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* 예산/지출 정보 */}
-      <table className="info-table">
+      <table className="header-table">
         <tbody>
+          {/* Row 1: 로고(rs=4) + 지출결의서(rs=2,cs=2) + 재정팀장 헤더 */}
           <tr>
-            <td className="info-label-cell">예산항목</td>
-            <td className="info-value-cell">{expense.items?.[0]?.budgetCategory || '-'} / {expense.items?.[0]?.budgetSubcategory || '-'}</td>
-          </tr>
-          <tr>
-            <td className="info-label-cell">지출일자</td>
-            <td className="info-value-cell">&nbsp;</td>
-          </tr>
-          <tr>
-            <td className="info-label-cell">청구금액</td>
-            <td className="info-value-cell amount-cell">
-              금 {formatCurrency(expense.requestAmount)} 원정
+            <td className="logo-cell" rowSpan={4}>
+              <img src="/logo.png" alt="교회 로고" className="logo-image" />
             </td>
+            <td className="title-cell" rowSpan={2} colSpan={2}>
+              <h1 className="title-text">지 출 결 의 서</h1>
+            </td>
+            <td className="approval-header-cell">{topRightStep?.stepName || '재정팀장'}</td>
+          </tr>
+
+          {/* Row 2: (지출결의서 계속) + 재정팀장 서명(rs=2) */}
+          <tr>
+            <td className="approval-sign-cell" rowSpan={2}>
+              {renderSignature(topRightStep)}
+            </td>
+          </tr>
+
+          {/* Row 3: 예산항목(rs=2) + (재정팀장 서명 계속) */}
+          <tr>
+            <td className="info-label-cell" rowSpan={2}>예산항목<br/>(계정과목)</td>
+            <td className="info-value-cell" rowSpan={2}>
+              {expense.items?.[0]?.budgetCategory || '-'} / {expense.items?.[0]?.budgetSubcategory || '-'}
+            </td>
+          </tr>
+
+          {/* Row 4: (예산항목 계속) + 재정팀장 이름 */}
+          <tr>
+            <td className="approval-name-cell">{formatNameForPrint(topRightStep?.approverName || '')}</td>
+          </tr>
+
+          {/* Row 5: 사역팀(부)장 헤더 + 지출일자(rs=2) + 회계 헤더 */}
+          <tr>
+            <td className="approval-header-cell">사역팀(부)장</td>
+            <td className="info-label-cell" rowSpan={2}>지출일자</td>
+            <td className="info-value-cell date-cell" rowSpan={2}>
+              <span className="year-text">{year}</span> 년
+              <span className="date-blank"></span> 월
+              <span className="date-blank"></span> 일
+            </td>
+            <td className="approval-header-cell">{bottomRightStep?.stepName || '회계'}</td>
+          </tr>
+
+          {/* Row 6: 사역팀(부)장 서명(rs=2) + (지출일자 계속) + 회계 서명(rs=2) */}
+          <tr>
+            <td className="approval-sign-cell" rowSpan={2}>
+              {renderSignature(leftStep)}
+            </td>
+            <td className="approval-sign-cell" rowSpan={2}>
+              {renderSignature(bottomRightStep)}
+            </td>
+          </tr>
+
+          {/* Row 7: (서명 계속) + 청구금액(rs=2) + (서명 계속) */}
+          <tr>
+            <td className="info-label-cell" rowSpan={2}>청구금액</td>
+            <td className="info-value-cell amount-cell" rowSpan={2}>
+              ₩ {formatCurrency(expense.requestAmount)} 원
+            </td>
+          </tr>
+
+          {/* Row 8: 사역팀(부)장 이름 + (청구금액 계속) + 회계 이름 */}
+          <tr>
+            <td className="approval-name-cell">{formatNameForPrint(leftStep?.approverName || '')}</td>
+            <td className="approval-name-cell">{formatNameForPrint(bottomRightStep?.approverName || '')}</td>
           </tr>
         </tbody>
       </table>
@@ -138,22 +131,22 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
           margin-bottom: 0;
         }
 
-        /* 상단: 로고 + 제목 + 결재란 */
-        .header-top {
-          display: flex;
-          align-items: stretch;
+        .header-table {
+          width: 100%;
+          border-collapse: collapse;
           border: 2px solid #000;
-          border-bottom: 1px solid #000;
         }
 
-        /* 로고 */
-        .logo-section {
+        .header-table td {
+          border: 1px solid #000;
+        }
+
+        /* 로고 셀 */
+        .logo-cell {
           width: 90px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 12px;
-          border-right: 1px solid #000;
+          text-align: center;
+          vertical-align: middle;
+          padding: 10px;
         }
 
         .logo-image {
@@ -161,14 +154,12 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
           height: auto;
         }
 
-        /* 제목 */
-        .title-section {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px 15px;
-          border-right: 1px solid #000;
+        /* 제목 셀 */
+        .title-cell {
+          height: 50px;
+          text-align: center;
+          vertical-align: middle;
+          padding: 12px;
         }
 
         .title-text {
@@ -176,53 +167,75 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
           font-weight: bold;
           letter-spacing: 12px;
           margin: 0;
-          padding-left: 12px;
           white-space: nowrap;
         }
 
-        /* 결재란 */
-        .approval-section {
-          width: auto;
-          min-width: 180px;
+        /* 정보 라벨 셀 */
+        .info-label-cell {
+          width: 100px;
+          height: 50px;
+          background-color: #f8f8f8;
+          font-size: 10pt;
+          font-weight: 600;
+          text-align: center;
+          vertical-align: middle;
+          padding: 8px 10px;
+          letter-spacing: 1px;
+          line-height: 1.4;
         }
 
-        .approval-table {
-          width: 100%;
-          height: 100%;
-          border-collapse: collapse;
+        /* 정보 값 셀 */
+        .info-value-cell {
+          height: 50px;
+          font-size: 10pt;
+          text-align: center;
+          vertical-align: middle;
+          padding: 8px 15px;
         }
 
-        .approval-header {
+        .date-cell {
+          letter-spacing: 2px;
+        }
+
+        .year-text {
+          font-weight: 600;
+        }
+
+        .date-blank {
+          display: inline-block;
+          width: 25px;
+          margin: 0 3px;
+        }
+
+        .amount-cell {
+          font-weight: 500;
+        }
+
+        /* 결재 헤더 셀 */
+        .approval-header-cell {
+          width: 70px;
+          height: 25px;
           background-color: #f8f8f8;
           font-size: 9pt;
           font-weight: bold;
           text-align: center;
-          padding: 6px 10px;
-          border-bottom: 1px solid #000;
-          border-right: 1px solid #000;
-          min-width: 55px;
+          vertical-align: middle;
+          padding: 6px 8px;
+          white-space: nowrap;
         }
 
-        .approval-header:last-child {
-          border-right: none;
-        }
-
+        /* 결재 서명 셀 */
         .approval-sign-cell {
+          width: 70px;
           height: 50px;
           text-align: center;
           vertical-align: middle;
-          border-bottom: 1px solid #000;
-          border-right: 1px solid #000;
           padding: 4px;
         }
 
-        .approval-sign-cell:last-child {
-          border-right: none;
-        }
-
         .signature-image {
-          max-width: 45px;
-          max-height: 40px;
+          max-width: 50px;
+          max-height: 45px;
           object-fit: contain;
         }
 
@@ -250,53 +263,15 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
           height: 40px;
         }
 
+        /* 결재 이름 셀 */
         .approval-name-cell {
+          width: 70px;
+          height: 25px;
           font-size: 9pt;
           text-align: center;
+          vertical-align: middle;
           padding: 6px;
-          border-right: 1px solid #000;
           letter-spacing: 3px;
-        }
-
-        .approval-name-cell:last-child {
-          border-right: none;
-        }
-
-        /* 정보 테이블 */
-        .info-table {
-          width: 100%;
-          border-collapse: collapse;
-          border: 2px solid #000;
-          border-top: none;
-        }
-
-        .info-table tr {
-          border-bottom: 1px solid #000;
-        }
-
-        .info-table tr:last-child {
-          border-bottom: none;
-        }
-
-        .info-label-cell {
-          width: 100px;
-          background-color: #f8f8f8;
-          font-size: 10pt;
-          font-weight: 600;
-          text-align: center;
-          padding: 10px 12px;
-          border-right: 1px solid #000;
-          letter-spacing: 2px;
-        }
-
-        .info-value-cell {
-          font-size: 10pt;
-          padding: 10px 15px;
-          text-align: center;
-        }
-
-        .amount-cell {
-          font-size: 10pt;
         }
 
         @media print {
@@ -305,18 +280,12 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
             print-color-adjust: exact;
           }
 
-          .header-top {
+          .header-table {
             border: 2px solid #000 !important;
-            border-bottom: 1px solid #000 !important;
           }
 
-          .info-table {
-            border: 2px solid #000 !important;
-            border-top: none !important;
-          }
-
-          .approval-header,
-          .info-label-cell {
+          .info-label-cell,
+          .approval-header-cell {
             background-color: #f8f8f8 !important;
           }
 
