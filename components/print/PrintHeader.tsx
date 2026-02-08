@@ -45,8 +45,8 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
               <tr>
                 {hasApprovalLine ? (
                   steps.map((step) => {
-                    // 담당자 → 사역팀(부)장으로 표시
-                    const displayName = step.stepName.startsWith('담당자')
+                    // 1차 결재 단계는 항상 사역팀(부)장으로 표시
+                    const displayName = step.stepNumber === 1
                       ? '사역팀(부)장'
                       : step.stepName;
                     return (
