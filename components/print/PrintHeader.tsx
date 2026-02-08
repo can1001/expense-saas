@@ -36,7 +36,13 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
     const isAutoApproved = step.stepName.includes('전결');
 
     if (step.status === 'APPROVED' && isAutoApproved) {
-      return <span className="auto-approved-mark">{step.stepName}</span>;
+      // "재정팀장(전결)" -> "재정팀장" + 줄바꿈 + "(전결)"
+      const title = step.stepName.replace('(전결)', '').trim();
+      return (
+        <span className="auto-approved-mark">
+          {title}<br/>(전결)
+        </span>
+      );
     } else if (step.status === 'APPROVED' && step.signatureData) {
       return <img src={step.signatureData} alt="서명" className="signature-image" />;
     } else if (step.status === 'APPROVED') {
