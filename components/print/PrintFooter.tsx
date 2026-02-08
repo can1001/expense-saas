@@ -31,15 +31,16 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
             <td className="label-cell">청 구 인</td>
             <td className="value-cell requester-cell">
               <span className="requester-name">{formatNameForPrint(expense.applicantName)}</span>
-              {expense.applicantSignatureData ? (
-                <img
-                  src={expense.applicantSignatureData}
-                  alt="청구인 서명"
-                  className="signature-image"
-                />
-              ) : (
+              <span className="signature-area">
                 <span className="seal-mark">(인)</span>
-              )}
+                {expense.applicantSignatureData && (
+                  <img
+                    src={expense.applicantSignatureData}
+                    alt="청구인 서명"
+                    className="signature-image"
+                  />
+                )}
+              </span>
             </td>
           </tr>
           {/* 입금 정보 - 은행/계좌 */}
@@ -120,19 +121,36 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
           letter-spacing: 4px;
         }
 
-        .seal-mark {
-          font-weight: 700;
-          color: #d32f2f;
-          font-size: 11pt;
+        /* 서명 영역 (인 + 서명 오버레이) */
+        .signature-area {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 60px;
+          height: 45px;
           margin-left: 10px;
         }
 
+        .seal-mark {
+          position: absolute;
+          font-weight: 700;
+          color: #d32f2f;
+          font-size: 14pt;
+          z-index: 1;
+        }
+
         .signature-image {
-          height: 40px;
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          height: 50px;
           width: auto;
-          max-width: 80px;
+          max-width: 70px;
           object-fit: contain;
-          margin-left: 10px;
+          z-index: 2;
+          mix-blend-mode: multiply;
         }
 
         /* 교회명 푸터 */
@@ -169,6 +187,10 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
 
           .seal-mark {
             color: #d32f2f !important;
+          }
+
+          .signature-image {
+            mix-blend-mode: multiply !important;
           }
         }
       `}</style>
