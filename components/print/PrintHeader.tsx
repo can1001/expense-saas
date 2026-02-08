@@ -44,16 +44,22 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
             <thead>
               <tr>
                 {hasApprovalLine ? (
-                  steps.map((step) => (
-                    <th key={`h-${step.id}`} className="approval-header">
-                      {step.stepName}
-                    </th>
-                  ))
+                  steps.map((step) => {
+                    // 담당자 → 사역팀(부)장으로 표시
+                    const displayName = step.stepName.startsWith('담당자')
+                      ? '사역팀(부)장'
+                      : step.stepName;
+                    return (
+                      <th key={`h-${step.id}`} className="approval-header">
+                        {displayName}
+                      </th>
+                    );
+                  })
                 ) : (
                   <>
-                    <th className="approval-header">담당</th>
-                    <th className="approval-header">팀장</th>
+                    <th className="approval-header">사역팀(부)장</th>
                     <th className="approval-header">회계</th>
+                    <th className="approval-header">재정팀장</th>
                   </>
                 )}
               </tr>
