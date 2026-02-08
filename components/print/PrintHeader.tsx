@@ -44,16 +44,22 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
             <thead>
               <tr>
                 {hasApprovalLine ? (
-                  steps.map((step) => (
-                    <th key={`h-${step.id}`} className="approval-header">
-                      {step.stepName}
-                    </th>
-                  ))
+                  steps.map((step) => {
+                    // 1차 결재 단계는 항상 사역팀(부)장으로 표시
+                    const displayName = step.stepNumber === 1
+                      ? '사역팀(부)장'
+                      : step.stepName;
+                    return (
+                      <th key={`h-${step.id}`} className="approval-header">
+                        {displayName}
+                      </th>
+                    );
+                  })
                 ) : (
                   <>
-                    <th className="approval-header">담당</th>
-                    <th className="approval-header">팀장</th>
+                    <th className="approval-header">사역팀(부)장</th>
                     <th className="approval-header">회계</th>
+                    <th className="approval-header">재정팀장</th>
                   </>
                 )}
               </tr>
@@ -61,19 +67,24 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
             <tbody>
               <tr>
                 {hasApprovalLine ? (
-                  steps.map((step) => (
-                    <td key={`s-${step.id}`} className="approval-sign-cell">
-                      {step.status === 'APPROVED' && step.signatureData ? (
-                        <img src={step.signatureData} alt="서명" className="signature-image" />
-                      ) : step.status === 'APPROVED' ? (
-                        <span className="approved-mark">승인</span>
-                      ) : step.status === 'REJECTED' ? (
-                        <span className="rejected-mark">반려</span>
-                      ) : (
-                        <span className="pending-mark"></span>
-                      )}
-                    </td>
-                  ))
+                  steps.map((step) => {
+                    const isAutoApproved = step.stepName.includes('전결');
+                    return (
+                      <td key={`s-${step.id}`} className="approval-sign-cell">
+                        {step.status === 'APPROVED' && isAutoApproved ? (
+                          <span className="auto-approved-mark">{step.stepName}</span>
+                        ) : step.status === 'APPROVED' && step.signatureData ? (
+                          <img src={step.signatureData} alt="서명" className="signature-image" />
+                        ) : step.status === 'APPROVED' ? (
+                          <span className="approved-mark">승인</span>
+                        ) : step.status === 'REJECTED' ? (
+                          <span className="rejected-mark">반려</span>
+                        ) : (
+                          <span className="pending-mark"></span>
+                        )}
+                      </td>
+                    );
+                  })
                 ) : (
                   <>
                     <td className="approval-sign-cell"></td>
@@ -221,6 +232,13 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
           font-weight: bold;
         }
 
+        .auto-approved-mark {
+          color: #2563EB;
+          font-size: 9pt;
+          font-weight: bold;
+          white-space: nowrap;
+        }
+
         .rejected-mark {
           color: #EF4444;
           font-size: 10pt;
@@ -308,6 +326,10 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
 
           .rejected-mark {
             color: #EF4444 !important;
+          }
+
+          .auto-approved-mark {
+            color: #2563EB !important;
           }
         }
       `}</style>
