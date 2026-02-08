@@ -63,6 +63,9 @@ export interface Expense {
   requestTeam: string;
   applicantName: string;
   applicantTitle?: string | null;
+  // 청구인 서명
+  applicantSignatureType?: string | null;
+  applicantSignatureData?: string | null;
   bankName: string;
   accountNumber: string;
   accountHolder: string;

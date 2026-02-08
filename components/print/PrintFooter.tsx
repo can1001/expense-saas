@@ -31,7 +31,15 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
             <td className="label-cell">청 구 인</td>
             <td className="value-cell requester-cell">
               <span className="requester-name">{formatNameForPrint(expense.applicantName)}</span>
-              <span className="seal-mark">(인)</span>
+              {expense.applicantSignatureData ? (
+                <img
+                  src={expense.applicantSignatureData}
+                  alt="청구인 서명"
+                  className="signature-image"
+                />
+              ) : (
+                <span className="seal-mark">(인)</span>
+              )}
             </td>
           </tr>
           {/* 입금 정보 - 은행/계좌 */}
@@ -116,6 +124,14 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
           font-weight: 700;
           color: #d32f2f;
           font-size: 11pt;
+          margin-left: 10px;
+        }
+
+        .signature-image {
+          height: 40px;
+          width: auto;
+          max-width: 80px;
+          object-fit: contain;
           margin-left: 10px;
         }
 

@@ -35,16 +35,25 @@ export default function ApprovalActionButtons({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [action, setAction] = useState<'approve' | 'reject' | null>(null);
   const [comment, setComment] = useState('');
   const [signatureData, setSignatureData] = useState<SignatureData | null>(null);
+  const [submitSignatureData, setSubmitSignatureData] = useState<SignatureData | null>(null);
 
   const isApplicant = currentUserName === applicantName;
   const isCurrentApprover = currentUserName === currentApproverName;
 
-  // 제출 버튼 (작성자 + DRAFT 상태)
-  const handleSubmit = async () => {
-    if (!confirm('지출결의서를 제출하시겠습니까?\n제출 후에는 수정할 수 없습니다.')) {
+  // 제출 모달 열기
+  const handleSubmit = () => {
+    setSubmitSignatureData(null);
+    setShowSubmitModal(true);
+  };
+
+  // 제출 확정 처리
+  const handleSubmitConfirm = async () => {
+    if (!submitSignatureData) {
+      alert('서명 또는 도장을 선택해주세요.');
       return;
     }
 
@@ -53,6 +62,9 @@ export default function ApprovalActionButtons({
       const response = await fetch(`/api/expenses/${expenseId}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          signature: submitSignatureData,
+        }),
       });
 
       const data = await response.json();
@@ -62,6 +74,7 @@ export default function ApprovalActionButtons({
       }
 
       alert('제출되었습니다.');
+      setShowSubmitModal(false);
       router.refresh();
       onSuccess?.();
     } catch (error: any) {
@@ -208,6 +221,50 @@ export default function ApprovalActionButtons({
           </>
         )}
       </div>
+
+      {/* 제출 서명 선택 모달 */}
+      {showSubmitModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">
+              지출결의서 제출
+            </h3>
+
+            <p className="text-sm text-gray-600 mb-4">
+              제출 후에는 수정할 수 없습니다. 청구인 서명/도장을 선택해주세요.
+            </p>
+
+            {/* 서명/도장 선택 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                청구인 서명/도장 <span className="text-red-500">*</span>
+              </label>
+              <SignatureSelector
+                onSelect={setSubmitSignatureData}
+                selectedData={submitSignatureData}
+              />
+            </div>
+
+            {/* 버튼 */}
+            <div className="flex gap-2">
+              <button
+                onClick={handleSubmitConfirm}
+                disabled={loading || !submitSignatureData}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? '처리 중...' : '제출'}
+              </button>
+              <button
+                onClick={() => setShowSubmitModal(false)}
+                disabled={loading}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 승인/반려 의견 입력 모달 */}
       {showCommentModal && (
