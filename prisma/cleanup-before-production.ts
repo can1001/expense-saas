@@ -3,86 +3,57 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!,
+  connectionString: process.env.DATABASE_URL,
 });
 
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const cutoffDate = new Date("2026-02-06");
+  console.log("=== 지급완료 제외 데이터 삭제 ===\n");
 
-  console.log("=== 2026-02-06 이전 데이터 삭제 ===\n");
-
-  // Step 1: 삭제 대상 확인
-  const expensesToDelete = await prisma.expense.findMany({
+  // 삭제 대상 확인 (COMPLETED 제외)
+  const toDelete = await prisma.expense.findMany({
     where: {
-      createdAt: {
-        lt: cutoffDate,
-      },
+      paymentStatus: { not: "COMPLETED" }
     },
-    select: {
-      id: true,
-      createdAt: true,
-      applicantName: true,
-    },
+    select: { id: true, applicantName: true, paymentStatus: true, createdAt: true }
   });
 
-  console.log(`삭제 대상 지출결의서: ${expensesToDelete.length}건`);
+  console.log(`삭제 대상: ${toDelete.length}건`);
+  toDelete.forEach(e => console.log(`  - ${e.id} | ${e.applicantName} | ${e.paymentStatus}`));
 
-  if (expensesToDelete.length === 0) {
+  if (toDelete.length === 0) {
     console.log("삭제할 데이터가 없습니다.");
     return;
   }
 
-  const expenseIds = expensesToDelete.map((e) => e.id);
+  const expenseIds = toDelete.map(e => e.id);
 
-  console.log("\n삭제 대상 목록:");
-  expensesToDelete.forEach((e) => {
-    console.log(`  - ${e.id} | ${e.applicantName} | ${e.createdAt.toISOString()}`);
+  // ApprovalLog 삭제
+  const logResult = await prisma.approvalLog.deleteMany({
+    where: { expenseId: { in: expenseIds } }
   });
+  console.log(`\nApprovalLog 삭제: ${logResult.count}건`);
 
-  // Step 2: ApprovalLog 삭제 (Cascade 미설정)
-  const logDeleteResult = await prisma.approvalLog.deleteMany({
-    where: {
-      expenseId: {
-        in: expenseIds,
-      },
-    },
+  // NotificationLog 삭제
+  const notifResult = await prisma.notificationLog.deleteMany({
+    where: { expenseId: { in: expenseIds } }
   });
-  console.log(`\nApprovalLog 삭제: ${logDeleteResult.count}건`);
+  console.log(`NotificationLog 삭제: ${notifResult.count}건`);
 
-  // Step 3: NotificationLog 삭제 (Cascade 미설정)
-  const notificationDeleteResult = await prisma.notificationLog.deleteMany({
-    where: {
-      expenseId: {
-        in: expenseIds,
-      },
-    },
+  // Expense 삭제
+  const expenseResult = await prisma.expense.deleteMany({
+    where: { paymentStatus: { not: "COMPLETED" } }
   });
-  console.log(`NotificationLog 삭제: ${notificationDeleteResult.count}건`);
+  console.log(`Expense 삭제: ${expenseResult.count}건`);
 
-  // Step 4: Expense 삭제 (Cascade로 관련 테이블 자동 삭제)
-  const expenseDeleteResult = await prisma.expense.deleteMany({
-    where: {
-      createdAt: {
-        lt: cutoffDate,
-      },
-    },
+  // 검증
+  const remaining = await prisma.expense.findMany({
+    select: { id: true, applicantName: true, paymentStatus: true }
   });
-  console.log(`Expense 삭제: ${expenseDeleteResult.count}건`);
-  console.log("  → ExpenseItem, ExpenseAttachment, ApprovalLine, ApprovalStep 자동 삭제");
-
-  // Step 5: 검증
-  const remainingCount = await prisma.expense.count({
-    where: {
-      createdAt: {
-        lt: cutoffDate,
-      },
-    },
-  });
-
-  console.log(`\n=== 삭제 완료 ===`);
-  console.log(`남은 2026-02-06 이전 Expense: ${remainingCount}건`);
+  console.log(`\n=== 남은 데이터 ===`);
+  console.log(`총 ${remaining.length}건`);
+  remaining.forEach(e => console.log(`  - ${e.applicantName} | ${e.paymentStatus}`));
 }
 
 main()
