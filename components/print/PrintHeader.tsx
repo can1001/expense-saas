@@ -17,6 +17,10 @@ function formatNameForPrint(name: string): string {
 export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps) {
   const steps = approvalLine?.steps || [];
 
+  // 지출일자에서 연도 추출
+  const expenseDate = expense.expenseDate ? new Date(expense.expenseDate) : new Date();
+  const year = expenseDate.getFullYear();
+
   // 결재 단계별로 분리
   const leftStep = steps.find(s => s.stepNumber === 1);
   const rightSteps = steps.filter(s => s.stepNumber !== 1).sort((a, b) => b.stepNumber - a.stepNumber);
@@ -83,7 +87,7 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
             <td className="approval-header-cell">사역팀(부)장</td>
             <td className="info-label-cell" rowSpan={2}>지출일자</td>
             <td className="info-value-cell date-cell" rowSpan={2}>
-              <span className="year-text">2025</span> 년
+              <span className="year-text">{year}</span> 년
               <span className="date-blank"></span> 월
               <span className="date-blank"></span> 일
             </td>
