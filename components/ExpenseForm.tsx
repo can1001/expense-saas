@@ -23,6 +23,7 @@ import ApplicantSection from './expense-form/ApplicantSection';
 import BankAccountSelector from './expense-form/BankAccountSelector';
 import FileUpload from './FileUpload';
 import ApprovalLinePreview from './expense-form/ApprovalLinePreview';
+import { SignatureSelector } from './signature/SignatureSelector';
 import { createAttachment } from '@/lib/services/file-service';
 import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_OUTLINE, BTN_SUCCESS, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER, ALERT_ERROR } from '@/lib/constants/styles';
 import { deriveRequestTeam } from '@/lib/domain/request-team';
@@ -31,6 +32,12 @@ import {
   useExpenseFormState,
   useExpenseFormSubmit,
 } from '@/lib/hooks';
+
+interface SignatureData {
+  type: 'signature' | 'stamp' | 'realtime';
+  data?: string;
+  signatureId?: string;
+}
 
 interface ExpenseFormProps {
   expenseId?: string;
@@ -57,6 +64,12 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
 
   // 제출 모드 (저장 vs 제출)
   const [submitMode, setSubmitMode] = useState<'save' | 'submit'>('save');
+
+  // 서명 모달 관련 상태
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [signatureData, setSignatureData] = useState<SignatureData | null>(null);
+  const [pendingSubmitData, setPendingSubmitData] = useState<ExpenseFormData | null>(null);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   const {
     control,
@@ -195,10 +208,76 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   };
 
   // onSubmit 핸들러 - useExpenseFormSubmit 훅 사용
-  const onSubmit = (data: ExpenseFormData) => {
-    // submitMode에 따라 status 결정
-    const status = submitMode === 'submit' ? 'PENDING' : 'DRAFT';
-    handleFormSubmit({ ...data, status });
+  const onSubmit = async (data: ExpenseFormData) => {
+    // 저장 모드: 기존 로직 사용
+    if (submitMode === 'save') {
+      handleFormSubmit({ ...data, status: 'DRAFT' });
+      return;
+    }
+
+    // 제출 모드 (수정 모드): 저장 후 서명 모달 표시
+    if (expenseId) {
+      try {
+        setLoading(true);
+        // 먼저 저장 (PUT - DRAFT 상태로)
+        const saveResponse = await fetch(`/api/expenses/${expenseId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...data,
+            status: 'DRAFT',
+            expenseDate: data.expenseDate || null,
+          }),
+        });
+
+        if (!saveResponse.ok) {
+          const errorData = await saveResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || '저장에 실패했습니다.');
+        }
+
+        // 저장 성공 → 서명 모달 표시
+        setPendingSubmitData(data);
+        setShowSignatureModal(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // 신규 생성 + 제출: 기존 로직 사용 (신규는 상세 페이지에서 제출)
+    handleFormSubmit({ ...data, status: 'PENDING' });
+  };
+
+  // 서명 선택 후 제출 확정
+  const handleSignatureConfirm = async () => {
+    if (!signatureData || !expenseId) {
+      alert('서명 또는 도장을 선택해주세요.');
+      return;
+    }
+
+    try {
+      setSubmitLoading(true);
+      const submitResponse = await fetch(`/api/expenses/${expenseId}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signature: signatureData }),
+      });
+
+      if (!submitResponse.ok) {
+        const errorData = await submitResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || '제출에 실패했습니다.');
+      }
+
+      setShowSignatureModal(false);
+      alert('지출결의서가 성공적으로 제출되었습니다.');
+      router.push(`/expenses/${expenseId}`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '제출에 실패했습니다.');
+    } finally {
+      setSubmitLoading(false);
+    }
   };
 
   // 저장 버튼 클릭 (임시저장)
@@ -405,6 +484,45 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
           {(loading || isSubmitting) && submitMode === 'submit' ? '제출 중...' : '제출'}
         </button>
       </div>
+
+      {/* 서명 선택 모달 */}
+      {showSignatureModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">지출결의서 제출</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              제출 후에는 수정할 수 없습니다. 청구인 서명/도장을 선택해주세요.
+            </p>
+            <SignatureSelector
+              onSelect={setSignatureData}
+              selectedData={signatureData}
+            />
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSignatureModal(false);
+                  setSignatureData(null);
+                  setPendingSubmitData(null);
+                }}
+                disabled={submitLoading}
+                className={`${BTN_OUTLINE} flex-1`}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleSignatureConfirm}
+                disabled={!signatureData || submitLoading}
+                className={`${BTN_SUCCESS} flex-1 flex items-center justify-center gap-2`}
+              >
+                {submitLoading && <div className={SPINNER}></div>}
+                {submitLoading ? '제출 중...' : '제출'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

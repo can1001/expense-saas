@@ -82,7 +82,15 @@ export async function POST(
     }
 
     // 요청 본문에서 서명 데이터 추출
-    const body = await request.json();
+    let body: { signature?: any } = {};
+    try {
+      const text = await request.text();
+      if (text) {
+        body = JSON.parse(text);
+      }
+    } catch {
+      // 빈 body 또는 잘못된 JSON - 무시
+    }
     const { signature } = body;
 
     // 서명 데이터 처리 (저장된 서명 또는 실시간 서명)
