@@ -39,6 +39,10 @@ model Expense {
   applicantName     String               // 청구인
   applicantTitle    String?              // 직책
 
+  // 청구인 서명
+  applicantSignatureType   String?       // "signature" | "stamp"
+  applicantSignatureData   String?   @db.Text  // base64 인코딩 이미지
+
   // 은행 정보
   bankName          String               // 은행명
   accountNumber     String               // 계좌번호

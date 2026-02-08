@@ -275,6 +275,110 @@ describe('approval-line-service', () => {
         '2024년 회계가 설정되지 않았습니다.'
       );
     });
+
+    it('should calculate approval line for submitter is manager case (세목담당자 직접 등록 - 팀장 전결)', async () => {
+      const financeHead = { id: 'fh-1', username: '재정팀장', userid: 'fh001' };
+      const accountant = { id: 'acc-1', username: '회계', userid: 'acc001' };
+      const teamLeader = { id: 'tl-1', username: '팀장', userid: 'tl001' };
+      const manager = { id: 'mgr-1', username: '담당자', userid: 'mgr001' };
+
+      vi.mocked(prisma.budgetDetailYear.findUnique).mockResolvedValue({
+        id: 'bdy-1',
+        budgetDetailId: 'bd-1',
+        year: 2024,
+        managerId: 'mgr-1',
+        budgetAmount: 1000000,
+        usedAmount: 300000,
+        manager,
+        budgetDetail: { id: 'bd-1', name: '교육비' },
+      } as any);
+
+      vi.mocked(prisma.userYearRole.findFirst)
+        .mockResolvedValueOnce({ user: financeHead } as any)
+        .mockResolvedValueOnce({ user: accountant } as any)
+        .mockResolvedValueOnce({ user: teamLeader } as any);
+
+      // submitterId가 managerId와 동일한 경우 (세목담당자가 직접 등록)
+      const result = await calculateApprovalLine('bd-1', 2024, 'mgr-1');
+
+      expect(result).toMatchObject({
+        budgetDetailId: 'bd-1',
+        budgetDetailName: '교육비',
+        managerId: 'mgr-1',
+        managerName: '담당자',
+        isDirectApproval: false,
+        isSubmitterManager: true, // 세목담당자가 직접 등록
+        totalSteps: 3,
+        year: 2024,
+      });
+
+      expect(result.steps).toHaveLength(3);
+      expect(result.steps[0]).toMatchObject({
+        stepNumber: 1,
+        stepName: '팀장(전결)',
+        role: 'team_leader',
+        approverId: 'tl-1',
+        approverName: '팀장',
+        isAutoApproved: true, // 자동 승인
+      });
+      expect(result.steps[1]).toMatchObject({
+        stepNumber: 2,
+        stepName: '회계',
+        role: 'accountant',
+        approverId: 'acc-1',
+        approverName: '회계',
+        isAutoApproved: false,
+      });
+      expect(result.steps[2]).toMatchObject({
+        stepNumber: 3,
+        stepName: '재정팀장',
+        role: 'finance_head',
+        approverId: 'fh-1',
+        approverName: '재정팀장',
+        isAutoApproved: false,
+      });
+    });
+
+    it('should fallback to general approval if team leader is not found (세목담당자 등록이나 팀장 미설정)', async () => {
+      const financeHead = { id: 'fh-1', username: '재정팀장', userid: 'fh001' };
+      const accountant = { id: 'acc-1', username: '회계', userid: 'acc001' };
+      const manager = { id: 'mgr-1', username: '담당자', userid: 'mgr001' };
+
+      vi.mocked(prisma.budgetDetailYear.findUnique).mockResolvedValue({
+        id: 'bdy-1',
+        budgetDetailId: 'bd-1',
+        year: 2024,
+        managerId: 'mgr-1',
+        budgetAmount: 1000000,
+        usedAmount: 300000,
+        manager,
+        budgetDetail: { id: 'bd-1', name: '교육비' },
+      } as any);
+
+      vi.mocked(prisma.userYearRole.findFirst)
+        .mockResolvedValueOnce({ user: financeHead } as any)
+        .mockResolvedValueOnce({ user: accountant } as any)
+        .mockResolvedValueOnce(null); // 팀장 미설정
+
+      // submitterId가 managerId와 동일하지만 팀장이 없는 경우
+      const result = await calculateApprovalLine('bd-1', 2024, 'mgr-1');
+
+      // 팀장이 없으므로 isSubmitterManager도 false (팀장이 있어야만 적용)
+      expect(result).toMatchObject({
+        isDirectApproval: false,
+        isSubmitterManager: false, // 팀장이 없어서 false
+      });
+
+      // 팀장이 없어서 자동 승인 없이 일반 담당자 결재로 처리
+      expect(result.steps[0]).toMatchObject({
+        stepNumber: 1,
+        stepName: '담당자',
+        role: 'manager',
+        approverId: 'mgr-1',
+        approverName: '담당자',
+        isAutoApproved: false, // 팀장이 없어서 자동 승인 아님
+      });
+    });
   });
 
   describe('calculateApprovalLineForExpense', () => {
@@ -377,6 +481,7 @@ describe('approval-line-service', () => {
         managerId: 'mgr-1',
         managerName: '담당자',
         isDirectApproval: false,
+        isSubmitterManager: false,
         totalSteps: 3,
         year: 2024,
         steps: [
@@ -458,6 +563,7 @@ describe('approval-line-service', () => {
         managerId: 'fh-1',
         managerName: '재정팀장',
         isDirectApproval: true,
+        isSubmitterManager: false,
         totalSteps: 3,
         year: 2024,
         steps: [
@@ -503,6 +609,83 @@ describe('approval-line-service', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             currentStep: 2, // 전결인 경우 2단계부터 시작
+          }),
+        })
+      );
+    });
+
+    it('should set currentStep to 2 for submitter is manager case (팀장 전결)', async () => {
+      const approvalLineInfo = {
+        budgetDetailId: 'bd-1',
+        budgetDetailName: '교육비',
+        managerId: 'mgr-1',
+        managerName: '담당자',
+        isDirectApproval: false,
+        isSubmitterManager: true, // 세목담당자가 직접 등록
+        totalSteps: 3,
+        year: 2024,
+        steps: [
+          {
+            stepNumber: 1,
+            stepName: '팀장(전결)',
+            role: 'team_leader',
+            approverId: 'tl-1',
+            approverName: '팀장',
+            isAutoApproved: true,
+          },
+          {
+            stepNumber: 2,
+            stepName: '회계',
+            role: 'accountant',
+            approverId: 'acc-1',
+            approverName: '회계',
+            isAutoApproved: false,
+          },
+          {
+            stepNumber: 3,
+            stepName: '재정팀장',
+            role: 'finance_head',
+            approverId: 'fh-1',
+            approverName: '재정팀장',
+            isAutoApproved: false,
+          },
+        ],
+      };
+
+      vi.mocked(prisma.approvalLine.deleteMany).mockResolvedValue({ count: 0 } as any);
+      vi.mocked(prisma.approvalLine.create).mockResolvedValue({
+        id: 'al-1',
+        expenseId: 'exp-1',
+        currentStep: 2,
+        totalSteps: 3,
+        steps: [],
+      } as any);
+
+      await createApprovalLineForExpense('exp-1', approvalLineInfo);
+
+      expect(prisma.approvalLine.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            currentStep: 2, // 팀장 전결인 경우 2단계부터 시작
+          }),
+        })
+      );
+
+      // 1차 결재가 자동 승인으로 생성되는지 확인
+      expect(prisma.approvalLine.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            steps: expect.objectContaining({
+              create: expect.arrayContaining([
+                expect.objectContaining({
+                  stepNumber: 1,
+                  stepName: '팀장(전결)',
+                  approverName: '팀장',
+                  status: 'APPROVED',
+                  approvedAt: expect.any(Date),
+                }),
+              ]),
+            }),
           }),
         })
       );
@@ -644,8 +827,85 @@ describe('approval-line-service', () => {
 
       expect(prisma.approvalLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          comment: '제출 완료 (1차 전결 자동 승인)',
+          comment: '제출 완료 (재정팀장 전결 - 1차 자동승인)',
         }),
+      });
+    });
+
+    it('should auto-approve first step for submitter is manager case (세목담당자 직접 등록 - 팀장 전결)', async () => {
+      const financeHead = { id: 'fh-1', username: '재정팀장', userid: 'fh001' };
+      const accountant = { id: 'acc-1', username: '회계', userid: 'acc001' };
+      const teamLeader = { id: 'tl-1', username: '팀장', userid: 'tl001' };
+      const manager = { id: 'mgr-1', username: '담당자', userid: 'mgr001' };
+
+      vi.mocked(prisma.expense.findUnique).mockResolvedValue({
+        id: 'exp-1',
+        userId: 'mgr-1', // 세목담당자가 직접 등록
+        applicantName: '담당자',
+        requestDate: new Date('2024-01-15'),
+        budgetCategory: '사역비',
+        budgetSubcategory: '교육비',
+        items: [{ id: 'item-1', budgetCategory: '사역비', budgetSubcategory: '교육비', budgetDetail: '교육비' }],
+      } as any);
+
+      vi.mocked(prisma.budgetDetail.findFirst).mockResolvedValue({
+        id: 'bd-1',
+        name: '교육비',
+      } as any);
+
+      vi.mocked(prisma.budgetDetailYear.findUnique).mockResolvedValue({
+        id: 'bdy-1',
+        budgetDetailId: 'bd-1',
+        year: 2024,
+        managerId: 'mgr-1', // 세목 담당자 = 신청자
+        budgetAmount: 1000000,
+        usedAmount: 0,
+        manager,
+        budgetDetail: { id: 'bd-1', name: '교육비' },
+      } as any);
+
+      vi.mocked(prisma.userYearRole.findFirst)
+        .mockResolvedValueOnce({ user: financeHead } as any)
+        .mockResolvedValueOnce({ user: accountant } as any)
+        .mockResolvedValueOnce({ user: teamLeader } as any);
+
+      vi.mocked(prisma.approvalLine.deleteMany).mockResolvedValue({ count: 0 } as any);
+      vi.mocked(prisma.approvalLine.create).mockResolvedValue({
+        id: 'al-1',
+        expenseId: 'exp-1',
+        currentStep: 2,
+        totalSteps: 3,
+        steps: [],
+      } as any);
+
+      vi.mocked(prisma.expense.update).mockResolvedValue({
+        id: 'exp-1',
+        status: 'APPROVED_STEP_1',
+      } as any);
+
+      vi.mocked(prisma.approvalLog.create).mockResolvedValue({
+        id: 'log-1',
+      } as any);
+
+      const result = await submitExpenseWithApprovalLine('exp-1');
+
+      expect(result.newStatus).toBe('APPROVED_STEP_1');
+      expect(result.approvalLineInfo.isSubmitterManager).toBe(true);
+      expect(result.approvalLineInfo.isDirectApproval).toBe(false);
+
+      // 팀장 전결 메시지 확인
+      expect(prisma.approvalLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          comment: '제출 완료 (세목담당자 등록 - 팀장 전결 1차 자동승인)',
+        }),
+      });
+
+      // 결재선의 1차가 팀장(전결)로 생성되었는지 확인
+      expect(result.approvalLineInfo.steps[0]).toMatchObject({
+        stepNumber: 1,
+        stepName: '팀장(전결)',
+        role: 'team_leader',
+        isAutoApproved: true,
       });
     });
 

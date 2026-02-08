@@ -4,6 +4,9 @@ import {
   generateExcelBuffer,
   generateExcelFilename,
   ExpenseForExcel,
+  generateWooriBankBuffer,
+  generateWooriBankFilename,
+  ExpenseForWooriBank,
 } from '@/lib/excel-export';
 
 /**
@@ -17,6 +20,7 @@ import {
  * - endDate: 종료일 (YYYY-MM-DD)
  * - expenseDate: 사용자 지정 지출일자 (YYYY-MM-DD)
  * - useSameDate: true면 모든 항목에 expenseDate 적용
+ * - format: 엑셀 양식 (default: 웹교적, woori: 우리은행 대량이체)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -29,6 +33,7 @@ export async function GET(request: NextRequest) {
     const endDateParam = searchParams.get('endDate');
     const expenseDateParam = searchParams.get('expenseDate');
     const useSameDateParam = searchParams.get('useSameDate');
+    const format = searchParams.get('format') || 'default'; // 'default' | 'woori'
 
     // 사용자 지정 날짜
     const overrideDate = expenseDateParam ? new Date(expenseDateParam) : undefined;
@@ -82,32 +87,46 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 엑셀 형식으로 변환 (항/목 정보는 items에서 가져옴)
-    const expensesForExcel: ExpenseForExcel[] = expenses.map((expense) => ({
-      accountHolder: expense.accountHolder,
-      bankName: expense.bankName,
-      accountNumber: expense.accountNumber,
-      expenseDate: expense.expenseDate,
-      requestDate: expense.requestDate,
-      items: expense.items.map((item) => ({
-        budgetCategory: item.budgetCategory,
-        budgetSubcategory: item.budgetSubcategory,
-        budgetDetail: item.budgetDetail,
-        description: item.description,
-        amount: item.amount,
-      })),
-    }));
+    let buffer: Buffer;
+    let filename: string;
 
-    // 엑셀 버퍼 생성 (사용자 지정 날짜가 있으면 전달)
-    const buffer = generateExcelBuffer(
-      expensesForExcel,
-      useSameDate ? overrideDate : undefined
-    );
+    // 우리은행 대량이체 양식
+    if (format === 'woori') {
+      const expensesForWoori: ExpenseForWooriBank[] = expenses.map((expense) => ({
+        bankName: expense.bankName,
+        accountNumber: expense.accountNumber,
+        accountHolder: expense.accountHolder,
+        requestAmount: expense.requestAmount,
+      }));
 
-    // 파일명 생성
-    const startDate = startDateParam ? new Date(startDateParam) : undefined;
-    const endDate = endDateParam ? new Date(endDateParam) : undefined;
-    const filename = generateExcelFilename(expensesForExcel, startDate, endDate);
+      buffer = generateWooriBankBuffer(expensesForWoori);
+      filename = generateWooriBankFilename();
+    } else {
+      // 기본 (웹교적 지출재정) 양식
+      const expensesForExcel: ExpenseForExcel[] = expenses.map((expense) => ({
+        accountHolder: expense.accountHolder,
+        bankName: expense.bankName,
+        accountNumber: expense.accountNumber,
+        expenseDate: expense.expenseDate,
+        requestDate: expense.requestDate,
+        items: expense.items.map((item) => ({
+          budgetCategory: item.budgetCategory,
+          budgetSubcategory: item.budgetSubcategory,
+          budgetDetail: item.budgetDetail,
+          description: item.description,
+          amount: item.amount,
+        })),
+      }));
+
+      buffer = generateExcelBuffer(
+        expensesForExcel,
+        useSameDate ? overrideDate : undefined
+      );
+
+      const startDate = startDateParam ? new Date(startDateParam) : undefined;
+      const endDate = endDateParam ? new Date(endDateParam) : undefined;
+      filename = generateExcelFilename(expensesForExcel, startDate, endDate);
+    }
 
     // 엑셀 파일 응답 (Buffer를 Uint8Array로 변환)
     return new NextResponse(new Uint8Array(buffer), {

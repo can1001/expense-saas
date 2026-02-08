@@ -81,6 +81,42 @@ export async function POST(
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
+    // 요청 본문에서 서명 데이터 추출
+    const body = await request.json();
+    const { signature } = body;
+
+    // 서명 데이터 처리 (저장된 서명 또는 실시간 서명)
+    let signatureType: string | null = null;
+    let signatureData: string | null = null;
+
+    if (signature) {
+      if (signature.signatureId) {
+        // 저장된 서명/도장 사용
+        const savedSignature = await prisma.userSignature.findUnique({
+          where: { id: signature.signatureId },
+        });
+        if (savedSignature) {
+          signatureType = savedSignature.type;
+          signatureData = savedSignature.imageData;
+        }
+      } else if (signature.data && signature.type) {
+        // 실시간 서명
+        signatureType = signature.type;
+        signatureData = signature.data;
+      }
+    }
+
+    // 서명 필수 검증
+    if (!signatureData) {
+      return NextResponse.json(
+        {
+          error: '청구인 서명을 선택해주세요.',
+          code: 'SIGNATURE_REQUIRED',
+        },
+        { status: 400 }
+      );
+    }
+
     // 스냅샷 생성
     const snapshot = JSON.stringify({
       ...approvalLineInfo,
@@ -174,6 +210,9 @@ export async function POST(
           status: newStatus as any,
           submittedAt: now,
           approvedAt: isAllAutoApproved ? now : null,
+          // 클라이언트에서 전달받은 청구인 서명 적용
+          applicantSignatureType: signatureType,
+          applicantSignatureData: signatureData,
         },
         include: {
           items: true,
