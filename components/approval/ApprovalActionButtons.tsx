@@ -175,8 +175,8 @@ export default function ApprovalActionButtons({
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        {/* 제출 버튼 (작성자 + DRAFT 또는 WITHDRAWN) */}
-        {isApplicant && (status === 'DRAFT' || status === 'WITHDRAWN') && (
+        {/* 제출 버튼 (DRAFT는 항상, WITHDRAWN은 작성자만) */}
+        {(status === 'DRAFT' || (isApplicant && status === 'WITHDRAWN')) && (
           <button
             onClick={handleSubmit}
             disabled={loading}
