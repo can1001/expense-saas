@@ -25,3 +25,12 @@ export function formatDateShort(date: Date | string | null | undefined): string 
   const d = typeof date === 'string' ? new Date(date) : date;
   return format(d, 'yyyy-MM-dd');
 }
+
+// 계좌번호 마스킹 (뒷 4자리만 표시)
+export function maskAccountNumber(accountNumber: string | null | undefined): string {
+  if (!accountNumber) return '';
+  const cleaned = accountNumber.replace(/[^0-9]/g, '');
+  if (cleaned.length <= 4) return cleaned;
+  const lastFour = cleaned.slice(-4);
+  return `****${lastFour}`;
+}

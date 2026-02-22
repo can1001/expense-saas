@@ -157,7 +157,12 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   };
 
   const loadInitialData = (data: Record<string, unknown>) => {
+    // 계좌번호가 마스킹되어 있는지 확인 (다른 사람의 지출결의서인 경우)
+    const accountNumber = data.accountNumber as string;
+    const isMaskedAccount = accountNumber?.startsWith('****');
+
     // 폼 데이터 로드 (항/목은 items에서 가져옴)
+    // 마스킹된 계좌번호인 경우 은행 정보를 비움 (사용자가 직접 선택하도록)
     reset({
       committee: data.committee as string,
       department: data.department as string,
@@ -169,9 +174,9 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       requestTeam: deriveRequestTeam(data.committee as string, data.department as string),
       applicantName: data.applicantName as string,
       applicantTitle: (data.applicantTitle as string) || undefined,
-      bankName: data.bankName as string,
-      accountNumber: data.accountNumber as string,
-      accountHolder: data.accountHolder as string,
+      bankName: isMaskedAccount ? '' : (data.bankName as string),
+      accountNumber: isMaskedAccount ? '' : accountNumber,
+      accountHolder: isMaskedAccount ? '' : (data.accountHolder as string),
       items: (data.items as Array<Record<string, unknown>>).map((item) => ({
         budgetCategory: (item.budgetCategory as string) || '',
         budgetSubcategory: (item.budgetSubcategory as string) || '',
