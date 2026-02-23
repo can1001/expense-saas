@@ -4,6 +4,8 @@ import { updateExpenseSchema, calculateAmount, calculateTotal } from '@/lib/vali
 import { deleteImages } from '@/lib/cloudinary';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { deriveRequestTeam } from '@/lib/domain/request-team';
+import { getSessionUserId } from '@/lib/auth';
+import { maskAccountNumber } from '@/lib/utils';
 
 // GET /api/expenses/[id] - 지출결의서 상세 조회
 export async function GET(
@@ -30,6 +32,18 @@ export async function GET(
 
     if (!expense) {
       throw new ApiError('지출결의서를 찾을 수 없습니다.', 404);
+    }
+
+    // 현재 로그인한 사용자 확인
+    const currentUserId = await getSessionUserId();
+    const isOwner = currentUserId && expense.userId === currentUserId;
+
+    // 본인이 아닌 경우 계좌번호 마스킹 처리
+    if (!isOwner) {
+      return NextResponse.json({
+        ...expense,
+        accountNumber: maskAccountNumber(expense.accountNumber),
+      });
     }
 
     return NextResponse.json(expense);

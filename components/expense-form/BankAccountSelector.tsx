@@ -6,6 +6,7 @@ import { ExpenseFormData } from '@/lib/schemas/expense-schema';
 import { SavedBankAccount } from '@/lib/schemas/bank-account-schema';
 import { getSavedBankAccounts } from '@/lib/services/bank-account-service';
 import BankAccountManagementModal from '@/components/bank-account/BankAccountManagementModal';
+import { maskAccountNumber } from '@/lib/utils';
 import {
   SECTION_CARD,
   SECTION_TITLE,
@@ -129,10 +130,10 @@ export default function BankAccountSelector({
     fetchAccounts();
   };
 
-  // 드롭다운에 표시할 계좌 이름
+  // 드롭다운에 표시할 계좌 이름 (계좌번호 마스킹 처리)
   const getAccountDisplayName = (account: SavedBankAccount) => {
     const name = account.nickname || account.accountHolder;
-    return `${name} - ${account.bankName} (${account.accountNumber})`;
+    return `${name} - ${account.bankName} (${maskAccountNumber(account.accountNumber)})`;
   };
 
   return (
@@ -210,7 +211,7 @@ export default function BankAccountSelector({
                 </select>
               </div>
 
-              {/* 선택된 계좌 정보 표시 */}
+              {/* 선택된 계좌 정보 표시 (계좌번호 마스킹) */}
               {selectedAccountId && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
                   <div>
@@ -222,7 +223,7 @@ export default function BankAccountSelector({
                   <div>
                     <span className="text-sm text-gray-500">계좌번호</span>
                     <p className="font-medium text-gray-900">
-                      {accounts.find((acc) => acc.id === selectedAccountId)?.accountNumber}
+                      {maskAccountNumber(accounts.find((acc) => acc.id === selectedAccountId)?.accountNumber)}
                     </p>
                   </div>
                   <div>
