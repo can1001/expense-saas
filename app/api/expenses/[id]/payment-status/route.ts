@@ -31,8 +31,8 @@ export async function PUT(
       );
     }
 
-    // 관리자 또는 재정팀장만 변경 가능
-    const allowedRoles = ['admin', '재정팀장'];
+    // 지급상태 변경 권한 (admin, finance_head, accountant, admin_assistant)
+    const allowedRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
     if (!allowedRoles.includes(currentUser.role)) {
       return NextResponse.json(
         { error: '지출 상태 변경 권한이 없습니다.' },

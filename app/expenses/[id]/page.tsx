@@ -247,9 +247,9 @@ export default function ExpenseDetailPage() {
     }
   };
 
-  // 관리자 또는 재정팀장인지 확인
-  const canChangePaymentStatus = currentUser &&
-    (currentUser.role === 'admin' || currentUser.role === '재정팀장');
+  // 지급상태 변경 권한 확인 (admin, finance_head, accountant, admin_assistant)
+  const paymentStatusRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
+  const canChangePaymentStatus = currentUser && paymentStatusRoles.includes(currentUser.role);
 
   if (loading) {
     return (
