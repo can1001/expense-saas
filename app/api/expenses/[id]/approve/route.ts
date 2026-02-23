@@ -95,6 +95,17 @@ export async function POST(
       );
     }
 
+    // 청구인 서명 필수 검증
+    if (!expense.applicantSignatureData) {
+      return NextResponse.json(
+        {
+          error: '청구인 서명이 없는 지출결의서입니다. 청구인에게 서명을 요청해주세요.',
+          code: 'APPLICANT_SIGNATURE_REQUIRED'
+        },
+        { status: 400 }
+      );
+    }
+
     const approvalLine = expense.approvalLine;
     const currentStep = approvalLine.currentStep;
 
