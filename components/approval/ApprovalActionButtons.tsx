@@ -40,14 +40,76 @@ export default function ApprovalActionButtons({
   const [comment, setComment] = useState('');
   const [signatureData, setSignatureData] = useState<SignatureData | null>(null);
   const [submitSignatureData, setSubmitSignatureData] = useState<SignatureData | null>(null);
+  const [showNoSignatureModal, setShowNoSignatureModal] = useState(false);
 
   const isApplicant = currentUserName === applicantName;
   const isCurrentApprover = currentUserName === currentApproverName;
 
-  // 제출 모달 열기
-  const handleSubmit = () => {
-    setSubmitSignatureData(null);
-    setShowSubmitModal(true);
+  // 사용자의 기본 서명/도장 조회
+  const fetchDefaultSignature = async (): Promise<SignatureData | null> => {
+    try {
+      const response = await fetch('/api/users/me/signatures');
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      const defaultSig = data.signatures?.find((s: { isDefault: boolean }) => s.isDefault);
+
+      if (defaultSig) {
+        return {
+          type: defaultSig.type as 'signature' | 'stamp',
+          signatureId: defaultSig.id,
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // 서명 데이터로 제출 처리
+  const submitWithSignature = async (signature: SignatureData) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/expenses/${expenseId}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signature }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '제출 실패');
+      }
+
+      alert('제출되었습니다.');
+      router.refresh();
+      onSuccess?.();
+    } catch (error: any) {
+      alert(error.message || '제출 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 제출 처리 (기본 서명 자동 적용)
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      const defaultSignature = await fetchDefaultSignature();
+
+      if (defaultSignature) {
+        // 기본 서명이 있으면 자동 제출
+        await submitWithSignature(defaultSignature);
+      } else {
+        // 서명이 없으면 안내 모달 표시
+        setShowNoSignatureModal(true);
+      }
+    } catch {
+      alert('서명 정보를 확인하는 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 제출 확정 처리
@@ -260,6 +322,41 @@ export default function ApprovalActionButtons({
                 className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
               >
                 취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 서명 미등록 안내 모달 */}
+      {showNoSignatureModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">서명 등록이 필요합니다</h3>
+              <p className="text-gray-600 text-sm">
+                지출결의서 제출을 위해 먼저 서명 또는 도장을 등록해주세요.
+                <br />
+                마이페이지에서 등록 후 다시 시도해주세요.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowNoSignatureModal(false)}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                닫기
+              </button>
+              <button
+                onClick={() => router.push('/mypage/signatures')}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                서명 등록하러 가기
               </button>
             </div>
           </div>

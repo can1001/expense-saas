@@ -71,6 +71,9 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   const [pendingSubmitData, setPendingSubmitData] = useState<ExpenseFormData | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
 
+  // 서명 미등록 안내 모달
+  const [showNoSignatureModal, setShowNoSignatureModal] = useState(false);
+
   const {
     control,
     register,
@@ -220,7 +223,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       return;
     }
 
-    // 제출 모드 (수정 모드): 저장 후 서명 모달 표시
+    // 제출 모드 (수정 모드): 저장 후 기본 서명으로 자동 제출
     if (expenseId) {
       try {
         setLoading(true);
@@ -240,12 +243,20 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
           throw new Error(errorData.error || '저장에 실패했습니다.');
         }
 
-        // 저장 성공 → 서명 모달 표시
-        setPendingSubmitData(data);
-        setShowSignatureModal(true);
+        // 기본 서명 확인
+        const defaultSignature = await fetchDefaultSignature();
+
+        if (defaultSignature) {
+          // 기본 서명이 있으면 자동 제출
+          setLoading(false);
+          await submitWithSignature(defaultSignature);
+        } else {
+          // 서명이 없으면 안내 모달 표시
+          setLoading(false);
+          setShowNoSignatureModal(true);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
-      } finally {
         setLoading(false);
       }
       return;
@@ -276,6 +287,53 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       }
 
       setShowSignatureModal(false);
+      alert('지출결의서가 성공적으로 제출되었습니다.');
+      router.push(`/expenses/${expenseId}`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '제출에 실패했습니다.');
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  // 사용자의 기본 서명/도장 조회
+  const fetchDefaultSignature = async (): Promise<SignatureData | null> => {
+    try {
+      const response = await fetch('/api/users/me/signatures');
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      const defaultSig = data.signatures?.find((s: { isDefault: boolean }) => s.isDefault);
+
+      if (defaultSig) {
+        return {
+          type: defaultSig.type as 'signature' | 'stamp',
+          signatureId: defaultSig.id,
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // 서명 데이터로 제출 처리
+  const submitWithSignature = async (signature: SignatureData) => {
+    if (!expenseId) return;
+
+    try {
+      setSubmitLoading(true);
+      const submitResponse = await fetch(`/api/expenses/${expenseId}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signature }),
+      });
+
+      if (!submitResponse.ok) {
+        const errorData = await submitResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || '제출에 실패했습니다.');
+      }
+
       alert('지출결의서가 성공적으로 제출되었습니다.');
       router.push(`/expenses/${expenseId}`);
     } catch (err) {
@@ -490,7 +548,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         </button>
       </div>
 
-      {/* 서명 선택 모달 */}
+      {/* 서명 선택 모달 (수동 서명 선택 시 사용) */}
       {showSignatureModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
@@ -523,6 +581,43 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
               >
                 {submitLoading && <div className={SPINNER}></div>}
                 {submitLoading ? '제출 중...' : '제출'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 서명 미등록 안내 모달 */}
+      {showNoSignatureModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">서명 등록이 필요합니다</h3>
+              <p className="text-gray-600 text-sm">
+                지출결의서 제출을 위해 먼저 서명 또는 도장을 등록해주세요.
+                <br />
+                마이페이지에서 등록 후 다시 시도해주세요.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowNoSignatureModal(false)}
+                className={`${BTN_OUTLINE} flex-1`}
+              >
+                닫기
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/mypage/signatures')}
+                className={`${BTN_PRIMARY} flex-1`}
+              >
+                서명 등록하러 가기
               </button>
             </div>
           </div>
