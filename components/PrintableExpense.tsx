@@ -9,6 +9,13 @@ interface PrintableExpenseProps {
   approvalLine?: ApprovalLine | null;
 }
 
+// 첨부파일 개수에 따라 그리드 클래스 반환
+const getGridClass = (count: number): string => {
+  if (count === 1) return 'single';
+  if (count === 2) return 'double';
+  return 'multi';
+};
+
 export default function PrintableExpense({ expense, approvalLine }: PrintableExpenseProps) {
   return (
     <div className="print-only">
@@ -32,7 +39,7 @@ export default function PrintableExpense({ expense, approvalLine }: PrintableExp
         <div className="attachments-page">
           <h2 className="attachments-title">첨 부 서 류</h2>
           <p className="attachments-subtitle">(영수증 및 증빙자료)</p>
-          <div className="attachments-grid">
+          <div className={`attachments-grid ${getGridClass(expense.attachments.length)}`}>
             {expense.attachments.map((attachment, index) => (
               <div key={attachment.id} className="attachment-item">
                 <div className="attachment-number">{index + 1}</div>
@@ -95,15 +102,46 @@ export default function PrintableExpense({ expense, approvalLine }: PrintableExp
 
           .attachments-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
             gap: 15px;
             justify-items: center;
+          }
+
+          /* 1장: 전체 화면 */
+          .attachments-grid.single {
+            grid-template-columns: 1fr;
+          }
+          .attachments-grid.single .attachment-item {
+            max-width: 170mm;
+          }
+          .attachments-grid.single .attachment-image {
+            max-height: 220mm;
+          }
+
+          /* 2장: 상하 반반 (세로 배치) */
+          .attachments-grid.double {
+            grid-template-columns: 1fr;
+          }
+          .attachments-grid.double .attachment-item {
+            max-width: 170mm;
+          }
+          .attachments-grid.double .attachment-image {
+            max-height: 110mm;
+          }
+
+          /* 3-4장: 기존 2x2 그리드 */
+          .attachments-grid.multi {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .attachments-grid.multi .attachment-item {
+            max-width: 85mm;
+          }
+          .attachments-grid.multi .attachment-image {
+            max-height: 110mm;
           }
 
           .attachment-item {
             border: 1px solid #000;
             padding: 10px;
-            max-width: 85mm;
             page-break-inside: avoid;
             text-align: center;
             position: relative;
@@ -127,7 +165,6 @@ export default function PrintableExpense({ expense, approvalLine }: PrintableExp
 
           .attachment-image {
             max-width: 100%;
-            max-height: 110mm;
             object-fit: contain;
           }
 

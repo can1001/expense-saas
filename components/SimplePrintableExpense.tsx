@@ -49,6 +49,13 @@ function formatCurrency(amount: number): string {
   return amount.toLocaleString('ko-KR');
 }
 
+// 첨부파일 개수에 따라 그리드 클래스 반환
+function getGridClass(count: number): string {
+  if (count === 1) return 'single';
+  if (count === 2) return 'double';
+  return 'multi';
+}
+
 export default function SimplePrintableExpense({ expense }: SimplePrintableExpenseProps) {
   // 지출일자 분리 (없으면 빈칸)
   const expenseDate = expense.expenseDate ? new Date(expense.expenseDate) : null;
@@ -218,7 +225,7 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
       {expense.attachments && expense.attachments.length > 0 && (
         <div className="attachments-page">
           <h2 className="attachments-title">첨부파일 (영수증)</h2>
-          <div className="attachments-grid">
+          <div className={`attachments-grid ${getGridClass(expense.attachments.length)}`}>
             {expense.attachments.map((attachment, index) => (
               <div key={attachment.id} className="attachment-item">
                 <img
@@ -510,22 +517,52 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
 
           .attachments-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
             gap: 15px;
             justify-items: center;
+          }
+
+          /* 1장: 전체 화면 */
+          .attachments-grid.single {
+            grid-template-columns: 1fr;
+          }
+          .attachments-grid.single .attachment-item {
+            max-width: 170mm;
+          }
+          .attachments-grid.single .attachment-image {
+            max-height: 220mm;
+          }
+
+          /* 2장: 상하 반반 (세로 배치) */
+          .attachments-grid.double {
+            grid-template-columns: 1fr;
+          }
+          .attachments-grid.double .attachment-item {
+            max-width: 170mm;
+          }
+          .attachments-grid.double .attachment-image {
+            max-height: 110mm;
+          }
+
+          /* 3-4장: 기존 2x2 그리드 */
+          .attachments-grid.multi {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .attachments-grid.multi .attachment-item {
+            max-width: 90mm;
+          }
+          .attachments-grid.multi .attachment-image {
+            max-height: 120mm;
           }
 
           .attachment-item {
             border: 1px solid #ddd;
             padding: 8px;
-            max-width: 90mm;
             page-break-inside: avoid;
             text-align: center;
           }
 
           .attachment-image {
             max-width: 100%;
-            max-height: 120mm;
             object-fit: contain;
           }
 
