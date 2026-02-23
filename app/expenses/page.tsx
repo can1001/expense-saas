@@ -73,9 +73,9 @@ export default function ExpensesPage() {
     }
   };
 
-  // 관리자 또는 재정팀장인지 확인
-  const canBulkChangePaymentStatus = currentUser &&
-    ['admin', '재정팀장'].includes(currentUser.role);
+  // 지급상태 변경 권한 확인 (admin, finance_head, accountant, admin_assistant)
+  const paymentStatusRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
+  const canBulkChangePaymentStatus = currentUser && paymentStatusRoles.includes(currentUser.role);
 
   const fetchExpenses = async () => {
     try {
