@@ -69,12 +69,16 @@ export default function EnhancedBudgetSelector({
   return (
     <div className="space-y-4">
       {/* 모드 선택 탭 */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-gray-200" role="tablist" aria-label="예산 선택 모드">
         <button
           type="button"
+          role="tab"
+          id="tab-hierarchical"
+          aria-selected={mode === 'hierarchical'}
+          aria-controls="budget-panel-hierarchical"
           onClick={() => setMode('hierarchical')}
           disabled={disabled}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`flex items-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium border-b-2 transition-colors ${
             mode === 'hierarchical'
               ? 'border-blue-500 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -85,9 +89,13 @@ export default function EnhancedBudgetSelector({
         </button>
         <button
           type="button"
+          role="tab"
+          id="tab-search"
+          aria-selected={mode === 'search'}
+          aria-controls="budget-panel-search"
           onClick={() => setMode('search')}
           disabled={disabled}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`flex items-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium border-b-2 transition-colors ${
             mode === 'search'
               ? 'border-blue-500 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -111,15 +119,17 @@ export default function EnhancedBudgetSelector({
 
       {/* 모드별 콘텐츠 */}
       {mode === 'hierarchical' ? (
-        <BudgetSelector
+        <div id="budget-panel-hierarchical" role="tabpanel" aria-labelledby="tab-hierarchical">
+          <BudgetSelector
           value={value}
           onChange={onChange}
           disabled={disabled}
           showDetail={showDetail}
           onDetailsLoaded={onDetailsLoaded}
         />
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div id="budget-panel-search" role="tabpanel" aria-labelledby="tab-search" className="space-y-3">
           <BudgetSearchInput
             departmentId={departmentId}
             onSelect={handleSearchSelect}

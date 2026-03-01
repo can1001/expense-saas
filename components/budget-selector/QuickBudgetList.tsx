@@ -46,12 +46,12 @@ export default function QuickBudgetList({
             {displayFavorites.map((item) => (
               <div
                 key={item.id}
-                className="group flex items-center gap-1 px-3 py-1.5 bg-yellow-50 border border-yellow-200 rounded-full text-sm hover:bg-yellow-100 transition-colors"
+                className="group flex items-center gap-1 px-3 py-2 min-h-[44px] bg-yellow-50 border border-yellow-200 rounded-full text-sm hover:bg-yellow-100 transition-colors"
               >
                 <button
                   type="button"
                   onClick={() => onSelect(item)}
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 min-h-[36px]"
                 >
                   <span className="font-medium text-yellow-800">{item.detail}</span>
                   <ChevronRight className="w-3 h-3 text-yellow-600" />
@@ -63,9 +63,10 @@ export default function QuickBudgetList({
                       e.stopPropagation();
                       onRemoveFavorite(item.id);
                     }}
-                    className="p-0.5 rounded-full hover:bg-yellow-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="p-1 rounded-full hover:bg-yellow-200 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                    aria-label={`${item.detail} 즐겨찾기에서 제거`}
                   >
-                    <X className="w-3 h-3 text-yellow-600" />
+                    <X className="w-4 h-4 text-yellow-600" />
                   </button>
                 )}
               </div>
@@ -86,12 +87,12 @@ export default function QuickBudgetList({
             {displayRecents.map((item) => (
               <div
                 key={item.id}
-                className="group flex items-center gap-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-sm hover:bg-gray-100 transition-colors"
+                className="group flex items-center gap-1 px-3 py-2 min-h-[44px] bg-gray-50 border border-gray-200 rounded-full text-sm hover:bg-gray-100 transition-colors"
               >
                 <button
                   type="button"
                   onClick={() => onSelect(item)}
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 min-h-[36px]"
                 >
                   <span className="font-medium text-gray-700">{item.detail}</span>
                   <ChevronRight className="w-3 h-3 text-gray-500" />
@@ -103,9 +104,10 @@ export default function QuickBudgetList({
                       e.stopPropagation();
                       onRemoveRecent(item.id);
                     }}
-                    className="p-0.5 rounded-full hover:bg-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="p-1 rounded-full hover:bg-gray-200 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                    aria-label={`${item.detail} 최근 사용에서 제거`}
                   >
-                    <X className="w-3 h-3 text-gray-500" />
+                    <X className="w-4 h-4 text-gray-500" />
                   </button>
                 )}
               </div>
