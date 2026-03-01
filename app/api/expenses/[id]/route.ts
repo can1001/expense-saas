@@ -38,8 +38,21 @@ export async function GET(
     const currentUserId = await getSessionUserId();
     const isOwner = currentUserId && expense.userId === currentUserId;
 
-    // 본인이 아닌 경우 계좌번호 마스킹 처리
-    if (!isOwner) {
+    // 계좌번호 열람 권한이 있는 역할 (프린트 시 계좌번호 전체 표시 필요)
+    const ACCOUNT_VIEW_ROLES = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
+
+    // 계좌번호 열람 권한 확인
+    let canViewAccount = isOwner;
+    if (currentUserId && !canViewAccount) {
+      const currentUser = await prisma.user.findUnique({
+        where: { id: currentUserId },
+        select: { role: true },
+      });
+      canViewAccount = !!(currentUser?.role && ACCOUNT_VIEW_ROLES.includes(currentUser.role));
+    }
+
+    // 계좌번호 열람 권한이 없는 경우에만 마스킹
+    if (!canViewAccount) {
       return NextResponse.json({
         ...expense,
         accountNumber: maskAccountNumber(expense.accountNumber),
