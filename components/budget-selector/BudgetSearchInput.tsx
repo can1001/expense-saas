@@ -18,7 +18,7 @@ export default function BudgetSearchInput({
   onSelect,
   isFavorite,
   onToggleFavorite,
-  placeholder = '계정과목 검색 (예: 회의비, 출장)',
+  placeholder = '계정과목 검색 (예: 성례비, 교육교재비)',
   disabled = false,
 }: BudgetSearchInputProps) {
   const [isOpen, setIsOpen] = useState(false);
