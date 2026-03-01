@@ -34,3 +34,20 @@ export function maskAccountNumber(accountNumber: string | null | undefined): str
   const lastFour = cleaned.slice(-4);
   return `****${lastFour}`;
 }
+
+// 타임스탬프를 상대 시간으로 포맷 ("방금", "5분 전" 등)
+export function formatRelativeTime(timestamp: number): string {
+  const now = Date.now();
+  const diff = now - timestamp;
+
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (minutes < 1) return '방금';
+  if (minutes < 60) return `${minutes}분 전`;
+  if (hours < 24) return `${hours}시간 전`;
+  if (days === 1) return '어제';
+  if (days < 7) return `${days}일 전`;
+  return '지난주';
+}
