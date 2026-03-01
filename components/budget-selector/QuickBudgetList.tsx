@@ -5,6 +5,7 @@ import { Star, Clock, X, ChevronRight } from 'lucide-react';
 import { BudgetSearchResult } from './hooks/useBudgetSearch';
 import { RecentBudgetItem } from './hooks/useRecentBudgets';
 import { FavoriteBudgetItem } from './hooks/useFavoriteBudgets';
+import { formatRelativeTime } from '@/lib/utils';
 
 interface QuickBudgetListProps {
   favoriteItems: FavoriteBudgetItem[];
@@ -87,15 +88,15 @@ export default function QuickBudgetList({
             {displayRecents.map((item) => (
               <div
                 key={item.id}
-                className="group flex items-center gap-1 px-3 py-2 min-h-[44px] bg-gray-50 border border-gray-200 rounded-full text-sm hover:bg-gray-100 transition-colors"
+                className="group flex items-center gap-1 px-3 py-1.5 min-h-[44px] bg-gray-50 border border-gray-200 rounded-2xl text-sm hover:bg-gray-100 transition-colors"
               >
                 <button
                   type="button"
                   onClick={() => onSelect(item)}
-                  className="flex items-center gap-1 min-h-[36px]"
+                  className="flex flex-col items-start min-h-[36px] justify-center"
                 >
                   <span className="font-medium text-gray-700">{item.detail}</span>
-                  <ChevronRight className="w-3 h-3 text-gray-500" />
+                  <span className="text-xs text-gray-400">{formatRelativeTime(item.usedAt)}</span>
                 </button>
                 {onRemoveRecent && (
                   <button
