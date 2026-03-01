@@ -59,6 +59,17 @@ export default function BudgetSearchInput({
     inputRef.current?.focus();
   };
 
+  // Enter 키 입력 시 form submit 방지
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // 검색 결과가 1개면 자동 선택
+      if (results.length === 1) {
+        handleSelect(results[0]);
+      }
+    }
+  };
+
   return (
     <div ref={containerRef} className="relative">
       <div className="relative">
@@ -68,9 +79,10 @@ export default function BudgetSearchInput({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setIsOpen(true)}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full px-4 py-3 pl-10 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className="w-full px-4 py-3 pl-10 pr-10 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
         />
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
 
