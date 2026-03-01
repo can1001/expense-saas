@@ -8,7 +8,7 @@
 'use client';
 
 import { Control, Controller } from 'react-hook-form';
-import BudgetSelector from '@/components/BudgetSelector';
+import { EnhancedBudgetSelector } from '@/components/budget-selector';
 import { ExpenseFormData } from '@/lib/schemas/expense-schema';
 import { SECTION_CARD, SECTION_TITLE, ERROR_MESSAGE } from '@/lib/constants/styles';
 
@@ -47,7 +47,7 @@ export default function BudgetSection({
                     control={control}
                     render={({ field: subcategoryField, fieldState: subcategoryFieldState }) => (
                       <div>
-                        <BudgetSelector
+                        <EnhancedBudgetSelector
                           value={{
                             committee: field.value,
                             department: departmentField.value,
@@ -68,6 +68,7 @@ export default function BudgetSection({
                           disabled={disabled}
                           showDetail={showDetail}
                           onDetailsLoaded={onDetailsLoaded}
+                          showQuickAccess={true}
                         />
                         {(committeeFieldState.error ||
                           departmentFieldState.error ||
