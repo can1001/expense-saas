@@ -46,42 +46,56 @@ export default function BudgetSection({
                     name="items.0.budgetSubcategory"
                     control={control}
                     render={({ field: subcategoryField, fieldState: subcategoryFieldState }) => (
-                      <div>
-                        <EnhancedBudgetSelector
-                          value={{
-                            committee: field.value,
-                            department: departmentField.value,
-                            category: categoryField.value,
-                            subcategory: subcategoryField.value,
-                          }}
-                          onChange={(budget) => {
-                            field.onChange(budget.committee);
-                            departmentField.onChange(budget.department);
-                            categoryField.onChange(budget.category);
-                            subcategoryField.onChange(budget.subcategory);
+                      <Controller
+                        name="items.0.budgetDetail"
+                        control={control}
+                        render={({ field: detailField, fieldState: detailFieldState }) => (
+                          <div>
+                            <EnhancedBudgetSelector
+                              value={{
+                                committee: field.value,
+                                department: departmentField.value,
+                                category: categoryField.value,
+                                subcategory: subcategoryField.value,
+                                detail: detailField.value,
+                              }}
+                              onChange={(budget) => {
+                                field.onChange(budget.committee);
+                                departmentField.onChange(budget.department);
+                                categoryField.onChange(budget.category);
+                                subcategoryField.onChange(budget.subcategory);
 
-                            // 예산(세목)이 선택되면 콜백 호출
-                            if (budget.detail && onBudgetDetailChange) {
-                              onBudgetDetailChange(budget.detail);
-                            }
-                          }}
-                          disabled={disabled}
-                          showDetail={showDetail}
-                          onDetailsLoaded={onDetailsLoaded}
-                          showQuickAccess={true}
-                        />
-                        {(committeeFieldState.error ||
-                          departmentFieldState.error ||
-                          categoryFieldState.error ||
-                          subcategoryFieldState.error) && (
-                          <p className={`${ERROR_MESSAGE} mt-2`}>
-                            {committeeFieldState.error?.message ||
-                              departmentFieldState.error?.message ||
-                              categoryFieldState.error?.message ||
-                              subcategoryFieldState.error?.message}
-                          </p>
+                                // 세목이 선택되면 폼 필드에 저장
+                                if (budget.detail) {
+                                  detailField.onChange(budget.detail);
+                                }
+
+                                // 예산(세목)이 선택되면 콜백 호출
+                                if (budget.detail && onBudgetDetailChange) {
+                                  onBudgetDetailChange(budget.detail);
+                                }
+                              }}
+                              disabled={disabled}
+                              showDetail={showDetail}
+                              onDetailsLoaded={onDetailsLoaded}
+                              showQuickAccess={true}
+                            />
+                            {(committeeFieldState.error ||
+                              departmentFieldState.error ||
+                              categoryFieldState.error ||
+                              subcategoryFieldState.error ||
+                              detailFieldState.error) && (
+                              <p className={`${ERROR_MESSAGE} mt-2`}>
+                                {committeeFieldState.error?.message ||
+                                  departmentFieldState.error?.message ||
+                                  categoryFieldState.error?.message ||
+                                  subcategoryFieldState.error?.message ||
+                                  detailFieldState.error?.message}
+                              </p>
+                            )}
+                          </div>
                         )}
-                      </div>
+                      />
                     )}
                   />
                 )}
