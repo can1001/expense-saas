@@ -19,6 +19,13 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
   const month = requestDate.getMonth() + 1;
   const day = requestDate.getDate();
 
+  // 지급 완료 여부 및 지급일자
+  const isPaymentCompleted = expense.paymentStatus === 'COMPLETED';
+  const paymentDate = expense.paymentCompletedAt ? new Date(expense.paymentCompletedAt) : null;
+  const paymentYear = paymentDate?.getFullYear();
+  const paymentMonth = paymentDate ? paymentDate.getMonth() + 1 : null;
+  const paymentDay = paymentDate?.getDate();
+
   return (
     <div className="print-footer-container">
       {/* 청구/입금 정보 테이블 */}
@@ -57,6 +64,29 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
             <td className="label-cell">청구팀(부)</td>
             <td className="value-cell">{expense.committee} / {expense.department}</td>
           </tr>
+          {/* 출납 정보 - 지급 완료 시에만 표시 */}
+          {isPaymentCompleted && (
+            <tr>
+              <td className="label-cell">지급일자</td>
+              <td className="value-cell">
+                {paymentYear}년 {String(paymentMonth).padStart(2, '0')}월 {String(paymentDay).padStart(2, '0')}일
+              </td>
+              <td className="label-cell">출&nbsp;&nbsp;&nbsp;납</td>
+              <td className="value-cell cashier-cell">
+                <span className="cashier-name">{formatNameForPrint(expense.paymentCompletedBy || '')}</span>
+                <span className="signature-area">
+                  <span className="seal-mark">(인)</span>
+                  {expense.paymentSignatureData && (
+                    <img
+                      src={expense.paymentSignatureData}
+                      alt="출납 서명"
+                      className="signature-image"
+                    />
+                  )}
+                </span>
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
 
@@ -117,6 +147,18 @@ export default function PrintFooter({ expense }: PrintFooterProps) {
         }
 
         .requester-name {
+          font-weight: 600;
+          letter-spacing: 4px;
+        }
+
+        /* 출납 셀 */
+        .cashier-cell {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .cashier-name {
           font-weight: 600;
           letter-spacing: 4px;
         }
