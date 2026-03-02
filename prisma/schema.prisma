@@ -842,3 +842,20 @@ model NotificationLog {
   @@index([eventType])
   @@index([createdAt])
 }
+
+// ========================================
+// 시스템 설정 (System Settings)
+// ========================================
+
+// 시스템 설정 (키-값 형태)
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique           // 설정 키 (예: "paymentSignatureRequired")
+  value       String                     // 설정 값 (JSON 문자열 또는 단순 값)
+  description String?                    // 설정 설명
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+}

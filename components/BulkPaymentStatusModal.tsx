@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SignatureSelector } from './signature/SignatureSelector';
+import { usePaymentSignatureRequired } from '@/hooks/useSystemSetting';
 
 interface SignatureData {
   type: 'signature' | 'stamp' | 'realtime';
@@ -26,6 +27,9 @@ export function BulkPaymentStatusModal({
 }: BulkPaymentStatusModalProps) {
   const [signature, setSignature] = useState<SignatureData | null>(null);
 
+  // 출납 서명 필수 여부 설정 조회
+  const { value: signatureRequired } = usePaymentSignatureRequired();
+
   // 모달이 열릴 때 초기화
   useEffect(() => {
     if (isOpen) {
@@ -35,7 +39,11 @@ export function BulkPaymentStatusModal({
 
   if (!isOpen) return null;
 
+  const hasValidSignature = signature && (signature.signatureId || signature.data);
+  const canConfirm = !signatureRequired || hasValidSignature;
+
   const handleConfirm = () => {
+    if (!canConfirm) return;
     onConfirm(signature);
   };
 
@@ -72,11 +80,16 @@ export function BulkPaymentStatusModal({
         {/* 출납 서명 선택 */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            출납 서명 (선택)
+            출납 서명 {signatureRequired ? <span className="text-red-500">*</span> : '(선택)'}
           </label>
           <p className="text-xs text-gray-500 mb-3">
             선택한 서명이 모든 지출결의서에 일괄 적용됩니다.
           </p>
+          {signatureRequired && !hasValidSignature && (
+            <p className="text-xs text-amber-600 mb-2">
+              지급 완료 처리를 위해 출납 서명이 필요합니다.
+            </p>
+          )}
           <SignatureSelector
             onSelect={setSignature}
             selectedData={signature}
@@ -96,8 +109,8 @@ export function BulkPaymentStatusModal({
           <button
             type="button"
             onClick={handleConfirm}
-            className="px-4 py-2 text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors disabled:opacity-50"
-            disabled={isProcessing}
+            className="px-4 py-2 text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isProcessing || !canConfirm}
           >
             {isProcessing ? (
               <span className="flex items-center gap-2">

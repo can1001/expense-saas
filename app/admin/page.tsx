@@ -13,7 +13,8 @@ import {
   BarChart3,
   Eye,
   Wand2,
-  ClipboardCheck
+  ClipboardCheck,
+  Settings
 } from 'lucide-react';
 
 interface QuickLinkItem {
@@ -108,6 +109,13 @@ const quickLinks: QuickLinkItem[] = [
     description: '역할/담당자/예산 설정 완료율 확인',
     icon: ClipboardCheck,
     color: 'bg-red-500',
+  },
+  {
+    href: '/admin/settings',
+    title: '시스템 설정',
+    description: '출납 서명 필수 여부 등 시스템 설정',
+    icon: Settings,
+    color: 'bg-gray-500',
   },
 ];
 
