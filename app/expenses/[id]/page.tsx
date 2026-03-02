@@ -205,7 +205,12 @@ export default function ExpenseDetailPage() {
   };
 
   // 지출 상태 변경 핸들러
-  const handlePaymentStatusChange = async (newStatus: string, note: string, reason?: string) => {
+  const handlePaymentStatusChange = async (
+    newStatus: string,
+    note: string,
+    reason?: string,
+    signature?: { type: string; signatureId?: string; data?: string } | null
+  ) => {
     if (!expense) return;
 
     setPaymentStatusLoading(true);
@@ -217,6 +222,7 @@ export default function ExpenseDetailPage() {
           paymentStatus: newStatus,
           note,
           reason,
+          signature,
         }),
       });
 
@@ -236,6 +242,8 @@ export default function ExpenseDetailPage() {
         paymentHoldReason: data.data.paymentHoldReason,
         paymentHoldAt: data.data.paymentHoldAt,
         paymentHoldBy: data.data.paymentHoldBy,
+        paymentSignatureType: data.data.paymentSignatureType,
+        paymentSignatureData: data.data.paymentSignatureData,
       });
 
       setShowPaymentModal(false);

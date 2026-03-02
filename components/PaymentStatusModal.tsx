@@ -1,13 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { SignatureSelector } from './signature/SignatureSelector';
 
 type PaymentStatusType = 'PENDING' | 'HOLD' | 'CANCELLED' | 'COMPLETED';
+
+interface SignatureData {
+  type: 'signature' | 'stamp' | 'realtime';
+  data?: string;
+  signatureId?: string;
+}
 
 interface PaymentStatusModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (newStatus: string, note: string, reason?: string) => void;
+  onConfirm: (newStatus: string, note: string, reason?: string, signature?: SignatureData | null) => void;
   currentStatus: PaymentStatusType;
   isProcessing: boolean;
 }
@@ -49,6 +56,7 @@ export function PaymentStatusModal({
   const [selectedStatus, setSelectedStatus] = useState<PaymentStatusType>(currentStatus);
   const [note, setNote] = useState('');
   const [reason, setReason] = useState('');
+  const [signature, setSignature] = useState<SignatureData | null>(null);
 
   // 모달이 열릴 때 현재 상태로 초기화
   useEffect(() => {
@@ -56,6 +64,7 @@ export function PaymentStatusModal({
       setSelectedStatus(currentStatus);
       setNote('');
       setReason('');
+      setSignature(null);
     }
   }, [isOpen, currentStatus]);
 
@@ -68,7 +77,12 @@ export function PaymentStatusModal({
   const handleConfirm = () => {
     if (!isStatusChanged) return;
     if (needsReason && !reason.trim()) return;
-    onConfirm(selectedStatus, note, needsReason ? reason : undefined);
+    onConfirm(
+      selectedStatus,
+      note,
+      needsReason ? reason : undefined,
+      selectedStatus === 'COMPLETED' ? signature : null
+    );
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -174,6 +188,19 @@ export function PaymentStatusModal({
               placeholder={selectedStatus === 'HOLD' ? '예: 계좌 정보 확인 필요' : '예: 중복 결의서로 취소'}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               rows={2}
+            />
+          </div>
+        )}
+
+        {/* 출납 서명 선택 (지급 완료일 때만) */}
+        {selectedStatus === 'COMPLETED' && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              출납 서명 (선택)
+            </label>
+            <SignatureSelector
+              onSelect={setSignature}
+              selectedData={signature}
             />
           </div>
         )}

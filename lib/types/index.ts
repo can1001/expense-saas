@@ -84,6 +84,9 @@ export interface Expense {
   paymentHoldReason?: string | null;
   paymentHoldAt?: string | null;
   paymentHoldBy?: string | null;
+  // 출납 서명 (지급 완료 시)
+  paymentSignatureType?: string | null;
+  paymentSignatureData?: string | null;
   // 메타
   createdAt: string;
   updatedAt: string;

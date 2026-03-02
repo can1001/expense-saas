@@ -63,6 +63,10 @@ model Expense {
   paymentHoldAt     DateTime?            // 보류/취소 시각
   paymentHoldBy     String?              // 보류/취소 처리자
 
+  // 출납 서명 (지급 완료 시)
+  paymentSignatureType String?           // "signature" | "stamp"
+  paymentSignatureData String?   @db.Text // base64 인코딩 이미지
+
   // 결재선 (1:1 관계)
   approvalLine      ApprovalLine?
 

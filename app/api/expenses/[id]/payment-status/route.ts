@@ -10,7 +10,12 @@ import { notificationService } from '@/lib/services/notification';
  * Body: {
  *   paymentStatus: "PENDING" | "HOLD" | "CANCELLED" | "COMPLETED",
  *   note?: string,
- *   reason?: string  // HOLD, CANCELLED일 때 필수
+ *   reason?: string,  // HOLD, CANCELLED일 때 필수
+ *   signature?: {     // COMPLETED일 때 출납 서명
+ *     type: "signature" | "stamp",
+ *     signatureId?: string,  // 저장된 서명 ID
+ *     data?: string          // 또는 base64 데이터
+ *   }
  * }
  */
 export async function PUT(
@@ -20,7 +25,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { paymentStatus, note, reason } = body;
+    const { paymentStatus, note, reason, signature } = body;
 
     // 현재 사용자 확인
     const currentUser = await getCurrentUser();
@@ -106,6 +111,24 @@ export async function PUT(
       updateData.paymentHoldReason = null;
       updateData.paymentHoldAt = null;
       updateData.paymentHoldBy = null;
+
+      // 출납 서명 처리
+      if (signature) {
+        if (signature.signatureId) {
+          // 저장된 서명 ID로 조회
+          const userSignature = await prisma.userSignature.findUnique({
+            where: { id: signature.signatureId },
+          });
+          if (userSignature) {
+            updateData.paymentSignatureType = userSignature.type;
+            updateData.paymentSignatureData = userSignature.imageData;
+          }
+        } else if (signature.data) {
+          // 직접 전달된 base64 데이터
+          updateData.paymentSignatureType = signature.type || 'signature';
+          updateData.paymentSignatureData = signature.data;
+        }
+      }
     } else if (paymentStatus === 'HOLD' || paymentStatus === 'CANCELLED') {
       updateData.paymentHoldReason = reason;
       updateData.paymentHoldAt = now;
@@ -120,6 +143,8 @@ export async function PUT(
       updateData.paymentHoldReason = null;
       updateData.paymentHoldAt = null;
       updateData.paymentHoldBy = null;
+      updateData.paymentSignatureType = null;
+      updateData.paymentSignatureData = null;
     }
 
     const updatedExpense = await prisma.expense.update({
@@ -211,6 +236,8 @@ export async function PUT(
         paymentHoldReason: updatedExpense.paymentHoldReason,
         paymentHoldAt: updatedExpense.paymentHoldAt,
         paymentHoldBy: updatedExpense.paymentHoldBy,
+        paymentSignatureType: updatedExpense.paymentSignatureType,
+        paymentSignatureData: updatedExpense.paymentSignatureData,
       },
     });
   } catch (error: any) {
