@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SignatureSelector } from './signature/SignatureSelector';
+import { usePaymentSignatureRequired } from '@/hooks/useSystemSetting';
 
 type PaymentStatusType = 'PENDING' | 'HOLD' | 'CANCELLED' | 'COMPLETED';
 
@@ -58,6 +59,9 @@ export function PaymentStatusModal({
   const [reason, setReason] = useState('');
   const [signature, setSignature] = useState<SignatureData | null>(null);
 
+  // 출납 서명 필수 여부 설정 조회
+  const { value: signatureRequired } = usePaymentSignatureRequired();
+
   // 모달이 열릴 때 현재 상태로 초기화
   useEffect(() => {
     if (isOpen) {
@@ -71,7 +75,9 @@ export function PaymentStatusModal({
   if (!isOpen) return null;
 
   const needsReason = selectedStatus === 'HOLD' || selectedStatus === 'CANCELLED';
-  const canSubmit = !needsReason || reason.trim().length > 0;
+  const needsSignature = selectedStatus === 'COMPLETED' && signatureRequired === true;
+  const hasValidSignature = signature && (signature.signatureId || signature.data);
+  const canSubmit = (!needsReason || reason.trim().length > 0) && (!needsSignature || hasValidSignature);
   const isStatusChanged = selectedStatus !== currentStatus;
 
   const handleConfirm = () => {
@@ -196,8 +202,13 @@ export function PaymentStatusModal({
         {selectedStatus === 'COMPLETED' && (
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              출납 서명 (선택)
+              출납 서명 {signatureRequired ? <span className="text-red-500">*</span> : '(선택)'}
             </label>
+            {signatureRequired && !hasValidSignature && (
+              <p className="text-xs text-amber-600 mb-2">
+                지급 완료 처리를 위해 출납 서명이 필요합니다.
+              </p>
+            )}
             <SignatureSelector
               onSelect={setSignature}
               selectedData={signature}

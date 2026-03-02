@@ -53,58 +53,61 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // 세목 검색
-    const budgetDetails = await prisma.budgetDetail.findMany({
-      where: whereCondition,
-      select: {
-        id: true,
-        name: true,
-        subcategory: {
-          select: {
-            name: true,
-            category: {
-              select: {
-                name: true,
+    // 세목 검색 (총 개수와 결과를 병렬로 가져옴)
+    const [budgetDetails, totalCount] = await Promise.all([
+      prisma.budgetDetail.findMany({
+        where: whereCondition,
+        select: {
+          id: true,
+          name: true,
+          subcategory: {
+            select: {
+              name: true,
+              category: {
+                select: {
+                  name: true,
+                },
               },
             },
           },
-        },
-        yearSettings: {
-          where: { year },
-          select: {
-            manager: {
-              select: {
-                id: true,
-                username: true,
+          yearSettings: {
+            where: { year },
+            select: {
+              manager: {
+                select: {
+                  id: true,
+                  username: true,
+                },
               },
             },
           },
-        },
-        departmentDetails: {
-          where: { isActive: true },
-          select: {
-            department: {
-              select: {
-                id: true,
-                name: true,
-                committee: {
-                  select: {
-                    id: true,
-                    name: true,
+          departmentDetails: {
+            where: { isActive: true },
+            select: {
+              department: {
+                select: {
+                  id: true,
+                  name: true,
+                  committee: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-      orderBy: [
-        { subcategory: { category: { sortOrder: 'asc' } } },
-        { subcategory: { sortOrder: 'asc' } },
-        { sortOrder: 'asc' },
-      ],
-      take: limit,
-    });
+        orderBy: [
+          { subcategory: { category: { sortOrder: 'asc' } } },
+          { subcategory: { sortOrder: 'asc' } },
+          { sortOrder: 'asc' },
+        ],
+        take: limit,
+      }),
+      prisma.budgetDetail.count({ where: whereCondition }),
+    ]);
 
     // 응답 형식으로 변환
     const results = budgetDetails.map((detail) => {
@@ -143,7 +146,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       results,
-      total: results.length,
+      total: totalCount,
+      showing: results.length,
     });
   } catch (error) {
     return handleApiError(error);

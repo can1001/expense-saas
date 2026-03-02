@@ -9,13 +9,18 @@ import { getCurrentUser } from '@/lib/auth';
  * Body: {
  *   ids: string[],
  *   paymentStatus: "PENDING" | "COMPLETED",
- *   note?: string
+ *   note?: string,
+ *   signature?: {     // COMPLETED일 때 출납 서명
+ *     type: "signature" | "stamp",
+ *     signatureId?: string,
+ *     data?: string
+ *   }
  * }
  */
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { ids, paymentStatus, note } = body;
+    const { ids, paymentStatus, note, signature } = body;
 
     // 현재 사용자 확인
     const currentUser = await getCurrentUser();
@@ -105,9 +110,29 @@ export async function PUT(request: NextRequest) {
     if (paymentStatus === 'COMPLETED') {
       updateData.paymentCompletedAt = now;
       updateData.paymentCompletedBy = currentUser.username;
+
+      // 출납 서명 처리
+      if (signature) {
+        if (signature.signatureId) {
+          // 저장된 서명 ID로 조회
+          const userSignature = await prisma.userSignature.findUnique({
+            where: { id: signature.signatureId },
+          });
+          if (userSignature) {
+            updateData.paymentSignatureType = userSignature.type;
+            updateData.paymentSignatureData = userSignature.imageData;
+          }
+        } else if (signature.data) {
+          // 직접 전달된 base64 데이터
+          updateData.paymentSignatureType = signature.type || 'signature';
+          updateData.paymentSignatureData = signature.data;
+        }
+      }
     } else {
       updateData.paymentCompletedAt = null;
       updateData.paymentCompletedBy = null;
+      updateData.paymentSignatureType = null;
+      updateData.paymentSignatureData = null;
     }
 
     await prisma.expense.updateMany({

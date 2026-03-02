@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import Header from '@/components/Header';
 import { ExcelExportModal } from '@/components/ExcelExportModal';
+import { BulkPaymentStatusModal } from '@/components/BulkPaymentStatusModal';
 import ExpenseCard from '@/components/ExpenseCard';
 import MobileFilterPanel, { MobileFilterButton } from '@/components/MobileFilterPanel';
 import { ExpenseListSkeleton, FilterSkeleton, TableSkeleton } from '@/components/ui/Skeleton';
@@ -37,6 +38,7 @@ export default function ExpensesPage() {
   // 현재 사용자 및 일괄 변경 상태
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [showBulkPaymentModal, setShowBulkPaymentModal] = useState(false);
 
   // 모바일 무한 스크롤
   const [mobileVisibleCount, setMobileVisibleCount] = useState(10);
@@ -330,11 +332,31 @@ export default function ExpensesPage() {
       return;
     }
 
-    const statusText = newStatus === 'COMPLETED' ? '지급완료' : '지급대기';
-    const confirmed = confirm(`선택한 ${selectedIds.size}건을 ${statusText}로 변경하시겠습니까?\n\n※ 최종 승인된 항목만 변경됩니다.`);
+    // 지급완료의 경우 모달 열기 (서명 선택)
+    if (newStatus === 'COMPLETED') {
+      setShowBulkPaymentModal(true);
+      return;
+    }
+
+    // 지급대기의 경우 바로 처리
+    const confirmed = confirm(`선택한 ${selectedIds.size}건을 지급대기로 변경하시겠습니까?\n\n※ 최종 승인된 항목만 변경됩니다.`);
 
     if (!confirmed) return;
 
+    await processBulkPaymentStatus('PENDING');
+  };
+
+  // 일괄 지급완료 처리 (서명 포함)
+  const handleBulkPaymentComplete = async (signature?: { type: string; signatureId?: string; data?: string } | null) => {
+    await processBulkPaymentStatus('COMPLETED', signature);
+    setShowBulkPaymentModal(false);
+  };
+
+  // 실제 일괄 처리 로직
+  const processBulkPaymentStatus = async (
+    newStatus: 'PENDING' | 'COMPLETED',
+    signature?: { type: string; signatureId?: string; data?: string } | null
+  ) => {
     try {
       setBulkProcessing(true);
       const response = await fetch('/api/expenses/bulk-payment-status', {
@@ -345,6 +367,7 @@ export default function ExpensesPage() {
         body: JSON.stringify({
           ids: Array.from(selectedIds),
           paymentStatus: newStatus,
+          signature,
         }),
       });
 
@@ -1058,6 +1081,15 @@ export default function ExpensesPage() {
         onExport={handleExportExcel}
         selectedCount={selectedIds.size}
         isExporting={exporting}
+      />
+
+      {/* 일괄 지급완료 모달 */}
+      <BulkPaymentStatusModal
+        isOpen={showBulkPaymentModal}
+        onClose={() => setShowBulkPaymentModal(false)}
+        onConfirm={handleBulkPaymentComplete}
+        selectedCount={selectedIds.size}
+        isProcessing={bulkProcessing}
       />
 
       {/* 모바일 필터 패널 */}
