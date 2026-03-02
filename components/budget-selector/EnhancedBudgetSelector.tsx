@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Layers, Search, List } from 'lucide-react';
+import { Layers, Search } from 'lucide-react';
 import BudgetSelector from '@/components/BudgetSelector';
 import BudgetSearchInput from './BudgetSearchInput';
 import QuickBudgetList from './QuickBudgetList';
 import { useRecentBudgets } from './hooks/useRecentBudgets';
 import { useFavoriteBudgets } from './hooks/useFavoriteBudgets';
 import { BudgetSearchResult } from './hooks/useBudgetSearch';
+import { useToast } from '@/components/ui/Toast';
 
 type SelectMode = 'hierarchical' | 'search';
 
@@ -39,9 +40,16 @@ export default function EnhancedBudgetSelector({
   departmentId,
 }: EnhancedBudgetSelectorProps) {
   const [mode, setMode] = useState<SelectMode>('hierarchical');
+  const { showToast } = useToast();
+
+  const handleFavoriteLimitReached = useCallback(() => {
+    showToast('즐겨찾기는 최대 20개까지 저장할 수 있습니다.', 'warning');
+  }, [showToast]);
 
   const { recentItems, addRecentItem, removeRecentItem } = useRecentBudgets();
-  const { favoriteItems, toggleFavorite, isFavorite, removeFavorite } = useFavoriteBudgets();
+  const { favoriteItems, toggleFavorite, isFavorite, removeFavorite } = useFavoriteBudgets({
+    onLimitReached: handleFavoriteLimitReached,
+  });
 
   // 검색 결과 또는 빠른 선택에서 항목 선택 시
   const handleSearchSelect = useCallback((item: BudgetSearchResult) => {

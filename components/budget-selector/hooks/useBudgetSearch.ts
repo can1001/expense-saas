@@ -30,6 +30,7 @@ interface UseBudgetSearchReturn {
   query: string;
   setQuery: (query: string) => void;
   results: BudgetSearchResult[];
+  total: number;
   isLoading: boolean;
   error: string | null;
   clearResults: () => void;
@@ -45,6 +46,7 @@ export function useBudgetSearch(options: UseBudgetSearchOptions = {}): UseBudget
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<BudgetSearchResult[]>([]);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,6 +62,7 @@ export function useBudgetSearch(options: UseBudgetSearchOptions = {}): UseBudget
     // 빈 검색어면 결과 초기화
     if (!searchQuery.trim()) {
       setResults([]);
+      setTotal(0);
       setIsLoading(false);
       return;
     }
@@ -86,18 +89,34 @@ export function useBudgetSearch(options: UseBudgetSearchOptions = {}): UseBudget
       });
 
       if (!response.ok) {
-        throw new Error('검색 중 오류가 발생했습니다.');
+        if (response.status === 404) {
+          throw new Error('검색 API를 찾을 수 없습니다.');
+        } else if (response.status === 500) {
+          throw new Error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        } else {
+          throw new Error(`검색 중 오류가 발생했습니다. (${response.status})`);
+        }
       }
 
       const data = await response.json();
       setResults(data.results);
+      setTotal(data.total || data.results.length);
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         // 요청이 취소된 경우 무시
         return;
       }
-      setError(err instanceof Error ? err.message : '검색 중 오류가 발생했습니다.');
+
+      let errorMessage = '검색 중 오류가 발생했습니다.';
+      if (err instanceof TypeError && err.message === 'Failed to fetch') {
+        errorMessage = '네트워크 연결을 확인해주세요.';
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
       setResults([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
@@ -135,6 +154,7 @@ export function useBudgetSearch(options: UseBudgetSearchOptions = {}): UseBudget
   const clearResults = useCallback(() => {
     setQuery('');
     setResults([]);
+    setTotal(0);
     setError(null);
   }, []);
 
@@ -142,6 +162,7 @@ export function useBudgetSearch(options: UseBudgetSearchOptions = {}): UseBudget
     query,
     setQuery,
     results,
+    total,
     isLoading,
     error,
     clearResults,

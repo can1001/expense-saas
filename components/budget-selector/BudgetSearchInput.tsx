@@ -27,7 +27,7 @@ export default function BudgetSearchInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const { query, setQuery, results, isLoading, error, clearResults } = useBudgetSearch({
+  const { query, setQuery, results, total, isLoading, error, clearResults } = useBudgetSearch({
     departmentId,
   });
 
@@ -169,50 +169,58 @@ export default function BudgetSearchInput({
             <div className="px-4 py-3 text-sm text-gray-500" role="status">
               검색 결과가 없습니다
             </div>
-          ) : (
-            results.map((item, index) => (
-              <div
-                key={item.id}
-                id={`budget-option-${index}`}
-                role="option"
-                aria-selected={selectedIndex === index}
-                className={`flex items-center border-b border-gray-100 last:border-0 cursor-pointer ${
-                  selectedIndex === index ? 'bg-blue-50' : 'hover:bg-gray-50'
-                }`}
-                onClick={() => handleSelect(item)}
-                onMouseEnter={() => setSelectedIndex(index)}
-              >
-                <div className="flex-1 px-4 py-3 min-h-[44px]">
-                  <div className="font-medium text-gray-900">{item.detail}</div>
-                  <div className="text-sm text-gray-500">{item.fullPath}</div>
-                  {item.managerName && (
-                    <div className="text-xs text-blue-600 mt-0.5">
-                      담당: {item.managerName}
-                    </div>
+          ) : results.length > 0 ? (
+            <>
+              {/* 검색 결과 개수 표시 */}
+              {total > results.length && (
+                <div className="px-4 py-2 text-xs text-gray-500 bg-gray-50 border-b border-gray-100">
+                  {total}개 중 {results.length}개 표시
+                </div>
+              )}
+              {results.map((item, index) => (
+                <div
+                  key={item.id}
+                  id={`budget-option-${index}`}
+                  role="option"
+                  aria-selected={selectedIndex === index}
+                  className={`flex items-center border-b border-gray-100 last:border-0 cursor-pointer ${
+                    selectedIndex === index ? 'bg-blue-50' : 'hover:bg-gray-50'
+                  }`}
+                  onClick={() => handleSelect(item)}
+                  onMouseEnter={() => setSelectedIndex(index)}
+                >
+                  <div className="flex-1 px-4 py-3 min-h-[44px]">
+                    <div className="font-medium text-gray-900">{item.detail}</div>
+                    <div className="text-sm text-gray-500">{item.fullPath}</div>
+                    {item.managerName && (
+                      <div className="text-xs text-blue-600 mt-0.5">
+                        담당: {item.managerName}
+                      </div>
+                    )}
+                  </div>
+                  {onToggleFavorite && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(item);
+                      }}
+                      className="p-2 mr-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-100 rounded-full"
+                      aria-label={isFavorite?.(item.id) ? `${item.detail} 즐겨찾기 해제` : `${item.detail} 즐겨찾기 추가`}
+                    >
+                      <Star
+                        className={`w-5 h-5 ${
+                          isFavorite?.(item.id)
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    </button>
                   )}
                 </div>
-                {onToggleFavorite && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleFavorite(item);
-                    }}
-                    className="p-2 mr-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-100 rounded-full"
-                    aria-label={isFavorite?.(item.id) ? `${item.detail} 즐겨찾기 해제` : `${item.detail} 즐겨찾기 추가`}
-                  >
-                    <Star
-                      className={`w-5 h-5 ${
-                        isFavorite?.(item.id)
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-gray-300'
-                      }`}
-                    />
-                  </button>
-                )}
-              </div>
-            ))
-          )}
+              ))}
+            </>
+          ) : null}
         </div>
       )}
     </div>

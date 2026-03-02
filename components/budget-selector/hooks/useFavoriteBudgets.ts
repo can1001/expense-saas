@@ -10,6 +10,10 @@ export interface FavoriteBudgetItem extends BudgetSearchResult {
   addedAt: number;
 }
 
+interface UseFavoriteBudgetsOptions {
+  onLimitReached?: () => void;
+}
+
 interface UseFavoriteBudgetsReturn {
   favoriteItems: FavoriteBudgetItem[];
   addFavorite: (item: BudgetSearchResult) => void;
@@ -17,9 +21,11 @@ interface UseFavoriteBudgetsReturn {
   toggleFavorite: (item: BudgetSearchResult) => void;
   isFavorite: (id: string) => boolean;
   clearFavorites: () => void;
+  maxItems: number;
 }
 
-export function useFavoriteBudgets(): UseFavoriteBudgetsReturn {
+export function useFavoriteBudgets(options?: UseFavoriteBudgetsOptions): UseFavoriteBudgetsReturn {
+  const { onLimitReached } = options || {};
   const [favoriteItems, setFavoriteItems] = useState<FavoriteBudgetItem[]>([]);
 
   // localStorage에서 로드
@@ -56,7 +62,7 @@ export function useFavoriteBudgets(): UseFavoriteBudgetsReturn {
 
       // 최대 개수 체크
       if (prev.length >= MAX_FAVORITE_ITEMS) {
-        alert(`즐겨찾기는 최대 ${MAX_FAVORITE_ITEMS}개까지 저장할 수 있습니다.`);
+        onLimitReached?.();
         return prev;
       }
 
@@ -69,7 +75,7 @@ export function useFavoriteBudgets(): UseFavoriteBudgetsReturn {
       saveToStorage(updated);
       return updated;
     });
-  }, [saveToStorage]);
+  }, [saveToStorage, onLimitReached]);
 
   // 즐겨찾기 제거
   const removeFavorite = useCallback((id: string) => {
@@ -91,7 +97,7 @@ export function useFavoriteBudgets(): UseFavoriteBudgetsReturn {
         return updated;
       } else {
         if (prev.length >= MAX_FAVORITE_ITEMS) {
-          alert(`즐겨찾기는 최대 ${MAX_FAVORITE_ITEMS}개까지 저장할 수 있습니다.`);
+          onLimitReached?.();
           return prev;
         }
 
@@ -104,7 +110,7 @@ export function useFavoriteBudgets(): UseFavoriteBudgetsReturn {
         return updated;
       }
     });
-  }, [saveToStorage]);
+  }, [saveToStorage, onLimitReached]);
 
   // 즐겨찾기 여부 확인
   const isFavorite = useCallback((id: string) => {
@@ -128,5 +134,6 @@ export function useFavoriteBudgets(): UseFavoriteBudgetsReturn {
     toggleFavorite,
     isFavorite,
     clearFavorites,
+    maxItems: MAX_FAVORITE_ITEMS,
   };
 }
