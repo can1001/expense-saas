@@ -4,7 +4,7 @@
 
 export const config = {
   // Base URL (use environment variable or default)
-  baseUrl: process.env.SCREENSHOT_BASE_URL || 'http://localhost:3000',
+  baseUrl: process.env.SCREENSHOT_BASE_URL || 'http://localhost:4001',
 
   // Test account credentials (set via environment variables)
   testAccount: {
