@@ -107,6 +107,10 @@ export async function PUT(
     if (paymentStatus === 'COMPLETED') {
       updateData.paymentCompletedAt = now;
       updateData.paymentCompletedBy = currentUser.username;
+      // 지출일자가 없으면 지급완료일로 자동 설정
+      if (!expense.expenseDate) {
+        updateData.expenseDate = now;
+      }
       // 완료 시 보류 정보 초기화
       updateData.paymentHoldReason = null;
       updateData.paymentHoldAt = null;
