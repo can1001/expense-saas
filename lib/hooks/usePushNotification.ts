@@ -1,0 +1,281 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+
+type PermissionState = 'default' | 'granted' | 'denied' | 'unsupported';
+
+interface UsePushNotificationReturn {
+  /** 푸시 알림 지원 여부 */
+  isSupported: boolean;
+
+  /** 현재 권한 상태 */
+  permission: PermissionState;
+
+  /** 구독 여부 */
+  isSubscribed: boolean;
+
+  /** 로딩 상태 */
+  isLoading: boolean;
+
+  /** 에러 메시지 */
+  error: string | null;
+
+  /** 푸시 권한 요청 및 구독 */
+  subscribe: (deviceName?: string) => Promise<boolean>;
+
+  /** 구독 해제 */
+  unsubscribe: () => Promise<boolean>;
+
+  /** 테스트 알림 발송 */
+  sendTest: () => Promise<boolean>;
+}
+
+/**
+ * 웹 푸시 알림 관리 훅
+ *
+ * @example
+ * const { isSupported, permission, isSubscribed, subscribe, unsubscribe } = usePushNotification();
+ *
+ * if (!isSupported) {
+ *   return <div>이 브라우저는 푸시 알림을 지원하지 않습니다.</div>;
+ * }
+ *
+ * if (permission === 'denied') {
+ *   return <div>푸시 알림이 차단되어 있습니다. 브라우저 설정에서 허용해주세요.</div>;
+ * }
+ *
+ * <button onClick={() => subscribe()}>알림 받기</button>
+ */
+export function usePushNotification(): UsePushNotificationReturn {
+  const [isSupported, setIsSupported] = useState<boolean>(false);
+  const [permission, setPermission] = useState<PermissionState>('default');
+  const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 브라우저 지원 여부 및 권한 상태 확인
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Push API 지원 여부 확인
+    const supported =
+      'serviceWorker' in navigator &&
+      'PushManager' in window &&
+      'Notification' in window;
+
+    setIsSupported(supported);
+
+    if (!supported) {
+      setPermission('unsupported');
+      return;
+    }
+
+    // 현재 권한 상태 확인
+    setPermission(Notification.permission as PermissionState);
+
+    // 기존 구독 여부 확인
+    checkSubscription();
+  }, []);
+
+  // 기존 구독 여부 확인
+  const checkSubscription = useCallback(async () => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      setIsSubscribed(!!subscription);
+    } catch (err) {
+      console.error('[usePushNotification] 구독 확인 실패:', err);
+    }
+  }, []);
+
+  // VAPID 공개키 가져오기
+  const getVapidPublicKey = useCallback(async (): Promise<string | null> => {
+    try {
+      const response = await fetch('/api/push/vapid-public-key');
+
+      if (!response.ok) {
+        throw new Error('VAPID 키를 가져올 수 없습니다.');
+      }
+
+      const data = await response.json();
+      return data.publicKey;
+    } catch (err) {
+      console.error('[usePushNotification] VAPID 키 조회 실패:', err);
+      return null;
+    }
+  }, []);
+
+  // URL-safe Base64 to Uint8Array 변환
+  const urlBase64ToUint8Array = useCallback((base64String: string): Uint8Array => {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+
+    return outputArray;
+  }, []);
+
+  // 푸시 권한 요청 및 구독
+  const subscribe = useCallback(
+    async (deviceName?: string): Promise<boolean> => {
+      if (!isSupported) {
+        setError('이 브라우저는 푸시 알림을 지원하지 않습니다.');
+        return false;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // 권한 요청
+        const result = await Notification.requestPermission();
+        setPermission(result as PermissionState);
+
+        if (result !== 'granted') {
+          setError('푸시 알림 권한이 거부되었습니다.');
+          return false;
+        }
+
+        // VAPID 키 가져오기
+        const vapidPublicKey = await getVapidPublicKey();
+
+        if (!vapidPublicKey) {
+          setError('서버에서 VAPID 키를 가져올 수 없습니다.');
+          return false;
+        }
+
+        // Service Worker 등록 확인
+        const registration = await navigator.serviceWorker.ready;
+
+        // Push 구독
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        });
+
+        // 서버에 구독 등록
+        const response = await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscription: subscription.toJSON(),
+            deviceName,
+          }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || '구독 등록에 실패했습니다.');
+        }
+
+        setIsSubscribed(true);
+        return true;
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : '구독에 실패했습니다.';
+        setError(errorMessage);
+        console.error('[usePushNotification] 구독 실패:', err);
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isSupported, getVapidPublicKey, urlBase64ToUint8Array]
+  );
+
+  // 구독 해제
+  const unsubscribe = useCallback(async (): Promise<boolean> => {
+    if (!isSupported) {
+      return false;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+
+      if (subscription) {
+        // 브라우저 구독 해제
+        await subscription.unsubscribe();
+
+        // 서버에 구독 해제 알림
+        await fetch('/api/push/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: subscription.endpoint,
+          }),
+        });
+      }
+
+      setIsSubscribed(false);
+      return true;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : '구독 해제에 실패했습니다.';
+      setError(errorMessage);
+      console.error('[usePushNotification] 구독 해제 실패:', err);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isSupported]);
+
+  // 테스트 알림 발송
+  const sendTest = useCallback(async (): Promise<boolean> => {
+    if (!isSubscribed) {
+      setError('먼저 알림을 구독해주세요.');
+      return false;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/push/test', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || '테스트 알림 발송에 실패했습니다.');
+      }
+
+      return true;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : '테스트 알림 발송에 실패했습니다.';
+      setError(errorMessage);
+      console.error('[usePushNotification] 테스트 발송 실패:', err);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isSubscribed]);
+
+  return {
+    isSupported,
+    permission,
+    isSubscribed,
+    isLoading,
+    error,
+    subscribe,
+    unsubscribe,
+    sendTest,
+  };
+}
+
+export default usePushNotification;
