@@ -16,7 +16,13 @@
     "db:studio": "prisma studio",
     "db:migrate": "prisma migrate dev",
     "bulk-upload": "ts-node --project tsconfig.scripts.json scripts/bulk-upload.ts",
-    "generate-template": "ts-node --project tsconfig.scripts.json scripts/generate-upload-template.ts"
+    "generate-template": "ts-node --project tsconfig.scripts.json scripts/generate-upload-template.ts",
+    "screenshots": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts",
+    "screenshots:expense": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts expense",
+    "screenshots:pwa": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts pwa",
+    "screenshots:push": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts push",
+    "screenshots:headed": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts --headed",
+    "screenshots:mobile": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts --mobile"
   },
   "engines": {
     "node": ">=24.0.0",
@@ -53,6 +59,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
