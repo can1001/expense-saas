@@ -110,7 +110,7 @@ export function usePushNotification(): UsePushNotificationReturn {
   }, []);
 
   // URL-safe Base64 to Uint8Array 변환
-  const urlBase64ToUint8Array = useCallback((base64String: string): Uint8Array => {
+  const urlBase64ToUint8Array = useCallback((base64String: string): ArrayBuffer => {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding)
       .replace(/-/g, '+')
@@ -123,7 +123,7 @@ export function usePushNotification(): UsePushNotificationReturn {
       outputArray[i] = rawData.charCodeAt(i);
     }
 
-    return outputArray;
+    return outputArray.buffer as ArrayBuffer;
   }, []);
 
   // 푸시 권한 요청 및 구독

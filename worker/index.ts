@@ -1,3 +1,5 @@
+/// <reference lib="webworker" />
+
 /**
  * 커스텀 Service Worker
  *
@@ -5,7 +7,7 @@
  * 백그라운드 동기화와 푸시 알림 처리를 담당합니다.
  */
 
-declare let self: ServiceWorkerGlobalScope;
+declare const self: ServiceWorkerGlobalScope;
 
 // 동기화 태그 상수
 const SYNC_TAG_EXPENSES = 'sync-expenses';
@@ -33,7 +35,7 @@ self.addEventListener('activate', (event) => {
  * 백그라운드 동기화 이벤트
  * 오프라인에서 온라인으로 복귀할 때 자동으로 트리거됩니다.
  */
-self.addEventListener('sync', (event: SyncEvent) => {
+self.addEventListener('sync' as keyof ServiceWorkerGlobalScopeEventMap, ((event: SyncEvent) => {
   console.log('[SW] 동기화 이벤트:', event.tag);
 
   if (event.tag === SYNC_TAG_EXPENSES) {
@@ -41,7 +43,7 @@ self.addEventListener('sync', (event: SyncEvent) => {
   } else if (event.tag === SYNC_TAG_ATTACHMENTS) {
     event.waitUntil(syncAttachments());
   }
-});
+}) as EventListener);
 
 /**
  * 푸시 알림 수신 이벤트
@@ -57,7 +59,7 @@ self.addEventListener('push', (event: PushEvent) => {
   try {
     const data = event.data.json() as PushNotificationData;
 
-    const options: NotificationOptions = {
+    const options = {
       body: data.body,
       icon: data.icon || '/logo.png',
       badge: '/logo.png',
@@ -74,7 +76,7 @@ self.addEventListener('push', (event: PushEvent) => {
       requireInteraction: data.requireInteraction || false,
     };
 
-    event.waitUntil(self.registration.showNotification(data.title, options));
+    event.waitUntil(self.registration.showNotification(data.title, options as NotificationOptions));
   } catch (error) {
     console.error('[SW] 푸시 알림 처리 오류:', error);
   }
