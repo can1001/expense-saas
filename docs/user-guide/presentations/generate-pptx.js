@@ -146,6 +146,37 @@ function addThankYouSlide(pptx) {
   });
 }
 
+// 스크린샷 경로
+const SCREENSHOTS_DIR = path.join(__dirname, '../screenshots');
+
+// 이미지 슬라이드 생성
+function addImageSlide(pptx, title, imageName, caption = '') {
+  const slide = pptx.addSlide({ masterName: 'MASTER_SLIDE' });
+  slide.addText(title, { x: 0.5, y: 0.3, w: '90%', ...STYLES.heading });
+
+  const imagePath = path.join(SCREENSHOTS_DIR, imageName);
+  try {
+    slide.addImage({
+      path: imagePath,
+      x: 0.5, y: 1.0, w: 9, h: 4,
+      sizing: { type: 'contain', w: 9, h: 4 },
+    });
+  } catch (e) {
+    console.warn(`  ⚠️ 이미지 로드 실패: ${imageName}`);
+    slide.addText(`[이미지: ${imageName}]`, {
+      x: 0.5, y: 2.5, w: '90%', fontSize: 14, color: '9CA3AF', align: 'center',
+    });
+  }
+
+  if (caption) {
+    slide.addText(caption, {
+      x: 0.5, y: 5.2, w: '90%', fontSize: 12, color: '6B7280',
+    });
+  }
+
+  return slide;
+}
+
 // ================================================
 // 1. 지출결의서 작성 가이드
 // ================================================
@@ -172,8 +203,11 @@ function generateExpenseGuide() {
   ]);
 
   // 3. 작성 Flow 개요
-  let slide = addCodeSlide(pptx, '작성 Flow 개요',
+  addCodeSlide(pptx, '작성 Flow 개요',
     '예산 정보 → 세부 항목 → 신청 정보 → 은행 정보 → 첨부파일 → 결재선 확인 → 저장/제출');
+
+  // 새 지출결의서 화면
+  addImageSlide(pptx, '새 지출결의서 작성 화면', 'expense-new.png', '메뉴 또는 + 버튼을 통해 접근');
 
   addTableSlide(pptx, '접근 방법',
     ['플랫폼', '방법'],
@@ -183,7 +217,9 @@ function generateExpenseGuide() {
     ]);
 
   // 4. 예산 정보 입력
-  addTableSlide(pptx, '1단계: 예산 정보 입력 - 4단계 계층 선택',
+  addImageSlide(pptx, '1단계: 예산 정보 입력', 'budget-section.png', '4단계 계층 선택 방식');
+
+  addTableSlide(pptx, '예산 정보 - 4단계 계층 선택',
     ['순서', '항목', '예시'],
     [
       ['1', '위원회', '재정위원회'],
@@ -199,7 +235,9 @@ function generateExpenseGuide() {
   ]);
 
   // 5. 세부 항목 입력
-  addTableSlide(pptx, '2단계: 세부 항목 입력 (1~10개)',
+  addImageSlide(pptx, '2단계: 세부 항목 입력', 'items-section.png', '1~10개의 세부 항목 입력 가능');
+
+  addTableSlide(pptx, '세부 항목 입력 필드',
     ['필드', '설명', '필수'],
     [
       ['예산(세목)', '드롭다운 선택', 'O'],
@@ -217,7 +255,9 @@ function generateExpenseGuide() {
   ]);
 
   // 6. 신청 정보 입력
-  addTableSlide(pptx, '3단계: 신청 정보 입력',
+  addImageSlide(pptx, '3단계: 신청 정보 입력', 'applicant-section.png', '청구일자, 청구팀, 청구인, 직책');
+
+  addTableSlide(pptx, '신청 정보 필드',
     ['필드', '설명', '자동 입력'],
     [
       ['청구일자', '청구 날짜', '오늘 날짜'],
@@ -227,14 +267,18 @@ function generateExpenseGuide() {
     ]);
 
   // 7. 은행 정보 입력
-  addContentSlide(pptx, '4단계: 은행 정보 입력', [
+  addImageSlide(pptx, '4단계: 은행 정보 입력', 'bank-section.png', '저장된 계좌 선택 또는 직접 입력');
+
+  addContentSlide(pptx, '은행 정보 입력 방식', [
     '모드 1: 저장된 계좌 - 미리 저장한 계좌 드롭다운 선택',
     '모드 2: 직접 입력 - 은행명, 계좌번호, 예금주 입력',
     '기본 계좌가 있으면 자동 선택됨',
   ]);
 
   // 8. 첨부파일 업로드
-  addContentSlide(pptx, '5단계: 첨부파일 업로드', [
+  addImageSlide(pptx, '5단계: 첨부파일 업로드', 'file-upload.png', '드래그 앤 드롭 또는 클릭하여 선택');
+
+  addContentSlide(pptx, '첨부파일 업로드 방법', [
     '드래그 앤 드롭: 파일 끌어다 놓기',
     '클릭하여 선택: 업로드 영역 클릭',
     '카메라 촬영 (모바일): 영수증 바로 촬영',
@@ -261,7 +305,9 @@ function generateExpenseGuide() {
   ]);
 
   // 11. 서명/도장 선택
-  addContentSlide(pptx, '서명/도장 선택', [
+  addImageSlide(pptx, '서명/도장 선택', 'signature-modal.png', '저장된 서명 또는 실시간 서명');
+
+  addContentSlide(pptx, '서명/도장 선택 방식', [
     '방식 1: 저장된 서명/도장 - 마이페이지에서 미리 등록',
     '방식 2: 실시간 서명 - 화면에 직접 서명 그리기',
     '기본 서명이 설정되어 있으면 자동 사용',
@@ -353,11 +399,15 @@ function generatePwaGuide() {
       ['첨부파일 추가', '예산 현황 조회'],
     ]);
 
-  addContentSlide(pptx, '오프라인 상태 표시', [
+  addImageSlide(pptx, '오프라인 상태 표시', 'offline-banner.png', '화면 상단에 노란색 배너 표시');
+
+  addContentSlide(pptx, '오프라인 상태에서의 동작', [
     '인터넷 연결이 끊어지면 화면 상단에 노란색 배너 표시',
     '"오프라인 상태입니다. 작성한 내용은 자동으로 저장됩니다."',
     '데이터는 브라우저 IndexedDB에 자동 저장',
   ]);
+
+  addImageSlide(pptx, '오프라인 페이지', 'offline-page.png', '인터넷 연결 없이 접근 시 표시되는 페이지');
 
   // 7. 백그라운드 동기화
   addTableSlide(pptx, '백그라운드 동기화 - 상태 표시',
@@ -441,6 +491,8 @@ function generatePushGuide() {
     ]);
 
   // 5. 알림 설정 변경
+  addImageSlide(pptx, '알림 설정 화면', 'push-settings.png', '프로필 → 설정 → 알림 설정');
+
   addContentSlide(pptx, '알림 설정 변경', [
     '설정 페이지 접근:',
     '  프로필 아이콘 → "설정" → "알림 설정" 탭',
