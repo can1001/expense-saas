@@ -17,9 +17,11 @@ function formatNameForPrint(name: string): string {
 export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps) {
   const steps = approvalLine?.steps || [];
 
-  // 지출일자에서 연도 추출
-  const expenseDate = expense.expenseDate ? new Date(expense.expenseDate) : new Date();
-  const year = expenseDate.getFullYear();
+  // 지출일자에서 연/월/일 추출
+  const expenseDate = expense.expenseDate ? new Date(expense.expenseDate) : null;
+  const year = expenseDate ? expenseDate.getFullYear() : '';
+  const month = expenseDate ? String(expenseDate.getMonth() + 1).padStart(2, '0') : '';
+  const day = expenseDate ? String(expenseDate.getDate()).padStart(2, '0') : '';
 
   // 결재 단계별로 분리
   const leftStep = steps.find(s => s.stepNumber === 1);
@@ -93,9 +95,9 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
             <td className="approval-header-cell">사역팀(부)장</td>
             <td className="info-label-cell" rowSpan={2}>지출일자</td>
             <td className="info-value-cell date-cell" rowSpan={2}>
-              <span className="year-text">{year}</span> 년
-              <span className="date-blank"></span> 월
-              <span className="date-blank"></span> 일
+              <span className="year-text">{year || '____'}</span> 년
+              <span className="date-value">{month || '__'}</span> 월
+              <span className="date-value">{day || '__'}</span> 일
             </td>
             <td className="approval-header-cell">{bottomRightStep?.stepName || '회계'}</td>
           </tr>
@@ -201,10 +203,11 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
           font-weight: 600;
         }
 
-        .date-blank {
+        .date-value {
           display: inline-block;
-          width: 25px;
+          min-width: 20px;
           margin: 0 3px;
+          font-weight: 600;
         }
 
         .amount-cell {
