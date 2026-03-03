@@ -16,7 +16,13 @@
     "db:studio": "prisma studio",
     "db:migrate": "prisma migrate dev",
     "bulk-upload": "ts-node --project tsconfig.scripts.json scripts/bulk-upload.ts",
-    "generate-template": "ts-node --project tsconfig.scripts.json scripts/generate-upload-template.ts"
+    "generate-template": "ts-node --project tsconfig.scripts.json scripts/generate-upload-template.ts",
+    "screenshots": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts",
+    "screenshots:expense": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts expense",
+    "screenshots:pwa": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts pwa",
+    "screenshots:push": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts push",
+    "screenshots:headed": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts --headed",
+    "screenshots:mobile": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts --mobile"
   },
   "engines": {
     "node": ">=24.0.0",
@@ -34,6 +40,7 @@
     "cloudinary": "^2.8.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dexie": "^4.3.0",
     "exceljs": "^4.4.0",
     "lucide-react": "^0.561.0",
     "next": "16.0.5",
@@ -46,10 +53,13 @@
     "react-hook-form": "^7.68.0",
     "react-swipeable": "^7.0.2",
     "tailwind-merge": "^3.4.0",
+    "uuid": "^13.0.0",
+    "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
@@ -60,6 +70,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-dropzone": "^4.2.2",
+    "@types/uuid": "^10.0.0",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^5.1.1",
     "@vitest/coverage-v8": "^4.0.15",
     "@vitest/ui": "^4.0.15",
@@ -67,6 +79,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.5",
     "jsdom": "^27.2.0",
+    "pptxgenjs": "^4.0.1",
     "prisma": "^7.1.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",

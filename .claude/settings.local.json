@@ -71,7 +71,10 @@
       "WebSearch",
       "Bash(npm run typecheck:*)",
       "Bash(npx xlsx-cli:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(head:*)",
+      "Bash(npx web-push:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

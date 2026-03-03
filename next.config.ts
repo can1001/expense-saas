@@ -6,6 +6,12 @@ const withPWA = withPWAInit({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development", // 개발 모드에서는 비활성화
+  // 커스텀 Service Worker (백그라운드 동기화, 푸시 알림)
+  customWorkerDir: "worker",
+  // 오프라인 폴백 페이지
+  fallbacks: {
+    document: "/offline",
+  },
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.(?:gstatic|googleapis)\.com\/.*/i,

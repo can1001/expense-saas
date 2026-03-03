@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NotificationChannel, NotificationEventType } from '@prisma/client';
 import { notificationHubProvider } from './notification-hub-provider';
+import { webPushProvider } from './web-push-provider';
 import { getTemplateByEvent, renderTemplate } from './templates';
 import type {
   NotificationContext,
@@ -130,6 +131,40 @@ export class NotificationService {
             error: hubResult.error,
           };
         }
+      } else if (channel === 'WEB_PUSH') {
+        // 웹 푸시 알림 발송
+        if (!recipient.userId) {
+          result = {
+            success: false,
+            channel,
+            error: '사용자 ID가 필요합니다.',
+          };
+        } else if (!webPushProvider.isEnabled()) {
+          result = {
+            success: false,
+            channel,
+            error: 'VAPID 키 미설정',
+          };
+        } else {
+          const pushResults = await webPushProvider.sendToUser(
+            recipient.userId,
+            {
+              title: this.getWebPushTitle(eventType),
+              body: renderTemplate(template.sms, context),
+              url: context.statusUrl,
+              expenseId: context.expenseId,
+              tag: `expense-${eventType.toLowerCase()}`,
+            },
+            eventType
+          );
+
+          const hasSuccess = pushResults.some((r) => r.success);
+          result = {
+            success: hasSuccess,
+            channel,
+            error: hasSuccess ? undefined : '모든 구독에 발송 실패',
+          };
+        }
       } else {
         result = {
           success: false,
@@ -192,8 +227,31 @@ export class NotificationService {
     if (!preference || preference.kakaoEnabled) {
       channels.push('KAKAO');
     }
+    if (!preference || preference.webPushEnabled) {
+      channels.push('WEB_PUSH');
+    }
 
     return channels;
+  }
+
+  /**
+   * 웹 푸시 알림 제목 반환
+   */
+  private getWebPushTitle(eventType: NotificationEventType): string {
+    switch (eventType) {
+      case 'SUBMIT':
+        return '새 결재 요청';
+      case 'APPROVE':
+        return '결재 승인';
+      case 'REJECT':
+        return '결재 반려';
+      case 'WITHDRAW':
+        return '결재 회수';
+      case 'PAYMENT_COMPLETE':
+        return '지급 완료';
+      default:
+        return '지출결의서 알림';
+    }
   }
 
   /**

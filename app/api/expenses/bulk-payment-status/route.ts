@@ -128,6 +128,17 @@ export async function PUT(request: NextRequest) {
           updateData.paymentSignatureData = signature.data;
         }
       }
+
+      // 지출일자가 없는 항목들의 expenseDate를 지급완료일로 설정
+      await prisma.expense.updateMany({
+        where: {
+          id: { in: updateIds },
+          expenseDate: null,
+        },
+        data: {
+          expenseDate: now,
+        },
+      });
     } else {
       updateData.paymentCompletedAt = null;
       updateData.paymentCompletedBy = null;

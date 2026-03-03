@@ -3,6 +3,10 @@
  *
  * 폼 제출 로직을 통합 관리합니다.
  * ExpenseForm과 SimpleExpenseForm에서 공통으로 사용합니다.
+ *
+ * 오프라인 지원:
+ * - 네트워크가 없으면 IndexedDB에 저장
+ * - 온라인 복귀 시 자동 동기화 가능
  */
 
 'use client';
@@ -10,6 +14,7 @@
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { UploadedFile } from '@/lib/types';
+import type { OfflineExpenseFormData, OfflineExpenseItem } from '@/lib/db/types';
 
 interface UseExpenseFormSubmitOptions {
   /** 수정 모드용 expense ID */
@@ -26,11 +31,17 @@ interface UseExpenseFormSubmitOptions {
   setError: (error: string | null) => void;
   /** 첨부파일 저장 함수 (선택적, 커스텀 로직용) */
   saveAttachments?: (expenseId: string, attachments: UploadedFile[]) => Promise<void>;
+  /** 오프라인 저장 활성화 여부 (기본값: true) */
+  enableOffline?: boolean;
+  /** 첨부파일 File 객체 목록 (오프라인 저장용) */
+  attachmentFiles?: File[];
 }
 
 interface SubmitResult {
   success: boolean;
   id?: string;
+  localId?: string;
+  isOffline?: boolean;
   error?: string;
 }
 
@@ -43,9 +54,77 @@ export function useExpenseFormSubmit(options: UseExpenseFormSubmitOptions) {
     setLoading,
     setError,
     saveAttachments,
+    enableOffline = true,
+    attachmentFiles,
   } = options;
 
   const router = useRouter();
+
+  /**
+   * 오프라인 상태에서 IndexedDB에 저장
+   */
+  const saveOffline = useCallback(
+    async <T extends Record<string, unknown>>(data: T): Promise<SubmitResult> => {
+      try {
+        // 동적 import로 IndexedDB 모듈 로드 (SSR 방지)
+        const { createOfflineExpense } = await import('@/lib/db/expense-store');
+        const { saveOfflineAttachments } = await import('@/lib/db/attachment-store');
+        const { v4: uuidv4 } = await import('uuid');
+
+        // 폼 데이터를 오프라인 형식으로 변환
+        const offlineData: OfflineExpenseFormData = {
+          committee: data.committee as string | undefined,
+          department: data.department as string | undefined,
+          expenseDate: data.expenseDate as string | undefined,
+          applicantName: data.applicantName as string,
+          applicantTitle: data.applicantTitle as string | undefined,
+          bankName: data.bankName as string,
+          accountNumber: data.accountNumber as string,
+          accountHolder: data.accountHolder as string,
+          items: ((data.items as Array<Record<string, unknown>>) || []).map(
+            (item, index): OfflineExpenseItem => ({
+              localId: uuidv4(),
+              budgetDetailId: item.budgetDetailId as string | undefined,
+              budgetCategory: item.budgetCategory as string | undefined,
+              budgetSubcategory: item.budgetSubcategory as string | undefined,
+              budgetDetail: item.budgetDetail as string | undefined,
+              description: item.description as string,
+              unitPrice: item.unitPrice as number,
+              quantity: item.quantity as number,
+              amount: item.amount as number,
+              order: index,
+            })
+          ),
+        };
+
+        // 오프라인 저장 (제출 상태면 pending_sync, 아니면 draft)
+        const isSubmit = data.status === 'PENDING';
+        const expense = await createOfflineExpense(
+          offlineData,
+          isSubmit ? 'pending_sync' : 'draft'
+        );
+
+        // 첨부파일 저장
+        if (attachmentFiles && attachmentFiles.length > 0) {
+          await saveOfflineAttachments(expense.localId, attachmentFiles);
+        }
+
+        return {
+          success: true,
+          localId: expense.localId,
+          isOffline: true,
+        };
+      } catch (err) {
+        console.error('[useExpenseFormSubmit] 오프라인 저장 실패:', err);
+        return {
+          success: false,
+          isOffline: true,
+          error: err instanceof Error ? err.message : '오프라인 저장 실패',
+        };
+      }
+    },
+    [attachmentFiles]
+  );
 
   const handleSubmit = useCallback(
     async <T extends Record<string, unknown>>(data: T): Promise<SubmitResult> => {
@@ -53,6 +132,20 @@ export function useExpenseFormSubmit(options: UseExpenseFormSubmitOptions) {
 
       try {
         setLoading(true);
+
+        // 오프라인 체크: 네트워크가 없으면 로컬에 저장
+        if (enableOffline && typeof navigator !== 'undefined' && !navigator.onLine) {
+          const offlineResult = await saveOffline(data);
+
+          if (offlineResult.success) {
+            alert('인터넷 연결이 없습니다. 데이터가 기기에 저장되었으며, 연결 시 자동으로 동기화됩니다.');
+            router.push(redirectPath);
+          } else {
+            setError(offlineResult.error || '오프라인 저장에 실패했습니다.');
+          }
+
+          return offlineResult;
+        }
 
         const isEditMode = !!expenseId;
         const isSubmit = data.status === 'PENDING';
@@ -186,7 +279,7 @@ export function useExpenseFormSubmit(options: UseExpenseFormSubmitOptions) {
         setLoading(false);
       }
     },
-    [expenseId, apiEndpoint, redirectPath, attachments, setLoading, setError, saveAttachments, router]
+    [expenseId, apiEndpoint, redirectPath, attachments, setLoading, setError, saveAttachments, router, enableOffline, saveOffline]
   );
 
   return { handleSubmit };

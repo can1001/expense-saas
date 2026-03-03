@@ -605,6 +605,7 @@ model User {
   managedBudgets     BudgetDetailYear[]  @relation("BudgetDetailManager")  // 담당 예산 세목들
   signatures         UserSignature[]            // 저장된 서명/도장들
   notificationPreference NotificationPreference? // 알림 설정
+  pushSubscriptions  PushSubscription[]         // 웹 푸시 구독 정보
 
   // 리더 역할 (기본값 설정용)
   ledCommittees      Committee[]   @relation("CommitteeLeader")   // 담당 위원회
@@ -771,6 +772,7 @@ model ApprovalLog {
 enum NotificationChannel {
   SMS
   KAKAO
+  WEB_PUSH  // 웹 푸시 알림
 }
 
 // 알림 이벤트 타입
@@ -798,6 +800,7 @@ model NotificationPreference {
   // 채널 활성화
   smsEnabled      Boolean  @default(true)   // SMS 알림 활성화
   kakaoEnabled    Boolean  @default(true)   // 카카오톡 알림 활성화
+  webPushEnabled  Boolean  @default(true)   // 웹 푸시 알림 활성화
 
   // 이벤트별 알림 설정
   onSubmit           Boolean  @default(true)   // 결재 요청 시
@@ -837,6 +840,60 @@ model NotificationLog {
 
   createdAt        DateTime             @default(now())
 
+  @@index([expenseId])
+  @@index([status])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+// 웹 푸시 구독 정보
+model PushSubscription {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 구독 정보 (Web Push Protocol)
+  endpoint    String   @db.Text    // 푸시 서버 엔드포인트 URL
+  p256dh      String   @db.Text    // 공개키 (Base64)
+  auth        String   @db.Text    // 인증 시크릿 (Base64)
+
+  // 디바이스 정보
+  userAgent   String?  @db.Text    // 브라우저/디바이스 정보
+  deviceName  String?              // 사용자 지정 디바이스 이름
+
+  // 상태
+  isActive    Boolean  @default(true)   // 활성 상태
+  failedCount Int      @default(0)      // 연속 실패 횟수
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, endpoint])   // 사용자당 엔드포인트 고유
+  @@index([userId])
+  @@index([isActive])
+}
+
+// 웹 푸시 발송 로그
+model WebPushLog {
+  id               String               @id @default(cuid())
+  userId           String?              // 수신 사용자 ID
+  expenseId        String?              // 관련 지출결의서 ID
+
+  // 발송 정보
+  eventType        NotificationEventType // 이벤트 타입
+  title            String               // 알림 제목
+  body             String               // 알림 본문
+  url              String?              // 클릭 시 이동 URL
+
+  // 발송 결과
+  status           NotificationStatus   @default(PENDING)
+  errorMessage     String?              // 에러 메시지
+
+  // 시간
+  sentAt           DateTime?            // 발송 완료 시각
+  createdAt        DateTime             @default(now())
+
+  @@index([userId])
   @@index([expenseId])
   @@index([status])
   @@index([eventType])
