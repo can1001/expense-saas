@@ -165,7 +165,7 @@ async function testPushTest(cookie: string): Promise<boolean> {
     } else if (response.status === 503) {
       addResult('테스트 푸시 발송', false, 'VAPID 키 미설정으로 푸시 불가');
       return false;
-    } else if (data.error?.includes('구독') || data.error?.includes('실패')) {
+    } else if (response.status === 404 && data.code === 'NO_SUBSCRIPTION') {
       // 구독이 없는 경우는 예상된 결과 - 경고로 처리
       addResult('테스트 푸시 발송', true, `(예상됨) ${data.error} - 브라우저에서 구독 후 테스트하세요`);
       return true;
