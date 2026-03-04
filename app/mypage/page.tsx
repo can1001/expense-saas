@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Key, PenLine } from 'lucide-react';
+import { Key, PenLine, Bell } from 'lucide-react';
 import Header from '@/components/Header';
 import { SECTION_CARD, PADDING_CARD } from '@/lib/constants/styles';
 
@@ -65,6 +65,38 @@ export default function MyPage() {
             </div>
             <svg
               className="w-5 h-5 text-gray-400 group-hover:text-green-500 transition-colors"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </div>
+        </Link>
+
+        <Link
+          href="/mypage/notifications"
+          className={`group ${SECTION_CARD} hover:shadow-lg transition-all hover:-translate-y-0.5`}
+        >
+          <div className={`${PADDING_CARD} flex items-center gap-4`}>
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <Bell className="w-6 h-6 text-purple-600" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
+                알림 설정
+              </h2>
+              <p className="text-sm text-gray-600">
+                푸시 알림을 설정하고 테스트합니다
+              </p>
+            </div>
+            <svg
+              className="w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
