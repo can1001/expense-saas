@@ -43,7 +43,7 @@ function MobileDrawer({
     }
     return () => {
       document.removeEventListener('keydown', handleEsc);
-      document.body.style.overflow = '';
+      document.body.style.overflow = 'auto';
     };
   }, [isOpen, onClose]);
 

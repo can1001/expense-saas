@@ -119,7 +119,7 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick }: 
     },
     trackMouse: false,
     trackTouch: true,
-    preventScrollOnSwipe: true,
+    preventScrollOnSwipe: false,
     delta: 10,
   });
 
