@@ -126,18 +126,49 @@ export function usePushNotification(): UsePushNotificationReturn {
     return outputArray.buffer as ArrayBuffer;
   }, []);
 
-  // Service Worker ready with timeout
-  const getServiceWorkerWithTimeout = useCallback(
-    async (timeout = 10000): Promise<ServiceWorkerRegistration> => {
-      return Promise.race([
-        navigator.serviceWorker.ready,
-        new Promise<ServiceWorkerRegistration>((_, reject) =>
-          setTimeout(
-            () => reject(new Error('Service Worker 등록 타임아웃 (10초)')),
-            timeout
-          )
-        ),
-      ]);
+  // Service Worker 등록 및 대기
+  const ensureServiceWorkerRegistered = useCallback(
+    async (): Promise<ServiceWorkerRegistration> => {
+      // 이미 등록된 SW가 있는지 확인
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      console.log('[Push] 기존 SW 등록:', registrations.length);
+
+      if (registrations.length > 0) {
+        // 이미 등록된 SW 사용
+        const registration = registrations[0];
+        if (registration.active) {
+          console.log('[Push] 활성 SW 발견');
+          return registration;
+        }
+      }
+
+      // SW가 없으면 수동 등록 시도
+      console.log('[Push] SW 수동 등록 시도');
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/',
+        });
+        console.log('[Push] SW 등록 성공:', registration.scope);
+
+        // 활성화 대기
+        if (registration.installing) {
+          console.log('[Push] SW 설치 중...');
+          await new Promise<void>((resolve) => {
+            registration.installing?.addEventListener('statechange', (e) => {
+              const sw = e.target as ServiceWorker;
+              console.log('[Push] SW 상태:', sw.state);
+              if (sw.state === 'activated') {
+                resolve();
+              }
+            });
+          });
+        }
+
+        return registration;
+      } catch (error) {
+        console.error('[Push] SW 등록 실패:', error);
+        throw new Error('Service Worker 등록에 실패했습니다.');
+      }
     },
     []
   );
@@ -175,9 +206,9 @@ export function usePushNotification(): UsePushNotificationReturn {
           return false;
         }
 
-        // 3. Service Worker 등록 확인 (타임아웃 포함)
-        console.log('[Push] 5. Service Worker 대기');
-        const registration = await getServiceWorkerWithTimeout(10000);
+        // 3. Service Worker 등록 확인
+        console.log('[Push] 5. Service Worker 확인');
+        const registration = await ensureServiceWorkerRegistered();
         console.log('[Push] 6. SW 준비 완료:', registration.scope);
 
         // 4. Push 구독
@@ -217,7 +248,7 @@ export function usePushNotification(): UsePushNotificationReturn {
         setIsLoading(false);
       }
     },
-    [isSupported, getVapidPublicKey, urlBase64ToUint8Array, getServiceWorkerWithTimeout]
+    [isSupported, getVapidPublicKey, urlBase64ToUint8Array, ensureServiceWorkerRegistered]
   );
 
   // 구독 해제
