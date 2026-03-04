@@ -149,6 +149,7 @@ export async function PUT(
       updateData.paymentHoldBy = null;
       updateData.paymentSignatureType = null;
       updateData.paymentSignatureData = null;
+      updateData.expenseDate = null;
     }
 
     const updatedExpense = await prisma.expense.update({
