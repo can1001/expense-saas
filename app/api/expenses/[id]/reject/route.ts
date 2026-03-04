@@ -166,12 +166,12 @@ export async function POST(
       // 신청자에게 반려 알림
       const applicantUser = await prisma.user.findFirst({
         where: { username: expense.applicantName },
-        select: { phoneNumber: true },
+        select: { id: true, phoneNumber: true },
       });
 
-      if (applicantUser?.phoneNumber) {
+      if (applicantUser) {
         notificationService
-          .notifyOnReject(id, applicantUser.phoneNumber, {
+          .notifyOnReject(id, applicantUser.phoneNumber || '', applicantUser.id, {
             applicantName: expense.applicantName,
             requestAmount: expense.requestAmount,
             approverName,

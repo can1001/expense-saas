@@ -381,12 +381,14 @@ export class NotificationService {
   async notifyOnReject(
     expenseId: string,
     applicantPhone: string,
+    applicantUserId: string,
     context: Omit<NotificationContext, 'expenseId' | 'statusUrl'>
   ): Promise<NotificationResult[]> {
     return this.send({
       recipient: {
         name: context.applicantName,
         phoneNumber: applicantPhone,
+        userId: applicantUserId,
       },
       eventType: 'REJECT',
       context: {
