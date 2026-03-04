@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown } from 'lucide-react';
+import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown, Bell } from 'lucide-react';
 import { useRoles } from '@/hooks/useRoles';
 
 interface UserInfo {
@@ -146,6 +146,14 @@ function MobileDrawer({
             >
               <PenLine className="w-5 h-5" />
               서명/도장 관리
+            </Link>
+            <Link
+              href="/mypage/notifications"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <Bell className="w-5 h-5" />
+              알림 설정
             </Link>
           </div>
         )}
@@ -349,6 +357,14 @@ export default function Header() {
                       >
                         <PenLine className="w-4 h-4" />
                         서명/도장 관리
+                      </Link>
+                      <Link
+                        href="/mypage/notifications"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <Bell className="w-4 h-4" />
+                        알림 설정
                       </Link>
                       <div className="border-t border-gray-200 my-1" />
                       <button
