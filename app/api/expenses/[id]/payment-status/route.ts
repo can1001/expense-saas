@@ -242,6 +242,7 @@ export async function PUT(
         paymentHoldBy: updatedExpense.paymentHoldBy,
         paymentSignatureType: updatedExpense.paymentSignatureType,
         paymentSignatureData: updatedExpense.paymentSignatureData,
+        expenseDate: updatedExpense.expenseDate,
       },
     });
   } catch (error: any) {
