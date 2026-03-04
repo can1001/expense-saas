@@ -144,6 +144,7 @@ export async function PUT(request: NextRequest) {
       updateData.paymentCompletedBy = null;
       updateData.paymentSignatureType = null;
       updateData.paymentSignatureData = null;
+      updateData.expenseDate = null;
     }
 
     await prisma.expense.updateMany({

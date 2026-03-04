@@ -244,6 +244,7 @@ export default function ExpenseDetailPage() {
         paymentHoldBy: data.data.paymentHoldBy,
         paymentSignatureType: data.data.paymentSignatureType,
         paymentSignatureData: data.data.paymentSignatureData,
+        expenseDate: data.data.expenseDate ?? expense.expenseDate,
       });
 
       setShowPaymentModal(false);
