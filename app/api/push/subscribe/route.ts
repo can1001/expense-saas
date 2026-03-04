@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getCurrentUser } from '@/lib/auth';
 import { webPushProvider } from '@/lib/services/notification/web-push-provider';
 
 /**
@@ -9,25 +9,16 @@ import { webPushProvider } from '@/lib/services/notification/web-push-provider';
 export async function POST(request: NextRequest) {
   try {
     // 사용자 인증 확인
-    const cookieStore = await cookies();
-    const userCookie = cookieStore.get('user');
+    const currentUser = await getCurrentUser();
 
-    if (!userCookie?.value) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: '로그인이 필요합니다.' },
         { status: 401 }
       );
     }
 
-    const user = JSON.parse(userCookie.value);
-    const userId = user.id;
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: '사용자 정보를 찾을 수 없습니다.' },
-        { status: 401 }
-      );
-    }
+    const userId = currentUser.id;
 
     // 요청 본문 파싱
     const body = await request.json();

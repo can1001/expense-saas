@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getCurrentUser } from '@/lib/auth';
 import { webPushProvider } from '@/lib/services/notification/web-push-provider';
 
 /**
@@ -9,25 +9,16 @@ import { webPushProvider } from '@/lib/services/notification/web-push-provider';
 export async function POST(request: NextRequest) {
   try {
     // 사용자 인증 확인
-    const cookieStore = await cookies();
-    const userCookie = cookieStore.get('user');
+    const currentUser = await getCurrentUser();
 
-    if (!userCookie?.value) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: '로그인이 필요합니다.' },
         { status: 401 }
       );
     }
 
-    const user = JSON.parse(userCookie.value);
-    const userId = user.id;
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: '사용자 정보를 찾을 수 없습니다.' },
-        { status: 401 }
-      );
-    }
+    const userId = currentUser.id;
 
     // 웹 푸시 활성화 확인
     if (!webPushProvider.isEnabled()) {
@@ -56,6 +47,18 @@ export async function POST(request: NextRequest) {
 
     const successCount = results.filter((r) => r.success).length;
     const failCount = results.filter((r) => !r.success).length;
+
+    // 구독이 없는 경우 명확한 에러 메시지 제공
+    const noSubscription = results.some((r) => r.error === '활성 구독 없음');
+    if (noSubscription) {
+      return NextResponse.json(
+        {
+          error: '등록된 푸시 구독이 없습니다. 먼저 알림을 구독해주세요.',
+          code: 'NO_SUBSCRIPTION',
+        },
+        { status: 404 }
+      );
+    }
 
     if (successCount === 0) {
       return NextResponse.json(
