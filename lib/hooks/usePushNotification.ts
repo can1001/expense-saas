@@ -126,6 +126,22 @@ export function usePushNotification(): UsePushNotificationReturn {
     return outputArray.buffer as ArrayBuffer;
   }, []);
 
+  // Service Worker ready with timeout
+  const getServiceWorkerWithTimeout = useCallback(
+    async (timeout = 10000): Promise<ServiceWorkerRegistration> => {
+      return Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<ServiceWorkerRegistration>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('Service Worker 등록 타임아웃 (10초)')),
+            timeout
+          )
+        ),
+      ]);
+    },
+    []
+  );
+
   // 푸시 권한 요청 및 구독
   const subscribe = useCallback(
     async (deviceName?: string): Promise<boolean> => {
@@ -138,8 +154,10 @@ export function usePushNotification(): UsePushNotificationReturn {
       setError(null);
 
       try {
-        // 권한 요청
+        // 1. 권한 요청
+        console.log('[Push] 1. 권한 요청 시작');
         const result = await Notification.requestPermission();
+        console.log('[Push] 2. 권한 결과:', result);
         setPermission(result as PermissionState);
 
         if (result !== 'granted') {
@@ -147,24 +165,31 @@ export function usePushNotification(): UsePushNotificationReturn {
           return false;
         }
 
-        // VAPID 키 가져오기
+        // 2. VAPID 키 가져오기
+        console.log('[Push] 3. VAPID 키 조회');
         const vapidPublicKey = await getVapidPublicKey();
+        console.log('[Push] 4. VAPID 키:', vapidPublicKey ? '있음' : '없음');
 
         if (!vapidPublicKey) {
           setError('서버에서 VAPID 키를 가져올 수 없습니다.');
           return false;
         }
 
-        // Service Worker 등록 확인
-        const registration = await navigator.serviceWorker.ready;
+        // 3. Service Worker 등록 확인 (타임아웃 포함)
+        console.log('[Push] 5. Service Worker 대기');
+        const registration = await getServiceWorkerWithTimeout(10000);
+        console.log('[Push] 6. SW 준비 완료:', registration.scope);
 
-        // Push 구독
+        // 4. Push 구독
+        console.log('[Push] 7. pushManager.subscribe 시작');
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
         });
+        console.log('[Push] 8. 구독 완료:', subscription.endpoint);
 
-        // 서버에 구독 등록
+        // 5. 서버에 구독 등록
+        console.log('[Push] 9. 서버에 구독 등록');
         const response = await fetch('/api/push/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -179,6 +204,7 @@ export function usePushNotification(): UsePushNotificationReturn {
           throw new Error(data.error || '구독 등록에 실패했습니다.');
         }
 
+        console.log('[Push] 10. 완료!');
         setIsSubscribed(true);
         return true;
       } catch (err) {
@@ -191,7 +217,7 @@ export function usePushNotification(): UsePushNotificationReturn {
         setIsLoading(false);
       }
     },
-    [isSupported, getVapidPublicKey, urlBase64ToUint8Array]
+    [isSupported, getVapidPublicKey, urlBase64ToUint8Array, getServiceWorkerWithTimeout]
   );
 
   // 구독 해제
