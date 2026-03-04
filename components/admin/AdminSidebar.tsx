@@ -34,7 +34,7 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
     }
     return () => {
       document.removeEventListener('keydown', handleEsc);
-      document.body.style.overflow = '';
+      document.body.style.overflow = 'auto';
     };
   }, [isOpen, onClose]);
 
