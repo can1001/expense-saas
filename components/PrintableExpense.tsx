@@ -64,7 +64,6 @@ export default function PrintableExpense({ expense, approvalLine }: PrintableExp
           .print-only {
             display: block !important;
             width: 210mm;
-            min-height: 297mm;
             margin: 0 auto;
             background: white;
             font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
@@ -75,7 +74,14 @@ export default function PrintableExpense({ expense, approvalLine }: PrintableExp
           }
 
           .expense-document {
-            padding: 12mm 15mm;
+            width: 210mm;
+            min-height: 287mm;
+            max-height: 287mm;
+            padding: 10mm 12mm;
+            overflow: hidden;
+            page-break-after: always;
+            page-break-inside: avoid;
+            box-sizing: border-box;
           }
 
           /* 첨부파일 페이지 */
