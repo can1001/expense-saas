@@ -192,7 +192,14 @@ async function testPushTest(cookie: string): Promise<boolean> {
 }
 
 async function testUnsubscribeAll(cookie: string) {
-  log('\n=== 테스트 6: 모든 구독 해제 ===');
+  log('\n=== 테스트 6: 모든 구독 해제 (SKIP) ===');
+
+  // ⚠️ 프로덕션 데이터 보호를 위해 기본적으로 skip
+  // 실행하려면 환경변수 TEST_ALLOW_UNSUBSCRIBE=true 설정
+  if (process.env.TEST_ALLOW_UNSUBSCRIBE !== 'true') {
+    addResult('모든 구독 해제', true, '(SKIP) 프로덕션 보호 - TEST_ALLOW_UNSUBSCRIBE=true로 활성화');
+    return;
+  }
 
   try {
     const response = await fetch(`${BASE_URL}/api/push/unsubscribe`, {
