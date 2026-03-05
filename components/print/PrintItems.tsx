@@ -74,7 +74,6 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
       <style jsx>{`
         .print-items-container {
           margin-top: 0;
-          page-break-inside: avoid;
         }
 
         .notice-text {
@@ -134,7 +133,7 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
         .items-table th,
         .items-table td {
           border: 1px solid #000;
-          padding: 5px 8px;
+          padding: 8px 10px;
           text-align: center;
           vertical-align: middle;
         }
@@ -143,7 +142,7 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
           background-color: #f8f8f8;
           font-weight: bold;
           font-size: 10pt;
-          height: 32px;
+          height: 38px;
           letter-spacing: 2px;
         }
 
@@ -155,11 +154,11 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
         .col-amount { width: 18%; }
 
         .items-table tbody tr {
-          height: 28px;
+          height: 34px;
         }
 
         .empty-row {
-          height: 28px;
+          height: 34px;
         }
 
         .cell-no {
@@ -198,7 +197,7 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
         .total-row {
           background-color: #f8f8f8;
           border-top: 3px double #000;
-          height: 34px;
+          height: 40px;
         }
 
         .total-label {
@@ -217,10 +216,6 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
         }
 
         @media print {
-          .print-items-container {
-            page-break-inside: avoid;
-          }
-
           .example-row {
             background-color: #fffde7 !important;
             -webkit-print-color-adjust: exact;
@@ -231,7 +226,6 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
             border: 2px solid #000 !important;
             border-top: none !important;
             border-bottom: none !important;
-            page-break-inside: avoid;
           }
 
           .items-table th {

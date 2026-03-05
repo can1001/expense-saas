@@ -79,7 +79,7 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
         <colgroup><col style={{ width: '85px' }} /><col style={{ width: '100px' }} /><col style={{ width: 'auto' }} /><col style={{ width: '90px' }} /></colgroup>
         <tbody>
           {/* 1행: 로고 + 지출결의서 제목 + 재정팀장 */}
-          <tr style={{ minHeight: '22px' }}>
+          <tr style={{ height: '25px' }}>
             <td rowSpan={4} className="logo-cell">
               <div className="logo-container">
                 <img src="/logo.png" alt="교회 로고" className="logo-image" />
@@ -92,12 +92,12 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
           </tr>
 
           {/* 2행: 재정팀장 서명란 */}
-          <tr style={{ minHeight: '22px' }}>
+          <tr style={{ height: '25px' }}>
             <td rowSpan={2} className="approval-sign"></td>
           </tr>
 
           {/* 3행: 예산항목 (하단 예산항목 참조) */}
-          <tr style={{ minHeight: '22px' }}>
+          <tr style={{ height: '25px' }}>
             <td rowSpan={2} className="label-cell">
               예 산 항 목<br />
               <span className="sub-label">(계정과목)</span>
@@ -108,12 +108,12 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
           </tr>
 
           {/* 4행: 예산항목 계속 + 신창국 */}
-          <tr style={{ minHeight: '22px' }}>
+          <tr style={{ height: '25px' }}>
             <td className="approval-name">신 창 국</td>
           </tr>
 
           {/* 5행: 사역팀(부)장 + 지출일자 + 회계 */}
-          <tr style={{ minHeight: '22px' }}>
+          <tr style={{ height: '25px' }}>
             <td className="left-approval-cell">사역팀(부)장</td>
             <td rowSpan={2} className="label-cell">지 출 일 자</td>
             <td rowSpan={2} className="value-cell">
@@ -125,13 +125,13 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
           </tr>
 
           {/* 6행: 재정팀장 전결 + 지출일자 계속 + 회계 서명란 */}
-          <tr style={{ minHeight: '22px' }}>
+          <tr style={{ height: '25px' }}>
             <td rowSpan={2} className="left-approval-cell">재정팀장 전결</td>
             <td rowSpan={2} className="approval-sign"></td>
           </tr>
 
           {/* 7행: 재정팀장 전결 계속 + 청구금액 */}
-          <tr style={{ minHeight: '22px' }}>
+          <tr style={{ height: '25px' }}>
             <td rowSpan={2} className="label-cell">청 구 금 액</td>
             <td rowSpan={2} className="value-cell amount-value">
               ₩ {formatCurrency(expense.requestAmount)} 원
@@ -139,7 +139,7 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
           </tr>
 
           {/* 8행: 신창국 + 청구금액 계속 + 윤운문 */}
-          <tr style={{ minHeight: '22px' }}>
+          <tr style={{ height: '25px' }}>
             <td className="left-approval-cell name-cell">신 창 국</td>
             <td className="approval-name">윤 운 문</td>
           </tr>
@@ -249,8 +249,7 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
           .print-only {
             display: block !important;
             width: 210mm;
-            min-height: 287mm;
-            max-height: 287mm;
+            min-height: 297mm;
             padding: 8mm 10mm;
             margin: 0 auto;
             background: white;
@@ -259,9 +258,6 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
             color: #000;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
-            overflow: hidden;
-            box-sizing: border-box;
-            page-break-inside: avoid;
           }
 
           /* ===== 헤더 테이블 스타일 ===== */
@@ -306,7 +302,7 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
 
           .approval-title {
             background-color: #fff;
-            min-height: 22px;
+            height: 25px;
             font-weight: bold;
             text-align: center;
             font-size: 9pt;
@@ -314,12 +310,12 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
           }
 
           .approval-sign {
-            min-height: 45px;
+            height: 50px;
             background-color: #fff;
           }
 
           .approval-name {
-            min-height: 22px;
+            height: 25px;
             font-size: 8pt;
             letter-spacing: 3px;
             text-align: center;
@@ -373,7 +369,7 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
             padding: 4px 2px;
             font-size: 8pt;
             font-weight: bold;
-            min-height: 22px;
+            height: 25px;
           }
 
           .name-cell {
@@ -410,7 +406,7 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
             background-color: #c8e6c9;
             font-weight: bold;
             font-size: 9pt;
-            min-height: 26px;
+            height: 30px;
           }
 
           .col-category { width: 12%; }
@@ -422,11 +418,11 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
           .col-amount { width: 14%; }
 
           .items-table tbody tr {
-            min-height: 24px;
+            height: 28px;
           }
 
           .empty-row {
-            height: 24px;
+            height: 28px;
           }
 
           .cell-category,

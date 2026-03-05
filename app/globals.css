@@ -19,11 +19,6 @@
   }
 }
 
-html, body {
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
@@ -165,8 +160,8 @@ input[type="checkbox"] {
 
   /* 페이지 설정 */
   @page {
+    margin: 1.5cm;
     size: A4;
-    margin: 10mm;
   }
 
   /* 본문 스타일 */
@@ -177,8 +172,6 @@ input[type="checkbox"] {
     background: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-    margin: 0;
-    padding: 0;
   }
 
   /* 배경색 초기화 */
@@ -187,50 +180,30 @@ input[type="checkbox"] {
     background: #fff !important;
   }
 
-  /* 카드 스타일 최적화 - 지출결의서 프린트 제외 */
-  .bg-white:not(.expense-document):not(.expense-document *) {
+  /* 카드 스타일 최적화 */
+  .bg-white {
     box-shadow: none !important;
     border: 1px solid #ddd !important;
     page-break-inside: avoid;
   }
 
-  /*
-   * 테이블 최적화 - 지출결의서 프린트 컴포넌트 제외
-   * .expense-document 내부 테이블은 컴포넌트 자체 스타일 사용
-   */
-  table:not(.expense-document table) {
+  /* 테이블 최적화 */
+  table {
     border-collapse: collapse;
     width: 100%;
     font-size: 10pt;
   }
 
-  table:not(.expense-document table) th,
-  table:not(.expense-document table) td {
+  table th,
+  table td {
     border: 1px solid #000 !important;
     padding: 0.4rem !important;
   }
 
-  table:not(.expense-document table) thead {
+  table thead {
     background-color: #f3f4f6 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-  }
-
-  /* 지출결의서 프린트 컨테이너 */
-  .expense-document {
-    width: 210mm;
-    min-height: 287mm;
-    max-height: 287mm;
-    overflow: hidden;
-    margin: 0 auto;
-    padding: 0;
-    page-break-after: always;
-    page-break-inside: avoid;
-  }
-
-  /* 지출결의서 프린트 - 마지막 페이지는 page-break 제거 */
-  .expense-document:last-child {
-    page-break-after: auto;
   }
 
   /* 섹션 최적화 */
@@ -269,23 +242,18 @@ input[type="checkbox"] {
     font-size: 14pt !important;
   }
 
-  /* 첨부파일 이미지 최적화 - 지출결의서 프린트 제외 */
-  .grid-cols-2:not(.expense-document *),
-  .grid-cols-3:not(.expense-document *),
-  .grid-cols-4:not(.expense-document *) {
+  /* 첨부파일 이미지 최적화 */
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4 {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 
-  /* 이미지 크기 제한 - 지출결의서 프린트 제외 */
-  img:not(.expense-document img) {
+  /* 이미지 크기 제한 */
+  img {
     max-width: 100%;
     max-height: 200px;
     object-fit: contain;
-    page-break-inside: avoid;
-  }
-
-  /* 지출결의서 첨부 이미지는 컴포넌트 스타일 따름 */
-  .expense-document img {
     page-break-inside: avoid;
   }
 
