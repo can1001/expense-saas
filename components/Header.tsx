@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown, Bell } from 'lucide-react';
+import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown, Bell, History } from 'lucide-react';
 import { useRoles } from '@/hooks/useRoles';
 
 interface UserInfo {
@@ -154,6 +154,14 @@ function MobileDrawer({
             >
               <Bell className="w-5 h-5" />
               알림 설정
+            </Link>
+            <Link
+              href="/mypage/notification-history"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <History className="w-5 h-5" />
+              알림 히스토리
             </Link>
           </div>
         )}
@@ -365,6 +373,14 @@ export default function Header() {
                       >
                         <Bell className="w-4 h-4" />
                         알림 설정
+                      </Link>
+                      <Link
+                        href="/mypage/notification-history"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <History className="w-4 h-4" />
+                        알림 히스토리
                       </Link>
                       <div className="border-t border-gray-200 my-1" />
                       <button
