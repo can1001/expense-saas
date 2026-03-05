@@ -336,6 +336,7 @@ export class NotificationService {
   async notifyOnSubmit(
     expenseId: string,
     approverPhone: string,
+    approverUserId: string,
     approverName: string,
     context: Omit<NotificationContext, 'expenseId' | 'statusUrl'>
   ): Promise<NotificationResult[]> {
@@ -343,6 +344,7 @@ export class NotificationService {
       recipient: {
         name: approverName,
         phoneNumber: approverPhone,
+        userId: approverUserId,
       },
       eventType: 'SUBMIT',
       context: {
@@ -359,12 +361,14 @@ export class NotificationService {
   async notifyOnApprove(
     expenseId: string,
     applicantPhone: string,
+    applicantUserId: string,
     context: Omit<NotificationContext, 'expenseId' | 'statusUrl'>
   ): Promise<NotificationResult[]> {
     return this.send({
       recipient: {
         name: context.applicantName,
         phoneNumber: applicantPhone,
+        userId: applicantUserId,
       },
       eventType: 'APPROVE',
       context: {
@@ -404,7 +408,7 @@ export class NotificationService {
    */
   async notifyOnWithdraw(
     expenseId: string,
-    approvers: Array<{ phone: string; name: string }>,
+    approvers: Array<{ phone: string; name: string; userId: string }>,
     context: Omit<NotificationContext, 'expenseId' | 'statusUrl'>
   ): Promise<NotificationResult[]> {
     const allResults: NotificationResult[] = [];
@@ -414,6 +418,7 @@ export class NotificationService {
         recipient: {
           name: approver.name,
           phoneNumber: approver.phone,
+          userId: approver.userId,
         },
         eventType: 'WITHDRAW',
         context: {
@@ -434,12 +439,14 @@ export class NotificationService {
   async notifyOnPaymentComplete(
     expenseId: string,
     applicantPhone: string,
+    applicantUserId: string,
     context: Omit<NotificationContext, 'expenseId' | 'statusUrl'>
   ): Promise<NotificationResult[]> {
     return this.send({
       recipient: {
         name: context.applicantName,
         phoneNumber: applicantPhone,
+        userId: applicantUserId,
       },
       eventType: 'PAYMENT_COMPLETE',
       context: {

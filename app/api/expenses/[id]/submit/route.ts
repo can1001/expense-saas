@@ -289,15 +289,15 @@ export async function POST(
       );
 
       if (firstPendingStepInfo) {
-        // 결재자 전화번호 조회
+        // 결재자 정보 조회
         const approverUser = await prisma.user.findFirst({
           where: { username: firstPendingStepInfo.approverName },
-          select: { phoneNumber: true },
+          select: { id: true, phoneNumber: true },
         });
 
-        if (approverUser?.phoneNumber) {
+        if (approverUser) {
           notificationService
-            .notifyOnSubmit(id, approverUser.phoneNumber, firstPendingStepInfo.approverName, {
+            .notifyOnSubmit(id, approverUser.phoneNumber || '', approverUser.id, firstPendingStepInfo.approverName, {
               applicantName: expense.applicantName,
               requestAmount: expense.requestAmount,
               department: expense.department,

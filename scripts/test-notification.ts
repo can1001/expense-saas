@@ -34,6 +34,7 @@ async function main() {
   const submitResults = await notificationService.notifyOnSubmit(
     testExpenseId,
     '010-1234-5678',
+    'test-approver-user-id',
     '결재자테스트',
     testContext
   );
@@ -44,6 +45,7 @@ async function main() {
   const approveResults = await notificationService.notifyOnApprove(
     testExpenseId,
     '010-9876-5432',
+    'test-applicant-user-id',
     { ...testContext, approverName: '승인자' }
   );
   console.log('   결과:', JSON.stringify(approveResults, null, 2));

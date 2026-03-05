@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { notificationService } from '@/lib/services/notification';
 
 /**
  * POST /api/expenses/[id]/withdraw
@@ -127,6 +128,44 @@ export async function POST(
 
       return updatedExpense;
     });
+
+    // 알림 발송 (비동기, 실패해도 회수는 성공)
+    try {
+      // 대기 중이던 결재자들에게 회수 알림
+      if (expense.approvalLine?.steps) {
+        // 현재 단계 이후의 PENDING 상태인 결재자들 조회
+        const pendingApprovers = expense.approvalLine.steps
+          .filter((step) => step.status === 'PENDING')
+          .map((step) => step.approverName);
+
+        if (pendingApprovers.length > 0) {
+          // 각 결재자의 userId 조회
+          const approverUsers = await prisma.user.findMany({
+            where: {
+              username: { in: pendingApprovers },
+            },
+            select: { id: true, username: true, phoneNumber: true },
+          });
+
+          const approversWithInfo = approverUsers.map((user) => ({
+            name: user.username,
+            phone: user.phoneNumber || '',
+            userId: user.id,
+          }));
+
+          if (approversWithInfo.length > 0) {
+            notificationService
+              .notifyOnWithdraw(id, approversWithInfo, {
+                applicantName: expense.applicantName,
+                requestAmount: expense.requestAmount,
+              })
+              .catch((err) => console.error('[Withdraw] 알림 발송 실패:', err));
+          }
+        }
+      }
+    } catch (notifyError) {
+      console.error('[Withdraw] 알림 처리 중 오류:', notifyError);
+    }
 
     return NextResponse.json({
       success: true,

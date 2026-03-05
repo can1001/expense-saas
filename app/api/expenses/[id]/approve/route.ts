@@ -305,12 +305,12 @@ export async function POST(
       // 신청자에게 승인 알림
       const applicantUser = await prisma.user.findFirst({
         where: { username: expense.applicantName },
-        select: { phoneNumber: true },
+        select: { id: true, phoneNumber: true },
       });
 
-      if (applicantUser?.phoneNumber) {
+      if (applicantUser) {
         notificationService
-          .notifyOnApprove(id, applicantUser.phoneNumber, {
+          .notifyOnApprove(id, applicantUser.phoneNumber || '', applicantUser.id, {
             applicantName: expense.applicantName,
             requestAmount: expense.requestAmount,
             approverName,
@@ -328,12 +328,12 @@ export async function POST(
         if (nextStepData) {
           const nextApproverUser = await prisma.user.findFirst({
             where: { username: nextStepData.approverName },
-            select: { phoneNumber: true },
+            select: { id: true, phoneNumber: true },
           });
 
-          if (nextApproverUser?.phoneNumber) {
+          if (nextApproverUser) {
             notificationService
-              .notifyOnSubmit(id, nextApproverUser.phoneNumber, nextStepData.approverName, {
+              .notifyOnSubmit(id, nextApproverUser.phoneNumber || '', nextApproverUser.id, nextStepData.approverName, {
                 applicantName: expense.applicantName,
                 requestAmount: expense.requestAmount,
                 department: expense.department,

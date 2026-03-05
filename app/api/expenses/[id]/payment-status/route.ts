@@ -203,12 +203,12 @@ export async function PUT(
       try {
         const applicantUser = await prisma.user.findFirst({
           where: { username: expense.applicantName },
-          select: { phoneNumber: true },
+          select: { id: true, phoneNumber: true },
         });
 
-        if (applicantUser?.phoneNumber) {
+        if (applicantUser) {
           notificationService
-            .notifyOnPaymentComplete(id, applicantUser.phoneNumber, {
+            .notifyOnPaymentComplete(id, applicantUser.phoneNumber || '', applicantUser.id, {
               applicantName: expense.applicantName,
               requestAmount: expense.requestAmount,
               bankName: expense.bankName,
