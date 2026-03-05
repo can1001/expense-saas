@@ -221,12 +221,13 @@ export class NotificationService {
     }
 
     // 채널별 활성화 확인
-    if (!preference || preference.smsEnabled) {
-      channels.push('SMS');
-    }
-    if (!preference || preference.kakaoEnabled) {
-      channels.push('KAKAO');
-    }
+    // [임시 비활성화] SMS/KAKAO - Web Push만 사용
+    // if (!preference || preference.smsEnabled) {
+    //   channels.push('SMS');
+    // }
+    // if (!preference || preference.kakaoEnabled) {
+    //   channels.push('KAKAO');
+    // }
     if (!preference || preference.webPushEnabled) {
       channels.push('WEB_PUSH');
     }
