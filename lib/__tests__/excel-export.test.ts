@@ -40,8 +40,6 @@ describe('excel-export', () => {
 
   describe('expenseToExcelRows', () => {
     const mockExpense: ExpenseForExcel = {
-      budgetCategory: '사무행정비',
-      budgetSubcategory: '사무_회의및접대비',
       accountHolder: '홍길동',
       bankName: '우리은행',
       accountNumber: '123-456-789',
@@ -49,11 +47,15 @@ describe('excel-export', () => {
       requestDate: new Date('2025-12-20'),
       items: [
         {
+          budgetCategory: '사무행정비',
+          budgetSubcategory: '사무_회의및접대비',
           budgetDetail: '아웃팅비_재정팀',
           description: '재정팀 회의 후 식사',
           amount: 50000,
         },
         {
+          budgetCategory: '사무행정비',
+          budgetSubcategory: '사무_회의및접대비',
           budgetDetail: '회의비_일반',
           description: '월간 회의 다과',
           amount: 30000,
@@ -136,8 +138,6 @@ describe('excel-export', () => {
   describe('expensesToExcelRows', () => {
     const mockExpenses: ExpenseForExcel[] = [
       {
-        budgetCategory: '사무행정비',
-        budgetSubcategory: '사무_회의및접대비',
         accountHolder: '홍길동',
         bankName: '우리은행',
         accountNumber: '123-456-789',
@@ -145,6 +145,8 @@ describe('excel-export', () => {
         requestDate: new Date('2025-12-20'),
         items: [
           {
+            budgetCategory: '사무행정비',
+            budgetSubcategory: '사무_회의및접대비',
             budgetDetail: '아웃팅비_재정팀',
             description: '재정팀 회의',
             amount: 50000,
@@ -152,8 +154,6 @@ describe('excel-export', () => {
         ],
       },
       {
-        budgetCategory: '교육비',
-        budgetSubcategory: '교육_세미나',
         accountHolder: '김철수',
         bankName: '신한은행',
         accountNumber: '987-654-321',
@@ -161,11 +161,15 @@ describe('excel-export', () => {
         requestDate: new Date('2025-12-21'),
         items: [
           {
+            budgetCategory: '교육비',
+            budgetSubcategory: '교육_세미나',
             budgetDetail: '세미나_등록비',
             description: '기술 세미나 참가비',
             amount: 100000,
           },
           {
+            budgetCategory: '교육비',
+            budgetSubcategory: '교육_세미나',
             budgetDetail: '세미나_교통비',
             description: '세미나 교통비',
             amount: 20000,

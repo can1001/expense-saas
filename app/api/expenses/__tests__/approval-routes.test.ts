@@ -169,6 +169,12 @@ describe('Approval API Routes', () => {
 
       const request = new NextRequest('http://localhost/api/expenses/test-expense-id/submit', {
         method: 'POST',
+        body: JSON.stringify({
+          signature: {
+            type: 'signature',
+            data: 'data:image/png;base64,mock-signature-data',
+          },
+        }),
       });
 
       const params = Promise.resolve({ id: expenseId });
@@ -348,6 +354,12 @@ describe('Approval API Routes', () => {
 
       const request = new NextRequest('http://localhost/api/expenses/test-id/submit', {
         method: 'POST',
+        body: JSON.stringify({
+          signature: {
+            type: 'signature',
+            data: 'data:image/png;base64,mock-signature-data',
+          },
+        }),
       });
 
       const params = Promise.resolve({ id: expenseId });
@@ -369,6 +381,8 @@ describe('Approval API Routes', () => {
       const mockExpense = {
         id: expenseId,
         status: 'PENDING',
+        applicantSignatureType: 'signature',
+        applicantSignatureData: 'data:image/png;base64,mock-signature-data',
         approvalLine: {
           id: 'approval-line-id',
           currentStep: 1,
@@ -443,6 +457,8 @@ describe('Approval API Routes', () => {
       const mockExpense = {
         id: expenseId,
         status: 'APPROVED_STEP_2',
+        applicantSignatureType: 'signature',
+        applicantSignatureData: 'data:image/png;base64,mock-signature-data',
         approvalLine: {
           id: 'approval-line-id',
           currentStep: 3,
@@ -599,6 +615,8 @@ describe('Approval API Routes', () => {
       const mockExpense = {
         id: 'test-id',
         status: 'PENDING',
+        applicantSignatureType: 'signature',
+        applicantSignatureData: 'data:image/png;base64,mock-signature-data',
         approvalLine: {
           id: 'approval-line-id',
           currentStep: 1,

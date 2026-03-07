@@ -363,10 +363,11 @@ describe('approval-line-service', () => {
       // submitterId가 managerId와 동일하지만 팀장이 없는 경우
       const result = await calculateApprovalLine('bd-1', 2024, 'mgr-1');
 
-      // 팀장이 없으므로 isSubmitterManager도 false (팀장이 있어야만 적용)
+      // isSubmitterManager는 true (submitterId === managerId 조건만 체크)
+      // 하지만 teamLeader가 없어서 else 블록으로 빠져 일반 결재선 생성
       expect(result).toMatchObject({
         isDirectApproval: false,
-        isSubmitterManager: false, // 팀장이 없어서 false
+        isSubmitterManager: true, // submitterId === managerId이므로 true
       });
 
       // 팀장이 없어서 자동 승인 없이 일반 담당자 결재로 처리

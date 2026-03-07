@@ -13,8 +13,10 @@ describe('validators', () => {
       expect(calculateAmount(100, 5)).toBe(500);
     });
 
-    it('rounds down to nearest 10 won', () => {
-      expect(calculateAmount(333, 3)).toBe(990); // 999 -> 990
+    it('preserves exact calculation without rounding', () => {
+      expect(calculateAmount(333, 3)).toBe(999); // No rounding, exact multiplication
+      expect(calculateAmount(155, 1)).toBe(155);
+      expect(calculateAmount(199, 1)).toBe(199);
     });
 
     it('handles zero values', () => {
@@ -50,6 +52,8 @@ describe('validators', () => {
   describe('expenseItemSchema', () => {
     it('validates valid expense item', () => {
       const validItem = {
+        budgetCategory: '사무행정비',
+        budgetSubcategory: '사무_회의및접대비',
         budgetDetail: '예산세목',
         description: '항목 설명',
         unitPrice: 10000,
@@ -63,6 +67,8 @@ describe('validators', () => {
 
     it('validates with optional order field', () => {
       const itemWithOrder = {
+        budgetCategory: '사무행정비',
+        budgetSubcategory: '사무_회의및접대비',
         budgetDetail: '예산세목',
         description: '항목 설명',
         unitPrice: 10000,
@@ -80,6 +86,8 @@ describe('validators', () => {
 
     it('requires budgetDetail', () => {
       const invalidItem = {
+        budgetCategory: '사무행정비',
+        budgetSubcategory: '사무_회의및접대비',
         description: '항목 설명',
         unitPrice: 10000,
         quantity: 5,
@@ -92,6 +100,8 @@ describe('validators', () => {
 
     it('requires positive unitPrice and quantity', () => {
       const invalidItem = {
+        budgetCategory: '사무행정비',
+        budgetSubcategory: '사무_회의및접대비',
         budgetDetail: '예산세목',
         description: '항목 설명',
         unitPrice: -100,
@@ -108,10 +118,10 @@ describe('validators', () => {
     const validExpense = {
       committee: '기획위원회',
       department: '재정팀',
-      budgetCategory: '사무행정비',
-      budgetSubcategory: '사무_회의및접대비',
       items: [
         {
+          budgetCategory: '사무행정비',
+          budgetSubcategory: '사무_회의및접대비',
           budgetDetail: '아웃팅비_재정팀',
           description: '재정팀 회의 후 식사',
           unitPrice: 10000,
@@ -203,18 +213,6 @@ describe('validators', () => {
       expect(result.success).toBe(false);
     });
 
-    it('requires budgetCategory field', () => {
-      const { budgetCategory, ...incomplete } = validExpense;
-      const result = createExpenseSchema.safeParse(incomplete);
-      expect(result.success).toBe(false);
-    });
-
-    it('requires budgetSubcategory field', () => {
-      const { budgetSubcategory, ...incomplete } = validExpense;
-      const result = createExpenseSchema.safeParse(incomplete);
-      expect(result.success).toBe(false);
-    });
-
     it('requires at least one item', () => {
       const noItems = {
         ...validExpense,
@@ -274,6 +272,8 @@ describe('validators', () => {
         ...validExpense,
         items: [
           {
+            budgetCategory: '사무행정비',
+            budgetSubcategory: '사무_회의및접대비',
             budgetDetail: '세목1',
             description: '항목1',
             unitPrice: 10000,
@@ -282,6 +282,8 @@ describe('validators', () => {
             order: 1,
           },
           {
+            budgetCategory: '사무행정비',
+            budgetSubcategory: '사무_회의및접대비',
             budgetDetail: '세목2',
             description: '항목2',
             unitPrice: 5000,
@@ -321,6 +323,8 @@ describe('validators', () => {
       const itemsUpdate = {
         items: [
           {
+            budgetCategory: '사무행정비',
+            budgetSubcategory: '사무_회의및접대비',
             budgetDetail: '새로운 세목',
             description: '새로운 항목',
             unitPrice: 20000,

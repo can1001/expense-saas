@@ -13,6 +13,8 @@ import {
 describe('expenseItemSchema', () => {
   it('should validate correct expense item', () => {
     const validItem = {
+      budgetCategory: '교육비',
+      budgetSubcategory: '교육자료',
       budgetDetail: '교육자료비',
       description: '세미나 자료 제작',
       unitPrice: 10000,
@@ -26,6 +28,8 @@ describe('expenseItemSchema', () => {
 
   it('should reject empty budgetDetail', () => {
     const invalid = {
+      budgetCategory: '교육비',
+      budgetSubcategory: '교육자료',
       budgetDetail: '',
       description: '설명',
       unitPrice: 10000,
@@ -39,6 +43,8 @@ describe('expenseItemSchema', () => {
 
   it('should reject negative unitPrice', () => {
     const invalid = {
+      budgetCategory: '교육비',
+      budgetSubcategory: '교육자료',
       budgetDetail: '예산',
       description: '설명',
       unitPrice: -100,
@@ -52,6 +58,8 @@ describe('expenseItemSchema', () => {
 
   it('should reject zero quantity', () => {
     const invalid = {
+      budgetCategory: '교육비',
+      budgetSubcategory: '교육자료',
       budgetDetail: '예산',
       description: '설명',
       unitPrice: 1000,
@@ -68,8 +76,6 @@ describe('expenseFormSchema', () => {
   const validFormData = {
     committee: '교육위원회',
     department: '교육부',
-    budgetCategory: '교육비',
-    budgetSubcategory: '교육자료',
     requestDate: '2024-12-01',
     requestTeam: '교육위원회 교육부',
     applicantName: '홍길동',
@@ -78,6 +84,8 @@ describe('expenseFormSchema', () => {
     accountHolder: '홍길동',
     items: [
       {
+        budgetCategory: '교육비',
+        budgetSubcategory: '교육자료',
         budgetDetail: '교육자료비',
         description: '세미나 자료',
         unitPrice: 10000,
