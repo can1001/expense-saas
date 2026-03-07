@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import Header from '@/components/Header';
 import { ExcelExportModal } from '@/components/ExcelExportModal';
 import { BulkPaymentStatusModal } from '@/components/BulkPaymentStatusModal';
+import { BulkExpenseDateModal } from '@/components/BulkExpenseDateModal';
 import { BulkPrintModal } from '@/components/BulkPrintModal';
 import ExpenseCard from '@/components/ExpenseCard';
 import MobileFilterPanel, { MobileFilterButton } from '@/components/MobileFilterPanel';
@@ -40,6 +41,7 @@ export default function ExpensesPage() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [showBulkPaymentModal, setShowBulkPaymentModal] = useState(false);
+  const [showBulkExpenseDateModal, setShowBulkExpenseDateModal] = useState(false);
   const [showBulkPrintModal, setShowBulkPrintModal] = useState(false);
 
   // 모바일 무한 스크롤
@@ -397,6 +399,41 @@ export default function ExpensesPage() {
     }
   };
 
+  // 일괄 지출일자 설정 처리
+  const handleBulkExpenseDateChange = async (expenseDate: string, overwriteExisting: boolean) => {
+    try {
+      setBulkProcessing(true);
+      const response = await fetch('/api/expenses/bulk-expense-date', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ids: Array.from(selectedIds),
+          expenseDate,
+          overwriteExisting,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '지출일자 변경에 실패했습니다.');
+      }
+
+      alert(data.message);
+
+      // 목록 새로고침 및 선택 초기화
+      await fetchExpenses();
+      setSelectedIds(new Set());
+      setShowBulkExpenseDateModal(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '지출일자 변경 중 오류가 발생했습니다.');
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -738,6 +775,25 @@ export default function ExpensesPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         일괄 지급대기
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowBulkExpenseDateModal(true)}
+                    disabled={bulkProcessing || exporting}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                  >
+                    {bulkProcessing ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        처리 중...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        일괄 지출일자
                       </>
                     )}
                   </button>
@@ -1107,6 +1163,15 @@ export default function ExpensesPage() {
         isOpen={showBulkPaymentModal}
         onClose={() => setShowBulkPaymentModal(false)}
         onConfirm={handleBulkPaymentComplete}
+        selectedCount={selectedIds.size}
+        isProcessing={bulkProcessing}
+      />
+
+      {/* 일괄 지출일자 설정 모달 */}
+      <BulkExpenseDateModal
+        isOpen={showBulkExpenseDateModal}
+        onClose={() => setShowBulkExpenseDateModal(false)}
+        onConfirm={handleBulkExpenseDateChange}
         selectedCount={selectedIds.size}
         isProcessing={bulkProcessing}
       />

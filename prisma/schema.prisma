@@ -546,6 +546,7 @@ enum ApprovalAction {
   PAYMENT_REVERT   // 지급 대기로 되돌림
   PAYMENT_HOLD     // 지급 보류
   PAYMENT_CANCEL   // 지급 취소
+  BULK_EXPENSE_DATE_UPDATE // 일괄 지출일자 설정
 }
 
 // ========================================
