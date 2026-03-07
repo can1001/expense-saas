@@ -85,96 +85,109 @@ export default function BulkPrintableExpenses({ expenses }: BulkPrintableExpense
           padding: 12mm 15mm;
         }
 
-        /* 첨부파일 페이지 스타일 */
-        .attachments-page {
-          page-break-before: always;
-          padding: 15mm;
-          min-height: 297mm;
-          box-sizing: border-box;
-        }
-
-        .attachments-title {
-          text-align: center;
-          font-size: 18pt;
-          font-weight: bold;
-          margin-bottom: 5mm;
-          letter-spacing: 8px;
-        }
-
-        .attachments-subtitle {
-          text-align: center;
-          font-size: 10pt;
-          color: #666;
-          margin-bottom: 10mm;
-        }
-
-        .attachments-grid {
-          display: flex;
-          flex-direction: column;
-          gap: 10mm;
-          align-items: center;
-        }
-
-        .attachments-grid.single .attachment-item {
-          max-width: 170mm;
-          max-height: 220mm;
-        }
-
-        .attachments-grid.double .attachment-item {
-          max-width: 170mm;
-          max-height: 110mm;
-        }
-
-        .attachments-grid.multi {
-          flex-direction: row;
-          flex-wrap: wrap;
-          justify-content: center;
-        }
-
-        .attachments-grid.multi .attachment-item {
-          max-width: 90mm;
-          max-height: 120mm;
-        }
-
-        .attachment-item {
-          position: relative;
-          text-align: center;
-        }
-
-        .attachment-number {
-          position: absolute;
-          top: -10px;
-          left: -10px;
-          width: 24px;
-          height: 24px;
-          background-color: #333;
-          color: #fff;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 12px;
-          font-weight: bold;
-        }
-
-        .attachment-image {
-          max-width: 100%;
-          max-height: 100%;
-          object-fit: contain;
-          border: 1px solid #ddd;
-        }
-
-        .attachment-name {
-          font-size: 8pt;
-          color: #666;
-          margin-top: 2mm;
-          word-break: break-all;
-        }
-
         @media print {
           .bulk-print-container {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+          }
+
+          /* 첨부파일 페이지 스타일 - 단건 인쇄와 동일 */
+          .attachments-page {
+            page-break-before: always;
+            padding: 12mm 15mm;
+          }
+
+          .attachments-title {
+            text-align: center;
+            margin-bottom: 4px;
+            font-size: 18pt;
+            font-weight: bold;
+            letter-spacing: 8px;
+            padding-left: 8px;
+          }
+
+          .attachments-subtitle {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 10pt;
+            color: #666;
+          }
+
+          .attachments-grid {
+            display: grid;
+            gap: 15px;
+            justify-items: center;
+          }
+
+          /* 1장: 전체 화면 */
+          .attachments-grid.single {
+            grid-template-columns: 1fr;
+          }
+          .attachments-grid.single .attachment-item {
+            max-width: 170mm;
+          }
+          .attachments-grid.single .attachment-image {
+            max-height: 220mm;
+          }
+
+          /* 2장: 상하 반반 (세로 배치) */
+          .attachments-grid.double {
+            grid-template-columns: 1fr;
+          }
+          .attachments-grid.double .attachment-item {
+            max-width: 170mm;
+          }
+          .attachments-grid.double .attachment-image {
+            max-height: 110mm;
+          }
+
+          /* 3-4장: 2x2 그리드 */
+          .attachments-grid.multi {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .attachments-grid.multi .attachment-item {
+            max-width: 85mm;
+          }
+          .attachments-grid.multi .attachment-image {
+            max-height: 110mm;
+          }
+
+          .attachment-item {
+            border: 1px solid #000;
+            padding: 10px;
+            page-break-inside: avoid;
+            text-align: center;
+            position: relative;
+          }
+
+          .attachment-number {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 24px;
+            height: 24px;
+            background-color: #333;
+            color: #fff;
+            font-size: 10pt;
+            font-weight: bold;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .attachment-image {
+            max-width: 100%;
+            object-fit: contain;
+          }
+
+          .attachment-name {
+            font-size: 8pt;
+            text-align: center;
+            margin-top: 8px;
+            color: #333;
+            border-top: 1px solid #ddd;
+            padding-top: 6px;
           }
         }
       `}</style>
