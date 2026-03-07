@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import Header from '@/components/Header';
 import { ExcelExportModal } from '@/components/ExcelExportModal';
 import { BulkPaymentStatusModal } from '@/components/BulkPaymentStatusModal';
+import { BulkPrintModal } from '@/components/BulkPrintModal';
 import ExpenseCard from '@/components/ExpenseCard';
 import MobileFilterPanel, { MobileFilterButton } from '@/components/MobileFilterPanel';
 import { ExpenseListSkeleton, FilterSkeleton, TableSkeleton } from '@/components/ui/Skeleton';
@@ -39,6 +40,7 @@ export default function ExpensesPage() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [showBulkPaymentModal, setShowBulkPaymentModal] = useState(false);
+  const [showBulkPrintModal, setShowBulkPrintModal] = useState(false);
 
   // 모바일 무한 스크롤
   const [mobileVisibleCount, setMobileVisibleCount] = useState(10);
@@ -775,6 +777,17 @@ export default function ExpensesPage() {
                 </svg>
                 대량이체 다운로드
               </button>
+              {/* 일괄 인쇄 버튼 */}
+              <button
+                onClick={() => setShowBulkPrintModal(true)}
+                disabled={exporting || bulkProcessing}
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                일괄 인쇄
+              </button>
             </div>
           </div>
         )}
@@ -1096,6 +1109,13 @@ export default function ExpensesPage() {
         onConfirm={handleBulkPaymentComplete}
         selectedCount={selectedIds.size}
         isProcessing={bulkProcessing}
+      />
+
+      {/* 일괄 인쇄 모달 */}
+      <BulkPrintModal
+        isOpen={showBulkPrintModal}
+        onClose={() => setShowBulkPrintModal(false)}
+        selectedIds={Array.from(selectedIds)}
       />
 
       {/* 모바일 필터 패널 */}

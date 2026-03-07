@@ -262,4 +262,15 @@ input[type="checkbox"] {
     text-decoration: none !important;
     color: inherit !important;
   }
+
+  /* 일괄 인쇄 - 페이지 구분 */
+  .bulk-print-item {
+    page-break-after: always;
+  }
+  .bulk-print-item:last-child {
+    page-break-after: auto;
+  }
+  .attachments-page {
+    page-break-before: always;
+  }
 }
