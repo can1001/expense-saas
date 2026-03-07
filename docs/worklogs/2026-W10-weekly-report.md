@@ -5,10 +5,10 @@
 | 항목 | 내용 |
 |------|------|
 | 기간 | 2026-03-01 ~ 2026-03-05 |
-| 총 커밋 | 50+ 건 |
+| 총 커밋 | 52+ 건 |
 | PR 머지 | 6건 |
 | 신규 파일 | 40+ 개 |
-| 주요 기능 | 계정과목 빠른 선택, 출납 서명, PWA 고급 기능, 푸시 알림 |
+| 주요 기능 | 계정과목 빠른 선택, 출납 서명, PWA 고급 기능, 푸시 알림, 프린트 CSS 수정 |
 
 ---
 
@@ -162,7 +162,7 @@ app/mypage/notifications/page.tsx
 
 ---
 
-### 📅 3월 5일 (금) - 푸시 알림 완성 및 배포 준비
+### 📅 3월 5일 (금) - 푸시 알림 완성 및 프린트 CSS 수정
 
 #### 주요 작업
 | 기능 | 설명 |
@@ -172,14 +172,31 @@ app/mypage/notifications/page.tsx
 | 🔧 환경 변수 문서화 | .env.example에 VAPID 키 템플릿 |
 | 🖼️ PWA 아이콘 수정 | manifest.json 아이콘 크기 오류 해결 |
 | 📋 알림 메뉴 추가 | Header 드롭다운에 "알림 설정" 링크 |
+| 🖨️ 프린트 CSS 롤백 | 여백 설정 문제 해결 (운영 버전 복원) |
+
+#### 프린트 CSS 수정 상세
+
+**문제**: 프린트 시 "여백 기본" 선택하면 2장으로 분할됨
+
+**원인 분석**:
+| 버전 | @page margin | max-height | 결과 |
+|------|-------------|------------|------|
+| 운영 (3/2) | 1.5cm | 없음 | ✅ 정상 |
+| 수정 후 | 10mm | 287mm | ⚠️ 여백 없음만 OK |
+
+**해결**: 3월 2일 운영 버전으로 롤백
+- `@page margin`: 10mm → **1.5cm**
+- `max-height`: 287mm → **제거** (브라우저 자연 처리)
+- `padding`: 10mm 12mm → **12mm 15mm**
 
 #### 주요 수정
 1. **Push API 인증 통일**: `getCurrentUser()` 함수로 통일
 2. **iOS Service Worker**: 수동 등록 로직 추가
 3. **userId 전달**: 모든 알림 이벤트에 userId 추가
 4. **에러 처리 개선**: NO_SUBSCRIPTION 에러 코드 (404)
+5. **프린트 CSS**: 운영 버전 복원으로 여백 문제 해결
 
-#### 커밋 (10건)
+#### 커밋 (12건)
 - `957da73` fix: Service Worker 수동 등록 로직
 - `7d13a87` feat: 모든 알림 이벤트에 Web Push userId 전달
 - `e931fbb` fix: 반려 시 푸시 알림에 userId 전달
@@ -188,6 +205,8 @@ app/mypage/notifications/page.tsx
 - `4dbd028` docs: .env.example에 VAPID 키 템플릿 추가
 - `886ddd5` chore: SMS/KakaoTalk 알림 임시 비활성화
 - `bc18a36` docs: Push Notification 작업 정리
+- `a8871ff` fix: 프린트 A4 한 장 깨짐 문제 수정
+- `46fafa3` revert: 프린트 CSS를 3월 2일 운영 버전으로 롤백
 
 ---
 
@@ -214,6 +233,11 @@ app/mypage/notifications/page.tsx
 | REJECT | 신청자 | "결재 반려됨" |
 | WITHDRAW | 대기 결재자들 | "결재 취소됨" |
 | PAYMENT_COMPLETE | 신청자 | "지급 완료" |
+
+### 5. 프린트 CSS 안정화
+- 프린트 여백 설정 관계없이 A4 한 장 출력 보장
+- `max-height` 강제 제한 제거로 브라우저 자연 페이지 처리
+- 운영 환경 검증 완료된 설정으로 롤백
 
 ---
 
@@ -253,4 +277,4 @@ VAPID_SUBJECT=mailto:admin@church.org
 
 ---
 
-*작성일: 2026-03-05*
+*작성일: 2026-03-05 (최종 업데이트)*
