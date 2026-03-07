@@ -346,16 +346,20 @@ export default function ExpensesPage() {
     await processBulkPaymentStatus('PENDING');
   };
 
-  // 일괄 지급완료 처리 (서명 포함)
-  const handleBulkPaymentComplete = async (signature?: { type: string; signatureId?: string; data?: string } | null) => {
-    await processBulkPaymentStatus('COMPLETED', signature);
+  // 일괄 지급완료 처리 (서명 + 지출일자 포함)
+  const handleBulkPaymentComplete = async (
+    signature?: { type: string; signatureId?: string; data?: string } | null,
+    dateOptions?: { expenseDate: string | null; overwriteExisting: boolean }
+  ) => {
+    await processBulkPaymentStatus('COMPLETED', signature, dateOptions);
     setShowBulkPaymentModal(false);
   };
 
   // 실제 일괄 처리 로직
   const processBulkPaymentStatus = async (
     newStatus: 'PENDING' | 'COMPLETED',
-    signature?: { type: string; signatureId?: string; data?: string } | null
+    signature?: { type: string; signatureId?: string; data?: string } | null,
+    dateOptions?: { expenseDate: string | null; overwriteExisting: boolean }
   ) => {
     try {
       setBulkProcessing(true);
@@ -368,6 +372,8 @@ export default function ExpensesPage() {
           ids: Array.from(selectedIds),
           paymentStatus: newStatus,
           signature,
+          expenseDate: dateOptions?.expenseDate,
+          overwriteExisting: dateOptions?.overwriteExisting,
         }),
       });
 

@@ -209,7 +209,8 @@ export default function ExpenseDetailPage() {
     newStatus: string,
     note: string,
     reason?: string,
-    signature?: { type: string; signatureId?: string; data?: string } | null
+    signature?: { type: string; signatureId?: string; data?: string } | null,
+    expenseDateInput?: string
   ) => {
     if (!expense) return;
 
@@ -223,6 +224,7 @@ export default function ExpenseDetailPage() {
           note,
           reason,
           signature,
+          expenseDate: expenseDateInput,
         }),
       });
 
@@ -831,6 +833,7 @@ export default function ExpenseDetailPage() {
         onConfirm={handlePaymentStatusChange}
         currentStatus={(expense.paymentStatus || 'PENDING') as 'PENDING' | 'HOLD' | 'CANCELLED' | 'COMPLETED'}
         isProcessing={paymentStatusLoading}
+        currentExpenseDate={expense.expenseDate ? String(expense.expenseDate) : null}
       />
     </>
   );

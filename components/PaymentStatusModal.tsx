@@ -15,9 +15,10 @@ interface SignatureData {
 interface PaymentStatusModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (newStatus: string, note: string, reason?: string, signature?: SignatureData | null) => void;
+  onConfirm: (newStatus: string, note: string, reason?: string, signature?: SignatureData | null, expenseDate?: string) => void;
   currentStatus: PaymentStatusType;
   isProcessing: boolean;
+  currentExpenseDate?: string | null;
 }
 
 const STATUS_OPTIONS: { value: PaymentStatusType; label: string; description: string; color: string }[] = [
@@ -53,11 +54,13 @@ export function PaymentStatusModal({
   onConfirm,
   currentStatus,
   isProcessing,
+  currentExpenseDate,
 }: PaymentStatusModalProps) {
   const [selectedStatus, setSelectedStatus] = useState<PaymentStatusType>(currentStatus);
   const [note, setNote] = useState('');
   const [reason, setReason] = useState('');
   const [signature, setSignature] = useState<SignatureData | null>(null);
+  const [expenseDate, setExpenseDate] = useState<string>('');
 
   // 출납 서명 필수 여부 설정 조회
   const { value: signatureRequired } = usePaymentSignatureRequired();
@@ -69,8 +72,15 @@ export function PaymentStatusModal({
       setNote('');
       setReason('');
       setSignature(null);
+      // 지출일자: 기존값이 있으면 사용, 없으면 오늘 날짜
+      if (currentExpenseDate) {
+        const date = new Date(currentExpenseDate);
+        setExpenseDate(date.toISOString().split('T')[0]);
+      } else {
+        setExpenseDate(new Date().toISOString().split('T')[0]);
+      }
     }
-  }, [isOpen, currentStatus]);
+  }, [isOpen, currentStatus, currentExpenseDate]);
 
   if (!isOpen) return null;
 
@@ -87,7 +97,8 @@ export function PaymentStatusModal({
       selectedStatus,
       note,
       needsReason ? reason : undefined,
-      selectedStatus === 'COMPLETED' ? signature : null
+      selectedStatus === 'COMPLETED' ? signature : null,
+      selectedStatus === 'COMPLETED' ? expenseDate : undefined
     );
   };
 
@@ -195,6 +206,24 @@ export function PaymentStatusModal({
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               rows={2}
             />
+          </div>
+        )}
+
+        {/* 지출일자 입력 (지급 완료일 때만) */}
+        {selectedStatus === 'COMPLETED' && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              지출일자 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              value={expenseDate}
+              onChange={(e) => setExpenseDate(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              실제 지출이 발생한 날짜를 입력하세요.
+            </p>
           </div>
         )}
 

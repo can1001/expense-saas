@@ -15,7 +15,8 @@ import { notificationService } from '@/lib/services/notification';
  *     type: "signature" | "stamp",
  *     signatureId?: string,  // 저장된 서명 ID
  *     data?: string          // 또는 base64 데이터
- *   }
+ *   },
+ *   expenseDate?: string   // COMPLETED일 때 지출일자 (YYYY-MM-DD)
  * }
  */
 export async function PUT(
@@ -25,7 +26,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { paymentStatus, note, reason, signature } = body;
+    const { paymentStatus, note, reason, signature, expenseDate } = body;
 
     // 현재 사용자 확인
     const currentUser = await getCurrentUser();
@@ -107,8 +108,10 @@ export async function PUT(
     if (paymentStatus === 'COMPLETED') {
       updateData.paymentCompletedAt = now;
       updateData.paymentCompletedBy = currentUser.username;
-      // 지출일자가 없으면 지급완료일로 자동 설정
-      if (!expense.expenseDate) {
+      // 클라이언트에서 전달된 지출일자 사용, 없으면 기존값 유지, 그것도 없으면 현재 시간
+      if (expenseDate) {
+        updateData.expenseDate = new Date(expenseDate);
+      } else if (!expense.expenseDate) {
         updateData.expenseDate = now;
       }
       // 완료 시 보류 정보 초기화

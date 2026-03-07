@@ -14,13 +14,15 @@ import { getCurrentUser } from '@/lib/auth';
  *     type: "signature" | "stamp",
  *     signatureId?: string,
  *     data?: string
- *   }
+ *   },
+ *   expenseDate?: string,      // 지출일자 (YYYY-MM-DD 형식)
+ *   overwriteExisting?: boolean // 기존 지출일자도 덮어쓰기
  * }
  */
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { ids, paymentStatus, note, signature } = body;
+    const { ids, paymentStatus, note, signature, expenseDate, overwriteExisting } = body;
 
     // 현재 사용자 확인
     const currentUser = await getCurrentUser();
@@ -129,16 +131,37 @@ export async function PUT(request: NextRequest) {
         }
       }
 
-      // 지출일자가 없는 항목들의 expenseDate를 지급완료일로 설정
-      await prisma.expense.updateMany({
-        where: {
-          id: { in: updateIds },
-          expenseDate: null,
-        },
-        data: {
-          expenseDate: now,
-        },
-      });
+      // 지출일자 설정
+      if (expenseDate) {
+        // 사용자가 지정한 지출일자로 설정
+        const dateValue = new Date(expenseDate);
+
+        if (overwriteExisting) {
+          // 모든 항목에 일괄 적용
+          await prisma.expense.updateMany({
+            where: { id: { in: updateIds } },
+            data: { expenseDate: dateValue },
+          });
+        } else {
+          // expenseDate가 null인 항목만 적용
+          await prisma.expense.updateMany({
+            where: {
+              id: { in: updateIds },
+              expenseDate: null,
+            },
+            data: { expenseDate: dateValue },
+          });
+        }
+      } else {
+        // expenseDate 파라미터가 없으면 기존 로직 유지 (null인 항목만 현재 시점)
+        await prisma.expense.updateMany({
+          where: {
+            id: { in: updateIds },
+            expenseDate: null,
+          },
+          data: { expenseDate: now },
+        });
+      }
     } else {
       updateData.paymentCompletedAt = null;
       updateData.paymentCompletedBy = null;
@@ -168,6 +191,8 @@ export async function PUT(request: NextRequest) {
         bulkOperation: true,
         totalSelected: ids.length,
         actualUpdated: updateIds.length,
+        expenseDate: expenseDate || null,
+        overwriteExisting: overwriteExisting || false,
         userAgent: request.headers.get('user-agent') || '',
         timestamp: now.toISOString(),
       },

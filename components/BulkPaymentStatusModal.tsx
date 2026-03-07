@@ -10,10 +10,15 @@ interface SignatureData {
   signatureId?: string;
 }
 
+interface ExpenseDateOptions {
+  expenseDate: string | null;
+  overwriteExisting: boolean;
+}
+
 interface BulkPaymentStatusModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (signature?: SignatureData | null) => void;
+  onConfirm: (signature?: SignatureData | null, dateOptions?: ExpenseDateOptions) => void;
   selectedCount: number;
   isProcessing: boolean;
 }
@@ -27,6 +32,13 @@ export function BulkPaymentStatusModal({
 }: BulkPaymentStatusModalProps) {
   const [signature, setSignature] = useState<SignatureData | null>(null);
 
+  // 지출일자 관련 상태
+  const [expenseDate, setExpenseDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
+  const [useExpenseDate, setUseExpenseDate] = useState(true);
+  const [overwriteExisting, setOverwriteExisting] = useState(false);
+
   // 출납 서명 필수 여부 설정 조회
   const { value: signatureRequired } = usePaymentSignatureRequired();
 
@@ -34,6 +46,9 @@ export function BulkPaymentStatusModal({
   useEffect(() => {
     if (isOpen) {
       setSignature(null);
+      setExpenseDate(new Date().toISOString().split('T')[0]);
+      setUseExpenseDate(true);
+      setOverwriteExisting(false);
     }
   }, [isOpen]);
 
@@ -44,7 +59,10 @@ export function BulkPaymentStatusModal({
 
   const handleConfirm = () => {
     if (!canConfirm) return;
-    onConfirm(signature);
+    onConfirm(signature, {
+      expenseDate: useExpenseDate ? expenseDate : null,
+      overwriteExisting: useExpenseDate ? overwriteExisting : false,
+    });
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -75,6 +93,58 @@ export function BulkPaymentStatusModal({
           <p className="text-sm text-amber-800">
             ※ 최종 승인된 항목만 변경됩니다.
           </p>
+        </div>
+
+        {/* 지출일자 설정 */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            지출일자 설정
+          </label>
+          <div className="space-y-3">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="dateOption"
+                checked={useExpenseDate}
+                onChange={() => setUseExpenseDate(true)}
+                className="mt-1"
+              />
+              <div className="flex-1">
+                <span className="text-gray-900">선택한 날짜로 지출일자 설정</span>
+                {useExpenseDate && (
+                  <div className="mt-2 space-y-2">
+                    <input
+                      type="date"
+                      value={expenseDate}
+                      onChange={(e) => setExpenseDate(e.target.value)}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    />
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={overwriteExisting}
+                        onChange={(e) => setOverwriteExisting(e.target.checked)}
+                        className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span className="text-sm text-gray-600">
+                        기존 지출일자가 있는 항목도 변경
+                      </span>
+                    </label>
+                  </div>
+                )}
+              </div>
+            </label>
+
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="dateOption"
+                checked={!useExpenseDate}
+                onChange={() => setUseExpenseDate(false)}
+              />
+              <span className="text-gray-900">기존 지출일자 유지 (없는 항목만 오늘 날짜)</span>
+            </label>
+          </div>
         </div>
 
         {/* 출납 서명 선택 */}
