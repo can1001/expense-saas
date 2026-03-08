@@ -180,6 +180,23 @@ export async function PUT(
       },
     });
 
+    // 최종승인 + 지급대기 상태에서 수정한 경우 감사 로그 기록
+    if (isApprovedPending) {
+      await prisma.approvalLog.create({
+        data: {
+          expenseId: id,
+          action: 'MODIFY_CONTENT',
+          actorName: validatedData.applicantName || existing.applicantName,
+          previousStatus: existing.status,
+          newStatus: existing.status,
+          comment: '최종승인 후 내용 수정',
+          metadata: {
+            modifiedAt: new Date().toISOString(),
+          },
+        },
+      });
+    }
+
     return NextResponse.json(expense);
   } catch (error: any) {
     if (error.name === 'ZodError' && error.errors) {
