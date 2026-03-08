@@ -137,7 +137,60 @@ Commits:
 
 ---
 
-## 5. 배포 시 필요 작업
+## 5. npm 보안 취약점 수정
+
+### 5.1 취약점 현황
+
+| 상태 | 이전 | 이후 |
+|------|------|------|
+| Critical | 1 | **0** |
+| High | 13 | 6 |
+| Moderate | 6 | 0 |
+| Low | 1 | 0 |
+| **합계** | **21** | **6** |
+
+### 5.2 주요 업데이트
+
+- Next.js 16.1.4 → 16.1.6 (critical RCE 취약점 해결)
+- npm audit fix 적용
+
+---
+
+## 6. Prisma 6.x 다운그레이드
+
+### 6.1 문제
+
+Prisma 7.x에서 Render 배포 시 wasm 모듈 로딩 오류 발생:
+```
+Cannot find module '@prisma/client/runtime/query_compiler_fast_bg.postgresql.wasm-base64.js'
+```
+
+### 6.2 해결
+
+| 항목 | 변경 전 | 변경 후 |
+|------|---------|---------|
+| Prisma | 7.1.0 | 6.19.2 |
+| @prisma/client | 7.1.0 | 6.19.2 |
+| @prisma/adapter-pg | 7.0.1 | 6.19.2 |
+| prisma.config.ts | 사용 | 삭제 |
+| schema.prisma url | 없음 | `env("DATABASE_URL")` 추가 |
+
+---
+
+## 7. 추가 커밋 정보
+
+```
+Branch: main
+
+Commits:
+4. 7772971 fix: npm 보안 취약점 수정
+5. 643825b fix: Prisma generate 명령어 수정
+6. 7ffb0a5 fix: Prisma 6.x로 다운그레이드 (Render 배포 오류 해결)
+```
+
+---
+
+## 8. 배포 시 필요 작업
 
 ```bash
 # Prisma 스키마 반영
