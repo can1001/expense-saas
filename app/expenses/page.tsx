@@ -915,6 +915,9 @@ export default function ExpensesPage() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
                     예산항목
                   </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                    적요
+                  </th>
                   <th className="px-6 py-4 text-right text-xs font-semibold text-white uppercase tracking-wider">
                     청구금액
                   </th>
@@ -932,7 +935,7 @@ export default function ExpensesPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
                       {searchQuery ? '검색 결과가 없습니다.' : '등록된 지출결의서가 없습니다.'}
                     </td>
                   </tr>
@@ -966,10 +969,19 @@ export default function ExpensesPage() {
                         className="px-6 py-4 text-sm text-gray-700"
                         onClick={() => handleRowClick(expense.id)}
                       >
-                        <div className="flex flex-col">
-                          <span className="font-medium">{expense.items?.[0]?.budgetCategory || '-'}</span>
-                          <span className="text-gray-500 text-xs">{expense.items?.[0]?.budgetSubcategory || '-'}</span>
+                        <div className="flex flex-col text-xs">
+                          <span className="font-medium text-gray-900">{expense.items?.[0]?.budgetCategory || '-'}</span>
+                          <span className="text-gray-700">{expense.items?.[0]?.budgetSubcategory || '-'}</span>
+                          <span className="text-gray-500">{expense.items?.[0]?.budgetDetail || '-'}</span>
                         </div>
+                      </td>
+                      <td
+                        className="px-6 py-4 text-sm text-gray-700"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
+                        <span className="block max-w-[200px] line-clamp-2 text-sm">
+                          {expense.items?.[0]?.description || '-'}
+                        </span>
                       </td>
                       <td
                         className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900"
