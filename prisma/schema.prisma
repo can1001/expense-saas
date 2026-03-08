@@ -541,6 +541,7 @@ enum ApprovalAction {
   RESUBMIT         // 재제출
   WITHDRAW         // 회수
   MODIFY_LINE      // 결재선 수정
+  MODIFY_CONTENT   // 내용 수정 (최종승인 후)
   DELEGATE         // 위임/대리 지정
   PAYMENT_COMPLETE // 지급완료 처리
   PAYMENT_REVERT   // 지급 대기로 되돌림
