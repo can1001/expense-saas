@@ -80,7 +80,7 @@ export async function PUT(
     // 현재 데이터 조회 (상태 확인 및 청구팀 자동 생성/검증을 위해)
     const existing = await prisma.expense.findUnique({
       where: { id },
-      select: { status: true, paymentStatus: true, committee: true, department: true },
+      select: { status: true, paymentStatus: true, committee: true, department: true, applicantName: true },
     });
     if (!existing) {
       throw new ApiError('지출결의서를 찾을 수 없습니다.', 404);
