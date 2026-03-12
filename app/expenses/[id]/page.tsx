@@ -293,10 +293,12 @@ export default function ExpenseDetailPage() {
 
   // 수정/삭제 가능한 상태 확인
   // 기본: DRAFT, REJECTED, WITHDRAWN
-  // 추가: APPROVED_FINAL이면서 paymentStatus가 PENDING인 경우
+  // 추가: APPROVED_FINAL이면서 paymentStatus가 PENDING인 경우 (수정만 가능)
   const basicEditable = ['DRAFT', 'REJECTED', 'WITHDRAWN'].includes(expense.status || '');
   const approvedPending = expense.status === 'APPROVED_FINAL' && expense.paymentStatus === 'PENDING';
   const canEdit = basicEditable || approvedPending;
+  // 삭제는 최종승인 전에만 가능 (APPROVED_FINAL이면 삭제 불가)
+  const canDelete = basicEditable;
 
   // 엑셀 다운로드 가능 역할 확인 (행정간사, 회계, 재정팀장, admin만 가능)
   const canDownloadExcel = currentUser &&
@@ -428,23 +430,23 @@ export default function ExpenseDetailPage() {
               </button>
             )}
             {canEdit && (
-              <>
-                <button
-                  onClick={() => router.push(`/expenses/${id}/edit`)}
-                  disabled={deleteLoading}
-                  className={BTN_SECONDARY}
-                >
-                  수정
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleteLoading}
-                  className={BTN_DANGER}
-                >
-                  {deleteLoading && <div className={SPINNER}></div>}
-                  삭제
-                </button>
-              </>
+              <button
+                onClick={() => router.push(`/expenses/${id}/edit`)}
+                disabled={deleteLoading}
+                className={BTN_SECONDARY}
+              >
+                수정
+              </button>
+            )}
+            {canDelete && (
+              <button
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className={BTN_DANGER}
+              >
+                {deleteLoading && <div className={SPINNER}></div>}
+                삭제
+              </button>
             )}
           </div>
         </div>
@@ -801,27 +803,27 @@ export default function ExpenseDetailPage() {
           </button>
         )}
         {canEdit && (
-          <>
-            <button
-              onClick={() => router.push(`/expenses/${id}/edit`)}
-              disabled={deleteLoading}
-              className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors min-h-[48px]"
-            >
-              <Edit2 className="w-5 h-5" />
-              <span className="text-sm font-medium">수정</span>
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={deleteLoading}
-              className="flex items-center justify-center px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors min-h-[48px] min-w-[48px]"
-            >
-              {deleteLoading ? (
-                <div className={SPINNER}></div>
-              ) : (
-                <Trash2 className="w-5 h-5" />
-              )}
-            </button>
-          </>
+          <button
+            onClick={() => router.push(`/expenses/${id}/edit`)}
+            disabled={deleteLoading}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors min-h-[48px]"
+          >
+            <Edit2 className="w-5 h-5" />
+            <span className="text-sm font-medium">수정</span>
+          </button>
+        )}
+        {canDelete && (
+          <button
+            onClick={handleDelete}
+            disabled={deleteLoading}
+            className="flex items-center justify-center px-3 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors min-h-[48px] min-w-[48px]"
+          >
+            {deleteLoading ? (
+              <div className={SPINNER}></div>
+            ) : (
+              <Trash2 className="w-5 h-5" />
+            )}
+          </button>
         )}
       </div>
       </div>
