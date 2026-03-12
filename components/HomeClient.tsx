@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import { canAccessExtendedMenu, canAccessApprovalMenu, canAccessAdminMenu, ROLE_NAMES } from '@/lib/constants/menu-permissions';
 import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, TEXT_STAT, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
+import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount';
 
 // 역할 코드 타입 (Role.code와 동일)
 type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
@@ -26,6 +27,11 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
   // 세목 담당자도 결재함 접근 가능
   const showApprovalMenu = canAccessApprovalMenu(user.role) || isBudgetManager;
   const showAdminMenu = canAccessAdminMenu(user.role);
+
+  // 결재 대기 건수 조회
+  const { count: pendingCount } = usePendingApprovalCount({
+    enabled: showApprovalMenu,
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -260,8 +266,16 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
                     </svg>
                   </div>
                   <div>
-                    <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
+                    <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2 flex items-center`}>
                       결재함
+                      {pendingCount > 0 && (
+                        <span
+                          className="ml-2 min-w-[20px] h-5 px-1.5 inline-flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full"
+                          aria-label={`결재 대기 ${pendingCount}건`}
+                        >
+                          {pendingCount > 99 ? '99+' : pendingCount}
+                        </span>
+                      )}
                     </h2>
                     <p className="text-sm sm:text-base text-gray-600">
                       결재 대기 중인 지출결의서를 처리하세요

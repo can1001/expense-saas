@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown, Bell, History } from 'lucide-react';
 import { useRoles } from '@/hooks/useRoles';
+import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount';
 
 interface UserInfo {
   id: string;
@@ -23,6 +24,7 @@ function MobileDrawer({
   loading,
   onLogout,
   getRoleName,
+  pendingCount,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -31,6 +33,7 @@ function MobileDrawer({
   loading: boolean;
   onLogout: () => void;
   getRoleName: (code: string) => string;
+  pendingCount: number;
 }) {
   // ESC 키로 닫기
   useEffect(() => {
@@ -107,6 +110,7 @@ function MobileDrawer({
         <nav className="p-4 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const isApprovalMenu = item.href === '/approvals';
             return (
               <Link
                 key={item.href}
@@ -120,6 +124,14 @@ function MobileDrawer({
               >
                 <Icon className="w-5 h-5" />
                 {item.label}
+                {isApprovalMenu && pendingCount > 0 && (
+                  <span
+                    className="ml-auto min-w-[20px] h-5 px-1.5 flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full"
+                    aria-label={`결재 대기 ${pendingCount}건`}
+                  >
+                    {pendingCount > 99 ? '99+' : pendingCount}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -199,6 +211,11 @@ export default function Header() {
 
   // Role 테이블에서 역할 정보 가져오기
   const { getRoleName, canAccessAdminMenu } = useRoles();
+
+  // 결재 대기 건수 조회 (로그인 사용자만)
+  const { count: pendingCount } = usePendingApprovalCount({
+    enabled: !!user,
+  });
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -311,11 +328,12 @@ export default function Header() {
               <nav className="hidden md:flex items-center gap-1">
                 {navItems.map((item) => {
                   const Icon = item.icon;
+                  const isApprovalMenu = item.href === '/approvals';
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${
+                      className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${
                         item.active
                           ? 'text-blue-600 bg-blue-50'
                           : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
@@ -323,6 +341,14 @@ export default function Header() {
                     >
                       <Icon className="w-4 h-4" />
                       {item.label}
+                      {isApprovalMenu && pendingCount > 0 && (
+                        <span
+                          className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[11px] font-bold rounded-full"
+                          aria-label={`결재 대기 ${pendingCount}건`}
+                        >
+                          {pendingCount > 99 ? '99+' : pendingCount}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
@@ -430,6 +456,7 @@ export default function Header() {
         loading={loading}
         onLogout={handleLogout}
         getRoleName={getRoleName}
+        pendingCount={pendingCount}
       />
     </>
   );
