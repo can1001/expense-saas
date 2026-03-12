@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   Wand2,
   CheckCircle,
+  Bell,
   LucideIcon,
 } from 'lucide-react';
 
@@ -70,6 +71,12 @@ export const ADMIN_SIDEBAR_MENU: SidebarGroup[] = [
       { href: '/admin/year-setup-status', label: '연도별 설정 현황', icon: CheckCircle },
       { href: '/admin/year-roles-summary', label: '연도별 팀장 현황', icon: BarChart3 },
       { href: '/admin/roles', label: '역할 안내', icon: Shield },
+    ],
+  },
+  {
+    title: '알림',
+    items: [
+      { href: '/admin/notifications', label: '알림 발송', icon: Bell },
     ],
   },
 ];

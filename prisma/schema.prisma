@@ -919,3 +919,25 @@ model SystemSetting {
 
   @@index([key])
 }
+
+// ========================================
+// 어드민 알림 발송 (Admin Notifications)
+// ========================================
+
+// 어드민이 발송한 알림 이력
+model AdminNotification {
+  id          String   @id @default(cuid())
+  title       String                     // 알림 제목
+  message     String                     // 알림 내용
+  targetType  String                     // 대상 타입: 'ALL', 'ROLE', 'USER'
+  targetValue String?                    // 역할 코드 또는 사용자 ID (ALL일 경우 null)
+  sentCount   Int      @default(0)       // 발송 성공 건수
+  failedCount Int      @default(0)       // 발송 실패 건수
+  status      String   @default("SENT")  // 발송 상태: SENT, PARTIAL, FAILED
+  createdBy   String                     // 발송자 ID
+  createdAt   DateTime @default(now())
+
+  @@index([createdBy])
+  @@index([createdAt])
+  @@index([status])
+}
