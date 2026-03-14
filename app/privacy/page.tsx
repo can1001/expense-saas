@@ -14,7 +14,7 @@ export default function PrivacyPage() {
         </h1>
         <p className="text-center text-blue-500 mb-2">지출결의서 앱</p>
         <p className="text-center text-gray-500 text-sm mb-8">
-          시행일: 2024년 1월 1일 | 최종 수정: 2024년 3월
+          시행일: 2026년 1월 1일 | 최종 수정: 2026년 3월
         </p>
 
         <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-8">
@@ -129,7 +129,7 @@ export default function PrivacyPage() {
         </Section>
 
         <div className="mt-10 pt-6 border-t border-gray-200 text-center text-gray-500 text-sm">
-          <p>&copy; 2024 지출결의서. All rights reserved.</p>
+          <p>&copy; 2026 지출결의서. All rights reserved.</p>
         </div>
       </div>
     </div>
