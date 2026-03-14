@@ -1,11 +1,32 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Key, PenLine, Bell, History } from 'lucide-react';
+import { Key, PenLine, Bell, History, Send } from 'lucide-react';
 import Header from '@/components/Header';
 import { SECTION_CARD, PADDING_CARD } from '@/lib/constants/styles';
 
+// 알림 발송 권한이 있는 역할
+const NOTIFICATION_ALLOWED_ROLES = ['admin', 'admin_assistant', 'accountant', 'finance_head'];
+
 export default function MyPage() {
+  const [canSendNotification, setCanSendNotification] = useState(false);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        const data = await response.json();
+        if (response.ok && data.user) {
+          setCanSendNotification(NOTIFICATION_ALLOWED_ROLES.includes(data.user.role));
+        }
+      } catch {
+        // 무시
+      }
+    };
+    fetchUser();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -142,6 +163,41 @@ export default function MyPage() {
             </svg>
           </div>
         </Link>
+
+        {/* 알림 발송 (권한 있는 사용자만 표시) */}
+        {canSendNotification && (
+          <Link
+            href="/mypage/send-notification"
+            className={`group ${SECTION_CARD} hover:shadow-lg transition-all hover:-translate-y-0.5`}
+          >
+            <div className={`${PADDING_CARD} flex items-center gap-4`}>
+              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                <Send className="w-6 h-6 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-gray-900 group-hover:text-red-600 transition-colors">
+                  알림 발송
+                </h2>
+                <p className="text-sm text-gray-600">
+                  사용자에게 알림을 발송합니다
+                </p>
+              </div>
+              <svg
+                className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </div>
+          </Link>
+        )}
         </div>
       </div>
     </div>
