@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { webPushProvider } from '@/lib/services/notification/web-push-provider';
 
+// 알림 발송 권한이 있는 역할
+const NOTIFICATION_ALLOWED_ROLES = ['admin', 'admin_assistant', 'accountant', 'finance_head'];
+
 /**
  * GET /api/admin/notifications
  * 어드민 알림 발송 이력 조회
@@ -10,7 +13,7 @@ import { webPushProvider } from '@/lib/services/notification/web-push-provider';
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user || user.role !== 'admin') {
+    if (!user || !NOTIFICATION_ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
@@ -53,7 +56,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user || user.role !== 'admin') {
+    if (!user || !NOTIFICATION_ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
