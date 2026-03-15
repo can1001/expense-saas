@@ -13,27 +13,24 @@ import {
   ArrowLeft,
   CheckCircle,
   XCircle,
-  Clock,
-  FileText,
-  ThumbsUp,
-  ThumbsDown,
-  Undo2,
-  Wallet,
-  ChevronLeft,
-  ChevronRight,
-  RefreshCw,
-  History,
+  AlertCircle,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import {
   SECTION_CARD,
   SECTION_TITLE,
   BTN_PRIMARY,
+  BTN_OUTLINE,
   INPUT_BASE,
   TEXTAREA_BASE,
   SELECT_BASE,
   LABEL_BASE,
   LABEL_REQUIRED,
+  TABLE_BASE,
+  TABLE_HEADER,
+  TABLE_HEADER_CELL,
+  TABLE_BODY,
+  TABLE_CELL,
 } from '@/lib/constants/styles';
 
 // 알림 발송 권한이 있는 역할
@@ -44,6 +41,19 @@ interface UserInfo {
   userid: string;
   username: string;
   role: string;
+}
+
+interface AdminNotification {
+  id: string;
+  title: string;
+  message: string;
+  targetType: string;
+  targetValue: string | null;
+  sentCount: number;
+  failedCount: number;
+  status: string;
+  createdBy: string;
+  createdAt: string;
 }
 
 interface Role {
@@ -72,70 +82,6 @@ const ROLE_OPTIONS: Role[] = [
   { code: 'user', name: '사용자' },
 ];
 
-// 히스토리 관련 타입 및 상수
-interface NotificationLog {
-  id: string;
-  eventType: string;
-  title: string;
-  body: string;
-  url: string | null;
-  status: string;
-  errorMessage: string | null;
-  sentAt: string | null;
-  createdAt: string;
-  expense: {
-    id: string;
-    applicantName: string;
-    requestAmount: number;
-    status: string;
-  } | null;
-}
-
-interface HistoryResponse {
-  data: NotificationLog[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: typeof Bell; color: string }> = {
-  SUBMIT: { label: '결재 요청', icon: Send, color: 'text-blue-600 bg-blue-100' },
-  APPROVE: { label: '승인', icon: ThumbsUp, color: 'text-green-600 bg-green-100' },
-  REJECT: { label: '반려', icon: ThumbsDown, color: 'text-red-600 bg-red-100' },
-  WITHDRAW: { label: '회수', icon: Undo2, color: 'text-orange-600 bg-orange-100' },
-  PAYMENT_COMPLETE: { label: '지급 완료', icon: Wallet, color: 'text-purple-600 bg-purple-100' },
-  MANUAL: { label: '수동 발송', icon: Bell, color: 'text-red-600 bg-red-100' },
-};
-
-const STATUS_CONFIG: Record<string, { label: string; icon: typeof Clock; color: string }> = {
-  PENDING: { label: '대기', icon: Clock, color: 'text-yellow-600 bg-yellow-100' },
-  SENT: { label: '발송 완료', icon: CheckCircle, color: 'text-green-600 bg-green-100' },
-  FAILED: { label: '발송 실패', icon: XCircle, color: 'text-red-600 bg-red-100' },
-};
-
-function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) return '방금 전';
-  if (minutes < 60) return `${minutes}분 전`;
-  if (hours < 24) return `${hours}시간 전`;
-  if (days < 7) return `${days}일 전`;
-
-  return date.toLocaleDateString('ko-KR', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 export default function SendNotificationPage() {
   const router = useRouter();
 
@@ -157,12 +103,11 @@ export default function SendNotificationPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // 히스토리 상태
-  const [logs, setLogs] = useState<NotificationLog[]>([]);
+  // 발송 이력 상태
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyPage, setHistoryPage] = useState(1);
-  const [historyTotalPages, setHistoryTotalPages] = useState(1);
-  const [historyTotal, setHistoryTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // 사용자 정보 및 권한 확인
   useEffect(() => {
@@ -188,34 +133,29 @@ export default function SendNotificationPage() {
     fetchUser();
   }, [router]);
 
-  // 히스토리 조회
-  const fetchHistory = useCallback(async () => {
-    setHistoryLoading(true);
+  // 발송 이력 조회
+  const fetchNotifications = useCallback(async () => {
     try {
-      const params = new URLSearchParams();
-      params.set('page', historyPage.toString());
-      params.set('limit', '10');
-
-      const response = await fetch(`/api/push/history?${params}`);
+      setHistoryLoading(true);
+      const response = await fetch(`/api/admin/notifications?page=${page}&limit=10`);
       if (response.ok) {
-        const data: HistoryResponse = await response.json();
-        setLogs(data.data);
-        setHistoryTotalPages(data.totalPages);
-        setHistoryTotal(data.total);
+        const data = await response.json();
+        setNotifications(data.notifications);
+        setTotalPages(data.pagination.totalPages);
       }
     } catch (error) {
-      console.error('Failed to fetch history:', error);
+      console.error('Failed to fetch notifications:', error);
     } finally {
       setHistoryLoading(false);
     }
-  }, [historyPage]);
+  }, [page]);
 
-  // 히스토리 로드
+  // 이력 로드
   useEffect(() => {
     if (user && NOTIFICATION_ALLOWED_ROLES.includes(user.role)) {
-      fetchHistory();
+      fetchNotifications();
     }
-  }, [user, fetchHistory]);
+  }, [user, fetchNotifications]);
 
   // 사용자 검색
   const searchUsers = useCallback(async (query: string) => {
@@ -290,9 +230,8 @@ export default function SendNotificationPage() {
         setTargetRole('');
         setTargetUserId('');
         setUserSearch('');
-        // 히스토리 새로고침
-        setHistoryPage(1);
-        fetchHistory();
+        // 이력 새로고침
+        fetchNotifications();
       } else {
         setErrorMessage(data.error || '알림 발송에 실패했습니다.');
       }
@@ -300,6 +239,48 @@ export default function SendNotificationPage() {
       setErrorMessage('알림 발송 중 오류가 발생했습니다.');
     } finally {
       setSending(false);
+    }
+  };
+
+  // 대상 타입 라벨 변환
+  const getTargetLabel = (notification: AdminNotification) => {
+    if (notification.targetType === 'ALL') {
+      return '전체 사용자';
+    } else if (notification.targetType === 'ROLE') {
+      const role = ROLE_OPTIONS.find((r) => r.code === notification.targetValue);
+      return `역할: ${role?.name || notification.targetValue}`;
+    } else if (notification.targetType === 'USER') {
+      return `사용자: ${notification.targetValue}`;
+    }
+    return notification.targetType;
+  };
+
+  // 상태 배지
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'SENT':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full">
+            <CheckCircle className="w-3 h-3" />
+            성공
+          </span>
+        );
+      case 'PARTIAL':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-full">
+            <AlertCircle className="w-3 h-3" />
+            부분성공
+          </span>
+        );
+      case 'FAILED':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-full">
+            <XCircle className="w-3 h-3" />
+            실패
+          </span>
+        );
+      default:
+        return status;
     }
   };
 
@@ -325,7 +306,7 @@ export default function SendNotificationPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* 뒤로가기 + 제목 */}
         <div className="flex items-center gap-3 mb-6">
           <Link
@@ -491,164 +472,84 @@ export default function SendNotificationPage() {
           </div>
         </div>
 
-        {/* 발송 히스토리 */}
+        {/* 발송 이력 */}
         <div className={`${SECTION_CARD} mt-6`}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className={SECTION_TITLE}>
-              <History className="w-5 h-5 inline mr-2" />
-              발송 히스토리
-            </h2>
-            <button
-              onClick={fetchHistory}
-              disabled={historyLoading}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <RefreshCw className={`w-4 h-4 ${historyLoading ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
+          <h2 className={SECTION_TITLE}>발송 이력</h2>
 
-          {/* 총 개수 */}
-          <div className="text-sm text-gray-500 mb-3">
-            총 {historyTotal}개의 알림
-          </div>
-
-          {/* 로딩 상태 */}
-          {historyLoading && (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-gray-50 rounded-lg p-4 animate-pulse">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-gray-200 rounded-full" />
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded w-24 mb-2" />
-                      <div className="h-3 bg-gray-200 rounded w-full mb-1" />
-                      <div className="h-3 bg-gray-200 rounded w-3/4" />
-                    </div>
-                  </div>
-                </div>
-              ))}
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
             </div>
-          )}
-
-          {/* 빈 상태 */}
-          {!historyLoading && logs.length === 0 && (
-            <div className="bg-gray-50 rounded-lg p-8 text-center">
-              <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">발송된 알림이 없습니다.</p>
+          ) : notifications.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              발송 이력이 없습니다.
             </div>
-          )}
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className={TABLE_BASE}>
+                  <thead className={TABLE_HEADER}>
+                    <tr>
+                      <th className={TABLE_HEADER_CELL}>제목</th>
+                      <th className={TABLE_HEADER_CELL}>대상</th>
+                      <th className={TABLE_HEADER_CELL}>결과</th>
+                      <th className={TABLE_HEADER_CELL}>발송일시</th>
+                    </tr>
+                  </thead>
+                  <tbody className={TABLE_BODY}>
+                    {notifications.map((notification) => (
+                      <tr key={notification.id} className="hover:bg-gray-50">
+                        <td className={TABLE_CELL}>
+                          <div>
+                            <p className="font-medium text-gray-900">{notification.title}</p>
+                            <p className="text-sm text-gray-500 truncate max-w-xs">
+                              {notification.message}
+                            </p>
+                          </div>
+                        </td>
+                        <td className={TABLE_CELL}>
+                          {getTargetLabel(notification)}
+                        </td>
+                        <td className={TABLE_CELL}>
+                          <div className="flex flex-col gap-1">
+                            {getStatusBadge(notification.status)}
+                            <span className="text-xs text-gray-500">
+                              성공 {notification.sentCount}건 / 실패 {notification.failedCount}건
+                            </span>
+                          </div>
+                        </td>
+                        <td className={TABLE_CELL}>
+                          {new Date(notification.createdAt).toLocaleString('ko-KR')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-          {/* 알림 목록 */}
-          {!historyLoading && logs.length > 0 && (
-            <div className="space-y-2">
-              {logs.map((log) => {
-                const eventConfig = EVENT_TYPE_CONFIG[log.eventType] || {
-                  label: log.eventType,
-                  icon: Bell,
-                  color: 'text-gray-600 bg-gray-100',
-                };
-                const statusConfig = STATUS_CONFIG[log.status] || {
-                  label: log.status,
-                  icon: Clock,
-                  color: 'text-gray-600 bg-gray-100',
-                };
-                const EventIcon = eventConfig.icon;
-                const StatusIcon = statusConfig.icon;
-
-                return (
-                  <div
-                    key={log.id}
-                    className="bg-gray-50 rounded-lg p-4"
+              {/* 페이지네이션 */}
+              {totalPages > 1 && (
+                <div className="flex justify-center gap-2 mt-4">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className={BTN_OUTLINE}
                   >
-                    <div className="flex items-start gap-3">
-                      {/* 이벤트 아이콘 */}
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center ${eventConfig.color}`}
-                      >
-                        <EventIcon className="w-5 h-5" />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        {/* 이벤트 타입 & 상태 */}
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm">{eventConfig.label}</span>
-                          <span
-                            className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${statusConfig.color}`}
-                          >
-                            <StatusIcon className="w-3 h-3" />
-                            {statusConfig.label}
-                          </span>
-                        </div>
-
-                        {/* 제목 */}
-                        {log.expense ? (
-                          <Link
-                            href={`/expenses/${log.expense.id}`}
-                            className="text-sm font-medium text-gray-900 truncate hover:text-blue-600 hover:underline block"
-                          >
-                            {log.title}
-                          </Link>
-                        ) : (
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {log.title}
-                          </p>
-                        )}
-
-                        {/* 본문 */}
-                        <p className="text-sm text-gray-600 line-clamp-2 mt-0.5">
-                          {log.body}
-                        </p>
-
-                        {/* 에러 메시지 */}
-                        {log.errorMessage && (
-                          <p className="text-xs text-red-600 mt-1">
-                            {log.errorMessage}
-                          </p>
-                        )}
-
-                        {/* 메타 정보 */}
-                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                          <span>{formatRelativeTime(log.createdAt)}</span>
-                          {log.expense && (
-                            <Link
-                              href={`/expenses/${log.expense.id}`}
-                              className="flex items-center gap-1 text-blue-600 hover:underline"
-                            >
-                              <FileText className="w-3 h-3" />
-                              {log.expense.applicantName} ·{' '}
-                              {log.expense.requestAmount.toLocaleString()}원
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* 페이지네이션 */}
-          {historyTotalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-4">
-              <button
-                onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
-                disabled={historyPage === 1}
-                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <span className="text-sm text-gray-600">
-                {historyPage} / {historyTotalPages}
-              </span>
-              <button
-                onClick={() => setHistoryPage((p) => Math.min(historyTotalPages, p + 1))}
-                disabled={historyPage === historyTotalPages}
-                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
+                    이전
+                  </button>
+                  <span className="flex items-center px-4 text-sm text-gray-600">
+                    {page} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className={BTN_OUTLINE}
+                  >
+                    다음
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
