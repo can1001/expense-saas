@@ -130,7 +130,7 @@ function LoginForm() {
           {loading ? '로그인 중...' : '로그인'}
         </button>
 
-        <div className="text-center text-sm text-gray-600">
+        <div className="hidden text-center text-sm text-gray-600">
           계정이 없으신가요?{' '}
           <Link href="/signup" className="text-blue-600 hover:text-blue-500 font-medium">
             회원가입
