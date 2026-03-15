@@ -3,7 +3,27 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Bell, Send, Loader2, Users, User, UserCog, ArrowLeft } from 'lucide-react';
+import {
+  Bell,
+  Send,
+  Loader2,
+  Users,
+  User,
+  UserCog,
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+  Clock,
+  FileText,
+  ThumbsUp,
+  ThumbsDown,
+  Undo2,
+  Wallet,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  History,
+} from 'lucide-react';
 import Header from '@/components/Header';
 import {
   SECTION_CARD,
@@ -52,6 +72,70 @@ const ROLE_OPTIONS: Role[] = [
   { code: 'user', name: '사용자' },
 ];
 
+// 히스토리 관련 타입 및 상수
+interface NotificationLog {
+  id: string;
+  eventType: string;
+  title: string;
+  body: string;
+  url: string | null;
+  status: string;
+  errorMessage: string | null;
+  sentAt: string | null;
+  createdAt: string;
+  expense: {
+    id: string;
+    applicantName: string;
+    requestAmount: number;
+    status: string;
+  } | null;
+}
+
+interface HistoryResponse {
+  data: NotificationLog[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: typeof Bell; color: string }> = {
+  SUBMIT: { label: '결재 요청', icon: Send, color: 'text-blue-600 bg-blue-100' },
+  APPROVE: { label: '승인', icon: ThumbsUp, color: 'text-green-600 bg-green-100' },
+  REJECT: { label: '반려', icon: ThumbsDown, color: 'text-red-600 bg-red-100' },
+  WITHDRAW: { label: '회수', icon: Undo2, color: 'text-orange-600 bg-orange-100' },
+  PAYMENT_COMPLETE: { label: '지급 완료', icon: Wallet, color: 'text-purple-600 bg-purple-100' },
+  MANUAL: { label: '수동 발송', icon: Bell, color: 'text-red-600 bg-red-100' },
+};
+
+const STATUS_CONFIG: Record<string, { label: string; icon: typeof Clock; color: string }> = {
+  PENDING: { label: '대기', icon: Clock, color: 'text-yellow-600 bg-yellow-100' },
+  SENT: { label: '발송 완료', icon: CheckCircle, color: 'text-green-600 bg-green-100' },
+  FAILED: { label: '발송 실패', icon: XCircle, color: 'text-red-600 bg-red-100' },
+};
+
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (minutes < 1) return '방금 전';
+  if (minutes < 60) return `${minutes}분 전`;
+  if (hours < 24) return `${hours}시간 전`;
+  if (days < 7) return `${days}일 전`;
+
+  return date.toLocaleDateString('ko-KR', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function SendNotificationPage() {
   const router = useRouter();
 
@@ -72,6 +156,13 @@ export default function SendNotificationPage() {
   // 알림 메시지
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  // 히스토리 상태
+  const [logs, setLogs] = useState<NotificationLog[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotalPages, setHistoryTotalPages] = useState(1);
+  const [historyTotal, setHistoryTotal] = useState(0);
 
   // 사용자 정보 및 권한 확인
   useEffect(() => {
@@ -96,6 +187,35 @@ export default function SendNotificationPage() {
     };
     fetchUser();
   }, [router]);
+
+  // 히스토리 조회
+  const fetchHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('page', historyPage.toString());
+      params.set('limit', '10');
+
+      const response = await fetch(`/api/push/history?${params}`);
+      if (response.ok) {
+        const data: HistoryResponse = await response.json();
+        setLogs(data.data);
+        setHistoryTotalPages(data.totalPages);
+        setHistoryTotal(data.total);
+      }
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [historyPage]);
+
+  // 히스토리 로드
+  useEffect(() => {
+    if (user && NOTIFICATION_ALLOWED_ROLES.includes(user.role)) {
+      fetchHistory();
+    }
+  }, [user, fetchHistory]);
 
   // 사용자 검색
   const searchUsers = useCallback(async (query: string) => {
@@ -170,6 +290,9 @@ export default function SendNotificationPage() {
         setTargetRole('');
         setTargetUserId('');
         setUserSearch('');
+        // 히스토리 새로고침
+        setHistoryPage(1);
+        fetchHistory();
       } else {
         setErrorMessage(data.error || '알림 발송에 실패했습니다.');
       }
@@ -368,10 +491,166 @@ export default function SendNotificationPage() {
           </div>
         </div>
 
-        {/* 안내 */}
-        <p className="mt-4 text-sm text-gray-500 text-center">
-          발송된 알림은 수신자의 알림 히스토리에서 확인할 수 있습니다.
-        </p>
+        {/* 발송 히스토리 */}
+        <div className={`${SECTION_CARD} mt-6`}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className={SECTION_TITLE}>
+              <History className="w-5 h-5 inline mr-2" />
+              발송 히스토리
+            </h2>
+            <button
+              onClick={fetchHistory}
+              disabled={historyLoading}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <RefreshCw className={`w-4 h-4 ${historyLoading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+
+          {/* 총 개수 */}
+          <div className="text-sm text-gray-500 mb-3">
+            총 {historyTotal}개의 알림
+          </div>
+
+          {/* 로딩 상태 */}
+          {historyLoading && (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-gray-50 rounded-lg p-4 animate-pulse">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full" />
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-24 mb-2" />
+                      <div className="h-3 bg-gray-200 rounded w-full mb-1" />
+                      <div className="h-3 bg-gray-200 rounded w-3/4" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 빈 상태 */}
+          {!historyLoading && logs.length === 0 && (
+            <div className="bg-gray-50 rounded-lg p-8 text-center">
+              <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">발송된 알림이 없습니다.</p>
+            </div>
+          )}
+
+          {/* 알림 목록 */}
+          {!historyLoading && logs.length > 0 && (
+            <div className="space-y-2">
+              {logs.map((log) => {
+                const eventConfig = EVENT_TYPE_CONFIG[log.eventType] || {
+                  label: log.eventType,
+                  icon: Bell,
+                  color: 'text-gray-600 bg-gray-100',
+                };
+                const statusConfig = STATUS_CONFIG[log.status] || {
+                  label: log.status,
+                  icon: Clock,
+                  color: 'text-gray-600 bg-gray-100',
+                };
+                const EventIcon = eventConfig.icon;
+                const StatusIcon = statusConfig.icon;
+
+                return (
+                  <div
+                    key={log.id}
+                    className="bg-gray-50 rounded-lg p-4"
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* 이벤트 아이콘 */}
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center ${eventConfig.color}`}
+                      >
+                        <EventIcon className="w-5 h-5" />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        {/* 이벤트 타입 & 상태 */}
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-sm">{eventConfig.label}</span>
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${statusConfig.color}`}
+                          >
+                            <StatusIcon className="w-3 h-3" />
+                            {statusConfig.label}
+                          </span>
+                        </div>
+
+                        {/* 제목 */}
+                        {log.expense ? (
+                          <Link
+                            href={`/expenses/${log.expense.id}`}
+                            className="text-sm font-medium text-gray-900 truncate hover:text-blue-600 hover:underline block"
+                          >
+                            {log.title}
+                          </Link>
+                        ) : (
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {log.title}
+                          </p>
+                        )}
+
+                        {/* 본문 */}
+                        <p className="text-sm text-gray-600 line-clamp-2 mt-0.5">
+                          {log.body}
+                        </p>
+
+                        {/* 에러 메시지 */}
+                        {log.errorMessage && (
+                          <p className="text-xs text-red-600 mt-1">
+                            {log.errorMessage}
+                          </p>
+                        )}
+
+                        {/* 메타 정보 */}
+                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                          <span>{formatRelativeTime(log.createdAt)}</span>
+                          {log.expense && (
+                            <Link
+                              href={`/expenses/${log.expense.id}`}
+                              className="flex items-center gap-1 text-blue-600 hover:underline"
+                            >
+                              <FileText className="w-3 h-3" />
+                              {log.expense.applicantName} ·{' '}
+                              {log.expense.requestAmount.toLocaleString()}원
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 페이지네이션 */}
+          {historyTotalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <button
+                onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                disabled={historyPage === 1}
+                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <span className="text-sm text-gray-600">
+                {historyPage} / {historyTotalPages}
+              </span>
+              <button
+                onClick={() => setHistoryPage((p) => Math.min(historyTotalPages, p + 1))}
+                disabled={historyPage === historyTotalPages}
+                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

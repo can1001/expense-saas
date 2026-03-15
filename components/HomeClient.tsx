@@ -190,7 +190,7 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
 
               <Link
                 href="/expenses/simple"
-                className={`group bg-white rounded-xl shadow-lg ${PADDING_CARD} hover:shadow-xl transition-all hover:-translate-y-1 border-2 border-purple-100`}
+                className={`hidden group bg-white rounded-xl shadow-lg ${PADDING_CARD} hover:shadow-xl transition-all hover:-translate-y-1 border-2 border-purple-100`}
               >
                 <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500 rounded-lg flex items-center justify-center">
