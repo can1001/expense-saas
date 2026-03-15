@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Cloud, CloudOff, RefreshCw, Check, AlertCircle } from 'lucide-react';
 import { useOnlineStatus } from '@/lib/hooks/useOnlineStatus';
 import { useOfflineExpense } from '@/lib/hooks/useOfflineExpense';
@@ -29,7 +29,29 @@ export function SyncStatusIndicator({
   const { pendingCount, isSyncing, syncAll } = useOfflineExpense();
 
   const [status, setStatus] = useState<SyncStatus>('idle');
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+
+  // 동기화 실행
+  const handleSync = useCallback(async () => {
+    if (!isOnline || isSyncing) return;
+
+    setStatus('syncing');
+
+    try {
+      const results = await syncAll();
+      const hasError = results.some((r) => !r.success);
+
+      if (hasError) {
+        setStatus('error');
+        setTimeout(() => setStatus('idle'), 3000);
+      } else {
+        setStatus('success');
+        setTimeout(() => setStatus('idle'), 2000);
+      }
+    } catch {
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 3000);
+    }
+  }, [isOnline, isSyncing, syncAll]);
 
   // 상태 업데이트
   useEffect(() => {
@@ -49,31 +71,7 @@ export function SyncStatusIndicator({
     if (wasOffline && isOnline && pendingCount > 0) {
       handleSync();
     }
-  }, [wasOffline, isOnline, pendingCount]);
-
-  // 동기화 실행
-  const handleSync = async () => {
-    if (!isOnline || isSyncing) return;
-
-    setStatus('syncing');
-
-    try {
-      const results = await syncAll();
-      const hasError = results.some((r) => !r.success);
-
-      if (hasError) {
-        setStatus('error');
-        setTimeout(() => setStatus('idle'), 3000);
-      } else {
-        setStatus('success');
-        setLastSyncTime(new Date());
-        setTimeout(() => setStatus('idle'), 2000);
-      }
-    } catch {
-      setStatus('error');
-      setTimeout(() => setStatus('idle'), 3000);
-    }
-  };
+  }, [wasOffline, isOnline, pendingCount, handleSync]);
 
   // 아이콘 크기
   const iconSize = {
