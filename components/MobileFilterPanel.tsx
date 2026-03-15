@@ -12,6 +12,8 @@ interface FilterState {
   minAmount: string;
   maxAmount: string;
   paymentStatus: string;
+  approvedStartDate: string;
+  approvedEndDate: string;
 }
 
 interface MobileFilterPanelProps {
@@ -198,6 +200,26 @@ export default function MobileFilterPanel({
                 value={filters.maxAmount}
                 onChange={(e) => onFilterChange('maxAmount', e.target.value)}
                 placeholder="최대"
+                className={`flex-1 ${inputClasses}`}
+              />
+            </div>
+          </div>
+
+          {/* 최종승인일 범위 */}
+          <div>
+            <label className={labelClasses}>최종승인일 범위</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={filters.approvedStartDate}
+                onChange={(e) => onFilterChange('approvedStartDate', e.target.value)}
+                className={`flex-1 ${inputClasses}`}
+              />
+              <span className="text-gray-500 flex-shrink-0">~</span>
+              <input
+                type="date"
+                value={filters.approvedEndDate}
+                onChange={(e) => onFilterChange('approvedEndDate', e.target.value)}
                 className={`flex-1 ${inputClasses}`}
               />
             </div>

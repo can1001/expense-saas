@@ -197,6 +197,11 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick }: 
           </div>
           <div className="flex items-center gap-2">
             <StatusBadge status={expense.status} />
+            {expense.approvedAt && (
+              <span className="text-xs text-gray-500">
+                ({format(new Date(expense.approvedAt), 'MM-dd')})
+              </span>
+            )}
           </div>
         </div>
 

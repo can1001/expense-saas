@@ -60,6 +60,8 @@ export default function ExpensesPage() {
     minAmount: '',
     maxAmount: '',
     paymentStatus: '',  // 지출 상태 필터 추가
+    approvedStartDate: '',  // 최종승인일 시작
+    approvedEndDate: '',    // 최종승인일 종료
   });
 
   useEffect(() => {
@@ -169,6 +171,21 @@ export default function ExpensesPage() {
       }
     }
 
+    // 최종승인일 범위 필터
+    if (filters.approvedStartDate) {
+      if (!expense.approvedAt) return false;
+      const approvedDate = new Date(expense.approvedAt);
+      const startDate = new Date(filters.approvedStartDate);
+      if (approvedDate < startDate) return false;
+    }
+
+    if (filters.approvedEndDate) {
+      if (!expense.approvedAt) return false;
+      const approvedDate = new Date(expense.approvedAt);
+      const endDate = new Date(filters.approvedEndDate);
+      if (approvedDate > endDate) return false;
+    }
+
     return true;
   });
 
@@ -230,6 +247,8 @@ export default function ExpensesPage() {
       minAmount: '',
       maxAmount: '',
       paymentStatus: '',
+      approvedStartDate: '',
+      approvedEndDate: '',
     });
     setSearchQuery('');
   };
@@ -717,6 +736,29 @@ export default function ExpensesPage() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      최종승인일 범위
+                    </label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="date"
+                        value={filters.approvedStartDate}
+                        onChange={(e) => handleFilterChange('approvedStartDate', e.target.value)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white"
+                      />
+                      <span className="text-gray-500">~</span>
+                      <input
+                        type="date"
+                        value={filters.approvedEndDate}
+                        onChange={(e) => handleFilterChange('approvedEndDate', e.target.value)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex justify-end">
                   <button
                     onClick={clearFilters}
@@ -928,6 +970,9 @@ export default function ExpensesPage() {
                     결재상태
                   </th>
                   <th className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                    최종승인일
+                  </th>
+                  <th className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
                     지급상태
                   </th>
                 </tr>
@@ -935,7 +980,7 @@ export default function ExpensesPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
                       {searchQuery ? '검색 결과가 없습니다.' : '등록된 지출결의서가 없습니다.'}
                     </td>
                   </tr>
@@ -1032,6 +1077,14 @@ export default function ExpensesPage() {
                             -
                           </span>
                         )}
+                      </td>
+                      <td
+                        className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
+                        {expense.approvedAt
+                          ? format(new Date(expense.approvedAt), 'yyyy-MM-dd')
+                          : '-'}
                       </td>
                       <td
                         className="px-6 py-4 whitespace-nowrap text-sm text-center"
