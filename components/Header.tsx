@@ -44,6 +44,9 @@ function MobileDrawer({
   pendingCount: number;
   onOpenUserRegister: () => void;
 }) {
+  // 내 정보 아코디언 상태 (기본 접힘)
+  const [isMyInfoOpen, setIsMyInfoOpen] = useState(false);
+
   // ESC 키로 닫기
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -115,8 +118,9 @@ function MobileDrawer({
           )}
         </div>
 
-        {/* 네비게이션 메뉴 */}
+        {/* 메인 메뉴 */}
         <nav className="p-4 space-y-1">
+          {/* 지출결의서, 결재함, 관리 */}
           {navItems.map((item) => {
             const Icon = item.icon;
             const isApprovalMenu = item.href === '/approvals';
@@ -144,22 +148,9 @@ function MobileDrawer({
               </Link>
             );
           })}
-        </nav>
 
-        {/* 마이페이지 메뉴 */}
-        {user && (
-          <div className="px-4 pb-4 border-t border-gray-200 pt-4">
-            <p className="px-4 text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-              내 정보
-            </p>
-            <Link
-              href="/mypage/password"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
-            >
-              <Key className="w-5 h-5" />
-              비밀번호 변경
-            </Link>
+          {/* 서명/도장 관리 */}
+          {user && (
             <Link
               href="/mypage/signatures"
               onClick={onClose}
@@ -168,44 +159,82 @@ function MobileDrawer({
               <PenLine className="w-5 h-5" />
               서명/도장 관리
             </Link>
-            <Link
-              href="/mypage/notifications"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+          )}
+
+          {/* 사용자 등록 (권한 있는 사용자만) */}
+          {user && canShowUserRegisterMenu(user) && (
+            <button
+              onClick={() => {
+                onClose();
+                onOpenUserRegister();
+              }}
+              className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
             >
-              <Bell className="w-5 h-5" />
-              알림 설정
-            </Link>
-            <Link
-              href="/mypage/notification-history"
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+              <UserPlus className="w-5 h-5" />
+              사용자 등록
+            </button>
+          )}
+        </nav>
+
+        {/* 내 정보 (아코디언) */}
+        {user && (
+          <div className="px-4 pb-4 border-t border-gray-200 pt-4">
+            {/* 아코디언 헤더 */}
+            <button
+              onClick={() => setIsMyInfoOpen(!isMyInfoOpen)}
+              className="flex items-center justify-between w-full px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-lg transition-colors"
             >
-              <History className="w-5 h-5" />
-              알림 히스토리
-            </Link>
-            {NOTIFICATION_ALLOWED_ROLES.includes(user.role) && (
-              <Link
-                href="/mypage/send-notification"
-                onClick={onClose}
-                className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                <Send className="w-5 h-5" />
-                알림 발송
-              </Link>
-            )}
-            {canShowUserRegisterMenu(user) && (
-              <button
-                onClick={() => {
-                  onClose();
-                  onOpenUserRegister();
-                }}
-                className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                <UserPlus className="w-5 h-5" />
-                사용자 등록
-              </button>
-            )}
+              <span className="uppercase tracking-wider">내 정보</span>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform duration-200 ${
+                  isMyInfoOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {/* 아코디언 내용 */}
+            <div
+              className={`overflow-hidden transition-all duration-200 ${
+                isMyInfoOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+              }`}
+            >
+              <div className="mt-1 space-y-1">
+                <Link
+                  href="/mypage/password"
+                  onClick={onClose}
+                  className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                  <Key className="w-5 h-5" />
+                  비밀번호 변경
+                </Link>
+                <Link
+                  href="/mypage/notifications"
+                  onClick={onClose}
+                  className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                  <Bell className="w-5 h-5" />
+                  알림 설정
+                </Link>
+                {NOTIFICATION_ALLOWED_ROLES.includes(user.role) && (
+                  <Link
+                    href="/mypage/send-notification"
+                    onClick={onClose}
+                    className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    <Send className="w-5 h-5" />
+                    알림 발송
+                  </Link>
+                )}
+                <Link
+                  href="/mypage/notification-history"
+                  onClick={onClose}
+                  className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                  <History className="w-5 h-5" />
+                  알림 히스토리
+                </Link>
+              </div>
+            </div>
           </div>
         )}
 
