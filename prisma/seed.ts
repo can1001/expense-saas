@@ -43,6 +43,7 @@ const rolesData = [
     canManageExpense: true,
     canAccessAdmin: true,
     canExportData: true,
+    canRegisterUsers: true,
   },
   {
     code: 'finance_head',
@@ -54,6 +55,7 @@ const rolesData = [
     canManageExpense: true,
     canAccessAdmin: false,
     canExportData: true,
+    canRegisterUsers: true,
   },
   {
     code: 'accountant',
@@ -65,6 +67,7 @@ const rolesData = [
     canManageExpense: true,
     canAccessAdmin: false,
     canExportData: true,
+    canRegisterUsers: true,
   },
   {
     code: 'team_leader',
@@ -76,6 +79,7 @@ const rolesData = [
     canManageExpense: false,
     canAccessAdmin: false,
     canExportData: false,
+    canRegisterUsers: true,
   },
   {
     code: 'admin_assistant',
@@ -87,6 +91,7 @@ const rolesData = [
     canManageExpense: true,
     canAccessAdmin: false,
     canExportData: true,
+    canRegisterUsers: true,
   },
   {
     code: 'user',
@@ -98,6 +103,7 @@ const rolesData = [
     canManageExpense: false,
     canAccessAdmin: false,
     canExportData: false,
+    canRegisterUsers: false,
   },
 ];
 
@@ -122,6 +128,7 @@ async function seedRoles() {
         canManageExpense: roleData.canManageExpense,
         canAccessAdmin: roleData.canAccessAdmin,
         canExportData: roleData.canExportData,
+        canRegisterUsers: roleData.canRegisterUsers,
       },
       create: roleData,
     });
