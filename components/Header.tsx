@@ -129,7 +129,7 @@ function MobileDrawer({
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
-                className={`flex items-center gap-3 px-4 py-3 text-base font-medium rounded-lg transition-colors ${
+                className={`flex items-center gap-3 w-full px-4 py-3 text-base font-medium rounded-lg transition-colors ${
                   item.active
                     ? 'text-blue-600 bg-blue-50'
                     : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
@@ -154,7 +154,7 @@ function MobileDrawer({
             <Link
               href="/mypage/signatures"
               onClick={onClose}
-              className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+              className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
             >
               <PenLine className="w-5 h-5" />
               서명/도장 관리
@@ -202,7 +202,7 @@ function MobileDrawer({
                 <Link
                   href="/mypage/password"
                   onClick={onClose}
-                  className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
                 >
                   <Key className="w-5 h-5" />
                   비밀번호 변경
@@ -210,7 +210,7 @@ function MobileDrawer({
                 <Link
                   href="/mypage/notifications"
                   onClick={onClose}
-                  className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
                 >
                   <Bell className="w-5 h-5" />
                   알림 설정
@@ -219,7 +219,7 @@ function MobileDrawer({
                   <Link
                     href="/mypage/send-notification"
                     onClick={onClose}
-                    className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
                   >
                     <Send className="w-5 h-5" />
                     알림 발송
@@ -228,7 +228,7 @@ function MobileDrawer({
                 <Link
                   href="/mypage/notification-history"
                   onClick={onClose}
-                  className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
                 >
                   <History className="w-5 h-5" />
                   알림 히스토리
