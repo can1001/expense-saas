@@ -32,6 +32,7 @@ interface User {
   role: string;
   department: string | null;
   isActive: boolean;
+  canRegisterUsers: boolean;
   createdAt: string;
 }
 
@@ -255,6 +256,7 @@ function UsersPageContent() {
                     <th className={TABLE_HEADER_CELL}>역할</th>
                     <th className={TABLE_HEADER_CELL}>부서</th>
                     <th className={TABLE_HEADER_CELL}>상태</th>
+                    <th className={TABLE_HEADER_CELL}>사용자등록</th>
                     <th className={TABLE_HEADER_CELL}>등록일</th>
                     <th className={TABLE_HEADER_CELL}>관리</th>
                   </tr>
@@ -262,7 +264,7 @@ function UsersPageContent() {
                 <tbody className={TABLE_BODY}>
                   {users.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className={`${TABLE_CELL} text-center text-gray-500 py-10`}>
+                      <td colSpan={8} className={`${TABLE_CELL} text-center text-gray-500 py-10`}>
                         사용자가 없습니다.
                       </td>
                     </tr>
@@ -282,6 +284,13 @@ function UsersPageContent() {
                             <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">활성</span>
                           ) : (
                             <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500">비활성</span>
+                          )}
+                        </td>
+                        <td className={TABLE_CELL}>
+                          {user.canRegisterUsers ? (
+                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">O</span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
                           )}
                         </td>
                         <td className={TABLE_CELL}>
