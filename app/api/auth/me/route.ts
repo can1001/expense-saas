@@ -10,6 +10,18 @@ export async function GET() {
       return NextResponse.json({ user: null });
     }
 
+    // 사용자 정보와 역할 정보 함께 조회
+    const userWithRole = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        roleRef: {
+          select: {
+            canRegisterUsers: true,
+          },
+        },
+      },
+    });
+
     // 기본 계좌 조회 (없으면 null)
     let defaultBankAccount = null;
     try {
@@ -38,6 +50,8 @@ export async function GET() {
         role: user.role,
         department: user.department,
         defaultBankAccount,
+        canRegisterUsers: userWithRole?.canRegisterUsers ?? false,
+        roleRef: userWithRole?.roleRef ?? null,
       },
     });
   } catch (error) {

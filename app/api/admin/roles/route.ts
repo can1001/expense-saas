@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       canManageExpense,
       canAccessAdmin,
       canExportData,
+      canRegisterUsers,
     } = body;
 
     // 필수 필드 검증
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest) {
         canManageExpense: canManageExpense ?? false,
         canAccessAdmin: canAccessAdmin ?? false,
         canExportData: canExportData ?? false,
+        canRegisterUsers: canRegisterUsers ?? false,
       },
     });
 

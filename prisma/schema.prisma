@@ -573,6 +573,7 @@ model Role {
   canManageExpense Boolean @default(false)  // 지출 관리 권한
   canAccessAdmin   Boolean @default(false)  // 관리자 메뉴 접근
   canExportData    Boolean @default(false)  // 데이터 내보내기 권한
+  canRegisterUsers Boolean @default(false)  // 사용자 등록 권한
 
   // 관계
   users         User[]          @relation("UserRole")
@@ -600,6 +601,9 @@ model User {
 
   // 연락처 정보
   phoneNumber String?                     // 휴대폰 번호 (010-xxxx-xxxx)
+
+  // 개별 권한 플래그 (역할과 별개로 특정 사용자에게 직접 부여)
+  canRegisterUsers Boolean @default(false)  // 사용자 등록 권한
 
   // 관계
   yearRoles          UserYearRole[]

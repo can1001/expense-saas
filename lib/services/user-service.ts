@@ -269,6 +269,7 @@ export async function updateUser(
     password?: string;
     phoneNumber?: string | null;
     isActive?: boolean;
+    canRegisterUsers?: boolean;
   }
 ): Promise<User> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -547,4 +548,30 @@ export async function canApproveByYear(
   const { role } = await getEffectiveRole(userId, year);
   const userStep = ROLE_STEP_MAP[role];
   return userStep === stepNumber;
+}
+
+/**
+ * 사용자 등록 권한 확인
+ * - User의 canRegisterUsers 플래그 확인
+ * - User의 Role의 canRegisterUsers 플래그 확인
+ * - 둘 중 하나라도 true면 권한 있음
+ */
+export async function checkCanRegisterUsers(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { roleRef: true },
+  });
+
+  if (!user) return false;
+
+  // admin은 항상 권한 있음
+  if (user.role === 'admin') return true;
+
+  // 사용자에게 직접 부여된 권한 확인
+  if (user.canRegisterUsers) return true;
+
+  // 역할에 부여된 권한 확인
+  if (user.roleRef?.canRegisterUsers) return true;
+
+  return false;
 }

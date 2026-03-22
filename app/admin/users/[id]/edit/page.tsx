@@ -29,6 +29,7 @@ interface User {
   department: string | null;
   phoneNumber: string | null;
   isActive: boolean;
+  canRegisterUsers: boolean;
 }
 
 export default function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
@@ -51,6 +52,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     department: '',
     phoneNumber: '',
     isActive: true,
+    canRegisterUsers: false,
   });
 
   useEffect(() => {
@@ -75,6 +77,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
           department: data.department ?? '',
           phoneNumber: data.phoneNumber ?? '',
           isActive: data.isActive,
+          canRegisterUsers: data.canRegisterUsers ?? false,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : '사용자 정보를 불러오는데 실패했습니다.');
@@ -123,6 +126,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         department: formData.department.trim() || null,
         phoneNumber: formData.phoneNumber.trim() || null,
         isActive: formData.isActive,
+        canRegisterUsers: formData.canRegisterUsers,
       };
 
       // 비밀번호가 입력된 경우에만 포함
@@ -308,6 +312,23 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
               </label>
               <p className="mt-1 text-xs text-gray-500 ml-6">
                 비활성화된 사용자는 로그인할 수 없습니다.
+              </p>
+            </div>
+
+            {/* 사용자 등록 권한 */}
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="canRegisterUsers"
+                  checked={formData.canRegisterUsers}
+                  onChange={handleChange}
+                  className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">사용자 등록 권한</span>
+              </label>
+              <p className="mt-1 text-xs text-gray-500 ml-6">
+                이 사용자에게 간편 사용자 등록 권한을 직접 부여합니다.
               </p>
             </div>
           </div>

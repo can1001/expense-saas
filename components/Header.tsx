@@ -3,9 +3,11 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown, Bell, History, Send } from 'lucide-react';
+import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown, Bell, History, Send, UserPlus } from 'lucide-react';
 import { useRoles } from '@/hooks/useRoles';
 import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount';
+import { canShowUserRegisterMenu } from '@/lib/constants/menu-permissions';
+import QuickUserRegister from '@/components/QuickUserRegister';
 
 interface UserInfo {
   id: string;
@@ -13,6 +15,8 @@ interface UserInfo {
   username: string;
   role: string;
   department?: string;
+  canRegisterUsers?: boolean;
+  roleRef?: { canRegisterUsers?: boolean } | null;
 }
 
 // 알림 발송 권한이 있는 역할
@@ -28,6 +32,7 @@ function MobileDrawer({
   onLogout,
   getRoleName,
   pendingCount,
+  onOpenUserRegister,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -37,6 +42,7 @@ function MobileDrawer({
   onLogout: () => void;
   getRoleName: (code: string) => string;
   pendingCount: number;
+  onOpenUserRegister: () => void;
 }) {
   // ESC 키로 닫기
   useEffect(() => {
@@ -188,6 +194,18 @@ function MobileDrawer({
                 알림 발송
               </Link>
             )}
+            {canShowUserRegisterMenu(user) && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenUserRegister();
+                }}
+                className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+              >
+                <UserPlus className="w-5 h-5" />
+                사용자 등록
+              </button>
+            )}
           </div>
         )}
 
@@ -220,6 +238,7 @@ export default function Header() {
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isUserRegisterOpen, setIsUserRegisterOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Role 테이블에서 역할 정보 가져오기
@@ -431,6 +450,18 @@ export default function Header() {
                           알림 발송
                         </Link>
                       )}
+                      {user && canShowUserRegisterMenu(user) && (
+                        <button
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            setIsUserRegisterOpen(true);
+                          }}
+                          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          사용자 등록
+                        </button>
+                      )}
                       <div className="border-t border-gray-200 my-1" />
                       <button
                         onClick={() => {
@@ -480,6 +511,13 @@ export default function Header() {
         onLogout={handleLogout}
         getRoleName={getRoleName}
         pendingCount={pendingCount}
+        onOpenUserRegister={() => setIsUserRegisterOpen(true)}
+      />
+
+      {/* 사용자 등록 모달 */}
+      <QuickUserRegister
+        isOpen={isUserRegisterOpen}
+        onClose={() => setIsUserRegisterOpen(false)}
       />
     </>
   );

@@ -57,6 +57,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       canManageExpense,
       canAccessAdmin,
       canExportData,
+      canRegisterUsers,
     } = body;
 
     // 역할 존재 확인
@@ -98,6 +99,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ...(canManageExpense !== undefined && { canManageExpense }),
         ...(canAccessAdmin !== undefined && { canAccessAdmin }),
         ...(canExportData !== undefined && { canExportData }),
+        ...(canRegisterUsers !== undefined && { canRegisterUsers }),
       },
     });
 

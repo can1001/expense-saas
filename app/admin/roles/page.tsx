@@ -31,6 +31,7 @@ interface Role {
   canManageExpense: boolean;
   canAccessAdmin: boolean;
   canExportData: boolean;
+  canRegisterUsers: boolean;
   _count?: {
     users: number;
     userYearRoles: number;
@@ -56,6 +57,7 @@ export default function RolesPage() {
     canManageExpense: false,
     canAccessAdmin: false,
     canExportData: false,
+    canRegisterUsers: false,
   });
 
   const fetchRoles = useCallback(async () => {
@@ -90,6 +92,7 @@ export default function RolesPage() {
       canManageExpense: false,
       canAccessAdmin: false,
       canExportData: false,
+      canRegisterUsers: false,
     });
   };
 
@@ -143,6 +146,7 @@ export default function RolesPage() {
           canManageExpense: formData.canManageExpense,
           canAccessAdmin: formData.canAccessAdmin,
           canExportData: formData.canExportData,
+          canRegisterUsers: formData.canRegisterUsers,
         }),
       });
 
@@ -206,6 +210,7 @@ export default function RolesPage() {
       canManageExpense: role.canManageExpense,
       canAccessAdmin: role.canAccessAdmin,
       canExportData: role.canExportData,
+      canRegisterUsers: role.canRegisterUsers,
     });
   };
 
@@ -341,7 +346,7 @@ export default function RolesPage() {
           {/* 권한 체크박스 */}
           <div className="mt-4 border-t pt-4">
             <h3 className="text-sm font-medium text-gray-700 mb-3">권한 설정</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <label className="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-gray-50">
                 <input
                   type="checkbox"
@@ -377,6 +382,15 @@ export default function RolesPage() {
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm">데이터 내보내기</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-gray-50">
+                <input
+                  type="checkbox"
+                  checked={formData.canRegisterUsers}
+                  onChange={(e) => setFormData({ ...formData, canRegisterUsers: e.target.checked })}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm">사용자 등록</span>
               </label>
             </div>
           </div>
@@ -459,7 +473,7 @@ export default function RolesPage() {
 
             {/* 권한 목록 */}
             <div className="p-4 bg-gray-50">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
                     role.canApprove ? 'bg-green-100 text-green-700' : 'bg-white text-gray-400'
@@ -492,6 +506,14 @@ export default function RolesPage() {
                   {role.canExportData ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
                   <span>데이터 내보내기</span>
                 </div>
+                <div
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                    role.canRegisterUsers ? 'bg-green-100 text-green-700' : 'bg-white text-gray-400'
+                  }`}
+                >
+                  {role.canRegisterUsers ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                  <span>사용자 등록</span>
+                </div>
               </div>
             </div>
           </div>
@@ -512,6 +534,7 @@ export default function RolesPage() {
           <div><strong>지출 관리:</strong> 지급완료 처리, 상태 변경</div>
           <div><strong>관리자 메뉴:</strong> 사용자, 예산, 역할 관리 접근</div>
           <div><strong>데이터 내보내기:</strong> Excel 등 다운로드</div>
+          <div><strong>사용자 등록:</strong> 간편 사용자 등록 기능 접근</div>
         </div>
       </div>
     </div>
