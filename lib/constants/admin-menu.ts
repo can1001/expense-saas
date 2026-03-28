@@ -70,6 +70,7 @@ export const ADMIN_SIDEBAR_MENU: SidebarGroup[] = [
     items: [
       { href: '/admin/year-setup-status', label: '연도별 설정 현황', icon: CheckCircle },
       { href: '/admin/year-roles-summary', label: '연도별 팀장 현황', icon: BarChart3 },
+      { href: '/admin/quarterly-report', label: '분기별 회계보고', icon: BarChart3 },
       { href: '/admin/roles', label: '역할 안내', icon: Shield },
     ],
   },
