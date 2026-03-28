@@ -118,12 +118,13 @@ export async function GET(request: NextRequest) {
       orderBy: [{ committee: 'asc' }, { department: 'asc' }],
     });
 
-    // 3-1. 부서+계정과목 교차 집계 (상세내역용)
+    // 3-1. 부서+계정과목 교차 집계 (상세내역용) - 세목까지 포함
     const departmentCategoryItems = await prisma.expenseItem.findMany({
       where: { expense: finalWhere },
       select: {
         budgetCategory: true,
         budgetSubcategory: true,
+        budgetDetail: true,
         amount: true,
         expense: {
           select: {
@@ -134,41 +135,76 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // 부서별로 계정과목 집계
-    const deptCategoryMap = new Map<string, Map<string, { count: number; amount: number }>>();
+    // 부서별로 3단계 계층 집계 (항 → 목 → 세목)
+    type DetailData = { count: number; amount: number };
+    type SubcatData = { count: number; amount: number; details: Map<string, DetailData> };
+    type CatData = { count: number; amount: number; subcategories: Map<string, SubcatData> };
+    const deptHierarchyMap = new Map<string, Map<string, CatData>>();
+
     departmentCategoryItems.forEach((item) => {
       const deptKey = `${item.expense.committee}|${item.expense.department}`;
-      const catKey = `${item.budgetCategory}|${item.budgetSubcategory}`;
 
-      if (!deptCategoryMap.has(deptKey)) {
-        deptCategoryMap.set(deptKey, new Map());
+      if (!deptHierarchyMap.has(deptKey)) {
+        deptHierarchyMap.set(deptKey, new Map());
       }
 
-      const catMap = deptCategoryMap.get(deptKey)!;
-      const existing = catMap.get(catKey) || { count: 0, amount: 0 };
-      existing.count += 1;
-      existing.amount += item.amount;
-      catMap.set(catKey, existing);
+      const catMap = deptHierarchyMap.get(deptKey)!;
+
+      // 항 레벨
+      if (!catMap.has(item.budgetCategory)) {
+        catMap.set(item.budgetCategory, { count: 0, amount: 0, subcategories: new Map() });
+      }
+      const catData = catMap.get(item.budgetCategory)!;
+      catData.count += 1;
+      catData.amount += item.amount;
+
+      // 목 레벨
+      if (!catData.subcategories.has(item.budgetSubcategory)) {
+        catData.subcategories.set(item.budgetSubcategory, { count: 0, amount: 0, details: new Map() });
+      }
+      const subData = catData.subcategories.get(item.budgetSubcategory)!;
+      subData.count += 1;
+      subData.amount += item.amount;
+
+      // 세목 레벨
+      if (!subData.details.has(item.budgetDetail)) {
+        subData.details.set(item.budgetDetail, { count: 0, amount: 0 });
+      }
+      const detailData = subData.details.get(item.budgetDetail)!;
+      detailData.count += 1;
+      detailData.amount += item.amount;
     });
 
     const byDepartment = departmentAggregation.map((item) => {
       const deptKey = `${item.committee}|${item.department}`;
       const deptAmount = item._sum.requestAmount || 0;
-      const catMap = deptCategoryMap.get(deptKey) || new Map();
+      const catMap: Map<string, CatData> = deptHierarchyMap.get(deptKey) || new Map();
 
-      // 계정과목별 상세내역 생성
+      // 3단계 계층 구조로 categoryDetails 생성
       const categoryDetails = Array.from(catMap.entries())
-        .map(([catKey, data]) => {
-          const [category, subcategory] = catKey.split('|');
-          return {
-            category,
-            subcategory,
-            count: data.count,
-            amount: data.amount,
-            ratio: deptAmount > 0 ? Math.round((data.amount / deptAmount) * 1000) / 10 : 0,
-          };
-        })
-        .sort((a, b) => a.category.localeCompare(b.category) || a.subcategory.localeCompare(b.subcategory));
+        .map(([category, catData]) => ({
+          category,
+          count: catData.count,
+          amount: catData.amount,
+          ratio: deptAmount > 0 ? Math.round((catData.amount / deptAmount) * 1000) / 10 : 0,
+          subcategories: Array.from(catData.subcategories.entries())
+            .map(([subcategory, subData]) => ({
+              subcategory,
+              count: subData.count,
+              amount: subData.amount,
+              ratio: deptAmount > 0 ? Math.round((subData.amount / deptAmount) * 1000) / 10 : 0,
+              details: Array.from(subData.details.entries())
+                .map(([detail, detailData]) => ({
+                  detail,
+                  count: detailData.count,
+                  amount: detailData.amount,
+                  ratio: deptAmount > 0 ? Math.round((detailData.amount / deptAmount) * 1000) / 10 : 0,
+                }))
+                .sort((a, b) => a.detail.localeCompare(b.detail)),
+            }))
+            .sort((a, b) => a.subcategory.localeCompare(b.subcategory)),
+        }))
+        .sort((a, b) => a.category.localeCompare(b.category));
 
       return {
         committee: item.committee,
@@ -222,7 +258,7 @@ export async function GET(request: NextRequest) {
       totalBudgetAmount += catTotal;
     });
 
-    // 5. 계정과목별 집계 (ExpenseItem 기준)
+    // 5. 계정과목별 집계 (ExpenseItem 기준) - 분기
     const itemBaseWhere = {
       expense: finalWhere,
     };
@@ -233,6 +269,30 @@ export async function GET(request: NextRequest) {
       _count: { id: true },
       _sum: { amount: true },
       orderBy: [{ budgetCategory: 'asc' }, { budgetSubcategory: 'asc' }],
+    });
+
+    // 5-1. 계정과목별 연간 지출 집계
+    const yearlyCategoryAggregation = await prisma.expenseItem.groupBy({
+      by: ['budgetCategory', 'budgetSubcategory'],
+      where: {
+        expense: {
+          status: 'APPROVED_FINAL',
+          requestDate: { gte: yearStartDate, lte: yearEndDate },
+        },
+      },
+      _sum: { amount: true },
+      orderBy: [{ budgetCategory: 'asc' }, { budgetSubcategory: 'asc' }],
+    });
+
+    // 연간 지출 맵 생성
+    const yearlySpentByCategory = new Map<string, number>();
+    const yearlySpentBySubcategory = new Map<string, number>();
+    yearlyCategoryAggregation.forEach((item) => {
+      const catKey = item.budgetCategory;
+      const subKey = `${item.budgetCategory}|${item.budgetSubcategory}`;
+      const amount = item._sum.amount || 0;
+      yearlySpentByCategory.set(catKey, (yearlySpentByCategory.get(catKey) || 0) + amount);
+      yearlySpentBySubcategory.set(subKey, amount);
     });
 
     // 예산항별로 그룹핑하고 예산목을 하위로 정리 (예산 정보 포함)
@@ -299,9 +359,11 @@ export async function GET(request: NextRequest) {
     const byCategory = Array.from(categoryMap.values())
       .sort((a, b) => a.category.localeCompare(b.category))
       .map((cat) => {
-        // 연간 기준
-        const executionRate = cat.budgetAmount > 0
-          ? Math.round((cat.spentAmount / cat.budgetAmount) * 1000) / 10
+        // 연간 지출
+        const yearlySpentAmount = yearlySpentByCategory.get(cat.category) || 0;
+        const yearlyRemainingAmount = cat.budgetAmount - yearlySpentAmount;
+        const yearlyExecutionRate = cat.budgetAmount > 0
+          ? Math.round((yearlySpentAmount / cat.budgetAmount) * 1000) / 10
           : 0;
         // 분기 기준
         const quarterlyBudget = Math.round(cat.budgetAmount / 4);
@@ -311,16 +373,21 @@ export async function GET(request: NextRequest) {
           : 0;
         return {
           ...cat,
-          remainingAmount: cat.budgetAmount - cat.spentAmount,
-          executionRate,
+          // 연간 기준
+          yearlySpentAmount,
+          yearlyRemainingAmount,
+          yearlyExecutionRate,
+          // 분기 기준
           quarterlyBudget,
           quarterlyRemaining,
           quarterlyExecutionRate,
           ratio: itemTotalAmount > 0 ? Math.round((cat.spentAmount / itemTotalAmount) * 1000) / 10 : 0,
           subcategories: cat.subcategories.map((sub) => {
-            // 연간 기준
-            const subExecutionRate = sub.budgetAmount > 0
-              ? Math.round((sub.spentAmount / sub.budgetAmount) * 1000) / 10
+            // 연간 지출
+            const subYearlySpentAmount = yearlySpentBySubcategory.get(`${cat.category}|${sub.subcategory}`) || 0;
+            const subYearlyRemainingAmount = sub.budgetAmount - subYearlySpentAmount;
+            const subYearlyExecutionRate = sub.budgetAmount > 0
+              ? Math.round((subYearlySpentAmount / sub.budgetAmount) * 1000) / 10
               : 0;
             // 분기 기준
             const subQuarterlyBudget = Math.round(sub.budgetAmount / 4);
@@ -330,8 +397,11 @@ export async function GET(request: NextRequest) {
               : 0;
             return {
               ...sub,
-              remainingAmount: sub.budgetAmount - sub.spentAmount,
-              executionRate: subExecutionRate,
+              // 연간 기준
+              yearlySpentAmount: subYearlySpentAmount,
+              yearlyRemainingAmount: subYearlyRemainingAmount,
+              yearlyExecutionRate: subYearlyExecutionRate,
+              // 분기 기준
               quarterlyBudget: subQuarterlyBudget,
               quarterlyRemaining: subQuarterlyRemaining,
               quarterlyExecutionRate: subQuarterlyExecutionRate,

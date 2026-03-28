@@ -284,12 +284,15 @@ export async function GET(request: NextRequest) {
       { header: '분기집행률(%)', key: 'quarterlyExecutionRate', width: 14 },
       { header: '건수', key: 'count', width: 10 },
       { header: '(연간예산)', key: 'budgetAmount', width: 15 },
+      { header: '(연간지출)', key: 'yearlySpent', width: 15 },
+      { header: '(연간잔액)', key: 'yearlyRemaining', width: 15 },
+      { header: '(연간집행률%)', key: 'yearlyExecRate', width: 14 },
     ];
     catSheet.getRow(1).eachCell((cell) => {
       Object.assign(cell, { style: headerStyle });
     });
 
-    // 지출 데이터를 예산목별로 집계
+    // 지출 데이터를 예산목별로 집계 (분기)
     const spentBySubcategory = new Map<string, { count: number; amount: number }>();
     categoryAgg.forEach((item) => {
       const key = `${item.budgetCategory}|${item.budgetSubcategory}`;
@@ -297,6 +300,23 @@ export async function GET(request: NextRequest) {
         count: item._count.id,
         amount: item._sum.amount || 0,
       });
+    });
+
+    // 연간 지출 집계
+    const yearlyCategoryAgg = await prisma.expenseItem.groupBy({
+      by: ['budgetCategory', 'budgetSubcategory'],
+      where: {
+        expense: {
+          status: 'APPROVED_FINAL',
+          requestDate: { gte: yearStartDate, lte: yearEndDate },
+        },
+      },
+      _sum: { amount: true },
+    });
+    const yearlySpentBySubcategory = new Map<string, number>();
+    yearlyCategoryAgg.forEach((item) => {
+      const key = `${item.budgetCategory}|${item.budgetSubcategory}`;
+      yearlySpentBySubcategory.set(key, item._sum.amount || 0);
     });
 
     // 모든 예산 카테고리에 대해 행 생성
@@ -311,6 +331,10 @@ export async function GET(request: NextRequest) {
         const qBudget = Math.round(budget / 4);
         const qRemaining = qBudget - spentAmount;
         const qExecRate = qBudget > 0 ? Math.round((spentAmount / qBudget) * 1000) / 10 : 0;
+        // 연간 기준 계산
+        const yearlySpent = yearlySpentBySubcategory.get(key) || 0;
+        const yRemaining = budget - yearlySpent;
+        const yExecRate = budget > 0 ? Math.round((yearlySpent / budget) * 1000) / 10 : 0;
 
         if (budget > 0 || spentAmount > 0) {
           const newRow = catSheet.addRow({
@@ -322,6 +346,9 @@ export async function GET(request: NextRequest) {
             quarterlyExecutionRate: qExecRate,
             count: count,
             budgetAmount: budget,
+            yearlySpent: yearlySpent,
+            yearlyRemaining: yRemaining,
+            yearlyExecRate: yExecRate,
           });
           newRow.eachCell((cell) => { cell.border = cellBorder; });
         }
@@ -332,6 +359,8 @@ export async function GET(request: NextRequest) {
     catSheet.getColumn('spentAmount').numFmt = '#,##0';
     catSheet.getColumn('quarterlyRemaining').numFmt = '#,##0';
     catSheet.getColumn('budgetAmount').numFmt = '#,##0';
+    catSheet.getColumn('yearlySpent').numFmt = '#,##0';
+    catSheet.getColumn('yearlyRemaining').numFmt = '#,##0';
 
     // Buffer로 변환
     const buffer = await workbook.xlsx.writeBuffer();
