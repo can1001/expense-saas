@@ -137,44 +137,8 @@ export default function BudgetExecutionPage() {
             ))}
           </div>
 
-          {/* 하단 합계 (사역비) */}
-          <div className="bg-gradient-to-r from-gray-700 to-gray-800 rounded-xl p-6 shadow-lg">
-            <div className="flex items-center justify-center gap-8 text-white">
-              <span className="text-xl font-semibold">합계</span>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-300">예산</span>
-                <span className="text-2xl font-bold text-yellow-300">
-                  {formatAmount(data.summary.totalBudget)}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-300">결산</span>
-                <span className="text-2xl font-bold text-white">
-                  {formatAmount(data.summary.totalSpent)}
-                </span>
-              </div>
-              <DonutChart
-                percentage={data.summary.executionRate}
-                size={70}
-                strokeWidth={8}
-                className="bg-white rounded-full p-1"
-              />
-            </div>
-          </div>
-
-          {/* 전체 예산 대비 사역비 */}
-          <div className="bg-gray-600 rounded-xl p-4 mt-4 shadow-lg">
-            <div className="flex items-center justify-center gap-6 text-white text-sm">
-              <span className="text-gray-300">전체 예산</span>
-              <span className="font-bold text-lg">{formatAmount(data.summary.grandTotalBudget)}</span>
-              <span className="text-gray-400">|</span>
-              <span className="text-gray-300">사역비</span>
-              <span className="font-bold text-lg">{formatAmount(data.summary.totalBudget)}</span>
-              <span className="text-yellow-300 font-semibold text-lg">
-                ({data.summary.ministryBudgetRatio}%)
-              </span>
-            </div>
-          </div>
+          {/* 사역비 종합 */}
+          <SummarySection summary={data.summary} />
         </>
       )}
 
@@ -184,6 +148,84 @@ export default function BudgetExecutionPage() {
           <p>등록된 위원회가 없습니다.</p>
         </div>
       )}
+    </div>
+  );
+}
+
+// 사역비 종합 섹션
+function SummarySection({ summary }: { summary: BudgetExecutionData['summary'] }) {
+  return (
+    <div className="mt-8 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-xl shadow-lg p-6">
+      <h2 className="text-xl font-bold text-purple-800 mb-6 text-center">
+        사역비 종합
+      </h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* 사역비 합계 */}
+        <div className="bg-white rounded-lg p-5 shadow">
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">사역비 합계</h3>
+          <div className="flex items-center justify-between">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center gap-4">
+                <span className="text-gray-600">예산</span>
+                <span className="text-xl font-bold text-gray-800">
+                  {formatAmount(summary.totalBudget)} 만원
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-4">
+                <span className="text-gray-600">결산</span>
+                <span className="text-xl font-bold text-gray-800">
+                  {formatAmount(summary.totalSpent)} 만원
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-4">
+                <span className="text-gray-600">집행률</span>
+                <span className={`text-xl font-bold ${getRateColor(summary.executionRate)}`}>
+                  {summary.executionRate}%
+                </span>
+              </div>
+            </div>
+            <DonutChart
+              percentage={summary.executionRate}
+              size={100}
+              strokeWidth={12}
+            />
+          </div>
+        </div>
+
+        {/* 전체 예산 대비 */}
+        <div className="bg-white rounded-lg p-5 shadow">
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">전체 예산 대비</h3>
+          <div className="flex items-center justify-between">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center gap-4">
+                <span className="text-gray-600">전체 예산</span>
+                <span className="text-xl font-bold text-gray-800">
+                  {formatAmount(summary.grandTotalBudget)} 만원
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-4">
+                <span className="text-gray-600">사역비</span>
+                <span className="text-xl font-bold text-purple-700">
+                  {formatAmount(summary.totalBudget)} 만원
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-4">
+                <span className="text-gray-600">비율</span>
+                <span className="text-xl font-bold text-purple-700">
+                  {summary.ministryBudgetRatio}%
+                </span>
+              </div>
+            </div>
+            <DonutChart
+              percentage={summary.ministryBudgetRatio}
+              size={100}
+              strokeWidth={12}
+              color="#9333ea"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ interface DonutChartProps {
   size?: number;
   strokeWidth?: number;
   className?: string;
+  color?: string;
 }
 
 /**
@@ -16,14 +17,16 @@ export function DonutChart({
   size = 100,
   strokeWidth = 10,
   className = '',
+  color,
 }: DonutChartProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const clampedPercentage = Math.min(Math.max(percentage, 0), 100);
   const strokeDashoffset = circumference - (clampedPercentage / 100) * circumference;
 
-  // 집행률에 따른 색상
+  // 집행률에 따른 색상 (color prop이 있으면 해당 색상 사용)
   const getStrokeColor = () => {
+    if (color) return color;
     if (percentage >= 100) return '#ef4444'; // 빨강 (초과)
     if (percentage >= 80) return '#f59e0b'; // 주황
     return '#eab308'; // 노랑
