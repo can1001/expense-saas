@@ -11,6 +11,7 @@ import {
   canAccessExtendedMenu,
   canAccessApprovalMenu,
   canAccessAdminMenu,
+  canShowUserRegisterMenu,
 } from '../menu-permissions';
 
 describe('menu-permissions', () => {
@@ -168,6 +169,92 @@ describe('menu-permissions', () => {
 
     it('should return false for empty string', () => {
       expect(canAccessAdminMenu('')).toBe(false);
+    });
+  });
+
+  describe('canShowUserRegisterMenu', () => {
+    it('should return false for null user', () => {
+      expect(canShowUserRegisterMenu(null)).toBe(false);
+    });
+
+    it('should return true for admin role', () => {
+      expect(canShowUserRegisterMenu({ role: 'admin' })).toBe(true);
+    });
+
+    it('should return true when user has canRegisterUsers flag', () => {
+      expect(canShowUserRegisterMenu({ role: 'user', canRegisterUsers: true })).toBe(true);
+    });
+
+    it('should return true when roleRef has canRegisterUsers flag', () => {
+      expect(
+        canShowUserRegisterMenu({
+          role: 'finance_head',
+          roleRef: { canRegisterUsers: true },
+        })
+      ).toBe(true);
+    });
+
+    it('should return false for user without canRegisterUsers', () => {
+      expect(canShowUserRegisterMenu({ role: 'user', canRegisterUsers: false })).toBe(false);
+    });
+
+    it('should return false when roleRef has canRegisterUsers false', () => {
+      expect(
+        canShowUserRegisterMenu({
+          role: 'finance_head',
+          roleRef: { canRegisterUsers: false },
+        })
+      ).toBe(false);
+    });
+
+    it('should return false when roleRef is null', () => {
+      expect(
+        canShowUserRegisterMenu({
+          role: 'finance_head',
+          roleRef: null,
+        })
+      ).toBe(false);
+    });
+
+    it('should return false for user with no role or flags', () => {
+      expect(canShowUserRegisterMenu({})).toBe(false);
+    });
+
+    it('should prioritize direct canRegisterUsers over roleRef', () => {
+      expect(
+        canShowUserRegisterMenu({
+          role: 'user',
+          canRegisterUsers: true,
+          roleRef: { canRegisterUsers: false },
+        })
+      ).toBe(true);
+    });
+
+    it('should return true for admin regardless of flags', () => {
+      expect(
+        canShowUserRegisterMenu({
+          role: 'admin',
+          canRegisterUsers: false,
+          roleRef: { canRegisterUsers: false },
+        })
+      ).toBe(true);
+    });
+
+    it('should return false for non-admin without canRegisterUsers', () => {
+      expect(
+        canShowUserRegisterMenu({
+          role: 'finance_head',
+        })
+      ).toBe(false);
+    });
+
+    it('should return false when only roleRef is provided without canRegisterUsers', () => {
+      expect(
+        canShowUserRegisterMenu({
+          role: 'user',
+          roleRef: {},
+        })
+      ).toBe(false);
     });
   });
 });

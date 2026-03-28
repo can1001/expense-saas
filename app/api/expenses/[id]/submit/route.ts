@@ -74,7 +74,8 @@ export async function POST(
         firstItem.budgetCategory,
         firstItem.budgetSubcategory,
         firstItem.budgetDetail,
-        year
+        year,
+        expense.userId  // 신청자 ID - 세목담당자 전결 판단용
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : '결재선 산출 실패';
