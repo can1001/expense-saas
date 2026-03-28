@@ -62,25 +62,30 @@ interface QuarterlyReportData {
   }>;
   byDepartment: Array<{
     committee: string;
-    department: string;
     count: number;
     amount: number;
     ratio: number;
-    categoryDetails: Array<{
-      category: string;
+    departments: Array<{
+      department: string;
       count: number;
       amount: number;
-      ratio: number;
-      subcategories: Array<{
-        subcategory: string;
+      deptRatio: number;
+      categoryDetails: Array<{
+        category: string;
         count: number;
         amount: number;
         ratio: number;
-        details: Array<{
-          detail: string;
+        subcategories: Array<{
+          subcategory: string;
           count: number;
           amount: number;
           ratio: number;
+          details: Array<{
+            detail: string;
+            count: number;
+            amount: number;
+            ratio: number;
+          }>;
         }>;
       }>;
     }>;
@@ -138,8 +143,9 @@ export default function QuarterlyReportPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<QuarterlyReportData | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  // 부서별 계층용 상태
+  const [expandedCommittees, setExpandedCommittees] = useState<Set<string>>(new Set());
   const [expandedDepartments, setExpandedDepartments] = useState<Set<string>>(new Set());
-  // 부서별 5단계 하이라키용 상태
   const [expandedDeptCategories, setExpandedDeptCategories] = useState<Set<string>>(new Set());
   const [expandedDeptSubcategories, setExpandedDeptSubcategories] = useState<Set<string>>(new Set());
   // 연간 컬럼 표시 여부
@@ -193,14 +199,48 @@ export default function QuarterlyReportPage() {
     setExpandedCategories(new Set());
   };
 
-  const getDeptKey = (dept: { committee: string; department: string }) =>
-    `${dept.committee}|${dept.department}`;
+  // 위원회 토글
+  const toggleCommittee = (committee: string) => {
+    setExpandedCommittees((prev) => {
+      const next = new Set(prev);
+      if (next.has(committee)) {
+        next.delete(committee);
+        // 하위 부서도 접기
+        setExpandedDepartments((prevDept) => {
+          const nextDept = new Set(prevDept);
+          prevDept.forEach((k) => {
+            if (k.startsWith(committee + '|')) nextDept.delete(k);
+          });
+          return nextDept;
+        });
+      } else {
+        next.add(committee);
+      }
+      return next;
+    });
+  };
 
+  // 부서 토글 (committee|department 키 사용)
   const toggleDepartment = (deptKey: string) => {
     setExpandedDepartments((prev) => {
       const next = new Set(prev);
       if (next.has(deptKey)) {
         next.delete(deptKey);
+        // 하위 항도 접기
+        setExpandedDeptCategories((prevCat) => {
+          const nextCat = new Set(prevCat);
+          prevCat.forEach((k) => {
+            if (k.startsWith(deptKey + '|')) nextCat.delete(k);
+          });
+          return nextCat;
+        });
+        setExpandedDeptSubcategories((prevSub) => {
+          const nextSub = new Set(prevSub);
+          prevSub.forEach((k) => {
+            if (k.startsWith(deptKey + '|')) nextSub.delete(k);
+          });
+          return nextSub;
+        });
       } else {
         next.add(deptKey);
       }
@@ -210,11 +250,49 @@ export default function QuarterlyReportPage() {
 
   const expandAllDepartments = () => {
     if (data) {
-      setExpandedDepartments(new Set(data.byDepartment.map((d) => getDeptKey(d))));
+      // 1. 위원회 펼치기
+      setExpandedCommittees(new Set(data.byDepartment.map((c) => c.committee)));
+
+      // 2. 부서 펼치기
+      const deptKeys = new Set<string>();
+      data.byDepartment.forEach((comm) => {
+        comm.departments?.forEach((dept) => {
+          deptKeys.add(`${comm.committee}|${dept.department}`);
+        });
+      });
+      setExpandedDepartments(deptKeys);
+
+      // 3. 항 펼치기
+      const catKeys = new Set<string>();
+      data.byDepartment.forEach((comm) => {
+        comm.departments?.forEach((dept) => {
+          const deptKey = `${comm.committee}|${dept.department}`;
+          dept.categoryDetails?.forEach((cat) => {
+            catKeys.add(`${deptKey}|${cat.category}`);
+          });
+        });
+      });
+      setExpandedDeptCategories(catKeys);
+
+      // 4. 목 펼치기 (세목은 펼치지 않음)
+      const subKeys = new Set<string>();
+      data.byDepartment.forEach((comm) => {
+        comm.departments?.forEach((dept) => {
+          const deptKey = `${comm.committee}|${dept.department}`;
+          dept.categoryDetails?.forEach((cat) => {
+            const catKey = `${deptKey}|${cat.category}`;
+            cat.subcategories?.forEach((sub) => {
+              subKeys.add(`${catKey}|${sub.subcategory}`);
+            });
+          });
+        });
+      });
+      setExpandedDeptSubcategories(subKeys);
     }
   };
 
   const collapseAllDepartments = () => {
+    setExpandedCommittees(new Set());
     setExpandedDepartments(new Set());
     setExpandedDeptCategories(new Set());
     setExpandedDeptSubcategories(new Set());
@@ -593,115 +671,145 @@ export default function QuarterlyReportPage() {
               <table className={TABLE_BASE}>
                 <thead className={TABLE_HEADER}>
                   <tr>
-                    <th className={TABLE_HEADER_CELL}>위원회</th>
-                    <th className={TABLE_HEADER_CELL}>사역팀(부)</th>
-                    <th className={`${TABLE_HEADER_CELL} text-right`}>건수</th>
-                    <th className={`${TABLE_HEADER_CELL} text-right`}>금액</th>
-                    <th className={`${TABLE_HEADER_CELL} text-right`}>비율</th>
+                    <th className={TABLE_HEADER_CELL}>위원회 / 사역팀(부) / 항 / 목 / 세목</th>
+                    <th className={TABLE_HEADER_CELL}>건수</th>
+                    <th className={TABLE_HEADER_CELL}>금액</th>
+                    <th className={TABLE_HEADER_CELL}>비율</th>
                   </tr>
                 </thead>
                 <tbody className={TABLE_BODY}>
-                  {data?.byDepartment.map((dept) => {
-                    const deptKey = getDeptKey(dept);
-                    const isDeptExpanded = expandedDepartments.has(deptKey);
+                  {data?.byDepartment.map((comm) => {
+                    const isCommExpanded = expandedCommittees.has(comm.committee);
 
                     return (
-                      <Fragment key={deptKey}>
-                        {/* Level 1-2: 위원회 + 사역팀 행 */}
+                      <Fragment key={comm.committee}>
+                        {/* Level 0: 위원회 */}
                         <tr
-                          className="cursor-pointer hover:bg-gray-50"
-                          onClick={() => toggleDepartment(deptKey)}
+                          className="cursor-pointer hover:bg-gray-50 bg-blue-50"
+                          onClick={() => toggleCommittee(comm.committee)}
                         >
                           <td className={TABLE_CELL}>
-                            <div className="flex items-center gap-2 font-medium">
-                              {isDeptExpanded ? (
-                                <ChevronDown className="w-4 h-4 text-gray-500" />
+                            <div className="flex items-center gap-2 font-bold text-blue-800">
+                              {isCommExpanded ? (
+                                <ChevronDown className="w-4 h-4 text-blue-600" />
                               ) : (
-                                <ChevronRight className="w-4 h-4 text-gray-500" />
+                                <ChevronRight className="w-4 h-4 text-blue-600" />
                               )}
-                              {dept.committee}
+                              {comm.committee}
                             </div>
                           </td>
-                          <td className={`${TABLE_CELL} font-medium`}>{dept.department}</td>
-                          <td className={`${TABLE_CELL_RIGHT} font-medium`}>{dept.count}건</td>
-                          <td className={`${TABLE_CELL_RIGHT} font-medium`}>{formatAmount(dept.amount)}</td>
-                          <td className={`${TABLE_CELL_RIGHT} font-medium`}>{dept.ratio}%</td>
+                          <td className={`${TABLE_CELL_RIGHT} font-bold text-blue-800`}>{comm.count}건</td>
+                          <td className={`${TABLE_CELL_RIGHT} font-bold text-blue-800`}>{formatAmount(comm.amount)}</td>
+                          <td className={`${TABLE_CELL_RIGHT} font-bold text-blue-800`}>{comm.ratio}%</td>
                         </tr>
 
-                        {/* Level 3: 항 */}
-                        {isDeptExpanded &&
-                          dept.categoryDetails?.map((cat) => {
-                            const catKey = `${deptKey}|${cat.category}`;
-                            const isCatExpanded = expandedDeptCategories.has(catKey);
+                        {/* Level 1: 사역팀(부) */}
+                        {isCommExpanded &&
+                          comm.departments?.map((dept) => {
+                            const deptKey = `${comm.committee}|${dept.department}`;
+                            const isDeptExpanded = expandedDepartments.has(deptKey);
 
                             return (
-                              <Fragment key={catKey}>
+                              <Fragment key={deptKey}>
                                 <tr
-                                  className="bg-green-50 cursor-pointer hover:bg-green-100"
+                                  className="cursor-pointer hover:bg-gray-100"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    toggleDeptCategory(deptKey, cat.category);
+                                    toggleDepartment(deptKey);
                                   }}
                                 >
-                                  <td className={TABLE_CELL} colSpan={2}>
-                                    <div className="pl-6 flex items-center gap-2 text-gray-700">
-                                      {isCatExpanded ? (
-                                        <ChevronDown className="w-3 h-3 text-gray-400" />
+                                  <td className={TABLE_CELL}>
+                                    <div className="pl-6 flex items-center gap-2 font-medium">
+                                      {isDeptExpanded ? (
+                                        <ChevronDown className="w-4 h-4 text-gray-500" />
                                       ) : (
-                                        <ChevronRight className="w-3 h-3 text-gray-400" />
+                                        <ChevronRight className="w-4 h-4 text-gray-500" />
                                       )}
-                                      <span className="font-medium">항:</span> {cat.category}
+                                      {dept.department}
                                     </div>
                                   </td>
-                                  <td className={`${TABLE_CELL_RIGHT} text-gray-600`}>{cat.count}건</td>
-                                  <td className={`${TABLE_CELL_RIGHT} text-gray-600`}>{formatAmount(cat.amount)}</td>
-                                  <td className={`${TABLE_CELL_RIGHT} text-gray-600`}>{cat.ratio}%</td>
+                                  <td className={`${TABLE_CELL_RIGHT} font-medium`}>{dept.count}건</td>
+                                  <td className={`${TABLE_CELL_RIGHT} font-medium`}>{formatAmount(dept.amount)}</td>
+                                  <td className={`${TABLE_CELL_RIGHT} font-medium`}>{dept.deptRatio}%</td>
                                 </tr>
 
-                                {/* Level 4: 목 */}
-                                {isCatExpanded &&
-                                  cat.subcategories?.map((sub) => {
-                                    const subKey = `${catKey}|${sub.subcategory}`;
-                                    const isSubExpanded = expandedDeptSubcategories.has(subKey);
+                                {/* Level 2: 항 */}
+                                {isDeptExpanded &&
+                                  dept.categoryDetails?.map((cat) => {
+                                    const catKey = `${deptKey}|${cat.category}`;
+                                    const isCatExpanded = expandedDeptCategories.has(catKey);
 
                                     return (
-                                      <Fragment key={subKey}>
+                                      <Fragment key={catKey}>
                                         <tr
-                                          className="bg-green-100 cursor-pointer hover:bg-green-200"
+                                          className="bg-green-50 cursor-pointer hover:bg-green-100"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            toggleDeptSubcategory(deptKey, cat.category, sub.subcategory);
+                                            toggleDeptCategory(deptKey, cat.category);
                                           }}
                                         >
-                                          <td className={TABLE_CELL} colSpan={2}>
-                                            <div className="pl-12 flex items-center gap-2 text-gray-600">
-                                              {isSubExpanded ? (
+                                          <td className={TABLE_CELL}>
+                                            <div className="pl-12 flex items-center gap-2 text-gray-700">
+                                              {isCatExpanded ? (
                                                 <ChevronDown className="w-3 h-3 text-gray-400" />
                                               ) : (
                                                 <ChevronRight className="w-3 h-3 text-gray-400" />
                                               )}
-                                              <span className="font-medium">목:</span> {sub.subcategory}
+                                              <span className="font-medium">항:</span> {cat.category}
                                             </div>
                                           </td>
-                                          <td className={`${TABLE_CELL_RIGHT} text-gray-500`}>{sub.count}건</td>
-                                          <td className={`${TABLE_CELL_RIGHT} text-gray-500`}>{formatAmount(sub.amount)}</td>
-                                          <td className={`${TABLE_CELL_RIGHT} text-gray-500`}>{sub.ratio}%</td>
+                                          <td className={`${TABLE_CELL_RIGHT} text-gray-600`}>{cat.count}건</td>
+                                          <td className={`${TABLE_CELL_RIGHT} text-gray-600`}>{formatAmount(cat.amount)}</td>
+                                          <td className={`${TABLE_CELL_RIGHT} text-gray-600`}>{cat.ratio}%</td>
                                         </tr>
 
-                                        {/* Level 5: 세목 */}
-                                        {isSubExpanded &&
-                                          sub.details?.map((detail, detailIdx) => (
-                                            <tr key={`${subKey}-${detailIdx}`} className="bg-green-50">
-                                              <td className={TABLE_CELL} colSpan={2}>
-                                                <div className="pl-16 text-gray-500">
-                                                  └ <span className="text-xs text-gray-400">세목:</span> {detail.detail}
-                                                </div>
-                                              </td>
-                                              <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>{detail.count}건</td>
-                                              <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>{formatAmount(detail.amount)}</td>
-                                              <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>{detail.ratio}%</td>
-                                            </tr>
-                                          ))}
+                                        {/* Level 3: 목 */}
+                                        {isCatExpanded &&
+                                          cat.subcategories?.map((sub) => {
+                                            const subKey = `${catKey}|${sub.subcategory}`;
+                                            const isSubExpanded = expandedDeptSubcategories.has(subKey);
+
+                                            return (
+                                              <Fragment key={subKey}>
+                                                <tr
+                                                  className="bg-green-100 cursor-pointer hover:bg-green-200"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleDeptSubcategory(deptKey, cat.category, sub.subcategory);
+                                                  }}
+                                                >
+                                                  <td className={TABLE_CELL}>
+                                                    <div className="pl-16 flex items-center gap-2 text-gray-600">
+                                                      {isSubExpanded ? (
+                                                        <ChevronDown className="w-3 h-3 text-gray-400" />
+                                                      ) : (
+                                                        <ChevronRight className="w-3 h-3 text-gray-400" />
+                                                      )}
+                                                      <span className="font-medium">목:</span> {sub.subcategory}
+                                                    </div>
+                                                  </td>
+                                                  <td className={`${TABLE_CELL_RIGHT} text-gray-500`}>{sub.count}건</td>
+                                                  <td className={`${TABLE_CELL_RIGHT} text-gray-500`}>{formatAmount(sub.amount)}</td>
+                                                  <td className={`${TABLE_CELL_RIGHT} text-gray-500`}>{sub.ratio}%</td>
+                                                </tr>
+
+                                                {/* Level 4: 세목 */}
+                                                {isSubExpanded &&
+                                                  sub.details?.map((detail, detailIdx) => (
+                                                    <tr key={`${subKey}-${detailIdx}`} className="bg-green-50">
+                                                      <td className={TABLE_CELL}>
+                                                        <div className="pl-20 text-gray-500">
+                                                          └ <span className="text-xs text-gray-400">세목:</span> {detail.detail}
+                                                        </div>
+                                                      </td>
+                                                      <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>{detail.count}건</td>
+                                                      <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>{formatAmount(detail.amount)}</td>
+                                                      <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>{detail.ratio}%</td>
+                                                    </tr>
+                                                  ))}
+                                              </Fragment>
+                                            );
+                                          })}
                                       </Fragment>
                                     );
                                   })}
@@ -713,7 +821,7 @@ export default function QuarterlyReportPage() {
                   })}
                   {(!data?.byDepartment || data.byDepartment.length === 0) && (
                     <tr>
-                      <td colSpan={5} className={`${TABLE_CELL} text-center text-gray-500`}>
+                      <td colSpan={4} className={`${TABLE_CELL} text-center text-gray-500`}>
                         데이터가 없습니다.
                       </td>
                     </tr>

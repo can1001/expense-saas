@@ -175,10 +175,59 @@ export async function GET(request: NextRequest) {
       detailData.amount += item.amount;
     });
 
-    const byDepartment = departmentAggregation.map((item) => {
+    // 위원회별로 그룹핑
+    const committeeMap = new Map<string, {
+      committee: string;
+      count: number;
+      amount: number;
+      departments: Array<{
+        department: string;
+        count: number;
+        amount: number;
+        deptRatio: number;
+        categoryDetails: Array<{
+          category: string;
+          count: number;
+          amount: number;
+          ratio: number;
+          subcategories: Array<{
+            subcategory: string;
+            count: number;
+            amount: number;
+            ratio: number;
+            details: Array<{
+              detail: string;
+              count: number;
+              amount: number;
+              ratio: number;
+            }>;
+          }>;
+        }>;
+      }>;
+    }>();
+
+    // 각 위원회의 합계를 먼저 계산
+    departmentAggregation.forEach((item) => {
+      const deptAmount = item._sum.requestAmount || 0;
+      if (!committeeMap.has(item.committee)) {
+        committeeMap.set(item.committee, {
+          committee: item.committee,
+          count: 0,
+          amount: 0,
+          departments: [],
+        });
+      }
+      const comm = committeeMap.get(item.committee)!;
+      comm.count += item._count.id;
+      comm.amount += deptAmount;
+    });
+
+    // 각 부서 데이터 추가
+    departmentAggregation.forEach((item) => {
       const deptKey = `${item.committee}|${item.department}`;
       const deptAmount = item._sum.requestAmount || 0;
       const catMap: Map<string, CatData> = deptHierarchyMap.get(deptKey) || new Map();
+      const comm = committeeMap.get(item.committee)!;
 
       // 3단계 계층 구조로 categoryDetails 생성
       const categoryDetails = Array.from(catMap.entries())
@@ -206,15 +255,26 @@ export async function GET(request: NextRequest) {
         }))
         .sort((a, b) => a.category.localeCompare(b.category));
 
-      return {
-        committee: item.committee,
+      // 위원회 내 비율 계산
+      const deptRatio = comm.amount > 0 ? Math.round((deptAmount / comm.amount) * 1000) / 10 : 0;
+
+      comm.departments.push({
         department: item.department,
         count: item._count.id,
         amount: deptAmount,
-        ratio: totalAmount > 0 ? Math.round((deptAmount / totalAmount) * 1000) / 10 : 0,
+        deptRatio,
         categoryDetails,
-      };
+      });
     });
+
+    // 위원회별 전체 비율 추가 및 정렬
+    const byDepartment = Array.from(committeeMap.values())
+      .map((comm) => ({
+        ...comm,
+        ratio: totalAmount > 0 ? Math.round((comm.amount / totalAmount) * 1000) / 10 : 0,
+        departments: comm.departments.sort((a, b) => a.department.localeCompare(b.department)),
+      }))
+      .sort((a, b) => a.committee.localeCompare(b.committee));
 
     // 4. 예산 데이터 조회 (BudgetCategory → BudgetSubcategory → BudgetDetail → BudgetDetailYear)
     const budgetCategories = await prisma.budgetCategory.findMany({
