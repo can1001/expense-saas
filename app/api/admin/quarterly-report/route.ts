@@ -109,14 +109,26 @@ export async function GET(request: NextRequest) {
       ratio: totalAmount > 0 ? Math.round((data.amount / totalAmount) * 1000) / 10 : 0,
     }));
 
-    // 3. 부서별 집계
-    const departmentAggregation = await prisma.expense.groupBy({
-      by: ['committee', 'department'],
-      where: finalWhere,
-      _count: { id: true },
-      _sum: { requestAmount: true },
-      orderBy: [{ committee: 'asc' }, { department: 'asc' }],
-    });
+    // 3. 부서별 집계 및 위원회/부서 마스터 조회 (병렬 처리)
+    const [departmentAggregation, committeesWithDepts] = await Promise.all([
+      prisma.expense.groupBy({
+        by: ['committee', 'department'],
+        where: finalWhere,
+        _count: { id: true },
+        _sum: { requestAmount: true },
+        orderBy: [{ committee: 'asc' }, { department: 'asc' }],
+      }),
+      prisma.committee.findMany({
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+        include: {
+          departments: {
+            where: { isActive: true },
+            orderBy: { sortOrder: 'asc' },
+          },
+        },
+      }),
+    ]);
 
     // 3-1. 부서+계정과목 교차 집계 (상세내역용) - 세목까지 포함
     const departmentCategoryItems = await prisma.expenseItem.findMany({
@@ -267,6 +279,32 @@ export async function GET(request: NextRequest) {
       });
     });
 
+    // 지출이 없는 위원회/부서도 포함
+    committeesWithDepts.forEach((comm) => {
+      if (!committeeMap.has(comm.name)) {
+        committeeMap.set(comm.name, {
+          committee: comm.name,
+          count: 0,
+          amount: 0,
+          departments: [],
+        });
+      }
+      const commData = committeeMap.get(comm.name)!;
+
+      comm.departments.forEach((dept) => {
+        const exists = commData.departments.some(d => d.department === dept.name);
+        if (!exists) {
+          commData.departments.push({
+            department: dept.name,
+            count: 0,
+            amount: 0,
+            deptRatio: 0,
+            categoryDetails: [],
+          });
+        }
+      });
+    });
+
     // 위원회별 전체 비율 추가 및 정렬
     const byDepartment = Array.from(committeeMap.values())
       .map((comm) => ({
@@ -396,16 +434,15 @@ export async function GET(request: NextRequest) {
       });
     });
 
-    // 지출이 없는 예산항도 포함
+    // 지출이 없는 예산항도 포함 (모든 예산 항목 표시)
     budgetCategories.forEach((cat) => {
-      if (!categoryMap.has(cat.name) && budgetByCategory.get(cat.name)! > 0) {
+      if (!categoryMap.has(cat.name)) {
         categoryMap.set(cat.name, {
           category: cat.name,
           count: 0,
           spentAmount: 0,
           budgetAmount: budgetByCategory.get(cat.name) || 0,
           subcategories: cat.subcategories
-            .filter((sub) => (budgetBySubcategory.get(`${cat.name}|${sub.name}`) || 0) > 0)
             .map((sub) => ({
               subcategory: sub.name,
               count: 0,
