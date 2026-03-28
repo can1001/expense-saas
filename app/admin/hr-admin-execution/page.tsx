@@ -31,6 +31,16 @@ interface HrAdminData {
     groups: BudgetGroup[];
     total: { budget: number; spent: number; executionRate: number };
   };
+  combined: {
+    budget: number;
+    spent: number;
+    executionRate: number;
+  };
+  overall: {
+    totalBudget: number;
+    hrAdminBudget: number;
+    hrAdminRatio: number;
+  };
 }
 
 // 금액 포맷 (만원 단위)
@@ -122,13 +132,18 @@ export default function HrAdminExecutionPage() {
       )}
 
       {!loading && !error && data && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 인사 섹션 */}
-          <PersonnelSection data={data.personnel} />
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 인사 섹션 */}
+            <PersonnelSection data={data.personnel} />
 
-          {/* 행정비 섹션 */}
-          <AdminSection data={data.admin} />
-        </div>
+            {/* 행정비 섹션 */}
+            <AdminSection data={data.admin} />
+          </div>
+
+          {/* 합계 및 전체 예산 대비 비율 */}
+          <SummarySection combined={data.combined} overall={data.overall} />
+        </>
       )}
     </div>
   );
@@ -201,6 +216,91 @@ function AdminSection({ data }: { data: HrAdminData['admin'] }) {
           <span className="text-sm text-gray-700">
             (예산 {formatAmount(data.total.budget)} / 결산 {formatAmount(data.total.spent)})
           </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 합계 및 전체 예산 대비 비율 섹션
+function SummarySection({
+  combined,
+  overall,
+}: {
+  combined: HrAdminData['combined'];
+  overall: HrAdminData['overall'];
+}) {
+  return (
+    <div className="mt-8 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-xl shadow-lg p-6">
+      <h2 className="text-xl font-bold text-purple-800 mb-6 text-center">
+        인사 및 행정비 종합
+      </h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* 인사 + 행정비 합계 */}
+        <div className="bg-white rounded-lg p-5 shadow">
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">인사 + 행정비 합계</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">예산</span>
+              <span className="text-xl font-bold text-gray-800">
+                {formatAmount(combined.budget)} 만원
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">결산</span>
+              <span className="text-xl font-bold text-gray-800">
+                {formatAmount(combined.spent)} 만원
+              </span>
+            </div>
+            <div className="pt-3 border-t">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">집행률</span>
+                <span className={`text-2xl font-bold ${getRateColor(combined.executionRate)}`}>
+                  {combined.executionRate}%
+                </span>
+              </div>
+              <div className="mt-2 h-4 bg-gray-200 rounded overflow-hidden">
+                <div
+                  className={`h-full ${getBarColor(combined.executionRate)} transition-all duration-300`}
+                  style={{ width: `${Math.min(combined.executionRate, 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 전체 예산 대비 비율 */}
+        <div className="bg-white rounded-lg p-5 shadow">
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">전체 예산 대비</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">전체 예산</span>
+              <span className="text-xl font-bold text-gray-800">
+                {formatAmount(overall.totalBudget)} 만원
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">인사+행정비</span>
+              <span className="text-xl font-bold text-purple-700">
+                {formatAmount(overall.hrAdminBudget)} 만원
+              </span>
+            </div>
+            <div className="pt-3 border-t">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">비율</span>
+                <span className="text-2xl font-bold text-purple-700">
+                  {overall.hrAdminRatio}%
+                </span>
+              </div>
+              <div className="mt-2 h-4 bg-gray-200 rounded overflow-hidden">
+                <div
+                  className="h-full bg-purple-500 transition-all duration-300"
+                  style={{ width: `${Math.min(overall.hrAdminRatio, 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

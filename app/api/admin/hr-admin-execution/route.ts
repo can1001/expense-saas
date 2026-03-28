@@ -236,6 +236,25 @@ export async function GET(request: NextRequest) {
       ? Math.round((adminTotalSpent / adminTotalBudget) * 100)
       : 0;
 
+    // 5. 인사 + 행정비 합계
+    const combinedBudget = personnelTotalBudget + adminTotalBudget;
+    const combinedSpent = personnelTotalSpent + adminTotalSpent;
+    const combinedExecutionRate = combinedBudget > 0
+      ? Math.round((combinedSpent / combinedBudget) * 100)
+      : 0;
+
+    // 6. 전체 예산 조회
+    const totalBudgetResult = await prisma.budgetDetailYear.aggregate({
+      where: { year, isActive: true },
+      _sum: { budgetAmount: true },
+    });
+    const totalBudget = totalBudgetResult._sum.budgetAmount || 0;
+
+    // 전체 예산 대비 인사+행정비 비율
+    const hrAdminRatio = totalBudget > 0
+      ? Math.round((combinedBudget / totalBudget) * 100)
+      : 0;
+
     return NextResponse.json({
       year,
       personnel: {
@@ -253,6 +272,16 @@ export async function GET(request: NextRequest) {
           spent: adminTotalSpent,
           executionRate: adminExecutionRate,
         },
+      },
+      combined: {
+        budget: combinedBudget,
+        spent: combinedSpent,
+        executionRate: combinedExecutionRate,
+      },
+      overall: {
+        totalBudget,
+        hrAdminBudget: combinedBudget,
+        hrAdminRatio,
       },
     });
   } catch (error) {
