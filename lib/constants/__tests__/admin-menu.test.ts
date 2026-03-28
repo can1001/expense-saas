@@ -36,7 +36,7 @@ describe('admin-menu', () => {
     it('should have status/report group', () => {
       const statusGroup = ADMIN_SIDEBAR_MENU[4];
       expect(statusGroup.title).toBe('현황/리포트');
-      expect(statusGroup.items).toHaveLength(3);
+      expect(statusGroup.items).toHaveLength(5);
     });
 
     it('should have notification group', () => {
