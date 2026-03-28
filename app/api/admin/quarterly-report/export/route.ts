@@ -273,16 +273,17 @@ export async function GET(request: NextRequest) {
     });
     deptSheet.getColumn('amount').numFmt = '#,##0';
 
-    // 4. 예산 대비 지출 시트 (계정과목별)
-    const catSheet = workbook.addWorksheet('예산대비지출');
+    // 4. 분기별 예산 대비 지출 시트 (계정과목별)
+    const catSheet = workbook.addWorksheet('분기별예산대비지출');
     catSheet.columns = [
       { header: '예산(항)', key: 'category', width: 20 },
       { header: '예산(목)', key: 'subcategory', width: 20 },
-      { header: '예산액', key: 'budgetAmount', width: 15 },
-      { header: '지출액', key: 'spentAmount', width: 15 },
-      { header: '잔액', key: 'remainingAmount', width: 15 },
-      { header: '집행률(%)', key: 'executionRate', width: 12 },
+      { header: '분기예산', key: 'quarterlyBudget', width: 15 },
+      { header: '분기지출', key: 'spentAmount', width: 15 },
+      { header: '분기잔액', key: 'quarterlyRemaining', width: 15 },
+      { header: '분기집행률(%)', key: 'quarterlyExecutionRate', width: 14 },
       { header: '건수', key: 'count', width: 10 },
+      { header: '(연간예산)', key: 'budgetAmount', width: 15 },
     ];
     catSheet.getRow(1).eachCell((cell) => {
       Object.assign(cell, { style: headerStyle });
@@ -306,27 +307,31 @@ export async function GET(request: NextRequest) {
         const spent = spentBySubcategory.get(key);
         const spentAmount = spent?.amount || 0;
         const count = spent?.count || 0;
-        const remaining = budget - spentAmount;
-        const execRate = budget > 0 ? Math.round((spentAmount / budget) * 1000) / 10 : 0;
+        // 분기 기준 계산
+        const qBudget = Math.round(budget / 4);
+        const qRemaining = qBudget - spentAmount;
+        const qExecRate = qBudget > 0 ? Math.round((spentAmount / qBudget) * 1000) / 10 : 0;
 
         if (budget > 0 || spentAmount > 0) {
           const newRow = catSheet.addRow({
             category: cat.name,
             subcategory: sub.name,
-            budgetAmount: budget,
+            quarterlyBudget: qBudget,
             spentAmount: spentAmount,
-            remainingAmount: remaining,
-            executionRate: execRate,
+            quarterlyRemaining: qRemaining,
+            quarterlyExecutionRate: qExecRate,
             count: count,
+            budgetAmount: budget,
           });
           newRow.eachCell((cell) => { cell.border = cellBorder; });
         }
       });
     });
 
-    catSheet.getColumn('budgetAmount').numFmt = '#,##0';
+    catSheet.getColumn('quarterlyBudget').numFmt = '#,##0';
     catSheet.getColumn('spentAmount').numFmt = '#,##0';
-    catSheet.getColumn('remainingAmount').numFmt = '#,##0';
+    catSheet.getColumn('quarterlyRemaining').numFmt = '#,##0';
+    catSheet.getColumn('budgetAmount').numFmt = '#,##0';
 
     // Buffer로 변환
     const buffer = await workbook.xlsx.writeBuffer();

@@ -78,17 +78,27 @@ interface QuarterlyReportData {
     category: string;
     count: number;
     spentAmount: number;
+    // 연간 기준
     budgetAmount: number;
     remainingAmount: number;
     executionRate: number;
+    // 분기 기준
+    quarterlyBudget: number;
+    quarterlyRemaining: number;
+    quarterlyExecutionRate: number;
     ratio: number;
     subcategories: Array<{
       subcategory: string;
       count: number;
       spentAmount: number;
+      // 연간 기준
       budgetAmount: number;
       remainingAmount: number;
       executionRate: number;
+      // 분기 기준
+      quarterlyBudget: number;
+      quarterlyRemaining: number;
+      quarterlyExecutionRate: number;
       ratio: number;
     }>;
   }>;
@@ -597,7 +607,7 @@ export default function QuarterlyReportPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-purple-500" />
-                예산 대비 지출 현황 (계정과목별)
+                분기별 예산 대비 지출 현황 (계정과목별)
               </h2>
               <div className="flex gap-2">
                 <button
@@ -619,14 +629,15 @@ export default function QuarterlyReportPage() {
               <table className={TABLE_BASE}>
                 <thead className={TABLE_HEADER}>
                   <tr>
-                    <th className={TABLE_HEADER_CELL} style={{ width: '20%' }}>
+                    <th className={TABLE_HEADER_CELL} style={{ width: '18%' }}>
                       계정과목
                     </th>
-                    <th className={`${TABLE_HEADER_CELL} text-right`}>예산액</th>
-                    <th className={`${TABLE_HEADER_CELL} text-right`}>지출액</th>
-                    <th className={`${TABLE_HEADER_CELL} text-right`}>잔액</th>
-                    <th className={`${TABLE_HEADER_CELL} text-right`}>집행률</th>
-                    <th className={TABLE_HEADER_CELL} style={{ width: '15%' }}>진행</th>
+                    <th className={`${TABLE_HEADER_CELL} text-right`}>분기예산</th>
+                    <th className={`${TABLE_HEADER_CELL} text-right`}>분기지출</th>
+                    <th className={`${TABLE_HEADER_CELL} text-right`}>분기잔액</th>
+                    <th className={`${TABLE_HEADER_CELL} text-right`}>분기집행률</th>
+                    <th className={TABLE_HEADER_CELL} style={{ width: '12%' }}>진행</th>
+                    <th className={`${TABLE_HEADER_CELL} text-right text-gray-500`} style={{ width: '12%' }}>(연간예산)</th>
                   </tr>
                 </thead>
                 <tbody className={TABLE_BODY}>
@@ -648,38 +659,41 @@ export default function QuarterlyReportPage() {
                           </div>
                         </td>
                         <td className={`${TABLE_CELL_RIGHT} font-medium`}>
-                          {formatAmount(cat.budgetAmount)}
+                          {formatAmount(cat.quarterlyBudget)}
                         </td>
                         <td className={`${TABLE_CELL_RIGHT} font-medium`}>
                           {formatAmount(cat.spentAmount)}
                         </td>
-                        <td className={`${TABLE_CELL_RIGHT} font-medium ${cat.remainingAmount < 0 ? 'text-red-600' : ''}`}>
-                          {formatAmount(cat.remainingAmount)}
+                        <td className={`${TABLE_CELL_RIGHT} font-medium ${cat.quarterlyRemaining < 0 ? 'text-red-600' : ''}`}>
+                          {formatAmount(cat.quarterlyRemaining)}
                         </td>
                         <td className={`${TABLE_CELL_RIGHT} font-medium`}>
                           <span className={
-                            cat.executionRate >= 100
+                            cat.quarterlyExecutionRate >= 100
                               ? 'text-red-600'
-                              : cat.executionRate >= 80
+                              : cat.quarterlyExecutionRate >= 80
                               ? 'text-amber-600'
                               : 'text-green-600'
                           }>
-                            {cat.executionRate}%
+                            {cat.quarterlyExecutionRate}%
                           </span>
                         </td>
                         <td className={TABLE_CELL}>
                           <div className="w-full bg-gray-200 rounded-full h-3">
                             <div
                               className={`h-3 rounded-full transition-all ${
-                                cat.executionRate >= 100
+                                cat.quarterlyExecutionRate >= 100
                                   ? 'bg-red-500'
-                                  : cat.executionRate >= 80
+                                  : cat.quarterlyExecutionRate >= 80
                                   ? 'bg-amber-500'
                                   : 'bg-green-500'
                               }`}
-                              style={{ width: `${Math.min(cat.executionRate, 100)}%` }}
+                              style={{ width: `${Math.min(cat.quarterlyExecutionRate, 100)}%` }}
                             />
                           </div>
+                        </td>
+                        <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>
+                          {formatAmount(cat.budgetAmount)}
                         </td>
                       </tr>
                       {expandedCategories.has(cat.category) &&
@@ -689,38 +703,41 @@ export default function QuarterlyReportPage() {
                               <div className="pl-8 text-gray-600">└ {sub.subcategory}</div>
                             </td>
                             <td className={`${TABLE_CELL_RIGHT} text-gray-600`}>
-                              {formatAmount(sub.budgetAmount)}
+                              {formatAmount(sub.quarterlyBudget)}
                             </td>
                             <td className={`${TABLE_CELL_RIGHT} text-gray-600`}>
                               {formatAmount(sub.spentAmount)}
                             </td>
-                            <td className={`${TABLE_CELL_RIGHT} text-gray-600 ${sub.remainingAmount < 0 ? 'text-red-600' : ''}`}>
-                              {formatAmount(sub.remainingAmount)}
+                            <td className={`${TABLE_CELL_RIGHT} text-gray-600 ${sub.quarterlyRemaining < 0 ? 'text-red-600' : ''}`}>
+                              {formatAmount(sub.quarterlyRemaining)}
                             </td>
                             <td className={`${TABLE_CELL_RIGHT} text-gray-600`}>
                               <span className={
-                                sub.executionRate >= 100
+                                sub.quarterlyExecutionRate >= 100
                                   ? 'text-red-600'
-                                  : sub.executionRate >= 80
+                                  : sub.quarterlyExecutionRate >= 80
                                   ? 'text-amber-600'
                                   : 'text-green-600'
                               }>
-                                {sub.executionRate}%
+                                {sub.quarterlyExecutionRate}%
                               </span>
                             </td>
                             <td className={TABLE_CELL}>
                               <div className="w-full bg-gray-200 rounded-full h-2">
                                 <div
                                   className={`h-2 rounded-full transition-all ${
-                                    sub.executionRate >= 100
+                                    sub.quarterlyExecutionRate >= 100
                                       ? 'bg-red-400'
-                                      : sub.executionRate >= 80
+                                      : sub.quarterlyExecutionRate >= 80
                                       ? 'bg-amber-400'
                                       : 'bg-green-400'
                                   }`}
-                                  style={{ width: `${Math.min(sub.executionRate, 100)}%` }}
+                                  style={{ width: `${Math.min(sub.quarterlyExecutionRate, 100)}%` }}
                                 />
                               </div>
+                            </td>
+                            <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>
+                              {formatAmount(sub.budgetAmount)}
                             </td>
                           </tr>
                         ))}
@@ -728,7 +745,7 @@ export default function QuarterlyReportPage() {
                   ))}
                   {(!data?.byCategory || data.byCategory.length === 0) && (
                     <tr>
-                      <td colSpan={6} className={`${TABLE_CELL} text-center text-gray-500`}>
+                      <td colSpan={7} className={`${TABLE_CELL} text-center text-gray-500`}>
                         데이터가 없습니다.
                       </td>
                     </tr>

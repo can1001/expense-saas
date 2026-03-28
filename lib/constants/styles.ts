@@ -77,20 +77,20 @@ export const ERROR_MESSAGE = 'mt-1 text-sm text-red-600';
 export const ALERT_ERROR = 'bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg';
 
 // ============================================
-// 테이블 스타일
+// 테이블 스타일 (엑셀 스타일 그리드)
 // ============================================
 
-export const TABLE_BASE = 'min-w-full divide-y divide-gray-200';
+export const TABLE_BASE = 'min-w-full border border-gray-300';
 
-export const TABLE_HEADER = 'bg-gray-50';
+export const TABLE_HEADER = 'bg-gray-50 border-b border-gray-300';
 
-export const TABLE_HEADER_CELL = 'px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase';
+export const TABLE_HEADER_CELL = 'px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase border-r border-gray-200 last:border-r-0';
 
-export const TABLE_BODY = 'bg-white divide-y divide-gray-200';
+export const TABLE_BODY = 'bg-white';
 
-export const TABLE_CELL = 'px-4 py-3 text-sm text-gray-900';
+export const TABLE_CELL = 'px-4 py-3 text-sm text-gray-900 text-left border-r border-b border-gray-200 last:border-r-0';
 
-export const TABLE_CELL_RIGHT = `${TABLE_CELL} text-right`;
+export const TABLE_CELL_RIGHT = 'px-4 py-3 text-sm text-gray-900 text-right border-r border-b border-gray-200 last:border-r-0';
 
 // ============================================
 // 레이아웃 스타일
