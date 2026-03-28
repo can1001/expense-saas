@@ -142,6 +142,8 @@ export default function QuarterlyReportPage() {
   // 부서별 5단계 하이라키용 상태
   const [expandedDeptCategories, setExpandedDeptCategories] = useState<Set<string>>(new Set());
   const [expandedDeptSubcategories, setExpandedDeptSubcategories] = useState<Set<string>>(new Set());
+  // 연간 컬럼 표시 여부
+  const [showYearlyColumns, setShowYearlyColumns] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -728,7 +730,17 @@ export default function QuarterlyReportPage() {
                 <BarChart3 className="w-5 h-5 text-purple-500" />
                 분기별 예산 대비 지출 현황 (계정과목별)
               </h2>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showYearlyColumns}
+                    onChange={(e) => setShowYearlyColumns(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  />
+                  연간 정보 표시
+                </label>
+                <span className="text-gray-300">|</span>
                 <button
                   onClick={expandAll}
                   className="text-sm text-blue-600 hover:text-blue-800"
@@ -748,18 +760,22 @@ export default function QuarterlyReportPage() {
               <table className={TABLE_BASE}>
                 <thead className={TABLE_HEADER}>
                   <tr>
-                    <th className={TABLE_HEADER_CELL} style={{ width: '12%' }}>
+                    <th className={TABLE_HEADER_CELL} style={{ width: '24%' }}>
                       계정과목
                     </th>
-                    <th className={`${TABLE_HEADER_CELL} text-right`}>분기예산</th>
-                    <th className={`${TABLE_HEADER_CELL} text-right`}>분기지출</th>
-                    <th className={`${TABLE_HEADER_CELL} text-right`}>분기잔액</th>
-                    <th className={`${TABLE_HEADER_CELL} text-right`}>분기집행률</th>
+                    <th className={TABLE_HEADER_CELL}>분기예산</th>
+                    <th className={TABLE_HEADER_CELL}>분기지출</th>
+                    <th className={TABLE_HEADER_CELL}>분기잔액</th>
+                    <th className={TABLE_HEADER_CELL} style={{ width: '8%' }}>분기집행률</th>
                     <th className={TABLE_HEADER_CELL} style={{ width: '8%' }}>진행</th>
-                    <th className={`${TABLE_HEADER_CELL} text-right text-gray-500`}>(연간예산)</th>
-                    <th className={`${TABLE_HEADER_CELL} text-right text-gray-500`}>(연간지출)</th>
-                    <th className={`${TABLE_HEADER_CELL} text-right text-gray-500`}>(연간잔액)</th>
-                    <th className={`${TABLE_HEADER_CELL} text-right text-gray-500`}>(연간집행률)</th>
+                    {showYearlyColumns && (
+                      <>
+                        <th className={`${TABLE_HEADER_CELL} text-gray-500`}>(연간예산)</th>
+                        <th className={`${TABLE_HEADER_CELL} text-gray-500`}>(연간지출)</th>
+                        <th className={`${TABLE_HEADER_CELL} text-gray-500`}>(연간잔액)</th>
+                        <th className={`${TABLE_HEADER_CELL} text-gray-500`}>(연간집행률)</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody className={TABLE_BODY}>
@@ -814,26 +830,30 @@ export default function QuarterlyReportPage() {
                             />
                           </div>
                         </td>
-                        <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>
-                          {formatAmount(cat.budgetAmount)}
-                        </td>
-                        <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>
-                          {formatAmount(cat.yearlySpentAmount)}
-                        </td>
-                        <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm ${cat.yearlyRemainingAmount < 0 ? 'text-red-500' : ''}`}>
-                          {formatAmount(cat.yearlyRemainingAmount)}
-                        </td>
-                        <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>
-                          <span className={
-                            cat.yearlyExecutionRate >= 100
-                              ? 'text-red-500'
-                              : cat.yearlyExecutionRate >= 80
-                              ? 'text-amber-500'
-                              : 'text-gray-400'
-                          }>
-                            {cat.yearlyExecutionRate}%
-                          </span>
-                        </td>
+                        {showYearlyColumns && (
+                          <>
+                            <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>
+                              {formatAmount(cat.budgetAmount)}
+                            </td>
+                            <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>
+                              {formatAmount(cat.yearlySpentAmount)}
+                            </td>
+                            <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm ${cat.yearlyRemainingAmount < 0 ? 'text-red-500' : ''}`}>
+                              {formatAmount(cat.yearlyRemainingAmount)}
+                            </td>
+                            <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>
+                              <span className={
+                                cat.yearlyExecutionRate >= 100
+                                  ? 'text-red-500'
+                                  : cat.yearlyExecutionRate >= 80
+                                  ? 'text-amber-500'
+                                  : 'text-gray-400'
+                              }>
+                                {cat.yearlyExecutionRate}%
+                              </span>
+                            </td>
+                          </>
+                        )}
                       </tr>
                       {expandedCategories.has(cat.category) &&
                         cat.subcategories.map((sub, i) => (
@@ -875,33 +895,37 @@ export default function QuarterlyReportPage() {
                                 />
                               </div>
                             </td>
-                            <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>
-                              {formatAmount(sub.budgetAmount)}
-                            </td>
-                            <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>
-                              {formatAmount(sub.yearlySpentAmount)}
-                            </td>
-                            <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm ${sub.yearlyRemainingAmount < 0 ? 'text-red-500' : ''}`}>
-                              {formatAmount(sub.yearlyRemainingAmount)}
-                            </td>
-                            <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>
-                              <span className={
-                                sub.yearlyExecutionRate >= 100
-                                  ? 'text-red-500'
-                                  : sub.yearlyExecutionRate >= 80
-                                  ? 'text-amber-500'
-                                  : 'text-gray-400'
-                              }>
-                                {sub.yearlyExecutionRate}%
-                              </span>
-                            </td>
+                            {showYearlyColumns && (
+                              <>
+                                <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>
+                                  {formatAmount(sub.budgetAmount)}
+                                </td>
+                                <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>
+                                  {formatAmount(sub.yearlySpentAmount)}
+                                </td>
+                                <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm ${sub.yearlyRemainingAmount < 0 ? 'text-red-500' : ''}`}>
+                                  {formatAmount(sub.yearlyRemainingAmount)}
+                                </td>
+                                <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>
+                                  <span className={
+                                    sub.yearlyExecutionRate >= 100
+                                      ? 'text-red-500'
+                                      : sub.yearlyExecutionRate >= 80
+                                      ? 'text-amber-500'
+                                      : 'text-gray-400'
+                                  }>
+                                    {sub.yearlyExecutionRate}%
+                                  </span>
+                                </td>
+                              </>
+                            )}
                           </tr>
                         ))}
                     </>
                   ))}
                   {(!data?.byCategory || data.byCategory.length === 0) && (
                     <tr>
-                      <td colSpan={10} className={`${TABLE_CELL} text-center text-gray-500`}>
+                      <td colSpan={showYearlyColumns ? 10 : 6} className={`${TABLE_CELL} text-center text-gray-500`}>
                         데이터가 없습니다.
                       </td>
                     </tr>
