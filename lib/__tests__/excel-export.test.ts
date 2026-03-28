@@ -10,8 +10,15 @@ import {
   generateExcelWorkbook,
   generateExcelBuffer,
   generateExcelFilename,
+  expenseToWooriBankRow,
+  expensesToWooriBankRows,
+  generateWooriBankWorkbook,
+  generateWooriBankBuffer,
+  generateWooriBankFilename,
   type ExpenseForExcel,
   type ExcelRow,
+  type ExpenseForWooriBank,
+  type WooriBankTransferRow,
 } from '../excel-export';
 
 describe('excel-export', () => {
@@ -460,6 +467,187 @@ describe('excel-export', () => {
       const rows = expenseToExcelRows(expense);
       expect(rows[0].예금주).toBe('홍길동 (대표)');
       expect(rows[0].메모).toBe('회의 & 식사 (저녁)');
+    });
+  });
+
+  describe('WooriBank Export', () => {
+    const mockWooriBankExpense: ExpenseForWooriBank = {
+      bankName: '우리은행',
+      accountNumber: '123-456-789',
+      accountHolder: '홍길동',
+      requestAmount: 100000,
+    };
+
+    describe('expenseToWooriBankRow', () => {
+      it('converts expense to WooriBank transfer row', () => {
+        const row = expenseToWooriBankRow(mockWooriBankExpense);
+
+        expect(row.입금은행).toBe('우리은행');
+        expect(row.입금계좌번호).toBe('123456789');
+        expect(row.이체금액).toBe(100000);
+        expect(row.보내는분통장표시).toBe('청연교회');
+        expect(row.받는분통장표시).toBe('홍길동');
+        expect(row.CMS번호).toBe('');
+      });
+
+      it('removes hyphens from account number', () => {
+        const expense = { ...mockWooriBankExpense, accountNumber: '123-456-7890' };
+        const row = expenseToWooriBankRow(expense);
+
+        expect(row.입금계좌번호).toBe('1234567890');
+      });
+
+      it('handles account number without hyphens', () => {
+        const expense = { ...mockWooriBankExpense, accountNumber: '1234567890' };
+        const row = expenseToWooriBankRow(expense);
+
+        expect(row.입금계좌번호).toBe('1234567890');
+      });
+
+      it('handles different bank names', () => {
+        const expense = { ...mockWooriBankExpense, bankName: '신한은행' };
+        const row = expenseToWooriBankRow(expense);
+
+        expect(row.입금은행).toBe('신한은행');
+      });
+
+      it('handles large amounts', () => {
+        const expense = { ...mockWooriBankExpense, requestAmount: 10000000 };
+        const row = expenseToWooriBankRow(expense);
+
+        expect(row.이체금액).toBe(10000000);
+      });
+    });
+
+    describe('expensesToWooriBankRows', () => {
+      it('converts multiple expenses to WooriBank rows', () => {
+        const expenses: ExpenseForWooriBank[] = [
+          mockWooriBankExpense,
+          { ...mockWooriBankExpense, accountHolder: '김철수', requestAmount: 200000 },
+        ];
+
+        const rows = expensesToWooriBankRows(expenses);
+
+        expect(rows).toHaveLength(2);
+        expect(rows[0].받는분통장표시).toBe('홍길동');
+        expect(rows[0].이체금액).toBe(100000);
+        expect(rows[1].받는분통장표시).toBe('김철수');
+        expect(rows[1].이체금액).toBe(200000);
+      });
+
+      it('handles empty array', () => {
+        const rows = expensesToWooriBankRows([]);
+
+        expect(rows).toEqual([]);
+      });
+
+      it('handles single expense', () => {
+        const rows = expensesToWooriBankRows([mockWooriBankExpense]);
+
+        expect(rows).toHaveLength(1);
+      });
+    });
+
+    describe('generateWooriBankWorkbook', () => {
+      it('generates a valid Excel workbook', () => {
+        const workbook = generateWooriBankWorkbook([mockWooriBankExpense]);
+
+        expect(workbook).toBeDefined();
+        expect(workbook.SheetNames).toContain('Sheet1');
+      });
+
+      it('creates worksheet with correct data', () => {
+        const workbook = generateWooriBankWorkbook([mockWooriBankExpense]);
+        const worksheet = workbook.Sheets['Sheet1'];
+
+        expect(worksheet).toBeDefined();
+      });
+
+      it('applies column width settings', () => {
+        const workbook = generateWooriBankWorkbook([mockWooriBankExpense]);
+        const worksheet = workbook.Sheets['Sheet1'];
+
+        expect(worksheet['!cols']).toBeDefined();
+        expect(worksheet['!cols']).toHaveLength(6);
+        expect(worksheet['!cols']?.[0]).toEqual({ wch: 12 }); // 입금은행
+        expect(worksheet['!cols']?.[1]).toEqual({ wch: 18 }); // 입금계좌번호
+      });
+
+      it('handles multiple expenses', () => {
+        const expenses: ExpenseForWooriBank[] = [
+          mockWooriBankExpense,
+          { ...mockWooriBankExpense, accountHolder: '김철수' },
+        ];
+        const workbook = generateWooriBankWorkbook(expenses);
+
+        expect(workbook).toBeDefined();
+        expect(workbook.SheetNames).toContain('Sheet1');
+      });
+
+      it('handles empty expenses array', () => {
+        const workbook = generateWooriBankWorkbook([]);
+
+        expect(workbook).toBeDefined();
+        expect(workbook.SheetNames).toContain('Sheet1');
+      });
+    });
+
+    describe('generateWooriBankBuffer', () => {
+      it('generates a Buffer from workbook', () => {
+        const buffer = generateWooriBankBuffer([mockWooriBankExpense]);
+
+        expect(buffer).toBeInstanceOf(Buffer);
+        expect(buffer.length).toBeGreaterThan(0);
+      });
+
+      it('generates valid Excel file data', () => {
+        const buffer = generateWooriBankBuffer([mockWooriBankExpense]);
+
+        expect(buffer.length).toBeGreaterThan(100);
+      });
+
+      it('handles multiple expenses', () => {
+        const expenses: ExpenseForWooriBank[] = [
+          mockWooriBankExpense,
+          { ...mockWooriBankExpense, accountHolder: '김철수' },
+        ];
+        const buffer = generateWooriBankBuffer(expenses);
+
+        expect(buffer).toBeInstanceOf(Buffer);
+        expect(buffer.length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('generateWooriBankFilename', () => {
+      it('generates filename with current date', () => {
+        const filename = generateWooriBankFilename();
+
+        expect(filename).toMatch(/^우리은행_대량이체_\d{4}-\d{2}-\d{2}\.xlsx$/);
+      });
+
+      it('includes correct prefix and extension', () => {
+        const filename = generateWooriBankFilename();
+
+        expect(filename).toContain('우리은행_대량이체_');
+        expect(filename.endsWith('.xlsx')).toBe(true);
+      });
+    });
+
+    describe('WooriBankTransferRow interface', () => {
+      it('creates valid WooriBankTransferRow object', () => {
+        const row: WooriBankTransferRow = {
+          입금은행: '우리은행',
+          입금계좌번호: '1234567890',
+          이체금액: 100000,
+          보내는분통장표시: '청연교회',
+          받는분통장표시: '홍길동',
+          CMS번호: '',
+        };
+
+        expect(row).toBeDefined();
+        expect(row.입금은행).toBe('우리은행');
+        expect(row.이체금액).toBe(100000);
+      });
     });
   });
 });

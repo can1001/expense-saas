@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cn, formatCurrency, formatDate, formatDateShort } from '../utils';
+import { cn, formatCurrency, formatDate, formatDateShort, maskAccountNumber, formatRelativeTime } from '../utils';
 
 describe('utils', () => {
   describe('cn (className merger)', () => {
@@ -146,6 +146,150 @@ describe('utils', () => {
     it('handles ISO string input', () => {
       const result = formatDateShort('2024-06-15T12:00:00.000Z');
       expect(result).toMatch(/2024-06-\d{2}/);
+    });
+  });
+
+  describe('maskAccountNumber', () => {
+    it('masks account number with more than 4 digits', () => {
+      const result = maskAccountNumber('1234567890');
+      expect(result).toBe('****7890');
+    });
+
+    it('shows full number if 4 digits or less', () => {
+      const result = maskAccountNumber('1234');
+      expect(result).toBe('1234');
+    });
+
+    it('shows full number if less than 4 digits', () => {
+      const result = maskAccountNumber('123');
+      expect(result).toBe('123');
+    });
+
+    it('returns empty string for null', () => {
+      const result = maskAccountNumber(null);
+      expect(result).toBe('');
+    });
+
+    it('returns empty string for undefined', () => {
+      const result = maskAccountNumber(undefined);
+      expect(result).toBe('');
+    });
+
+    it('removes non-numeric characters before masking', () => {
+      const result = maskAccountNumber('123-456-7890');
+      expect(result).toBe('****7890');
+    });
+
+    it('handles account numbers with spaces', () => {
+      const result = maskAccountNumber('123 456 7890');
+      expect(result).toBe('****7890');
+    });
+
+    it('handles account numbers with dashes and spaces', () => {
+      const result = maskAccountNumber('123-456 789-0');
+      expect(result).toBe('****7890');
+    });
+
+    it('handles very long account numbers', () => {
+      const result = maskAccountNumber('12345678901234567890');
+      expect(result).toBe('****7890');
+    });
+
+    it('handles empty string', () => {
+      const result = maskAccountNumber('');
+      expect(result).toBe('');
+    });
+  });
+
+  describe('formatRelativeTime', () => {
+    it('returns "방금" for less than 1 minute', () => {
+      const now = Date.now();
+      const result = formatRelativeTime(now);
+      expect(result).toBe('방금');
+    });
+
+    it('returns "방금" for 30 seconds ago', () => {
+      const now = Date.now();
+      const thirtySecondsAgo = now - 30000;
+      const result = formatRelativeTime(thirtySecondsAgo);
+      expect(result).toBe('방금');
+    });
+
+    it('returns "1분 전" for 1 minute ago', () => {
+      const now = Date.now();
+      const oneMinuteAgo = now - 60000;
+      const result = formatRelativeTime(oneMinuteAgo);
+      expect(result).toBe('1분 전');
+    });
+
+    it('returns "5분 전" for 5 minutes ago', () => {
+      const now = Date.now();
+      const fiveMinutesAgo = now - 300000;
+      const result = formatRelativeTime(fiveMinutesAgo);
+      expect(result).toBe('5분 전');
+    });
+
+    it('returns "59분 전" for 59 minutes ago', () => {
+      const now = Date.now();
+      const fiftyNineMinutesAgo = now - 3540000;
+      const result = formatRelativeTime(fiftyNineMinutesAgo);
+      expect(result).toBe('59분 전');
+    });
+
+    it('returns "1시간 전" for 1 hour ago', () => {
+      const now = Date.now();
+      const oneHourAgo = now - 3600000;
+      const result = formatRelativeTime(oneHourAgo);
+      expect(result).toBe('1시간 전');
+    });
+
+    it('returns "5시간 전" for 5 hours ago', () => {
+      const now = Date.now();
+      const fiveHoursAgo = now - 18000000;
+      const result = formatRelativeTime(fiveHoursAgo);
+      expect(result).toBe('5시간 전');
+    });
+
+    it('returns "23시간 전" for 23 hours ago', () => {
+      const now = Date.now();
+      const twentyThreeHoursAgo = now - 82800000;
+      const result = formatRelativeTime(twentyThreeHoursAgo);
+      expect(result).toBe('23시간 전');
+    });
+
+    it('returns "어제" for exactly 1 day ago', () => {
+      const now = Date.now();
+      const oneDayAgo = now - 86400000;
+      const result = formatRelativeTime(oneDayAgo);
+      expect(result).toBe('어제');
+    });
+
+    it('returns "2일 전" for 2 days ago', () => {
+      const now = Date.now();
+      const twoDaysAgo = now - 172800000;
+      const result = formatRelativeTime(twoDaysAgo);
+      expect(result).toBe('2일 전');
+    });
+
+    it('returns "6일 전" for 6 days ago', () => {
+      const now = Date.now();
+      const sixDaysAgo = now - 518400000;
+      const result = formatRelativeTime(sixDaysAgo);
+      expect(result).toBe('6일 전');
+    });
+
+    it('returns "지난주" for 7 days ago', () => {
+      const now = Date.now();
+      const sevenDaysAgo = now - 604800000;
+      const result = formatRelativeTime(sevenDaysAgo);
+      expect(result).toBe('지난주');
+    });
+
+    it('returns "지난주" for 30 days ago', () => {
+      const now = Date.now();
+      const thirtyDaysAgo = now - 2592000000;
+      const result = formatRelativeTime(thirtyDaysAgo);
+      expect(result).toBe('지난주');
     });
   });
 });
