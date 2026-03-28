@@ -12,6 +12,7 @@ function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [rememberUserId, setRememberUserId] = useState(false);
 
   const from = searchParams.get('from') || '/';
   const registered = searchParams.get('registered');
@@ -21,6 +22,14 @@ function LoginForm() {
       setSuccessMessage('회원가입이 완료되었습니다. 로그인해주세요.');
     }
   }, [registered]);
+
+  useEffect(() => {
+    const savedUserId = localStorage.getItem('rememberedUserId');
+    if (savedUserId) {
+      setUserid(savedUserId);
+      setRememberUserId(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +59,12 @@ function LoginForm() {
       if (!response.ok) {
         setError(data.error || '로그인에 실패했습니다.');
         return;
+      }
+
+      if (rememberUserId) {
+        localStorage.setItem('rememberedUserId', userid.trim());
+      } else {
+        localStorage.removeItem('rememberedUserId');
       }
 
       router.push(from);
@@ -103,6 +118,19 @@ function LoginForm() {
               className="mt-1 appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
               placeholder="비밀번호를 입력하세요"
             />
+          </div>
+          <div className="flex items-center">
+            <input
+              id="remember-userid"
+              name="remember-userid"
+              type="checkbox"
+              checked={rememberUserId}
+              onChange={(e) => setRememberUserId(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+            />
+            <label htmlFor="remember-userid" className="ml-2 block text-sm text-gray-700 cursor-pointer">
+              아이디 기억하기
+            </label>
           </div>
         </div>
 
