@@ -15,9 +15,15 @@ export async function GET(request: NextRequest) {
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
 
-    // 1. 위원회 및 부서 목록 조회
+    // 1. 위원회 및 부서 목록 조회 (행정위, 인사위 제외 - 인사 및 행정비는 별도 페이지에서 처리)
     const committees = await prisma.committee.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        AND: [
+          { NOT: { name: { contains: '행정위' } } },
+          { NOT: { name: { contains: '인사위' } } },
+        ],
+      },
       include: {
         departments: {
           where: { isActive: true },
