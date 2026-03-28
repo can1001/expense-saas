@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { PrintHeader, PrintItems, PrintFooter } from './print';
-import type { Expense, ApprovalLine } from './print/types';
+import type { Expense, ApprovalLine, ExpenseAttachment } from './print/types';
 
 export interface ExpenseWithApproval {
   expense: Expense;
@@ -13,11 +13,53 @@ interface BulkPrintableExpensesProps {
   expenses: ExpenseWithApproval[];
 }
 
-// 첨부파일 개수에 따라 그리드 클래스 반환
-const getGridClass = (count: number): string => {
-  if (count === 1) return 'single';
-  if (count === 2) return 'double';
-  return 'multi';
+// 첨부파일 타입 분류 (문서 vs 영수증)
+// - 문서: 가로/세로 비율 >= 0.6 (A4: 0.707), PDF 파일
+// - 영수증: 가로/세로 비율 < 0.6 (세로로 긴 형태)
+const classifyAttachment = (attachment: ExpenseAttachment): 'document' | 'receipt' => {
+  const { width, height, format } = attachment;
+
+  // PDF는 문서로 처리
+  if (format === 'pdf') return 'document';
+
+  // 이미지는 비율로 판별
+  if (width && height) {
+    const aspectRatio = width / height;
+    return aspectRatio >= 0.6 ? 'document' : 'receipt';
+  }
+
+  // 기본값: 영수증
+  return 'receipt';
+};
+
+// 첨부파일을 문서와 영수증으로 그룹화
+const groupAttachments = (attachments: ExpenseAttachment[]) => {
+  const documents: ExpenseAttachment[] = [];
+  const receipts: ExpenseAttachment[] = [];
+
+  attachments.forEach(att => {
+    const type = classifyAttachment(att);
+    if (type === 'document') {
+      documents.push(att);
+    } else {
+      receipts.push(att);
+    }
+  });
+
+  return { documents, receipts };
+};
+
+// 문서 개수에 따라 그리드 클래스 반환
+const getDocumentGridClass = (count: number): string => {
+  if (count === 1) return 'doc-single';
+  return 'doc-multi';
+};
+
+// 영수증 개수에 따라 그리드 클래스 반환
+const getReceiptGridClass = (count: number): string => {
+  if (count <= 2) return 'receipt-double';
+  if (count <= 4) return 'receipt-quad';
+  return 'receipt-many';
 };
 
 export default function BulkPrintableExpenses({ expenses }: BulkPrintableExpensesProps) {
@@ -28,7 +70,7 @@ export default function BulkPrintableExpenses({ expenses }: BulkPrintableExpense
           key={item.expense.id}
           className={`bulk-print-item ${index < expenses.length - 1 ? 'page-break' : ''}`}
         >
-          {/* 지출결의서 본문 */}
+          {/* 지출결의서 본문 (1페이지) */}
           <div className="expense-document">
             <PrintHeader expense={item.expense} approvalLine={item.approvalLine} />
             <PrintItems
@@ -38,26 +80,71 @@ export default function BulkPrintableExpenses({ expenses }: BulkPrintableExpense
             <PrintFooter expense={item.expense} />
           </div>
 
-          {/* 첨부파일이 있는 경우 */}
-          {item.expense.attachments && item.expense.attachments.length > 0 && (
-            <div className="attachments-page">
-              <h2 className="attachments-title">첨 부 서 류</h2>
-              <p className="attachments-subtitle">(영수증 및 증빙자료)</p>
-              <div className={`attachments-grid ${getGridClass(item.expense.attachments.length)}`}>
-                {item.expense.attachments.map((attachment, attachIndex) => (
-                  <div key={attachment.id} className="attachment-item">
-                    <div className="attachment-number">{attachIndex + 1}</div>
-                    <img
-                      src={attachment.secureUrl}
-                      alt={`첨부파일 ${attachIndex + 1}`}
-                      className="attachment-image"
-                    />
-                    <p className="attachment-name">{attachment.fileName}</p>
-                  </div>
-                ))}
+          {/* 첨부파일 페이지 (2페이지) - 항상 렌더링 (양면 인쇄용) */}
+          <div className="attachments-page">
+            {item.expense.attachments && item.expense.attachments.length > 0 ? (
+              (() => {
+                const { documents, receipts } = groupAttachments(item.expense.attachments);
+                let numberIndex = 0;
+                return (
+                  <>
+                    <h2 className="attachments-title">첨 부 서 류</h2>
+                    <p className="attachments-subtitle">(영수증 및 증빙자료)</p>
+
+                    {/* 문서류 - 크게 출력 */}
+                    {documents.length > 0 && (
+                      <div className="attachments-section">
+                        {receipts.length > 0 && <p className="section-label">문서</p>}
+                        <div className={`attachments-grid ${getDocumentGridClass(documents.length)}`}>
+                          {documents.map((attachment) => {
+                            numberIndex++;
+                            return (
+                              <div key={attachment.id} className="attachment-item document-item">
+                                <div className="attachment-number">{numberIndex}</div>
+                                <img
+                                  src={attachment.secureUrl}
+                                  alt={`문서 ${numberIndex}`}
+                                  className="attachment-image"
+                                />
+                                <p className="attachment-name">{attachment.fileName}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 영수증류 - 적정 크기로 그리드 출력 */}
+                    {receipts.length > 0 && (
+                      <div className="attachments-section">
+                        {documents.length > 0 && <p className="section-label">영수증</p>}
+                        <div className={`attachments-grid ${getReceiptGridClass(receipts.length)}`}>
+                          {receipts.map((attachment) => {
+                            numberIndex++;
+                            return (
+                              <div key={attachment.id} className="attachment-item receipt-item">
+                                <div className="attachment-number">{numberIndex}</div>
+                                <img
+                                  src={attachment.secureUrl}
+                                  alt={`영수증 ${numberIndex}`}
+                                  className="attachment-image"
+                                />
+                                <p className="attachment-name">{attachment.fileName}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()
+            ) : (
+              <div className="no-attachments">
+                <p className="no-attachments-text">(첨부서류 없음)</p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       ))}
 
@@ -73,28 +160,43 @@ export default function BulkPrintableExpenses({ expenses }: BulkPrintableExpense
 
         .bulk-print-item {
           width: 210mm;
-          min-height: 297mm;
           background: white;
         }
 
-        .bulk-print-item.page-break {
+        .bulk-print-item.page-break .attachments-page {
           page-break-after: always;
         }
 
+        /* 지출결의서 본문 (1페이지) - 항상 다음 페이지로 넘김 */
         .expense-document {
           padding: 12mm 15mm;
+          page-break-after: always;
+        }
+
+        /* 첨부파일 페이지 (2페이지) */
+        .attachments-page {
+          padding: 12mm 15mm;
+          min-height: 250mm;
+        }
+
+        /* 첨부파일 없음 상태 */
+        .no-attachments {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 250mm;
+        }
+
+        .no-attachments-text {
+          font-size: 14pt;
+          color: #999;
+          letter-spacing: 2px;
         }
 
         @media print {
           .bulk-print-container {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
-          }
-
-          /* 첨부파일 페이지 스타일 - 단건 인쇄와 동일 */
-          .attachments-page {
-            page-break-before: always;
-            padding: 12mm 15mm;
           }
 
           .attachments-title {
@@ -108,53 +210,87 @@ export default function BulkPrintableExpenses({ expenses }: BulkPrintableExpense
 
           .attachments-subtitle {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             font-size: 10pt;
             color: #666;
           }
 
+          .attachments-section {
+            margin-bottom: 10mm;
+          }
+
+          .section-label {
+            font-size: 9pt;
+            color: #666;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #ddd;
+          }
+
           .attachments-grid {
             display: grid;
-            gap: 15px;
+            gap: 12px;
             justify-items: center;
           }
 
-          /* 1장: 전체 화면 */
-          .attachments-grid.single {
+          /* 문서 - 1장: 크게 출력 */
+          .attachments-grid.doc-single {
             grid-template-columns: 1fr;
           }
-          .attachments-grid.single .attachment-item {
+          .attachments-grid.doc-single .document-item {
             max-width: 170mm;
           }
-          .attachments-grid.single .attachment-image {
-            max-height: 220mm;
+          .attachments-grid.doc-single .attachment-image {
+            max-height: 200mm;
           }
 
-          /* 2장: 상하 반반 (세로 배치) */
-          .attachments-grid.double {
+          /* 문서 - 2장 이상: 상하 배치 */
+          .attachments-grid.doc-multi {
             grid-template-columns: 1fr;
           }
-          .attachments-grid.double .attachment-item {
+          .attachments-grid.doc-multi .document-item {
             max-width: 170mm;
           }
-          .attachments-grid.double .attachment-image {
-            max-height: 110mm;
+          .attachments-grid.doc-multi .attachment-image {
+            max-height: 90mm;
           }
 
-          /* 3-4장: 2x2 그리드 */
-          .attachments-grid.multi {
+          /* 영수증 - 1~2장: 2열 그리드 */
+          .attachments-grid.receipt-double {
             grid-template-columns: repeat(2, 1fr);
           }
-          .attachments-grid.multi .attachment-item {
-            max-width: 85mm;
+          .attachments-grid.receipt-double .receipt-item {
+            max-width: 80mm;
           }
-          .attachments-grid.multi .attachment-image {
-            max-height: 110mm;
+          .attachments-grid.receipt-double .attachment-image {
+            max-height: 100mm;
+          }
+
+          /* 영수증 - 3~4장: 2x2 그리드 */
+          .attachments-grid.receipt-quad {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .attachments-grid.receipt-quad .receipt-item {
+            max-width: 80mm;
+          }
+          .attachments-grid.receipt-quad .attachment-image {
+            max-height: 90mm;
+          }
+
+          /* 영수증 - 5장 이상: 3열 그리드 */
+          .attachments-grid.receipt-many {
+            grid-template-columns: repeat(3, 1fr);
+          }
+          .attachments-grid.receipt-many .receipt-item {
+            max-width: 55mm;
+          }
+          .attachments-grid.receipt-many .attachment-image {
+            max-height: 70mm;
           }
 
           .attachment-item {
             border: 1px solid #000;
-            padding: 10px;
+            padding: 8px;
             page-break-inside: avoid;
             text-align: center;
             position: relative;
@@ -184,10 +320,11 @@ export default function BulkPrintableExpenses({ expenses }: BulkPrintableExpense
           .attachment-name {
             font-size: 8pt;
             text-align: center;
-            margin-top: 8px;
+            margin-top: 6px;
             color: #333;
             border-top: 1px solid #ddd;
-            padding-top: 6px;
+            padding-top: 4px;
+            word-break: break-all;
           }
         }
       `}</style>
