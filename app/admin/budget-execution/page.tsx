@@ -24,9 +24,16 @@ interface Committee {
 interface BudgetExecutionData {
   year: number;
   summary: {
+    // 사역비
     totalBudget: number;
     totalSpent: number;
     executionRate: number;
+    // 전체 (인사/행정비 포함)
+    grandTotalBudget: number;
+    grandTotalSpent: number;
+    grandTotalExecutionRate: number;
+    // 전체 대비 사역비 비율
+    ministryBudgetRatio: number;
   };
   committees: Committee[];
 }
@@ -130,7 +137,7 @@ export default function BudgetExecutionPage() {
             ))}
           </div>
 
-          {/* 하단 합계 */}
+          {/* 하단 합계 (사역비) */}
           <div className="bg-gradient-to-r from-gray-700 to-gray-800 rounded-xl p-6 shadow-lg">
             <div className="flex items-center justify-center gap-8 text-white">
               <span className="text-xl font-semibold">합계</span>
@@ -152,6 +159,20 @@ export default function BudgetExecutionPage() {
                 strokeWidth={8}
                 className="bg-white rounded-full p-1"
               />
+            </div>
+          </div>
+
+          {/* 전체 예산 대비 사역비 */}
+          <div className="bg-gray-600 rounded-xl p-4 mt-4 shadow-lg">
+            <div className="flex items-center justify-center gap-6 text-white text-sm">
+              <span className="text-gray-300">전체 예산</span>
+              <span className="font-bold text-lg">{formatAmount(data.summary.grandTotalBudget)}</span>
+              <span className="text-gray-400">|</span>
+              <span className="text-gray-300">사역비</span>
+              <span className="font-bold text-lg">{formatAmount(data.summary.totalBudget)}</span>
+              <span className="text-yellow-300 font-semibold text-lg">
+                ({data.summary.ministryBudgetRatio}%)
+              </span>
             </div>
           </div>
         </>

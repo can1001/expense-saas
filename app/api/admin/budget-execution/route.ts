@@ -16,22 +16,39 @@ export async function GET(request: NextRequest) {
     const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
 
     // 1. 위원회 및 부서 목록 조회 (행정위, 인사위 제외 - 인사 및 행정비는 별도 페이지에서 처리)
-    const committees = await prisma.committee.findMany({
-      where: {
-        isActive: true,
-        AND: [
-          { NOT: { name: { contains: '행정위' } } },
-          { NOT: { name: { contains: '인사위' } } },
-        ],
-      },
-      include: {
-        departments: {
-          where: { isActive: true },
-          orderBy: { sortOrder: 'asc' },
+    const [committees, hrAdminCommittees] = await Promise.all([
+      prisma.committee.findMany({
+        where: {
+          isActive: true,
+          AND: [
+            { NOT: { name: { contains: '행정위' } } },
+            { NOT: { name: { contains: '인사위' } } },
+          ],
         },
-      },
-      orderBy: { sortOrder: 'asc' },
-    });
+        include: {
+          departments: {
+            where: { isActive: true },
+            orderBy: { sortOrder: 'asc' },
+          },
+        },
+        orderBy: { sortOrder: 'asc' },
+      }),
+      // 인사/행정 위원회 조회 (전체 예산 합계용)
+      prisma.committee.findMany({
+        where: {
+          isActive: true,
+          OR: [
+            { name: { contains: '행정위' } },
+            { name: { contains: '인사위' } },
+          ],
+        },
+        include: {
+          departments: {
+            where: { isActive: true },
+          },
+        },
+      }),
+    ]);
 
     // 2. 부서별 예산 조회 (DepartmentBudgetDetail + BudgetDetailYear)
     const departmentBudgets = await prisma.departmentBudgetDetail.findMany({
@@ -136,12 +153,38 @@ export async function GET(request: NextRequest) {
 
     const totalExecutionRate = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
 
+    // 인사/행정비 예산 합계 계산
+    let hrAdminBudget = 0;
+    let hrAdminSpent = 0;
+
+    hrAdminCommittees.forEach((comm) => {
+      comm.departments.forEach((dept) => {
+        hrAdminBudget += departmentBudgetMap.get(dept.id) || 0;
+        hrAdminSpent += departmentSpentMap.get(dept.name) || 0;
+      });
+    });
+
+    // 전체 예산 (사역비 + 인사/행정비)
+    const grandTotalBudget = totalBudget + hrAdminBudget;
+    const grandTotalSpent = totalSpent + hrAdminSpent;
+    const grandTotalExecutionRate = grandTotalBudget > 0 ? Math.round((grandTotalSpent / grandTotalBudget) * 100) : 0;
+
+    // 전체 예산 대비 사역비 비율
+    const ministryBudgetRatio = grandTotalBudget > 0 ? Math.round((totalBudget / grandTotalBudget) * 100) : 0;
+
     return NextResponse.json({
       year,
       summary: {
+        // 사역비
         totalBudget,
         totalSpent,
         executionRate: totalExecutionRate,
+        // 전체 (인사/행정비 포함)
+        grandTotalBudget,
+        grandTotalSpent,
+        grandTotalExecutionRate,
+        // 전체 대비 사역비 비율
+        ministryBudgetRatio,
       },
       committees: committeeData,
     });
