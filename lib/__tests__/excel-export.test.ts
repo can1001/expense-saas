@@ -13,7 +13,6 @@ import {
   type ExpenseForExcel,
   type ExcelRow,
 } from '../excel-export';
-import * as XLSX from 'xlsx';
 
 describe('excel-export', () => {
   describe('formatDateForExcel', () => {

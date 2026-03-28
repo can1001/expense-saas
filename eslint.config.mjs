@@ -15,10 +15,13 @@ const eslintConfig = defineConfig([
     // PWA generated files
     "public/sw.js",
     "public/workbox-*.js",
+    "public/worker-*.js",
     // Documentation
     "docs/**",
     // Coverage
     "coverage/**",
+    // Scripts (development utilities)
+    "scripts/**",
   ]),
   // Custom rules
   {
@@ -36,6 +39,21 @@ const eslintConfig = defineConfig([
     files: ["scripts/**/*.js"],
     rules: {
       "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+  // Disable img element warnings for print and signature components
+  // These components use <img> intentionally because Next.js Image doesn't work in print contexts
+  {
+    files: [
+      "components/print/**/*.tsx",
+      "components/*Printable*.tsx",
+      "components/signature/**/*.tsx",
+      "components/approval/ApprovalLineDisplay.tsx",
+      "components/mobile/CameraCapture.tsx",
+      "app/approvals/**/page.tsx",
+    ],
+    rules: {
+      "@next/next/no-img-element": "off",
     },
   },
 ]);

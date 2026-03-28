@@ -68,7 +68,6 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   // 서명 모달 관련 상태
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [signatureData, setSignatureData] = useState<SignatureData | null>(null);
-  const [pendingSubmitData, setPendingSubmitData] = useState<ExpenseFormData | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
 
   // 서명 미등록 안내 모달
@@ -143,6 +142,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
     } else if (initialData) {
       loadInitialData(initialData);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenseId, initialData]);
 
   const fetchExpenseData = async () => {
@@ -566,7 +566,6 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
                 onClick={() => {
                   setShowSignatureModal(false);
                   setSignatureData(null);
-                  setPendingSubmitData(null);
                 }}
                 disabled={submitLoading}
                 className={`${BTN_OUTLINE} flex-1`}

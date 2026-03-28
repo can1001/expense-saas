@@ -9,9 +9,6 @@ type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin
 // 기본 비밀번호
 const DEFAULT_PASSWORD = 'chc2026';
 
-// 유효한 역할 목록
-const VALID_ROLES: UserRole[] = ['admin', 'finance_head', 'accountant', 'team_leader', 'admin_assistant', 'user'];
-
 // 역할 한글 -> 영문 매핑
 const ROLE_MAP: Record<string, UserRole> = {
   '관리자': 'admin',

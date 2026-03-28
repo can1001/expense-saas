@@ -89,6 +89,7 @@ export default function ApprovalsPage() {
     if (user) {
       fetchApprovals();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, statusFilter]);
 
   const fetchApprovals = async () => {

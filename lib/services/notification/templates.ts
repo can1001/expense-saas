@@ -163,7 +163,7 @@ export function renderTemplate(template: string, context: NotificationContext): 
 // 이벤트 타입별 템플릿 조회
 export function getTemplateByEvent(
   eventType: NotificationEventType,
-  isApprover: boolean = false
+  _isApprover: boolean = false
 ): MessageTemplate | null {
   switch (eventType) {
     case 'SUBMIT':

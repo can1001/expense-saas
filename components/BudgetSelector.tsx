@@ -46,6 +46,7 @@ export default function BudgetSelector({
   // 초기 위원회 목록 로드
   useEffect(() => {
     fetchNextLevel({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 위원회 선택 시 → 부서 로드
@@ -57,6 +58,7 @@ export default function BudgetSelector({
         fetchNextLevel({ committee: value.committee });
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value.committee, value.department, departments.length]);
 
   // 부서 선택 시 → 카테고리(항) 로드
@@ -68,6 +70,7 @@ export default function BudgetSelector({
         fetchNextLevel({ committee: value.committee, department: value.department });
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value.committee, value.department, value.category, categories.length]);
 
   // 카테고리 선택 시 → 서브카테고리(목) 로드
@@ -83,6 +86,7 @@ export default function BudgetSelector({
         });
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value.committee, value.department, value.category, value.subcategory, subcategories.length]);
 
   // 서브카테고리 선택 시 → 세목 로드
@@ -99,6 +103,7 @@ export default function BudgetSelector({
         });
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value.committee, value.department, value.category, value.subcategory, value.detail, details.length]);
 
   const fetchNextLevel = async (params: {

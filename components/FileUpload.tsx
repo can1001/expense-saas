@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Camera } from 'lucide-react';
 import ImagePreview, { ImagePreviewFile } from './ImagePreview';
 import { uploadFiles, removeFile, FileServiceError } from '@/lib/services/file-service';
 import { FILE_VALIDATION } from '@/lib/constants/file-validation';
@@ -62,7 +61,6 @@ export default function FileUpload({
 
         // 실패한 파일들에 대한 알림
         if (failed.length > 0) {
-          const failedFileNames = failed.map(f => f.file.name).join(', ');
           const errorMessages = failed
             .map(f => {
               const error = f.error;

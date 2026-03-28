@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import Header from '@/components/Header';
@@ -13,7 +13,7 @@ import MobileFilterPanel, { MobileFilterButton } from '@/components/MobileFilter
 import { ExpenseListSkeleton, FilterSkeleton, TableSkeleton } from '@/components/ui/Skeleton';
 import { LoadMoreIndicator } from '@/components/ui/LoadingIndicator';
 import { ExpenseListItem, ExpenseListResponse, UserRole } from '@/lib/types';
-import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_OUTLINE, BTN_LG, BTN_PAGINATION, BTN_PAGE_ACTIVE, BTN_PAGE_INACTIVE, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
+import { BTN_PRIMARY, BTN_LG, BTN_PAGINATION, BTN_PAGE_ACTIVE, BTN_PAGE_INACTIVE, FLEX_CENTER } from '@/lib/constants/styles';
 import { formatCurrency } from '@/lib/utils';
 
 interface CurrentUser {

@@ -11,12 +11,10 @@ import {
   getPendingSyncCount,
   markAsSynced,
   updateSyncStatus,
-  getAllOfflineExpenses,
 } from '@/lib/db/expense-store';
 import {
   saveOfflineAttachments,
   getAttachmentsByExpense,
-  deleteAttachmentsByExpense,
   attachmentToFile,
 } from '@/lib/db/attachment-store';
 import { initDatabase } from '@/lib/db';
@@ -124,6 +122,7 @@ export function useOfflineExpense(): UseOfflineExpenseReturn {
       .catch((error) => {
         console.error('[useOfflineExpense] 초기화 실패:', error);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 동기화 대기 수 새로고침

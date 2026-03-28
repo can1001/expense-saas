@@ -123,7 +123,7 @@ export default function BudgetSearchInput({
   const listboxId = 'budget-search-listbox';
 
   return (
-    <div ref={containerRef} className="relative" role="combobox" aria-expanded={isOpen} aria-haspopup="listbox" aria-owns={listboxId}>
+    <div ref={containerRef} className="relative" role="combobox" aria-expanded={isOpen} aria-haspopup="listbox" aria-controls={listboxId}>
       <div className="relative">
         <input
           ref={inputRef}

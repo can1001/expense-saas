@@ -71,7 +71,7 @@ export default function ApprovalLinePreview({
         setLoading(true);
         setError(null);
 
-        const year = requestDate
+        const _year = requestDate
           ? new Date(requestDate).getFullYear()
           : new Date().getFullYear();
 

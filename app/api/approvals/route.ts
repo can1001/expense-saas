@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     // status === 'all'이면 모든 건 조회
 
     // 결재선과 함께 지출결의서 조회
-    const [approvalLines, total] = await Promise.all([
+    const [approvalLines] = await Promise.all([
       prisma.approvalLine.findMany({
         where: whereCondition,
         skip,

@@ -7,7 +7,6 @@
 import type {
   OfflineExpense,
   OfflineExpenseFormData,
-  ConflictResolution,
   ConflictResolveResult,
 } from '@/lib/db/types';
 

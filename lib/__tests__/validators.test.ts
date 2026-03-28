@@ -202,13 +202,13 @@ describe('validators', () => {
     });
 
     it('requires committee field', () => {
-      const { committee, ...incomplete } = validExpense;
+      const { committee: _committee, ...incomplete } = validExpense;
       const result = createExpenseSchema.safeParse(incomplete);
       expect(result.success).toBe(false);
     });
 
     it('requires department field', () => {
-      const { department, ...incomplete } = validExpense;
+      const { department: _department, ...incomplete } = validExpense;
       const result = createExpenseSchema.safeParse(incomplete);
       expect(result.success).toBe(false);
     });
@@ -223,25 +223,25 @@ describe('validators', () => {
     });
 
     it('requires applicantName', () => {
-      const { applicantName, ...incomplete } = validExpense;
+      const { applicantName: _applicantName, ...incomplete } = validExpense;
       const result = createExpenseSchema.safeParse(incomplete);
       expect(result.success).toBe(false);
     });
 
     it('requires bankName', () => {
-      const { bankName, ...incomplete } = validExpense;
+      const { bankName: _bankName, ...incomplete } = validExpense;
       const result = createExpenseSchema.safeParse(incomplete);
       expect(result.success).toBe(false);
     });
 
     it('requires accountNumber', () => {
-      const { accountNumber, ...incomplete } = validExpense;
+      const { accountNumber: _accountNumber, ...incomplete } = validExpense;
       const result = createExpenseSchema.safeParse(incomplete);
       expect(result.success).toBe(false);
     });
 
     it('requires accountHolder', () => {
-      const { accountHolder, ...incomplete } = validExpense;
+      const { accountHolder: _accountHolder, ...incomplete } = validExpense;
       const result = createExpenseSchema.safeParse(incomplete);
       expect(result.success).toBe(false);
     });

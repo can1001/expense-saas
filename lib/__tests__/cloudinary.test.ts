@@ -161,7 +161,7 @@ describe('cloudinary', () => {
 
       try {
         await deleteImage('test-id');
-      } catch (e) {
+      } catch {
         // Expected error
       }
 
@@ -209,7 +209,7 @@ describe('cloudinary', () => {
 
       try {
         await deleteImages(['id-1']);
-      } catch (e) {
+      } catch {
         // Expected error
       }
 

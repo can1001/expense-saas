@@ -126,6 +126,7 @@ export default function NotificationHistoryPage() {
 
   useEffect(() => {
     fetchHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, eventTypeFilter, statusFilter]);
 
   const handleExpenseClick = (expenseId: string) => {

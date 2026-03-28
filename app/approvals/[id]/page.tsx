@@ -10,7 +10,7 @@ import ApprovalActionButtons from '@/components/approval/ApprovalActionButtons';
 import { BudgetInfoPanel } from '@/components/approval/BudgetInfoPanel';
 import { Expense } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
-import { ArrowLeft, Building2, User, Calendar, CreditCard, FileText, Clock } from 'lucide-react';
+import { ArrowLeft, Building2, User, CreditCard, FileText, Clock } from 'lucide-react';
 import { MobileItemCard } from '@/components/ui/Accordion';
 
 export default function ApprovalDetailPage() {
@@ -49,6 +49,7 @@ export default function ApprovalDetailPage() {
       // 로그인 정보 없이도 기본 데이터는 로드
       fetchData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, currentUser]);
 
   const fetchData = async (username?: string) => {

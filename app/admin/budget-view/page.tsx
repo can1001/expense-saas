@@ -101,6 +101,7 @@ export default function BudgetViewPage() {
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, search, committeeFilter]);
 
   useEffect(() => {

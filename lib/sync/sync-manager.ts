@@ -6,7 +6,6 @@
 
 'use client';
 
-import { getDB } from '@/lib/db';
 import {
   getPendingSyncExpenses,
   markAsSynced,

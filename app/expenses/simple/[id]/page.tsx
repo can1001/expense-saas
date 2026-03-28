@@ -73,6 +73,7 @@ export default function SimpleExpenseDetailPage() {
     if (id) {
       fetchExpense();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchExpense = async () => {

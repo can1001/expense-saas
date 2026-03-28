@@ -116,6 +116,7 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
     } else if (initialData) {
       loadInitialData(initialData);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenseId, initialData]);
 
   const fetchExpenseData = async () => {

@@ -178,7 +178,7 @@ export default function AdminNotificationsPage() {
       } else {
         setErrorMessage(data.error || '알림 발송에 실패했습니다.');
       }
-    } catch (error) {
+    } catch {
       setErrorMessage('알림 발송 중 오류가 발생했습니다.');
     } finally {
       setSending(false);

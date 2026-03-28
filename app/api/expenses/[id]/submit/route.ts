@@ -162,7 +162,7 @@ export async function POST(
         consecutiveAutoApprovedSteps.map((s) => s.stepNumber)
       );
 
-      const approvalLine = await tx.approvalLine.create({
+      await tx.approvalLine.create({
         data: {
           expenseId: id,
           currentStep: isAllAutoApproved

@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { savedBankAccountSchema } from '@/lib/schemas/bank-account-schema';
-import { handleApiError, ApiError, successResponse } from '@/lib/api/error-handler';
+import { handleApiError, successResponse } from '@/lib/api/error-handler';
 import { getCurrentUser } from '@/lib/auth';
 
 /**

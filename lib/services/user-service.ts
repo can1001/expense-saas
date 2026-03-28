@@ -272,8 +272,7 @@ export async function updateUser(
     canRegisterUsers?: boolean;
   }
 ): Promise<User> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updateData: any = { ...data };
+  const updateData = { ...data };
 
   // 비밀번호가 있으면 해시화
   if (updateData.password) {
@@ -284,7 +283,7 @@ export async function updateUser(
   if (updateData.role && !updateData.roleId) {
     const roleRef = await getRoleByCode(updateData.role);
     if (roleRef) {
-      updateData.roleId = roleRef.id;
+      (updateData as { roleId?: string }).roleId = roleRef.id;
     }
   }
 
@@ -329,8 +328,7 @@ export async function findUsers(options?: {
   const pageSize = options?.pageSize ?? 20;
   const skip = (page - 1) * pageSize;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = {};
+  const where: Record<string, unknown> = {};
 
   if (options?.role) {
     where.role = options.role;

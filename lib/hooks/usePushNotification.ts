@@ -75,6 +75,7 @@ export function usePushNotification(): UsePushNotificationReturn {
 
     // 기존 구독 여부 확인
     checkSubscription();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 기존 구독 여부 확인

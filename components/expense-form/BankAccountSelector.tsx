@@ -21,7 +21,6 @@ import {
   BTN_OUTLINE,
   BTN_SM,
   SPINNER_BLUE,
-  BADGE_DEFAULT,
 } from '@/lib/constants/styles';
 
 interface BankAccountSelectorProps {
@@ -43,7 +42,6 @@ export default function BankAccountSelector({
   disabled = false,
   defaultBankName,
   defaultAccountNumber,
-  defaultAccountHolder,
 }: BankAccountSelectorProps) {
   const [mode, setMode] = useState<Mode>('saved');
   const [accounts, setAccounts] = useState<SavedBankAccount[]>([]);

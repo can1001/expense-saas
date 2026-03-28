@@ -24,7 +24,7 @@ interface SignatureSelectorProps {
   selectedData?: SignatureData | null;
 }
 
-export function SignatureSelector({ onSelect, selectedData }: SignatureSelectorProps) {
+export function SignatureSelector({ onSelect }: SignatureSelectorProps) {
   const [mode, setMode] = useState<'realtime' | 'saved'>('saved');
   const [signatures, setSignatures] = useState<UserSignature[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +59,7 @@ export function SignatureSelector({ onSelect, selectedData }: SignatureSelectorP
       }
     }
     fetchSignatures();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 모드 변경 시 선택 초기화

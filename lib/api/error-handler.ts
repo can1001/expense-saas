@@ -178,7 +178,7 @@ export async function parseJsonRequest(request: Request): Promise<any> {
   try {
     const body = await request.json();
     return body;
-  } catch (error) {
+  } catch {
     throw new ApiError(ERROR_MESSAGES.INVALID_JSON, 400);
   }
 }

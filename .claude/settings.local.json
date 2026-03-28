@@ -75,7 +75,10 @@
       "Bash(head:*)",
       "Bash(npx web-push:*)",
       "Bash(node:*)",
-      "Bash(npm audit:*)"
+      "Bash(npm audit:*)",
+      "Bash(git status:*)",
+      "Bash(npx next lint:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": [],
     "ask": []

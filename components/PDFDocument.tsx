@@ -1,3 +1,5 @@
+/* eslint-disable jsx-a11y/alt-text */
+// react-pdf Image component doesn't support alt attribute
 'use client';
 
 import React from 'react';

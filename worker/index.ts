@@ -16,7 +16,7 @@ const SYNC_TAG_ATTACHMENTS = 'sync-attachments';
 /**
  * Service Worker 설치 이벤트
  */
-self.addEventListener('install', (event) => {
+self.addEventListener('install', (_event) => {
   console.log('[SW] 설치됨');
   // 즉시 활성화
   self.skipWaiting();
@@ -119,7 +119,7 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
 self.addEventListener('message', (event) => {
   console.log('[SW] 메시지 수신:', event.data);
 
-  const { type, payload } = event.data as {
+  const { type } = event.data as {
     type: string;
     payload?: unknown;
   };

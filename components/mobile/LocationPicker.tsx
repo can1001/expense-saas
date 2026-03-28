@@ -14,7 +14,7 @@ interface LocationResult {
   lng: number;
 }
 
-export default function LocationPicker({ onLocationSelect, currentValue }: LocationPickerProps) {
+export default function LocationPicker({ onLocationSelect }: LocationPickerProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [location, setLocation] = useState<LocationResult | null>(null);

@@ -2,14 +2,13 @@
  * 예산 업로드 로직 테스트
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ExcelJS from 'exceljs';
 import {
   parseExcelFile,
   uploadBudgetData,
   exportBudgetTemplate,
   type BudgetRow,
-  type UploadMode,
 } from '../budget-upload';
 
 // bcrypt mock

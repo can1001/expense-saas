@@ -7,7 +7,6 @@ import {
   lookupBudgetHierarchy,
   lookupBudgetHierarchyById,
   isFinanceHeadManager,
-  BudgetHierarchyInfo,
 } from '../budget-lookup-service';
 import { prisma } from '@/lib/prisma';
 

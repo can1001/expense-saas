@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
   canApprove,
-  calculateNextStep,
   calculateApprovalStatus,
 } from '@/lib/approval-engine';
 import { notificationService } from '@/lib/services/notification';

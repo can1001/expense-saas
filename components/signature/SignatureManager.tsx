@@ -98,7 +98,7 @@ export function SignatureManager() {
         const data = await res.json();
         alert(data.error || '저장에 실패했습니다.');
       }
-    } catch (error) {
+    } catch {
       alert('저장 중 오류가 발생했습니다.');
     } finally {
       setSaving(false);
@@ -123,7 +123,7 @@ export function SignatureManager() {
         const data = await res.json();
         alert(data.error || '삭제에 실패했습니다.');
       }
-    } catch (error) {
+    } catch {
       alert('삭제 중 오류가 발생했습니다.');
     } finally {
       setDeletingId(null);
@@ -144,7 +144,7 @@ export function SignatureManager() {
         const data = await res.json();
         alert(data.error || '설정에 실패했습니다.');
       }
-    } catch (error) {
+    } catch {
       alert('설정 중 오류가 발생했습니다.');
     } finally {
       setSettingDefaultId(null);

@@ -6,9 +6,6 @@ import { canAccessExtendedMenu, canAccessApprovalMenu, canAccessAdminMenu, ROLE_
 import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, TEXT_STAT, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
 import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount';
 
-// 역할 코드 타입 (Role.code와 동일)
-type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
-
 interface UserInfo {
   id: string;
   userid: string;

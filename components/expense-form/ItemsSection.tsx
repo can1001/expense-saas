@@ -9,7 +9,6 @@ import { Control, useFieldArray, UseFormRegister, UseFormSetValue, useWatch, Fie
 import { ExpenseFormData, defaultExpenseItem, calculateAmount } from '@/lib/schemas/expense-schema';
 import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_SM, SECTION_CARD, SECTION_TITLE } from '@/lib/constants/styles';
 import { VoiceInputButton } from '@/components/mobile/VoiceInput';
-import LocationPicker from '@/components/mobile/LocationPicker';
 import MemoTooltip from './MemoTooltip';
 
 interface ItemsSectionProps {

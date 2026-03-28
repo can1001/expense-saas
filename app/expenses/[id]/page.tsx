@@ -3,9 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { format } from 'date-fns';
-import { pdf } from '@react-pdf/renderer';
-import { ExpensePDFDocument } from '@/components/PDFDocument';
-import { generateExpenseExcel } from '@/lib/excel';
 import ImagePreview from '@/components/ImagePreview';
 import Header from '@/components/Header';
 import PrintableExpense from '@/components/PrintableExpense';
@@ -16,7 +13,7 @@ import { PaymentStatusModal } from '@/components/PaymentStatusModal';
 import Accordion, { InfoRow, MobileItemCard } from '@/components/ui/Accordion';
 import { Expense } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
-import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_SECONDARY, BTN_SUCCESS, BTN_DANGER, BTN_EMERALD, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
+import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_SECONDARY, BTN_DANGER, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 import { ArrowLeft, Printer, FileSpreadsheet, Edit2, Trash2 } from 'lucide-react';
 
 export default function ExpenseDetailPage() {
@@ -29,8 +26,6 @@ export default function ExpenseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [pdfLoading, setPdfLoading] = useState(false);
-  const [excelLoading, setExcelLoading] = useState(false);
   const [webExcelLoading, setWebExcelLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ userid: string; username: string; role: string } | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -58,6 +53,7 @@ export default function ExpenseDetailPage() {
     if (id) {
       fetchData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchData = async () => {
@@ -120,42 +116,6 @@ export default function ExpenseDetailPage() {
       alert(err instanceof Error ? err.message : '삭제 중 오류가 발생했습니다.');
     } finally {
       setDeleteLoading(false);
-    }
-  };
-
-  const handleDownloadPDF = async () => {
-    if (!expense) return;
-
-    setPdfLoading(true);
-    try {
-      const blob = await pdf(<ExpensePDFDocument expense={expense} />).toBlob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `지출결의서_${expense.applicantName}_${format(new Date(expense.requestDate), 'yyyyMMdd')}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      alert('PDF 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
-      console.error('PDF generation error:', err);
-    } finally {
-      setPdfLoading(false);
-    }
-  };
-
-  const handleDownloadExcel = async () => {
-    if (!expense) return;
-
-    setExcelLoading(true);
-    try {
-      await generateExpenseExcel(expense);
-    } catch (err) {
-      alert('엑셀 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
-      console.error('Excel generation error:', err);
-    } finally {
-      setExcelLoading(false);
     }
   };
 

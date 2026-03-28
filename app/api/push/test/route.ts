@@ -6,7 +6,7 @@ import { webPushProvider } from '@/lib/services/notification/web-push-provider';
  * POST /api/push/test
  * 테스트 푸시 알림 발송
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     // 사용자 인증 확인
     const currentUser = await getCurrentUser();
