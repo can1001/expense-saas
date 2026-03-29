@@ -6,9 +6,10 @@ import { ExpenseItem, formatCurrency } from './types';
 interface PrintItemsProps {
   items: ExpenseItem[];
   totalAmount: number;
+  isSimpleExpense?: boolean;
 }
 
-export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
+export default function PrintItems({ items, totalAmount, isSimpleExpense = false }: PrintItemsProps) {
   // 빈 행 채우기 (최대 12행)
   const emptyRows = Math.max(0, 12 - items.length);
 
@@ -32,19 +33,35 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
       <table className="items-table">
         <thead>
           <tr>
-            <th className="col-no">순번</th>
-            <th className="col-detail">세 목</th>
-            <th className="col-desc">적 요</th>
-            <th className="col-price">단 가</th>
-            <th className="col-qty">수량</th>
-            <th className="col-amount">금 액</th>
+            <th className={isSimpleExpense ? "col-no-simple" : "col-no"}>순번</th>
+            {isSimpleExpense ? (
+              <>
+                <th className="col-category">항</th>
+                <th className="col-subcategory">목</th>
+                <th className="col-detail-simple">세목</th>
+              </>
+            ) : (
+              <th className="col-detail">세 목</th>
+            )}
+            <th className={isSimpleExpense ? "col-desc-simple" : "col-desc"}>적 요</th>
+            <th className={isSimpleExpense ? "col-price-simple" : "col-price"}>단 가</th>
+            <th className={isSimpleExpense ? "col-qty-simple" : "col-qty"}>수량</th>
+            <th className={isSimpleExpense ? "col-amount-simple" : "col-amount"}>금 액</th>
           </tr>
         </thead>
         <tbody>
           {items.map((item, index) => (
             <tr key={item.id}>
               <td className="cell-no">{index + 1}</td>
-              <td className="cell-detail">{item.budgetDetail}</td>
+              {isSimpleExpense ? (
+                <>
+                  <td className="cell-category">{item.budgetCategory}</td>
+                  <td className="cell-subcategory">{item.budgetSubcategory}</td>
+                  <td className="cell-detail-simple">{item.budgetDetail}</td>
+                </>
+              ) : (
+                <td className="cell-detail">{item.budgetDetail}</td>
+              )}
               <td className="cell-desc">{item.description}</td>
               <td className="cell-price">{formatCurrency(item.unitPrice)}</td>
               <td className="cell-qty">{item.quantity}</td>
@@ -55,7 +72,15 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
           {Array.from({ length: emptyRows }).map((_, index) => (
             <tr key={`empty-${index}`} className="empty-row">
               <td className="cell-no">&nbsp;</td>
-              <td className="cell-detail">&nbsp;</td>
+              {isSimpleExpense ? (
+                <>
+                  <td className="cell-category">&nbsp;</td>
+                  <td className="cell-subcategory">&nbsp;</td>
+                  <td className="cell-detail-simple">&nbsp;</td>
+                </>
+              ) : (
+                <td className="cell-detail">&nbsp;</td>
+              )}
               <td className="cell-desc">&nbsp;</td>
               <td className="cell-price">&nbsp;</td>
               <td className="cell-qty">&nbsp;</td>
@@ -65,7 +90,7 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
         </tbody>
         <tfoot>
           <tr className="total-row">
-            <td colSpan={5} className="total-label">합 계</td>
+            <td colSpan={isSimpleExpense ? 7 : 5} className="total-label">합 계</td>
             <td className="total-amount">{formatCurrency(totalAmount)}</td>
           </tr>
         </tfoot>
@@ -146,12 +171,23 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
           letter-spacing: 2px;
         }
 
+        /* 일반 지출결의서 컬럼 폭 */
         .col-no { width: 8%; }
         .col-detail { width: 18%; }
         .col-desc { width: 34%; }
         .col-price { width: 14%; }
         .col-qty { width: 8%; }
         .col-amount { width: 18%; }
+
+        /* 간편 지출결의서 컬럼 폭 */
+        .col-no-simple { width: 6%; }
+        .col-category { width: 12%; }
+        .col-subcategory { width: 12%; }
+        .col-detail-simple { width: 12%; }
+        .col-desc-simple { width: 28%; }
+        .col-price-simple { width: 10%; }
+        .col-qty-simple { width: 6%; }
+        .col-amount-simple { width: 14%; }
 
         .items-table tbody tr {
           height: 34px;
@@ -169,6 +205,14 @@ export default function PrintItems({ items, totalAmount }: PrintItemsProps) {
           font-size: 9pt;
           text-align: left;
           padding-left: 8px !important;
+        }
+
+        .cell-category,
+        .cell-subcategory,
+        .cell-detail-simple {
+          font-size: 8pt;
+          text-align: left;
+          padding-left: 6px !important;
         }
 
         .cell-desc {
