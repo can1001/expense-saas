@@ -146,7 +146,7 @@ export const defaultExpenseItem: ExpenseItem = {
   budgetSubcategory: '',
   budgetDetail: '',
   description: '',
-  unitPrice: 1,
+  unitPrice: 0,
   quantity: 1,
   amount: 0,
 };

@@ -11,6 +11,18 @@ import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_SM, SECTION_CARD, SECTION_TIT
 import { VoiceInputButton } from '@/components/mobile/VoiceInput';
 import MemoTooltip from './MemoTooltip';
 
+// 천 단위 구분 포맷 함수
+const formatNumber = (value: number | undefined): string => {
+  if (value === undefined || value === 0) return '';
+  return value.toLocaleString('ko-KR');
+};
+
+// 문자열에서 숫자만 추출
+const parseNumber = (value: string): number => {
+  const num = parseInt(value.replace(/[^0-9]/g, ''), 10);
+  return isNaN(num) ? 0 : num;
+};
+
 interface ItemsSectionProps {
   control: Control<ExpenseFormData>;
   register: UseFormRegister<ExpenseFormData>;
@@ -264,12 +276,13 @@ export default function ItemsSection({
                     단가 <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="number"
-                    {...register(`items.${index}.unitPrice`, { valueAsNumber: true })}
+                    type="text"
+                    inputMode="numeric"
+                    value={formatNumber(items?.[index]?.unitPrice)}
+                    onChange={(e) => setValue(`items.${index}.unitPrice`, parseNumber(e.target.value))}
                     disabled={disabled}
-                    min="1"
                     placeholder="0"
-                    className={`${INPUT_BASE} ${errors?.items?.[index]?.unitPrice ? 'border-red-500' : ''}`}
+                    className={`${INPUT_BASE} text-right ${errors?.items?.[index]?.unitPrice ? 'border-red-500' : ''}`}
                   />
                   {errors?.items?.[index]?.unitPrice && (
                     <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.items[index].unitPrice.message}</p>
@@ -281,12 +294,13 @@ export default function ItemsSection({
                     수량 <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="number"
-                    {...register(`items.${index}.quantity`, { valueAsNumber: true })}
+                    type="text"
+                    inputMode="numeric"
+                    value={formatNumber(items?.[index]?.quantity)}
+                    onChange={(e) => setValue(`items.${index}.quantity`, parseNumber(e.target.value))}
                     disabled={disabled}
-                    min="1"
                     placeholder="0"
-                    className={`${INPUT_BASE} ${errors?.items?.[index]?.quantity ? 'border-red-500' : ''}`}
+                    className={`${INPUT_BASE} text-right ${errors?.items?.[index]?.quantity ? 'border-red-500' : ''}`}
                   />
                   {errors?.items?.[index]?.quantity && (
                     <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.items[index].quantity.message}</p>
