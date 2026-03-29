@@ -337,7 +337,9 @@ export default function ExpenseDetailPage() {
         <div className="hidden md:flex mb-8 justify-between items-start">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-gray-900">지출결의서 상세</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {expense.version === '4.1.4' ? '간편 지출결의서 상세' : '지출결의서 상세'}
+              </h1>
               <ApprovalStatusBadge status={expense.status || 'DRAFT'} size="lg" />
               {expense.status === 'APPROVED_FINAL' && (
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -424,7 +426,11 @@ export default function ExpenseDetailPage() {
                 <MobileItemCard
                   key={item.id}
                   order={item.order}
-                  budgetDetail={item.budgetDetail}
+                  budgetDetail={
+                    expense.version === '4.1.4'
+                      ? `${item.budgetCategory} | ${item.budgetSubcategory} | ${item.budgetDetail}`
+                      : item.budgetDetail
+                  }
                   description={item.description}
                   unitPrice={item.unitPrice}
                   quantity={item.quantity}
@@ -512,9 +518,15 @@ export default function ExpenseDetailPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
                       순서
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                      예산(세목)
-                    </th>
+                    {expense.version === '4.1.4' ? (
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
+                        예산항목(계정과목)
+                      </th>
+                    ) : (
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
+                        예산(세목)
+                      </th>
+                    )}
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
                       적요
                     </th>
@@ -533,7 +545,11 @@ export default function ExpenseDetailPage() {
                   {expense.items.map((item) => (
                     <tr key={item.id}>
                       <td className="px-4 py-3 text-sm text-gray-900">{item.order}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{item.budgetDetail}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {expense.version === '4.1.4'
+                          ? `${item.budgetCategory} | ${item.budgetSubcategory} | ${item.budgetDetail}`
+                          : item.budgetDetail}
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">{item.description}</td>
                       <td className="px-4 py-3 text-sm text-right text-gray-900">
                         {item.unitPrice.toLocaleString('ko-KR')}
