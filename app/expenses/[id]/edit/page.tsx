@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ExpenseForm from '@/components/ExpenseForm';
+import Header from '@/components/Header';
 import { SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 
 export default function EditExpensePage() {
@@ -52,6 +53,7 @@ export default function EditExpensePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Header />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 헤더 */}
         <div className="mb-8">

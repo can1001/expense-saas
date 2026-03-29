@@ -4,7 +4,7 @@ import { ADMIN_SIDEBAR_MENU } from '../admin-menu';
 describe('admin-menu', () => {
   describe('ADMIN_SIDEBAR_MENU structure', () => {
     it('should have correct number of groups', () => {
-      expect(ADMIN_SIDEBAR_MENU).toHaveLength(6);
+      expect(ADMIN_SIDEBAR_MENU).toHaveLength(7);
     });
 
     it('should have dashboard group', () => {
@@ -124,6 +124,7 @@ describe('admin-menu', () => {
         '예산 관리',
         '현황/리포트',
         '알림',
+        '재정 수입',
       ]);
     });
 

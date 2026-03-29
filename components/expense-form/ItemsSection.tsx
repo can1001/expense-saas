@@ -10,6 +10,19 @@ import { ExpenseFormData, defaultExpenseItem, calculateAmount } from '@/lib/sche
 import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_SM, SECTION_CARD, SECTION_TITLE } from '@/lib/constants/styles';
 import { VoiceInputButton } from '@/components/mobile/VoiceInput';
 import MemoTooltip from './MemoTooltip';
+import { useMemoPreferences } from '@/lib/hooks/useMemoPreferences';
+
+// 천 단위 구분 포맷 함수
+const formatNumber = (value: number | undefined): string => {
+  if (value === undefined || value === 0) return '';
+  return value.toLocaleString('ko-KR');
+};
+
+// 문자열에서 숫자만 추출
+const parseNumber = (value: string): number => {
+  const num = parseInt(value.replace(/[^0-9]/g, ''), 10);
+  return isNaN(num) ? 0 : num;
+};
 
 interface ItemsSectionProps {
   control: Control<ExpenseFormData>;
@@ -18,6 +31,7 @@ interface ItemsSectionProps {
   errors?: FieldErrors<ExpenseFormData>;
   disabled?: boolean;
   detailOptions?: string[];  // 사용 가능한 세목 목록
+  userId?: string;  // 적요 즐겨찾기용 사용자 ID
 }
 
 export default function ItemsSection({
@@ -27,6 +41,7 @@ export default function ItemsSection({
   errors,
   disabled = false,
   detailOptions = [],
+  userId,
 }: ItemsSectionProps) {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -42,6 +57,13 @@ export default function ItemsSection({
   const [tooltipOpen, setTooltipOpen] = useState<Record<number, boolean>>({});
   const [memoLoading, setMemoLoading] = useState<Record<number, boolean>>({});
   const descriptionRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // 적요 즐겨찾기 훅
+  const {
+    favorites: memoFavorites,
+    toggleFavorite: toggleMemoFavorite,
+    isFavorite: isMemoFavorite,
+  } = useMemoPreferences(userId);
 
   // 적요 예제 로드
   const loadMemoExamples = useCallback(async (index: number, budgetDetailName: string) => {
@@ -87,12 +109,29 @@ export default function ItemsSection({
     }, 150);
   };
 
+  // 적요 필드에서 Enter 키 입력 시 폼 제출 방지
+  const handleDescriptionKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+    }
+  };
+
   const handleAddItem = () => {
     if (fields.length >= 10) {
       alert('최대 10개까지 항목을 추가할 수 있습니다.');
       return;
     }
-    append(defaultExpenseItem);
+
+    // 첫 번째 항목의 예산 정보를 복사 (일반 지출결의서는 모든 항목이 동일 예산 계층 사용)
+    const firstItem = items?.[0];
+    const newItem = {
+      ...defaultExpenseItem,
+      budgetCategory: firstItem?.budgetCategory || '',
+      budgetSubcategory: firstItem?.budgetSubcategory || '',
+      budgetDetail: firstItem?.budgetDetail || '',
+    };
+
+    append(newItem);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -117,22 +156,12 @@ export default function ItemsSection({
 
   return (
     <div className={SECTION_CARD}>
-      {/* 헤더 - 모바일에서 세로 정렬 */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-        <div className="flex items-center justify-between sm:justify-start gap-3">
-          <h2 className={SECTION_TITLE}>세부 항목</h2>
-          <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-            {fields.length}/10개
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={handleAddItem}
-          disabled={disabled || fields.length >= 10}
-          className={`${BTN_PRIMARY} ${BTN_SM} w-full sm:w-auto`}
-        >
-          + 항목 추가
-        </button>
+      {/* 헤더 */}
+      <div className="flex items-center justify-between sm:justify-start gap-3 mb-4">
+        <h2 className={SECTION_TITLE}>세부 항목</h2>
+        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+          {fields.length}/10개
+        </span>
       </div>
 
       {/* 예산(목) 미선택 안내 */}
@@ -227,6 +256,7 @@ export default function ItemsSection({
                     placeholder="상세 설명"
                     onFocus={() => handleDescriptionFocus(index)}
                     onBlur={() => handleDescriptionBlur(index)}
+                    onKeyDown={handleDescriptionKeyDown}
                     className={`${INPUT_BASE} flex-1 ${errors?.items?.[index]?.description ? 'border-red-500' : ''}`}
                   />
                   {/* 모바일 음성 입력 버튼 */}
@@ -237,9 +267,13 @@ export default function ItemsSection({
                   {/* 적요 예제 툴팁 */}
                   <MemoTooltip
                     examples={memoExamples[index] || []}
-                    isOpen={tooltipOpen[index] && (memoExamples[index]?.length > 0 || memoLoading[index])}
+                    favorites={memoFavorites.map((f) => f.memo)}
+                    currentValue={items?.[index]?.description || ''}
+                    isOpen={tooltipOpen[index] && (memoExamples[index]?.length > 0 || memoFavorites.length > 0 || memoLoading[index])}
                     onSelect={(example) => handleMemoSelect(index, example)}
                     onClose={() => setTooltipOpen((prev) => ({ ...prev, [index]: false }))}
+                    onToggleFavorite={(memo) => toggleMemoFavorite(memo, items?.[index]?.budgetDetail)}
+                    isFavorite={isMemoFavorite}
                     inputRef={{ current: descriptionRefs.current[index] }}
                     loading={memoLoading[index]}
                   />
@@ -256,12 +290,13 @@ export default function ItemsSection({
                     단가 <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="number"
-                    {...register(`items.${index}.unitPrice`, { valueAsNumber: true })}
+                    type="text"
+                    inputMode="numeric"
+                    value={formatNumber(items?.[index]?.unitPrice)}
+                    onChange={(e) => setValue(`items.${index}.unitPrice`, parseNumber(e.target.value))}
                     disabled={disabled}
-                    min="1"
                     placeholder="0"
-                    className={`${INPUT_BASE} ${errors?.items?.[index]?.unitPrice ? 'border-red-500' : ''}`}
+                    className={`${INPUT_BASE} text-right ${errors?.items?.[index]?.unitPrice ? 'border-red-500' : ''}`}
                   />
                   {errors?.items?.[index]?.unitPrice && (
                     <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.items[index].unitPrice.message}</p>
@@ -273,12 +308,13 @@ export default function ItemsSection({
                     수량 <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="number"
-                    {...register(`items.${index}.quantity`, { valueAsNumber: true })}
+                    type="text"
+                    inputMode="numeric"
+                    value={formatNumber(items?.[index]?.quantity)}
+                    onChange={(e) => setValue(`items.${index}.quantity`, parseNumber(e.target.value))}
                     disabled={disabled}
-                    min="1"
                     placeholder="0"
-                    className={`${INPUT_BASE} ${errors?.items?.[index]?.quantity ? 'border-red-500' : ''}`}
+                    className={`${INPUT_BASE} text-right ${errors?.items?.[index]?.quantity ? 'border-red-500' : ''}`}
                   />
                   {errors?.items?.[index]?.quantity && (
                     <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.items[index].quantity.message}</p>
@@ -299,6 +335,20 @@ export default function ItemsSection({
           </div>
         ))}
       </div>
+
+      {/* 항목 추가 버튼 - 목록 아래에 배치 */}
+      {fields.length < 10 && (
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={handleAddItem}
+            disabled={disabled}
+            className={`${BTN_PRIMARY} ${BTN_SM}`}
+          >
+            + 항목 추가
+          </button>
+        </div>
+      )}
 
       {/* 총액 - 모바일에서 눈에 띄게 */}
       <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t-2 border-gray-200">

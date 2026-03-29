@@ -40,7 +40,7 @@ export const simpleExpenseItemSchema = z.object({
 
   unitPrice: z
     .number()
-    .positive('단가는 0보다 커야 합니다.')
+    .nonnegative('단가는 0 이상이어야 합니다.')
     .int('단가는 정수여야 합니다.')
     .max(1000000000, '단가가 너무 큽니다.'),
 
@@ -69,11 +69,11 @@ export const simpleExpenseFormSchema = z.object({
       '올바른 날짜 형식이 아닙니다.'
     ),
 
-  // 세부 항목들 (최소 1개, 최대 10개)
+  // 세부 항목들 (최소 1개, 최대 16개)
   items: z
     .array(simpleExpenseItemSchema)
     .min(1, '최소 1개의 항목이 필요합니다.')
-    .max(10, '최대 10개까지 항목을 추가할 수 있습니다.'),
+    .max(16, '최대 16개까지 항목을 추가할 수 있습니다.'),
 
   // 신청 정보
   requestDate: z
@@ -121,7 +121,7 @@ export const defaultSimpleExpenseItem: SimpleExpenseItem = {
   budgetSubcategory: '',
   budgetDetail: '',
   description: '',
-  unitPrice: 1,
+  unitPrice: 0,
   quantity: 1,
   amount: 0,
 };

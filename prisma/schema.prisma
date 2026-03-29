@@ -911,6 +911,38 @@ model WebPushLog {
 // 시스템 설정 (System Settings)
 // ========================================
 
+// ========================================
+// 헌금 관리 (Offering Management)
+// ========================================
+
+// 헌금 종류
+enum OfferingType {
+  TITHE           // 십일조
+  THANKSGIVING    // 감사헌금
+  SPECIAL         // 특별헌금
+  MISSION         // 선교헌금
+  BUILDING        // 건축헌금
+  RELIEF          // 구제헌금
+  OTHER           // 기타
+}
+
+// 헌금 관리
+model Offering {
+  id        String       @id @default(cuid())
+  date      DateTime     @db.Date       // 헌금 날짜
+  name      String                      // 헌금자 이름
+  type      OfferingType                // 헌금 종류
+  amount    Int                         // 금액 (원)
+  memo      String?                     // 메모
+
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([date])
+  @@index([name])
+  @@index([type])
+}
+
 // 시스템 설정 (키-값 형태)
 model SystemSetting {
   id          String   @id @default(cuid())

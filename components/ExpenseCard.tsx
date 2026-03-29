@@ -130,7 +130,12 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick }: 
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    router.push(`/expenses/${expense.id}/edit`);
+    // 간편 지출결의서(4.1.4)는 simple 수정 경로로 이동
+    if (expense.version === '4.1.4') {
+      router.push(`/expenses/simple/${expense.id}/edit`);
+    } else {
+      router.push(`/expenses/${expense.id}/edit`);
+    }
   };
 
   // 수정 가능 여부 체크

@@ -13,7 +13,6 @@ import {
   Calendar,
   Wallet,
   PiggyBank,
-  TrendingUp,
 } from 'lucide-react';
 import {
   SECTION_CARD,

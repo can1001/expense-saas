@@ -130,6 +130,7 @@ export interface ExpenseListItem {
   paymentStatus?: PaymentStatus;
   approvedAt?: string | null;  // 최종승인일
   items?: ExpenseItem[];  // 첫 번째 항목에서 예산 정보 조회용
+  version?: string;  // 간편(4.1.4) vs 일반(4.1.3) 구분
 }
 
 export interface ExpenseListResponse {

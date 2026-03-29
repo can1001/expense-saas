@@ -19,6 +19,7 @@ import {
   defaultSimpleExpenseFormData,
 } from '@/lib/schemas/simple-expense-schema';
 import SimpleItemsSection from './simple-expense-form/SimpleItemsSection';
+import BankAccountSelector from './expense-form/BankAccountSelector';
 import FileUpload from './FileUpload';
 import {
   SECTION_CARD,
@@ -67,11 +68,17 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
     handleSubmit,
     setValue,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<SimpleExpenseFormData>({
     resolver: zodResolver(simpleExpenseFormSchema),
     defaultValues: defaultSimpleExpenseFormData as SimpleExpenseFormData,
   });
+
+  // 은행 정보 watch (BankAccountSelector에 전달용)
+  const bankName = watch('bankName');
+  const accountNumber = watch('accountNumber');
+  const accountHolder = watch('accountHolder');
 
   // 제출 모드 상태 (저장 / 제출)
   const [submitMode, setSubmitMode] = useState<'save' | 'submit'>('save');
@@ -102,12 +109,20 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
   });
 
   // 로그인한 사용자 정보 자동 채우기 (새 작성 시에만)
-  useFetchCurrentUser({
+  const { user: currentUser } = useFetchCurrentUser({
     skip: !!expenseId || !!initialData,
     onSuccess: (user) => {
       setValue('applicantName', user.username);
     },
   });
+
+  // 수정 모드에서도 현재 사용자 정보 로드 (적요 즐겨찾기용)
+  const { user: editModeUser } = useFetchCurrentUser({
+    skip: !expenseId && !initialData,
+  });
+
+  // 현재 사용자 ID (적요 즐겨찾기용)
+  const userId = currentUser?.id || editModeUser?.id;
 
   // 수정 모드일 때 데이터 로드
   useEffect(() => {
@@ -260,6 +275,7 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
         setValue={setValue}
         errors={errors}
         disabled={loading || isSubmitting}
+        userId={userId}
       />
 
       {/* 청구 정보 */}
@@ -302,59 +318,15 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
       </div>
 
       {/* 은행 정보 */}
-      <div className={SECTION_CARD}>
-        <h2 className={SECTION_TITLE}>은행 정보</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label htmlFor="bankName" className={`${LABEL_BASE} ${LABEL_REQUIRED}`}>
-              은행명
-            </label>
-            <input
-              type="text"
-              id="bankName"
-              {...register('bankName')}
-              disabled={loading || isSubmitting}
-              placeholder="예: 국민은행"
-              className={INPUT_BASE}
-            />
-            {errors.bankName && <p className={ERROR_MESSAGE}>{errors.bankName.message}</p>}
-          </div>
-
-          <div>
-            <label htmlFor="accountNumber" className={`${LABEL_BASE} ${LABEL_REQUIRED}`}>
-              계좌번호
-            </label>
-            <input
-              type="text"
-              id="accountNumber"
-              {...register('accountNumber')}
-              disabled={loading || isSubmitting}
-              placeholder="숫자와 - 만 입력"
-              className={INPUT_BASE}
-            />
-            {errors.accountNumber && (
-              <p className={ERROR_MESSAGE}>{errors.accountNumber.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="accountHolder" className={`${LABEL_BASE} ${LABEL_REQUIRED}`}>
-              예금주
-            </label>
-            <input
-              type="text"
-              id="accountHolder"
-              {...register('accountHolder')}
-              disabled={loading || isSubmitting}
-              placeholder="예금주 이름"
-              className={INPUT_BASE}
-            />
-            {errors.accountHolder && (
-              <p className={ERROR_MESSAGE}>{errors.accountHolder.message}</p>
-            )}
-          </div>
-        </div>
-      </div>
+      <BankAccountSelector
+        register={register}
+        setValue={setValue}
+        errors={errors}
+        disabled={loading || isSubmitting}
+        defaultBankName={bankName}
+        defaultAccountNumber={accountNumber}
+        defaultAccountHolder={accountHolder}
+      />
 
       {/* 첨부파일 */}
       <div className={SECTION_CARD}>

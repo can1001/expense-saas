@@ -128,12 +128,20 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   }, [committee, department, getValues, setValue]);
 
   // 로그인한 사용자 정보 자동 채우기 (새 작성 시에만)
-  useFetchCurrentUser({
+  const { user: currentUser } = useFetchCurrentUser({
     skip: !!expenseId || !!initialData,
     onSuccess: (user) => {
       setValue('applicantName', user.username);
     },
   });
+
+  // 수정 모드에서도 현재 사용자 정보 로드 (적요 즐겨찾기용)
+  const { user: editModeUser } = useFetchCurrentUser({
+    skip: !expenseId && !initialData,
+  });
+
+  // 현재 사용자 ID (적요 즐겨찾기용)
+  const userId = currentUser?.id || editModeUser?.id;
 
   // 수정 모드일 때 데이터 로드
   useEffect(() => {
@@ -439,6 +447,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         errors={errors}
         disabled={loading || isSubmitting}
         detailOptions={detailOptions}
+        userId={userId}
       />
 
       {/* 신청 정보 */}

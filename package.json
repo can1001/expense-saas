@@ -24,7 +24,10 @@
     "screenshots:headed": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts --headed",
     "screenshots:mobile": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts --mobile",
     "test:push": "ts-node --project tsconfig.scripts.json scripts/test-push-notification.ts",
-    "test:push:browser": "npx playwright test scripts/test-push-browser.ts --headed"
+    "test:push:browser": "npx playwright test scripts/test-push-browser.ts --headed",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:e2e:headed": "npx playwright test --headed"
   },
   "engines": {
     "node": ">=24.0.0",

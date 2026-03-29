@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { UseFormRegister, UseFormSetValue, FieldErrors } from 'react-hook-form';
-import { ExpenseFormData } from '@/lib/schemas/expense-schema';
 import { SavedBankAccount } from '@/lib/schemas/bank-account-schema';
 import { getSavedBankAccounts } from '@/lib/services/bank-account-service';
 import BankAccountManagementModal from '@/components/bank-account/BankAccountManagementModal';
@@ -24,9 +23,9 @@ import {
 } from '@/lib/constants/styles';
 
 interface BankAccountSelectorProps {
-  register: UseFormRegister<ExpenseFormData>;
-  setValue: UseFormSetValue<ExpenseFormData>;
-  errors: FieldErrors<ExpenseFormData>;
+  register: UseFormRegister<any>;
+  setValue: UseFormSetValue<any>;
+  errors: FieldErrors<any>;
   disabled?: boolean;
   defaultBankName?: string;
   defaultAccountNumber?: string;
@@ -254,8 +253,8 @@ export default function BankAccountSelector({
               placeholder="예: 국민은행"
               className={`${INPUT_BASE} ${errors.bankName ? 'border-red-500' : ''}`}
             />
-            {errors.bankName && (
-              <p className={ERROR_MESSAGE}>{errors.bankName.message}</p>
+            {errors.bankName && 'message' in errors.bankName && (
+              <p className={ERROR_MESSAGE}>{errors.bankName.message as string}</p>
             )}
           </div>
 
@@ -268,8 +267,8 @@ export default function BankAccountSelector({
               placeholder="숫자만 입력"
               className={`${INPUT_BASE} ${errors.accountNumber ? 'border-red-500' : ''}`}
             />
-            {errors.accountNumber && (
-              <p className={ERROR_MESSAGE}>{errors.accountNumber.message}</p>
+            {errors.accountNumber && 'message' in errors.accountNumber && (
+              <p className={ERROR_MESSAGE}>{errors.accountNumber.message as string}</p>
             )}
           </div>
 
@@ -282,8 +281,8 @@ export default function BankAccountSelector({
               placeholder="예금주 이름"
               className={`${INPUT_BASE} ${errors.accountHolder ? 'border-red-500' : ''}`}
             />
-            {errors.accountHolder && (
-              <p className={ERROR_MESSAGE}>{errors.accountHolder.message}</p>
+            {errors.accountHolder && 'message' in errors.accountHolder && (
+              <p className={ERROR_MESSAGE}>{errors.accountHolder.message as string}</p>
             )}
           </div>
         </div>

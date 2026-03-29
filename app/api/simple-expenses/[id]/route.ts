@@ -9,14 +9,15 @@ import { deleteImages } from '@/lib/cloudinary';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 
 // GET /api/simple-expenses/[id] - 간편 지출결의서 상세 조회
+// 간편 지출결의서는 Expense 테이블에 version: '4.1.4'로 저장됨
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const expense = await prisma.simpleExpense.findUnique({
-      where: { id },
+    const expense = await prisma.expense.findUnique({
+      where: { id, version: '4.1.4' },
       include: {
         items: {
           orderBy: {
@@ -53,8 +54,18 @@ export async function PUT(
     // 유효성 검증
     const validatedData = updateSimpleExpenseSchema.parse(body);
 
+    // 기존 데이터 확인
+    const existing = await prisma.expense.findUnique({
+      where: { id, version: '4.1.4' },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new ApiError('지출결의서를 찾을 수 없습니다.', 404);
+    }
+
     // 기존 항목 삭제
-    await prisma.simpleExpenseItem.deleteMany({
+    await prisma.expenseItem.deleteMany({
       where: { expenseId: id },
     });
 
@@ -76,7 +87,7 @@ export async function PUT(
       : undefined;
 
     // 데이터베이스 업데이트
-    const expense = await prisma.simpleExpense.update({
+    const expense = await prisma.expense.update({
       where: { id },
       data: {
         ...(validatedData.expenseDate !== undefined && { expenseDate: validatedData.expenseDate }),
@@ -125,8 +136,18 @@ export async function DELETE(
   try {
     const { id } = await params;
 
+    // 기존 데이터 확인
+    const existing = await prisma.expense.findUnique({
+      where: { id, version: '4.1.4' },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new ApiError('지출결의서를 찾을 수 없습니다.', 404);
+    }
+
     // 첨부파일 정보 가져오기
-    const attachments = await prisma.simpleExpenseAttachment.findMany({
+    const attachments = await prisma.expenseAttachment.findMany({
       where: { expenseId: id },
       select: { publicId: true },
     });
@@ -142,8 +163,8 @@ export async function DELETE(
       }
     }
 
-    // 데이터베이스에서 지출결의서 삭제 (Cascade로 첨부파일도 함께 삭제됨)
-    await prisma.simpleExpense.delete({
+    // 데이터베이스에서 지출결의서 삭제 (Cascade로 항목/첨부파일도 함께 삭제됨)
+    await prisma.expense.delete({
       where: { id },
     });
 

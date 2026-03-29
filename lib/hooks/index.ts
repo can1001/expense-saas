@@ -7,3 +7,4 @@
 export { useFetchCurrentUser } from './useFetchCurrentUser';
 export { useExpenseFormState } from './useExpenseFormState';
 export { useExpenseFormSubmit } from './useExpenseFormSubmit';
+export { useBudgetPreferences } from './useBudgetPreferences';
