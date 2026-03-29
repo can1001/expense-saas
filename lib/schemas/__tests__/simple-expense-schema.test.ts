@@ -47,8 +47,8 @@ describe('simple-expense-schema', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should limit items to maximum 10', () => {
-      const items = Array.from({ length: 11 }, (_, i) => ({
+    it('should limit items to maximum 16', () => {
+      const items = Array.from({ length: 17 }, (_, i) => ({
         budgetCategory: '사무행정비',
         budgetSubcategory: '회의비',
         budgetDetail: '다과비',
