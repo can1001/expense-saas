@@ -10,6 +10,7 @@ import { ExpenseFormData, defaultExpenseItem, calculateAmount } from '@/lib/sche
 import { INPUT_BASE, SELECT_BASE, BTN_PRIMARY, BTN_SM, SECTION_CARD, SECTION_TITLE } from '@/lib/constants/styles';
 import { VoiceInputButton } from '@/components/mobile/VoiceInput';
 import MemoTooltip from './MemoTooltip';
+import { useMemoPreferences } from '@/lib/hooks/useMemoPreferences';
 
 // 천 단위 구분 포맷 함수
 const formatNumber = (value: number | undefined): string => {
@@ -30,6 +31,7 @@ interface ItemsSectionProps {
   errors?: FieldErrors<ExpenseFormData>;
   disabled?: boolean;
   detailOptions?: string[];  // 사용 가능한 세목 목록
+  userId?: string;  // 적요 즐겨찾기용 사용자 ID
 }
 
 export default function ItemsSection({
@@ -39,6 +41,7 @@ export default function ItemsSection({
   errors,
   disabled = false,
   detailOptions = [],
+  userId,
 }: ItemsSectionProps) {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -54,6 +57,13 @@ export default function ItemsSection({
   const [tooltipOpen, setTooltipOpen] = useState<Record<number, boolean>>({});
   const [memoLoading, setMemoLoading] = useState<Record<number, boolean>>({});
   const descriptionRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // 적요 즐겨찾기 훅
+  const {
+    favorites: memoFavorites,
+    toggleFavorite: toggleMemoFavorite,
+    isFavorite: isMemoFavorite,
+  } = useMemoPreferences(userId);
 
   // 적요 예제 로드
   const loadMemoExamples = useCallback(async (index: number, budgetDetailName: string) => {
@@ -257,9 +267,12 @@ export default function ItemsSection({
                   {/* 적요 예제 툴팁 */}
                   <MemoTooltip
                     examples={memoExamples[index] || []}
-                    isOpen={tooltipOpen[index] && (memoExamples[index]?.length > 0 || memoLoading[index])}
+                    favorites={memoFavorites.map((f) => f.memo)}
+                    isOpen={tooltipOpen[index] && (memoExamples[index]?.length > 0 || memoFavorites.length > 0 || memoLoading[index])}
                     onSelect={(example) => handleMemoSelect(index, example)}
                     onClose={() => setTooltipOpen((prev) => ({ ...prev, [index]: false }))}
+                    onToggleFavorite={(memo) => toggleMemoFavorite(memo, items?.[index]?.budgetDetail)}
+                    isFavorite={isMemoFavorite}
                     inputRef={{ current: descriptionRefs.current[index] }}
                     loading={memoLoading[index]}
                   />

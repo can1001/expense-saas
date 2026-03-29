@@ -16,6 +16,7 @@ import {
 import ItemBudgetSelector from './ItemBudgetSelector';
 import MemoTooltip from '../expense-form/MemoTooltip';
 import { INPUT_BASE, BTN_PRIMARY, BTN_SM, SECTION_CARD, SECTION_TITLE } from '@/lib/constants/styles';
+import { useMemoPreferences } from '@/lib/hooks/useMemoPreferences';
 
 // 천 단위 구분 포맷 함수
 const formatNumber = (value: number | undefined): string => {
@@ -35,6 +36,7 @@ interface SimpleItemsSectionProps {
   setValue: UseFormSetValue<SimpleExpenseFormData>;
   errors?: FieldErrors<SimpleExpenseFormData>;
   disabled?: boolean;
+  userId?: string;  // 적요 즐겨찾기용 사용자 ID
 }
 
 export default function SimpleItemsSection({
@@ -43,6 +45,7 @@ export default function SimpleItemsSection({
   setValue,
   errors,
   disabled = false,
+  userId,
 }: SimpleItemsSectionProps) {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -57,6 +60,13 @@ export default function SimpleItemsSection({
   const [tooltipOpen, setTooltipOpen] = useState<Record<number, boolean>>({});
   const [memoLoading, setMemoLoading] = useState<Record<number, boolean>>({});
   const descriptionRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // 적요 즐겨찾기 훅
+  const {
+    favorites: memoFavorites,
+    toggleFavorite: toggleMemoFavorite,
+    isFavorite: isMemoFavorite,
+  } = useMemoPreferences(userId);
 
   // items 배열 전체를 감시하여 총액 계산
   const items = useWatch({ control, name: 'items' });
@@ -241,9 +251,12 @@ export default function SimpleItemsSection({
                   />
                   <MemoTooltip
                     examples={memoExamples[index] || []}
+                    favorites={memoFavorites.map((f) => f.memo)}
                     isOpen={tooltipOpen[index] || false}
                     onSelect={(example) => handleMemoSelect(index, example)}
                     onClose={() => setTooltipOpen((prev) => ({ ...prev, [index]: false }))}
+                    onToggleFavorite={(memo) => toggleMemoFavorite(memo, currentItem?.budgetDetail)}
+                    isFavorite={isMemoFavorite}
                     inputRef={{ current: descriptionRefs.current[index] }}
                     loading={memoLoading[index] || false}
                   />
