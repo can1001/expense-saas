@@ -371,7 +371,7 @@ export default function ExpenseDetailPage() {
               <Printer className="w-5 h-5" />
               프린트
             </button>
-            {canDownloadExcel && (
+            {canDownloadExcel && expense.version !== '4.1.4' && (
               <button
                 onClick={handleDownloadWebExcel}
                 disabled={webExcelLoading}
@@ -393,7 +393,11 @@ export default function ExpenseDetailPage() {
             )}
             {canEdit && (
               <button
-                onClick={() => router.push(`/expenses/${id}/edit`)}
+                onClick={() => router.push(
+                  expense.version === '4.1.4'
+                    ? `/expenses/simple/${id}/edit`
+                    : `/expenses/${id}/edit`
+                )}
                 disabled={deleteLoading}
                 className={BTN_SECONDARY}
               >
@@ -512,52 +516,64 @@ export default function ExpenseDetailPage() {
           <div className={SECTION_CARD}>
             <h2 className={SECTION_TITLE}>세부 항목</h2>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full border border-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-300">
                       순서
                     </th>
                     {expense.version === '4.1.4' ? (
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                        예산항목(계정과목)
-                      </th>
+                      <>
+                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-300">
+                          항
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-300">
+                          목
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-300">
+                          세목
+                        </th>
+                      </>
                     ) : (
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
+                      <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-300">
                         예산(세목)
                       </th>
                     )}
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-300">
                       적요
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-300">
                       단가
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-300">
                       수량
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-300">
                       금액
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white">
                   {expense.items.map((item) => (
                     <tr key={item.id}>
-                      <td className="px-4 py-3 text-sm text-gray-900">{item.order}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {expense.version === '4.1.4'
-                          ? `${item.budgetCategory} | ${item.budgetSubcategory} | ${item.budgetDetail}`
-                          : item.budgetDetail}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{item.description}</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900">
+                      <td className="px-3 py-2 text-sm text-center text-gray-900 border border-gray-300">{item.order}</td>
+                      {expense.version === '4.1.4' ? (
+                        <>
+                          <td className="px-3 py-2 text-sm text-gray-900 border border-gray-300">{item.budgetCategory}</td>
+                          <td className="px-3 py-2 text-sm text-gray-900 border border-gray-300">{item.budgetSubcategory}</td>
+                          <td className="px-3 py-2 text-sm text-gray-900 border border-gray-300">{item.budgetDetail}</td>
+                        </>
+                      ) : (
+                        <td className="px-3 py-2 text-sm text-gray-900 border border-gray-300">{item.budgetDetail}</td>
+                      )}
+                      <td className="px-3 py-2 text-sm text-gray-900 border border-gray-300">{item.description}</td>
+                      <td className="px-3 py-2 text-sm text-right text-gray-900 border border-gray-300">
                         {item.unitPrice.toLocaleString('ko-KR')}
                       </td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900">
+                      <td className="px-3 py-2 text-sm text-right text-gray-900 border border-gray-300">
                         {item.quantity}
                       </td>
-                      <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">
+                      <td className="px-3 py-2 text-sm text-right font-semibold text-gray-900 border border-gray-300">
                         {formatCurrency(item.amount)}
                       </td>
                     </tr>
@@ -565,10 +581,10 @@ export default function ExpenseDetailPage() {
                 </tbody>
                 <tfoot className="bg-gray-50">
                   <tr>
-                    <td colSpan={5} className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
+                    <td colSpan={expense.version === '4.1.4' ? 7 : 5} className="px-3 py-2 text-right text-sm font-semibold text-gray-900 border border-gray-300">
                       총 청구금액
                     </td>
-                    <td className="px-4 py-3 text-right text-lg font-bold text-blue-500">
+                    <td className="px-3 py-2 text-right text-lg font-bold text-blue-500 border border-gray-300">
                       {formatCurrency(expense.requestAmount)}
                     </td>
                   </tr>
@@ -764,7 +780,7 @@ export default function ExpenseDetailPage() {
           <Printer className="w-5 h-5" />
           <span className="text-sm font-medium">프린트</span>
         </button>
-        {canDownloadExcel && (
+        {canDownloadExcel && expense.version !== '4.1.4' && (
           <button
             onClick={handleDownloadWebExcel}
             disabled={webExcelLoading}
@@ -780,7 +796,11 @@ export default function ExpenseDetailPage() {
         )}
         {canEdit && (
           <button
-            onClick={() => router.push(`/expenses/${id}/edit`)}
+            onClick={() => router.push(
+              expense.version === '4.1.4'
+                ? `/expenses/simple/${id}/edit`
+                : `/expenses/${id}/edit`
+            )}
             disabled={deleteLoading}
             className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors min-h-[48px]"
           >
