@@ -19,6 +19,7 @@ import {
   CheckCircle,
   Bell,
   PieChart,
+  HandCoins,
   LucideIcon,
 } from 'lucide-react';
 
@@ -81,6 +82,12 @@ export const ADMIN_SIDEBAR_MENU: SidebarGroup[] = [
     title: '알림',
     items: [
       { href: '/admin/notifications', label: '알림 발송', icon: Bell },
+    ],
+  },
+  {
+    title: '재정 수입',
+    items: [
+      { href: '/admin/offerings', label: '헌금 관리', icon: HandCoins },
     ],
   },
 ];
