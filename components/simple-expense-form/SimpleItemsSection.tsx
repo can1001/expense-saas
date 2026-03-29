@@ -56,8 +56,8 @@ export default function SimpleItemsSection({
   const totalAmount = items?.reduce((sum, item) => sum + (item?.amount || 0), 0) || 0;
 
   const handleAddItem = () => {
-    if (fields.length >= 10) {
-      alert('최대 10개까지 항목을 추가할 수 있습니다.');
+    if (fields.length >= 16) {
+      alert('최대 16개까지 항목을 추가할 수 있습니다.');
       return;
     }
     append(defaultSimpleExpenseItem);
@@ -240,7 +240,7 @@ export default function SimpleItemsSection({
       </div>
 
       {/* 항목 추가 버튼 - 목록 아래에 배치 */}
-      {fields.length < 10 && (
+      {fields.length < 16 && (
         <div className="mt-4 flex justify-center">
           <button
             type="button"

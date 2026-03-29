@@ -69,11 +69,11 @@ export const simpleExpenseFormSchema = z.object({
       '올바른 날짜 형식이 아닙니다.'
     ),
 
-  // 세부 항목들 (최소 1개, 최대 10개)
+  // 세부 항목들 (최소 1개, 최대 16개)
   items: z
     .array(simpleExpenseItemSchema)
     .min(1, '최소 1개의 항목이 필요합니다.')
-    .max(10, '최대 10개까지 항목을 추가할 수 있습니다.'),
+    .max(16, '최대 16개까지 항목을 추가할 수 있습니다.'),
 
   // 신청 정보
   requestDate: z

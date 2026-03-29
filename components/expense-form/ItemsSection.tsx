@@ -87,6 +87,13 @@ export default function ItemsSection({
     }, 150);
   };
 
+  // 적요 필드에서 Enter 키 입력 시 폼 제출 방지
+  const handleDescriptionKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+    }
+  };
+
   const handleAddItem = () => {
     if (fields.length >= 10) {
       alert('최대 10개까지 항목을 추가할 수 있습니다.');
@@ -227,6 +234,7 @@ export default function ItemsSection({
                     placeholder="상세 설명"
                     onFocus={() => handleDescriptionFocus(index)}
                     onBlur={() => handleDescriptionBlur(index)}
+                    onKeyDown={handleDescriptionKeyDown}
                     className={`${INPUT_BASE} flex-1 ${errors?.items?.[index]?.description ? 'border-red-500' : ''}`}
                   />
                   {/* 모바일 음성 입력 버튼 */}
