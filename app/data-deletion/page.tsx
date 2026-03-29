@@ -31,7 +31,7 @@ export default function DataDeletionPage() {
 
           <p className="font-semibold mb-2">Option 2 (Email Request):</p>
           <p className="text-gray-700">
-            Send an email to: <strong>chungyeon.ad@gmail.com</strong><br />
+            Send an email to: <strong>hyejong.jeong@gmail.com</strong><br />
             Include your account email or user ID.
           </p>
         </div>
@@ -54,7 +54,7 @@ export default function DataDeletionPage() {
         <h2 className="text-xl font-semibold text-gray-700 mt-8 mb-4">Contact</h2>
 
         <p className="text-gray-700">
-          Email: <strong>chungyeon.ad@gmail.com</strong>
+          Email: <strong>hyejong.jeong@gmail.com</strong>
         </p>
       </div>
     </div>
