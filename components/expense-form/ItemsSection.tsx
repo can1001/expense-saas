@@ -156,22 +156,12 @@ export default function ItemsSection({
 
   return (
     <div className={SECTION_CARD}>
-      {/* 헤더 - 모바일에서 세로 정렬 */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-        <div className="flex items-center justify-between sm:justify-start gap-3">
-          <h2 className={SECTION_TITLE}>세부 항목</h2>
-          <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-            {fields.length}/10개
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={handleAddItem}
-          disabled={disabled || fields.length >= 10}
-          className={`${BTN_PRIMARY} ${BTN_SM} w-full sm:w-auto`}
-        >
-          + 항목 추가
-        </button>
+      {/* 헤더 */}
+      <div className="flex items-center justify-between sm:justify-start gap-3 mb-4">
+        <h2 className={SECTION_TITLE}>세부 항목</h2>
+        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+          {fields.length}/10개
+        </span>
       </div>
 
       {/* 예산(목) 미선택 안내 */}
@@ -278,6 +268,7 @@ export default function ItemsSection({
                   <MemoTooltip
                     examples={memoExamples[index] || []}
                     favorites={memoFavorites.map((f) => f.memo)}
+                    currentValue={items?.[index]?.description || ''}
                     isOpen={tooltipOpen[index] && (memoExamples[index]?.length > 0 || memoFavorites.length > 0 || memoLoading[index])}
                     onSelect={(example) => handleMemoSelect(index, example)}
                     onClose={() => setTooltipOpen((prev) => ({ ...prev, [index]: false }))}
@@ -344,6 +335,20 @@ export default function ItemsSection({
           </div>
         ))}
       </div>
+
+      {/* 항목 추가 버튼 - 목록 아래에 배치 */}
+      {fields.length < 10 && (
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={handleAddItem}
+            disabled={disabled}
+            className={`${BTN_PRIMARY} ${BTN_SM}`}
+          >
+            + 항목 추가
+          </button>
+        </div>
+      )}
 
       {/* 총액 - 모바일에서 눈에 띄게 */}
       <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t-2 border-gray-200">

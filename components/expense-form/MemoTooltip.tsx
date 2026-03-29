@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback, RefObject } from 'react';
 interface MemoTooltipProps {
   examples: string[];
   favorites?: string[];
+  currentValue?: string;  // 현재 입력값 (즐겨찾기 추가용)
   isOpen: boolean;
   onSelect: (example: string) => void;
   onClose: () => void;
@@ -17,6 +18,7 @@ interface MemoTooltipProps {
 export default function MemoTooltip({
   examples,
   favorites = [],
+  currentValue = '',
   isOpen,
   onSelect,
   onClose,
@@ -229,6 +231,23 @@ export default function MemoTooltip({
                 );
               })}
           </ul>
+        </div>
+      )}
+
+      {/* 현재 입력값 즐겨찾기 추가 버튼 */}
+      {!loading && onToggleFavorite && currentValue.trim() && !isFavorite?.(currentValue.trim()) && (
+        <div className="border-t border-gray-200 px-3 py-2 bg-gray-50">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite(currentValue.trim());
+            }}
+            className="w-full text-left text-sm text-blue-600 hover:text-blue-700 flex items-center gap-2"
+          >
+            <span className="text-yellow-500">☆</span>
+            <span className="truncate">&quot;{currentValue.trim()}&quot; 즐겨찾기에 추가</span>
+          </button>
         </div>
       )}
     </div>

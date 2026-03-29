@@ -252,6 +252,7 @@ export default function SimpleItemsSection({
                   <MemoTooltip
                     examples={memoExamples[index] || []}
                     favorites={memoFavorites.map((f) => f.memo)}
+                    currentValue={currentItem?.description || ''}
                     isOpen={tooltipOpen[index] || false}
                     onSelect={(example) => handleMemoSelect(index, example)}
                     onClose={() => setTooltipOpen((prev) => ({ ...prev, [index]: false }))}
