@@ -7,7 +7,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { SELECT_BASE, INPUT_DISABLED, SPINNER } from '@/lib/constants/styles';
+import { SELECT_BASE, INPUT_BASE, INPUT_DISABLED, SPINNER } from '@/lib/constants/styles';
 
 interface BudgetDetailInfo {
   name: string;
@@ -47,6 +47,7 @@ export default function ItemBudgetSelector({
 }: ItemBudgetSelectorProps) {
   const [allDetails, setAllDetails] = useState<BudgetDetailInfo[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // 모든 세목 목록 로드 (부모 정보 포함)
   const fetchAllDetails = useCallback(async () => {
@@ -96,8 +97,19 @@ export default function ItemBudgetSelector({
     return detail.managerId === firstItemManagerId;
   });
 
+  // 검색어로 필터링 (세목명, 항, 목 모두 검색)
+  const filteredDetails = availableDetails.filter((detail) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      detail.name.toLowerCase().includes(term) ||
+      detail.category.toLowerCase().includes(term) ||
+      detail.subcategory.toLowerCase().includes(term)
+    );
+  });
+
   // 항/목 기준 그룹화
-  const groupedDetails = availableDetails.reduce((acc, detail) => {
+  const groupedDetails = filteredDetails.reduce((acc, detail) => {
     const groupKey = `${detail.category} > ${detail.subcategory}`;
     if (!acc[groupKey]) acc[groupKey] = [];
     acc[groupKey].push(detail);
@@ -123,13 +135,28 @@ export default function ItemBudgetSelector({
         </div>
       )}
 
+      {/* 세목 검색 */}
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">세목 검색</label>
+        <input
+          type="text"
+          placeholder="세목명, 항, 목으로 검색..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          disabled={disabled}
+          className={`${INPUT_BASE} text-sm py-1.5`}
+        />
+      </div>
+
       {/* 세목 선택 (메인) */}
       <div>
-        <label className="block text-xs text-gray-500 mb-1">세목 선택</label>
+        <label className="block text-xs text-gray-500 mb-1">
+          세목 선택 {searchTerm && `(${filteredDetails.length}건)`}
+        </label>
         <select
           value={value.detail || ''}
           onChange={(e) => handleDetailChange(e.target.value)}
-          disabled={disabled || availableDetails.length === 0}
+          disabled={disabled || filteredDetails.length === 0}
           className={selectClasses}
         >
           <option value="">세목을 선택하세요</option>
