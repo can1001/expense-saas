@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Control, useFieldArray, UseFormRegister, UseFormSetValue, useWatch, FieldErrors } from 'react-hook-form';
 import {
   SimpleExpenseFormData,
@@ -14,6 +14,7 @@ import {
   calculateAmount,
 } from '@/lib/schemas/simple-expense-schema';
 import ItemBudgetSelector from './ItemBudgetSelector';
+import MemoTooltip from '../expense-form/MemoTooltip';
 import { INPUT_BASE, BTN_PRIMARY, BTN_SM, SECTION_CARD, SECTION_TITLE } from '@/lib/constants/styles';
 
 // 천 단위 구분 포맷 함수
@@ -50,6 +51,12 @@ export default function SimpleItemsSection({
 
   // 첫 번째 항목의 담당자 ID (결재선 비교용)
   const [firstItemManagerId, setFirstItemManagerId] = useState<string | null>(null);
+
+  // 적요 예제 관련 상태
+  const [memoExamples, setMemoExamples] = useState<Record<number, string[]>>({});
+  const [tooltipOpen, setTooltipOpen] = useState<Record<number, boolean>>({});
+  const [memoLoading, setMemoLoading] = useState<Record<number, boolean>>({});
+  const descriptionRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // items 배열 전체를 감시하여 총액 계산
   const items = useWatch({ control, name: 'items' });
@@ -98,6 +105,50 @@ export default function SimpleItemsSection({
       }
     }
   }, [setValue, fields.length]);
+
+  // 적요 예제 로드
+  const loadMemoExamples = useCallback(async (index: number, budgetDetailName: string) => {
+    if (!budgetDetailName) {
+      setMemoExamples((prev) => ({ ...prev, [index]: [] }));
+      return;
+    }
+
+    setMemoLoading((prev) => ({ ...prev, [index]: true }));
+    try {
+      const res = await fetch(`/api/budget/memo-examples?budgetDetailName=${encodeURIComponent(budgetDetailName)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMemoExamples((prev) => ({ ...prev, [index]: data.examples || [] }));
+      }
+    } catch (error) {
+      console.error('적요 예제 로드 실패:', error);
+    } finally {
+      setMemoLoading((prev) => ({ ...prev, [index]: false }));
+    }
+  }, []);
+
+  // 적요 예제 선택
+  const handleMemoSelect = (index: number, example: string) => {
+    setValue(`items.${index}.description`, example);
+    setTooltipOpen((prev) => ({ ...prev, [index]: false }));
+    descriptionRefs.current[index]?.focus();
+  };
+
+  // 적요 필드 포커스
+  const handleDescriptionFocus = (index: number) => {
+    const budgetDetail = items?.[index]?.budgetDetail;
+    if (budgetDetail && !memoExamples[index]) {
+      loadMemoExamples(index, budgetDetail);
+    }
+    setTooltipOpen((prev) => ({ ...prev, [index]: true }));
+  };
+
+  // 적요 필드 블러
+  const handleDescriptionBlur = (index: number) => {
+    setTimeout(() => {
+      setTooltipOpen((prev) => ({ ...prev, [index]: false }));
+    }, 150);
+  };
 
   // 단가/수량 변경 시 금액 자동 계산 (useEffect로 분리하여 register와 충돌 방지)
   useEffect(() => {
@@ -169,16 +220,32 @@ export default function SimpleItemsSection({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
+                <div className="md:col-span-2 relative">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     적요 <span className="text-red-500">*</span>
+                    {currentItem?.budgetDetail && (
+                      <span className="text-xs text-gray-400 ml-2">(클릭하면 예제 표시)</span>
+                    )}
                   </label>
                   <input
                     type="text"
                     {...register(`items.${index}.description`)}
+                    ref={(el) => {
+                      descriptionRefs.current[index] = el;
+                    }}
                     disabled={disabled}
                     placeholder="예: 11월분 식대"
+                    onFocus={() => handleDescriptionFocus(index)}
+                    onBlur={() => handleDescriptionBlur(index)}
                     className={`${INPUT_BASE} ${errors?.items?.[index]?.description ? 'border-red-500' : ''}`}
+                  />
+                  <MemoTooltip
+                    examples={memoExamples[index] || []}
+                    isOpen={tooltipOpen[index] || false}
+                    onSelect={(example) => handleMemoSelect(index, example)}
+                    onClose={() => setTooltipOpen((prev) => ({ ...prev, [index]: false }))}
+                    inputRef={{ current: descriptionRefs.current[index] }}
+                    loading={memoLoading[index] || false}
                   />
                   {errors?.items?.[index]?.description && (
                     <p className="mt-1 text-sm text-red-500">
