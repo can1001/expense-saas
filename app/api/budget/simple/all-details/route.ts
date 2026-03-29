@@ -51,9 +51,7 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: [
-        { subcategory: { category: { sortOrder: 'asc' } } },
-        { subcategory: { sortOrder: 'asc' } },
-        { sortOrder: 'asc' },
+        { name: 'asc' },  // 세목 이름 가나다순 정렬
       ],
     });
 

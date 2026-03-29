@@ -89,12 +89,12 @@ export default function ItemBudgetSelector({
     }
   };
 
-  // 결재선이 다른지 확인 (첫 번째 항목이 아니고, 담당자가 다른 경우)
-  const isDetailDisabled = (detail: BudgetDetailInfo): boolean => {
-    if (isFirstItem) return false;
-    if (!firstItemManagerId) return false;
-    return detail.managerId !== firstItemManagerId;
-  };
+  // 선택 가능한 세목만 필터링 (첫 번째 항목과 동일 결재선)
+  const availableDetails = allDetails.filter((detail) => {
+    if (isFirstItem) return true;
+    if (!firstItemManagerId) return true;
+    return detail.managerId === firstItemManagerId;
+  });
 
   const selectClasses = `${SELECT_BASE} ${disabled ? INPUT_DISABLED : ''} text-sm py-1.5`;
   const readonlyClasses = `${SELECT_BASE} text-sm py-1.5 bg-gray-100 text-gray-700`;
@@ -121,22 +121,18 @@ export default function ItemBudgetSelector({
         <select
           value={value.detail || ''}
           onChange={(e) => handleDetailChange(e.target.value)}
-          disabled={disabled || allDetails.length === 0}
+          disabled={disabled || availableDetails.length === 0}
           className={selectClasses}
         >
           <option value="">세목을 선택하세요</option>
-          {allDetails.map((detail) => {
-            const isDisabled = isDetailDisabled(detail);
-            return (
-              <option
-                key={`${detail.category}-${detail.subcategory}-${detail.name}`}
-                value={detail.name}
-                disabled={isDisabled}
-              >
-                {detail.name}{isDisabled ? ' (결재선 다름)' : ''}
-              </option>
-            );
-          })}
+          {availableDetails.map((detail) => (
+            <option
+              key={`${detail.category}-${detail.subcategory}-${detail.name}`}
+              value={detail.name}
+            >
+              {detail.name}
+            </option>
+          ))}
         </select>
       </div>
 

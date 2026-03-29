@@ -101,16 +101,8 @@ export default function SimpleItemsSection({
 
   return (
     <div className={SECTION_CARD}>
-      <div className="flex justify-between items-center mb-4">
+      <div className="mb-4">
         <h2 className={SECTION_TITLE}>세부 항목</h2>
-        <button
-          type="button"
-          onClick={handleAddItem}
-          disabled={disabled || fields.length >= 10}
-          className={`${BTN_PRIMARY} ${BTN_SM}`}
-        >
-          + 항목 추가
-        </button>
       </div>
 
       <p className="text-sm text-gray-500 mb-4">
@@ -232,6 +224,20 @@ export default function SimpleItemsSection({
           );
         })}
       </div>
+
+      {/* 항목 추가 버튼 - 목록 아래에 배치 */}
+      {fields.length < 10 && (
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={handleAddItem}
+            disabled={disabled}
+            className={`${BTN_PRIMARY} ${BTN_SM}`}
+          >
+            + 항목 추가
+          </button>
+        </div>
+      )}
 
       {/* 총액 */}
       <div className="mt-6 pt-6 border-t border-gray-200">
