@@ -121,7 +121,17 @@ export default function ItemsSection({
       alert('최대 10개까지 항목을 추가할 수 있습니다.');
       return;
     }
-    append(defaultExpenseItem);
+
+    // 첫 번째 항목의 예산 정보를 복사 (일반 지출결의서는 모든 항목이 동일 예산 계층 사용)
+    const firstItem = items?.[0];
+    const newItem = {
+      ...defaultExpenseItem,
+      budgetCategory: firstItem?.budgetCategory || '',
+      budgetSubcategory: firstItem?.budgetSubcategory || '',
+      budgetDetail: firstItem?.budgetDetail || '',
+    };
+
+    append(newItem);
   };
 
   const handleRemoveItem = (index: number) => {
