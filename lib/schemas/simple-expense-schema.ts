@@ -40,7 +40,7 @@ export const simpleExpenseItemSchema = z.object({
 
   unitPrice: z
     .number()
-    .positive('단가는 0보다 커야 합니다.')
+    .nonnegative('단가는 0 이상이어야 합니다.')
     .int('단가는 정수여야 합니다.')
     .max(1000000000, '단가가 너무 큽니다.'),
 
@@ -121,7 +121,7 @@ export const defaultSimpleExpenseItem: SimpleExpenseItem = {
   budgetSubcategory: '',
   budgetDetail: '',
   description: '',
-  unitPrice: 1,
+  unitPrice: 0,
   quantity: 1,
   amount: 0,
 };

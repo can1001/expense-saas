@@ -16,6 +16,18 @@ import {
 import ItemBudgetSelector from './ItemBudgetSelector';
 import { INPUT_BASE, BTN_PRIMARY, BTN_SM, SECTION_CARD, SECTION_TITLE } from '@/lib/constants/styles';
 
+// 천 단위 구분 포맷 함수
+const formatNumber = (value: number | undefined): string => {
+  if (value === undefined || value === 0) return '';
+  return value.toLocaleString('ko-KR');
+};
+
+// 문자열에서 숫자만 추출
+const parseNumber = (value: string): number => {
+  const num = parseInt(value.replace(/[^0-9]/g, ''), 10);
+  return isNaN(num) ? 0 : num;
+};
+
 interface SimpleItemsSectionProps {
   control: Control<SimpleExpenseFormData>;
   register: UseFormRegister<SimpleExpenseFormData>;
@@ -180,10 +192,12 @@ export default function SimpleItemsSection({
                     단가 <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="number"
-                    {...register(`items.${index}.unitPrice`, { valueAsNumber: true })}
+                    type="text"
+                    inputMode="numeric"
+                    value={formatNumber(currentItem?.unitPrice)}
+                    onChange={(e) => setValue(`items.${index}.unitPrice`, parseNumber(e.target.value))}
                     disabled={disabled}
-                    min="1"
+                    placeholder="0"
                     className={`${INPUT_BASE} ${errors?.items?.[index]?.unitPrice ? 'border-red-500' : ''}`}
                   />
                   {errors?.items?.[index]?.unitPrice && (

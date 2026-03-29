@@ -96,6 +96,14 @@ export default function ItemBudgetSelector({
     return detail.managerId === firstItemManagerId;
   });
 
+  // 항/목 기준 그룹화
+  const groupedDetails = availableDetails.reduce((acc, detail) => {
+    const groupKey = `${detail.category} > ${detail.subcategory}`;
+    if (!acc[groupKey]) acc[groupKey] = [];
+    acc[groupKey].push(detail);
+    return acc;
+  }, {} as Record<string, BudgetDetailInfo[]>);
+
   const selectClasses = `${SELECT_BASE} ${disabled ? INPUT_DISABLED : ''} text-sm py-1.5`;
   const readonlyClasses = `${SELECT_BASE} text-sm py-1.5 bg-gray-100 text-gray-700`;
 
@@ -125,13 +133,17 @@ export default function ItemBudgetSelector({
           className={selectClasses}
         >
           <option value="">세목을 선택하세요</option>
-          {availableDetails.map((detail) => (
-            <option
-              key={`${detail.category}-${detail.subcategory}-${detail.name}`}
-              value={detail.name}
-            >
-              {detail.name}
-            </option>
+          {Object.entries(groupedDetails).map(([groupLabel, details]) => (
+            <optgroup key={groupLabel} label={groupLabel}>
+              {details.map((detail) => (
+                <option
+                  key={`${detail.category}-${detail.subcategory}-${detail.name}`}
+                  value={detail.name}
+                >
+                  {detail.name}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </div>
