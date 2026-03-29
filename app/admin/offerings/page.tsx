@@ -30,7 +30,6 @@ import {
   formatCurrency,
   getTodayString,
   getWeekLabel,
-  mapKoreanTypeToEnum,
 } from '@/lib/constants/offering-types';
 
 interface Offering {

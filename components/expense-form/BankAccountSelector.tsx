@@ -22,7 +22,6 @@ import {
   SPINNER_BLUE,
 } from '@/lib/constants/styles';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface BankAccountSelectorProps {
   register: UseFormRegister<any>;
   setValue: UseFormSetValue<any>;

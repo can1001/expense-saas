@@ -13,7 +13,7 @@ export const TEST_ADMIN = {
 
 // Extend base test with authentication
 export const test = base.extend<{ authenticatedPage: typeof base }>({
-  authenticatedPage: async ({ page }, use) => {
+  authenticatedPage: async ({ page }, useBase) => {
     // Login before test
     await page.goto('/login');
     await page.getByPlaceholder(/아이디/i).fill(TEST_USER.userid);
@@ -23,7 +23,7 @@ export const test = base.extend<{ authenticatedPage: typeof base }>({
     // Wait for redirect to home
     await expect(page).toHaveURL('/', { timeout: 10000 });
 
-    await use(base);
+    await useBase(base);
   },
 });
 

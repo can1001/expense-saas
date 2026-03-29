@@ -41,6 +41,13 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-require-imports": "off",
     },
   },
+  // Disable React Hook rules in test fixtures
+  {
+    files: ["e2e/**/*.ts"],
+    rules: {
+      "react-hooks/rules-of-hooks": "off",
+    },
+  },
   // Disable img element warnings for print and signature components
   // These components use <img> intentionally because Next.js Image doesn't work in print contexts
   {
