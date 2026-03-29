@@ -1,3 +1,16 @@
 # Ralph Loop Progress
 시작: Mon Mar 30 00:43:13 KST 2026
 ---
+
+[TASK] npm run lint 실행 가능 - 완료 - 00:49
+- 구현 내용: ESLint 오류 및 경고 수정
+- 수정/생성 파일:
+  - 삭제: .eslintignore
+  - 수정: eslint.config.mjs (e2e 테스트 파일 React Hook 규칙 비활성화)
+  - 수정: app/admin/offerings/page.tsx (미사용 mapKoreanTypeToEnum import 제거)
+  - 수정: app/admin/quarterly-report/page.tsx (미사용 TrendingUp import 제거)
+  - 수정: components/expense-form/BankAccountSelector.tsx (불필요한 eslint-disable 주석 제거)
+  - 수정: e2e/fixtures/auth.ts (변수명 use → useBase 변경)
+- 발견한 패턴: ESLint v9에서는 .eslintignore가 deprecated되어 eslint.config.mjs의 ignores 속성 사용
+- 주의사항: Playwright fixture에서는 React Hook 규칙을 비활성화해야 함
+---
