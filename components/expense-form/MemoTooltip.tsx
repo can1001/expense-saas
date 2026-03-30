@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, RefObject } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, RefObject } from 'react';
 
 interface MemoTooltipProps {
   examples: string[];
@@ -31,7 +31,10 @@ export default function MemoTooltip({
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   // 즐겨찾기와 예제를 합친 목록 (즐겨찾기가 먼저, 중복 제거)
-  const allItems = [...favorites, ...examples.filter((e) => !favorites.includes(e))];
+  const allItems = useMemo(
+    () => [...favorites, ...examples.filter((e) => !favorites.includes(e))],
+    [favorites, examples]
+  );
   const totalItems = allItems.length;
 
   // 선택 인덱스 초기화

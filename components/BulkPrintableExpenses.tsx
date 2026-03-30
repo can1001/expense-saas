@@ -3,6 +3,7 @@
 import React from 'react';
 import { PrintHeader, PrintItems, PrintFooter } from './print';
 import type { Expense, ApprovalLine, ExpenseAttachment } from './print/types';
+import type { PrintMode } from './print';
 
 export interface ExpenseWithApproval {
   expense: Expense;
@@ -11,6 +12,7 @@ export interface ExpenseWithApproval {
 
 interface BulkPrintableExpensesProps {
   expenses: ExpenseWithApproval[];
+  printMode?: PrintMode;
 }
 
 // 첨부파일 타입 분류 (문서 vs 영수증)
@@ -62,25 +64,28 @@ const getReceiptGridClass = (count: number): string => {
   return 'receipt-many';
 };
 
-export default function BulkPrintableExpenses({ expenses }: BulkPrintableExpensesProps) {
+export default function BulkPrintableExpenses({ expenses, printMode = 'both' }: BulkPrintableExpensesProps) {
   return (
-    <div className="bulk-print-container">
+    <div className={`bulk-print-container print-mode-${printMode}`}>
       {expenses.map((item, index) => (
         <div
           key={item.expense.id}
           className={`bulk-print-item ${index < expenses.length - 1 ? 'page-break' : ''}`}
         >
           {/* 지출결의서 본문 (1페이지) */}
-          <div className="expense-document">
-            <PrintHeader expense={item.expense} approvalLine={item.approvalLine} />
-            <PrintItems
-              items={item.expense.items}
-              totalAmount={item.expense.requestAmount}
-            />
-            <PrintFooter expense={item.expense} />
-          </div>
+          {printMode !== 'receipt' && (
+            <div className="expense-document">
+              <PrintHeader expense={item.expense} approvalLine={item.approvalLine} />
+              <PrintItems
+                items={item.expense.items}
+                totalAmount={item.expense.requestAmount}
+              />
+              <PrintFooter expense={item.expense} />
+            </div>
+          )}
 
-          {/* 첨부파일 페이지 (2페이지) - 항상 렌더링 (양면 인쇄용) */}
+          {/* 첨부파일 페이지 (2페이지) - printMode에 따라 렌더링 */}
+          {printMode !== 'expense' && (
           <div className="attachments-page">
             {item.expense.attachments && item.expense.attachments.length > 0 ? (
               (() => {
@@ -145,6 +150,7 @@ export default function BulkPrintableExpenses({ expenses }: BulkPrintableExpense
               </div>
             )}
           </div>
+          )}
         </div>
       ))}
 
@@ -167,9 +173,11 @@ export default function BulkPrintableExpenses({ expenses }: BulkPrintableExpense
           page-break-after: always;
         }
 
-        /* 지출결의서 본문 (1페이지) - 항상 다음 페이지로 넘김 */
+        /* 지출결의서 본문 (1페이지) - 양면 모드에서만 페이지 넘김 */
         .expense-document {
           padding: 12mm 15mm;
+        }
+        .print-mode-both .expense-document {
           page-break-after: always;
         }
 

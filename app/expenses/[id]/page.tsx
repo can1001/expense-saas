@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import ImagePreview from '@/components/ImagePreview';
 import Header from '@/components/Header';
 import PrintableExpense from '@/components/PrintableExpense';
+import { PrintPreviewModal, usePDFDownload } from '@/components/print';
 import ApprovalStatusBadge from '@/components/approval/ApprovalStatusBadge';
 import ApprovalLineDisplay from '@/components/approval/ApprovalLineDisplay';
 import ApprovalActionButtons from '@/components/approval/ApprovalActionButtons';
@@ -30,6 +31,7 @@ export default function ExpenseDetailPage() {
   const [currentUser, setCurrentUser] = useState<{ userid: string; username: string; role: string } | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentStatusLoading, setPaymentStatusLoading] = useState(false);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   // 로그인한 사용자 정보 가져오기
   useEffect(() => {
@@ -120,7 +122,7 @@ export default function ExpenseDetailPage() {
   };
 
   const handlePrint = () => {
-    window.print();
+    setShowPrintPreview(true);
   };
 
   // 웹 교적용 엑셀 다운로드
@@ -221,6 +223,12 @@ export default function ExpenseDetailPage() {
   // 지급상태 변경 권한 확인 (admin, finance_head, accountant, admin_assistant)
   const paymentStatusRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
   const canChangePaymentStatus = currentUser && paymentStatusRoles.includes(currentUser.role);
+
+  // PDF 다운로드 훅 (early return 전에 호출해야 함)
+  const { downloadPDF, loading: pdfLoading } = usePDFDownload({
+    expense,
+    approvalLine: approvalData?.approvalLine,
+  });
 
   if (loading) {
     return (
@@ -832,6 +840,16 @@ export default function ExpenseDetailPage() {
         currentStatus={(expense.paymentStatus || 'PENDING') as 'PENDING' | 'HOLD' | 'CANCELLED' | 'COMPLETED'}
         isProcessing={paymentStatusLoading}
         currentExpenseDate={expense.expenseDate ? String(expense.expenseDate) : null}
+      />
+
+      {/* 인쇄 미리보기 모달 */}
+      <PrintPreviewModal
+        isOpen={showPrintPreview}
+        onClose={() => setShowPrintPreview(false)}
+        expense={expense}
+        approvalLine={approvalData?.approvalLine}
+        onDownloadPDF={downloadPDF}
+        pdfLoading={pdfLoading}
       />
     </>
   );
