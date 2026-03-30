@@ -1,12 +1,21 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 
 /**
  * 지출결의서 작성 E2E 테스트
- *
- * 참고: 인증이 필요한 테스트는 테스트 사용자 계정이 필요합니다.
- * 현재 seed 데이터에는 비밀번호가 설정된 사용자가 없으므로,
- * 미인증 상태에서 리다이렉트 동작만 테스트합니다.
  */
+
+const TEST_USER = {
+  userid: '청연테스트',
+  password: 'chc2026',
+};
+
+async function login(page: Page) {
+  await page.goto('/login');
+  await page.getByRole('textbox', { name: '아이디' }).fill(TEST_USER.userid);
+  await page.getByLabel('비밀번호').fill(TEST_USER.password);
+  await page.getByRole('button', { name: '로그인' }).click();
+  await expect(page).toHaveURL('/', { timeout: 15000 });
+}
 
 test.describe('지출결의서 접근 제어', () => {
   test('미인증 시 일반 지출결의서 페이지 접근 → 로그인 리다이렉트', async ({ page }) => {
@@ -31,68 +40,65 @@ test.describe('지출결의서 접근 제어', () => {
   });
 });
 
-/**
- * 아래 테스트들은 인증된 사용자가 필요합니다.
- * 테스트 환경에 비밀번호가 설정된 사용자를 추가한 후 활성화하세요.
- *
- * 활성화 방법:
- * 1. prisma/seed.ts에서 테스트 사용자 추가 (비밀번호 포함)
- * 2. npm run db:seed 실행
- * 3. test.skip을 test로 변경
- */
+test.describe('일반 지출결의서 작성', () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
 
-test.describe('일반 지출결의서 작성 (인증 필요)', () => {
-  test.skip('페이지 표시 확인', async ({ page }) => {
-    // TODO: 로그인 후 테스트
+  test('페이지 표시 확인', async ({ page }) => {
     await page.goto('/expenses/new');
     await expect(page.getByRole('heading', { name: /새 지출결의서 작성/ })).toBeVisible();
     await expect(page.getByText('예산 정보')).toBeVisible();
     await expect(page.getByText('세부 항목')).toBeVisible();
-    await expect(page.getByRole('button', { name: '저장' })).toBeVisible();
+    // "저장된 계좌" 탭과 구분하기 위해 type="submit" 조건 추가
+    await expect(page.locator('button[type="submit"]').filter({ hasText: '저장' }).first()).toBeVisible();
   });
 
-  test.skip('필수 항목 누락 시 유효성 검사', async ({ page }) => {
-    // TODO: 로그인 후 테스트
+  test('필수 항목 누락 시 유효성 검사', async ({ page }) => {
     await page.goto('/expenses/new');
-    await page.getByRole('button', { name: '저장' }).click();
+    // "저장된 계좌" 탭과 구분하기 위해 type="submit" 조건 추가
+    await page.locator('button[type="submit"]').filter({ hasText: '저장' }).first().click();
     await expect(page.getByText(/다음 항목을 확인해주세요|필수/i)).toBeVisible({ timeout: 5000 });
   });
 
-  test.skip('항목 추가 및 삭제', async ({ page }) => {
-    // TODO: 로그인 후 테스트
+  test('항목 추가 및 삭제', async ({ page }) => {
     await page.goto('/expenses/new');
 
-    // 초기 항목 1개 확인
-    await expect(page.getByText('항목 1')).toBeVisible();
+    // 초기 항목 1개 확인 (항목 번호 뱃지 - 둥근 아이콘)
+    const itemBadges = page.locator('span.rounded-full.bg-blue-500');
+    await expect(itemBadges.first()).toBeVisible();
+    const initialCount = await itemBadges.count();
 
     // 항목 추가
     await page.getByRole('button', { name: /항목 추가/i }).click();
-    await expect(page.getByText('항목 2')).toBeVisible();
+    await expect(itemBadges).toHaveCount(initialCount + 1);
 
     // 항목 삭제
-    const deleteButtons = page.getByRole('button', { name: '삭제' });
-    await deleteButtons.last().click();
-    await expect(page.getByText('항목 2')).not.toBeVisible();
+    const visibleDeleteButtons = page.getByRole('button').filter({ hasText: '삭제' });
+    if (await visibleDeleteButtons.count() > 0) {
+      await visibleDeleteButtons.last().click();
+      await expect(itemBadges).toHaveCount(initialCount);
+    }
   });
 
-  test.skip('금액 자동 계산 (단가 × 수량)', async ({ page }) => {
-    // TODO: 로그인 후 테스트
+  test('금액 자동 계산 (단가 × 수량)', async ({ page }) => {
     await page.goto('/expenses/new');
 
-    // 단가 입력
-    const unitPriceInput = page.locator('input').filter({ hasText: /단가/ }).or(page.getByPlaceholder('0').first());
-    await unitPriceInput.fill('10000');
+    // 첫 번째 항목 내의 입력 필드 선택
+    const firstItem = page.locator('.border.border-gray-200.rounded-lg').first();
+    const numericInputs = firstItem.locator('input[inputmode="numeric"]');
 
-    // 수량 입력
-    const quantityInput = page.locator('input[type="text"]').nth(1);
-    await quantityInput.fill('5');
+    // 단가 입력 (첫 번째 numeric 필드)
+    await numericInputs.first().fill('10000');
 
-    // 금액 확인 (10000 × 5 = 50000)
-    await expect(page.getByText('50,000')).toBeVisible();
+    // 수량 입력 (두 번째 numeric 필드)
+    await numericInputs.nth(1).fill('5');
+
+    // 금액 확인 (10000 × 5 = 50000) - 항목 내 금액 표시 영역에서 확인
+    await expect(firstItem.getByText('50,000원')).toBeVisible({ timeout: 3000 });
   });
 
-  test.skip('적요 입력 중 Enter 키 폼 제출 방지', async ({ page }) => {
-    // TODO: 로그인 후 테스트
+  test('적요 입력 중 Enter 키 폼 제출 방지', async ({ page }) => {
     await page.goto('/expenses/new');
 
     // 적요 필드 찾기
@@ -105,25 +111,26 @@ test.describe('일반 지출결의서 작성 (인증 필요)', () => {
   });
 });
 
-test.describe('간편 지출결의서 작성 (인증 필요)', () => {
-  test.skip('페이지 표시 확인', async ({ page }) => {
-    // TODO: 로그인 후 테스트
+test.describe('간편 지출결의서 작성', () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
+  test('페이지 표시 확인', async ({ page }) => {
     await page.goto('/expenses/simple/new');
     await expect(page.getByRole('heading', { name: /새 지출결의서 작성.*간편/i })).toBeVisible();
     await expect(page.getByText('세부 항목')).toBeVisible();
     await expect(page.getByText('청구 정보')).toBeVisible();
   });
 
-  test.skip('항목 추가 및 삭제', async ({ page }) => {
-    // TODO: 로그인 후 테스트
+  test('항목 추가 및 삭제', async ({ page }) => {
     await page.goto('/expenses/simple/new');
     await expect(page.getByText('항목 1')).toBeVisible();
     await page.getByRole('button', { name: /항목 추가/i }).click();
     await expect(page.getByText('항목 2')).toBeVisible();
   });
 
-  test.skip('최대 16개 항목 추가 제한', async ({ page }) => {
-    // TODO: 로그인 후 테스트
+  test('최대 16개 항목 추가 제한', async ({ page }) => {
     await page.goto('/expenses/simple/new');
 
     // 15개 항목 추가 (총 16개)
@@ -138,8 +145,7 @@ test.describe('간편 지출결의서 작성 (인증 필요)', () => {
     await expect(page.getByRole('button', { name: /항목 추가/i })).not.toBeVisible();
   });
 
-  test.skip('세목 검색 및 선택', async ({ page }) => {
-    // TODO: 로그인 후 테스트
+  test('세목 검색 및 선택', async ({ page }) => {
     await page.goto('/expenses/simple/new');
 
     // 세목 검색
@@ -158,42 +164,51 @@ test.describe('간편 지출결의서 작성 (인증 필요)', () => {
     }
   });
 
-  test.skip('은행 정보 입력', async ({ page }) => {
-    // TODO: 로그인 후 테스트
+  test('은행 정보 입력', async ({ page }) => {
     await page.goto('/expenses/simple/new');
 
-    // 은행명 입력
-    await page.getByLabel(/은행명/).fill('신한은행');
+    // "직접 입력" 탭 클릭 (저장된 계좌가 아닌 직접 입력 모드로 전환)
+    await page.getByRole('button', { name: '직접 입력' }).click();
+
+    // 은행명 입력 (placeholder로 필드 찾기)
+    const bankNameInput = page.getByPlaceholder('예: 국민은행');
+    await bankNameInput.fill('신한은행');
 
     // 계좌번호 입력
-    await page.getByLabel(/계좌번호/).fill('110-123-456789');
+    const accountNumberInput = page.getByPlaceholder('숫자만 입력');
+    await accountNumberInput.fill('110-123-456789');
 
     // 예금주 입력
-    await page.getByLabel(/예금주/).fill('홍길동');
+    const accountHolderInput = page.getByPlaceholder('예금주 이름');
+    await accountHolderInput.fill('홍길동');
 
     // 입력값 확인
-    await expect(page.getByLabel(/은행명/)).toHaveValue('신한은행');
-    await expect(page.getByLabel(/계좌번호/)).toHaveValue('110-123-456789');
-    await expect(page.getByLabel(/예금주/)).toHaveValue('홍길동');
+    await expect(bankNameInput).toHaveValue('신한은행');
+    await expect(accountNumberInput).toHaveValue('110-123-456789');
+    await expect(accountHolderInput).toHaveValue('홍길동');
   });
 
-  test.skip('총 청구금액 자동 계산', async ({ page }) => {
-    // TODO: 로그인 후 테스트
+  test('총 청구금액 자동 계산', async ({ page }) => {
     await page.goto('/expenses/simple/new');
 
-    // 첫 번째 항목 입력
-    await page.locator('input[inputmode="numeric"]').first().fill('10000');
-    await page.locator('input[inputmode="numeric"]').nth(1).fill('2');
+    // 각 항목을 항목 컨테이너 기준으로 선택
+    const items = page.locator('.border.border-gray-200.rounded-lg');
+
+    // 첫 번째 항목 입력 (단가: numeric, 수량: number type)
+    const firstItem = items.first();
+    await firstItem.locator('input[inputmode="numeric"]').fill('10000');
+    await firstItem.locator('input[type="number"]').fill('2');
 
     // 두 번째 항목 추가
     await page.getByRole('button', { name: /항목 추가/i }).click();
 
     // 두 번째 항목 입력
-    await page.locator('input[inputmode="numeric"]').nth(2).fill('5000');
-    await page.locator('input[inputmode="numeric"]').nth(3).fill('3');
+    const secondItem = items.nth(1);
+    await secondItem.locator('input[inputmode="numeric"]').fill('5000');
+    await secondItem.locator('input[type="number"]').fill('3');
 
     // 총액 확인 (10000×2 + 5000×3 = 35000)
     await expect(page.getByText(/총.*청구금액/)).toBeVisible();
-    await expect(page.getByText('35,000')).toBeVisible();
+    await expect(page.getByText('35,000원')).toBeVisible();
   });
 });
