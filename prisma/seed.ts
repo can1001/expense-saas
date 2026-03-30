@@ -14,12 +14,18 @@ if (process.env.NODE_ENV !== 'development') {
 }
 
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 // 역할 코드 타입 (Role.code와 동일)
 type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
+
+// 비밀번호 해시 함수
+const hashPassword = async (password: string): Promise<string> => {
+  return bcrypt.hash(password, 10);
+};
 
 // .env 파일 로드
 dotenv.config();
@@ -142,13 +148,18 @@ async function seedRoles() {
 // 사용자 시드 데이터
 // - baseRole: User.role에 저장 (admin, user만 사용)
 // - yearRole: UserYearRole에 저장 (연도별 역할)
+// - password: 로그인 비밀번호 (E2E 테스트용)
 const usersData: Array<{
   userid: string;
   username: string;
   baseRole: 'admin' | 'user';
   yearRole?: UserRole;        // 연도별 역할 (finance_head, accountant, team_leader, admin_assistant)
   department?: string;
+  password?: string;          // 로그인 비밀번호
 }> = [
+  // E2E 테스트 사용자
+  { userid: '청연테스트', username: '테스트', baseRole: 'user', password: 'chc2026' },
+
   // 관리자 (영구 역할)
   { userid: '청연정혜종', username: '정혜종', baseRole: 'admin' },
   { userid: '청연송원경', username: '송원경', baseRole: 'admin' },
@@ -201,6 +212,7 @@ async function seedUsers() {
       const yearRoleId = userData.yearRole ? roleIdCache.get(userData.yearRole) : null;
 
       // 1. User 생성/업데이트 (기본 역할)
+      const hashedPassword = userData.password ? await hashPassword(userData.password) : null;
       const user = await prisma.user.upsert({
         where: { userid: userData.userid },
         update: {
@@ -208,6 +220,7 @@ async function seedUsers() {
           role: userData.baseRole,
           roleId: baseRoleId,
           department: userData.department,
+          ...(hashedPassword && { password: hashedPassword }),
         },
         create: {
           userid: userData.userid,
@@ -215,6 +228,7 @@ async function seedUsers() {
           role: userData.baseRole,
           roleId: baseRoleId,
           department: userData.department,
+          password: hashedPassword,
         },
       });
       userCount++;
