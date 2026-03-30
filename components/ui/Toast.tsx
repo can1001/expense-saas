@@ -60,7 +60,10 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 max-w-sm">
+    <div
+      className="fixed right-4 z-[9999] flex flex-col gap-2 max-w-sm"
+      style={{ bottom: 'calc(16px + var(--bottom-safe-area, 0px))' }}
+    >
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
       ))}

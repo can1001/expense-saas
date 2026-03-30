@@ -523,8 +523,11 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         </button>
       </div>
 
-      {/* 모바일 하단 고정 버튼 */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex gap-3 z-30 shadow-lg">
+      {/* 모바일 하단 고정 버튼 - safe-area 패딩 적용 */}
+      <div
+        className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex gap-3 z-30 shadow-lg"
+        style={{ paddingBottom: 'calc(16px + var(--bottom-safe-area, 0px))' }}
+      >
         <button
           type="button"
           onClick={() => router.back()}
