@@ -72,14 +72,14 @@ function MobileDrawer({
         onClick={onClose}
       />
 
-      {/* 드로어 */}
+      {/* 드로어 - flexbox 레이아웃 */}
       <div
-        className={`fixed top-0 left-0 h-full w-72 bg-white z-50 shadow-xl transform transition-transform duration-300 ease-out md:hidden ${
+        className={`fixed top-0 left-0 h-full w-72 bg-white z-50 shadow-xl transform transition-transform duration-300 ease-out md:hidden flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* 드로어 헤더 */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-200">
           <Link href="/" onClick={onClose} className="flex items-center gap-2 text-lg font-bold text-gray-900">
             <Home className="w-5 h-5" />
             <span>지출결의서 관리</span>
@@ -94,7 +94,7 @@ function MobileDrawer({
         </div>
 
         {/* 사용자 정보 */}
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <div className="flex-shrink-0 p-4 border-b border-gray-200 bg-gray-50">
           {loading ? (
             <div className="h-12 bg-gray-200 rounded animate-pulse" />
           ) : user ? (
@@ -118,8 +118,8 @@ function MobileDrawer({
           )}
         </div>
 
-        {/* 메인 메뉴 */}
-        <nav className="p-4 space-y-1">
+        {/* 메인 메뉴 - flex-1로 남은 공간 차지 + 스크롤 */}
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {/* 지출결의서, 결재함, 관리 */}
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -178,7 +178,7 @@ function MobileDrawer({
 
         {/* 내 정보 (아코디언) */}
         {user && (
-          <div className="px-4 pb-4 border-t border-gray-200 pt-4">
+          <div className="flex-shrink-0 px-4 pb-4 border-t border-gray-200 pt-4">
             {/* 아코디언 헤더 */}
             <button
               onClick={() => setIsMyInfoOpen(!isMyInfoOpen)}
@@ -238,9 +238,12 @@ function MobileDrawer({
           </div>
         )}
 
-        {/* 로그아웃 버튼 */}
+        {/* 로그아웃 버튼 - safe-area 패딩 적용 */}
         {user && (
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
+          <div
+            className="flex-shrink-0 p-4 border-t border-gray-200 bg-white"
+            style={{ paddingBottom: 'calc(16px + var(--bottom-safe-area, 0px))' }}
+          >
             <button
               onClick={() => {
                 onLogout();

@@ -226,8 +226,11 @@ export default function MobileFilterPanel({
           </div>
         </div>
 
-        {/* 하단 버튼 영역 */}
-        <div className="flex gap-3 p-4 border-t border-gray-200 bg-white">
+        {/* 하단 버튼 영역 - safe-area 패딩 적용 */}
+        <div
+          className="flex gap-3 p-4 border-t border-gray-200 bg-white"
+          style={{ paddingBottom: 'calc(16px + var(--bottom-safe-area, 0px))' }}
+        >
           <button
             onClick={onClearFilters}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors min-h-[48px] font-medium"

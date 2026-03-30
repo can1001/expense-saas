@@ -5,7 +5,8 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { format } from 'date-fns';
-import { Expense } from '@/lib/types';
+import { Expense, ExpenseAttachment } from '@/lib/types';
+import type { PrintMode } from './print';
 
 interface ApprovalStep {
   id: string;
@@ -339,14 +340,116 @@ const styles = StyleSheet.create({
     fontSize: 7,
     color: '#666',
   },
+  // 첨부파일 페이지 스타일
+  attachmentsPage: {
+    padding: 30,
+    fontSize: 10,
+    fontFamily: 'Helvetica',
+  },
+  attachmentsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    letterSpacing: 8,
+    marginBottom: 4,
+  },
+  attachmentsSubtitle: {
+    fontSize: 10,
+    textAlign: 'center',
+    color: '#666',
+    marginBottom: 20,
+  },
+  attachmentsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 15,
+  },
+  attachmentItem: {
+    width: 250,
+    border: '1px solid #000',
+    padding: 10,
+    marginBottom: 15,
+  },
+  attachmentImage: {
+    width: '100%',
+    maxHeight: 300,
+    objectFit: 'contain',
+  },
+  attachmentName: {
+    fontSize: 8,
+    textAlign: 'center',
+    marginTop: 8,
+    color: '#333',
+    borderTop: '1px solid #ddd',
+    paddingTop: 5,
+  },
+  attachmentNumber: {
+    position: 'absolute',
+    top: -8,
+    left: -8,
+    width: 20,
+    height: 20,
+    backgroundColor: '#333',
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+    borderRadius: 10,
+    textAlign: 'center',
+    paddingTop: 3,
+  },
+  noAttachments: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 600,
+  },
+  noAttachmentsText: {
+    fontSize: 14,
+    color: '#999',
+    letterSpacing: 2,
+  },
 });
 
 interface PDFDocumentProps {
   expense: Expense;
   approvalLine?: ApprovalLine | null;
+  printMode?: PrintMode;
 }
 
-export const ExpensePDFDocument: React.FC<PDFDocumentProps> = ({ expense, approvalLine }) => {
+// 첨부파일 페이지 컴포넌트
+const AttachmentsPage: React.FC<{ attachments: ExpenseAttachment[] }> = ({ attachments }) => {
+  if (!attachments || attachments.length === 0) {
+    return (
+      <Page size="A4" style={styles.attachmentsPage}>
+        <View style={styles.noAttachments}>
+          <Text style={styles.noAttachmentsText}>(첨부서류 없음)</Text>
+        </View>
+      </Page>
+    );
+  }
+
+  return (
+    <Page size="A4" style={styles.attachmentsPage}>
+      <Text style={styles.attachmentsTitle}>첨 부 서 류</Text>
+      <Text style={styles.attachmentsSubtitle}>(영수증 및 증빙자료)</Text>
+
+      <View style={styles.attachmentsGrid}>
+        {attachments.map((attachment, index) => (
+          <View key={attachment.id} style={styles.attachmentItem}>
+            <Text style={styles.attachmentNumber}>{index + 1}</Text>
+            {attachment.format !== 'pdf' && (
+              <Image src={attachment.secureUrl} style={styles.attachmentImage} />
+            )}
+            <Text style={styles.attachmentName}>{attachment.fileName}</Text>
+          </View>
+        ))}
+      </View>
+    </Page>
+  );
+};
+
+export const ExpensePDFDocument: React.FC<PDFDocumentProps> = ({ expense, approvalLine, printMode = 'both' }) => {
   const formatCurrency = (amount: number) => {
     return amount.toLocaleString('ko-KR');
   };
@@ -366,9 +469,9 @@ export const ExpensePDFDocument: React.FC<PDFDocumentProps> = ({ expense, approv
 
   const displaySteps = hasApprovalLine ? steps : defaultSteps;
 
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
+  // 지출결의서 페이지 렌더 함수
+  const renderExpensePage = () => (
+    <Page size="A4" style={styles.page}>
         {/* 헤더: 로고 + 제목 + 결재란 */}
         <View style={styles.headerRow}>
           {/* 로고 */}
@@ -521,6 +624,14 @@ export const ExpensePDFDocument: React.FC<PDFDocumentProps> = ({ expense, approv
           <Text style={styles.versionText}>지출결의서 Ver.4.1.4</Text>
         </View>
       </Page>
+    );
+
+  return (
+    <Document>
+      {printMode !== 'receipt' && renderExpensePage()}
+      {printMode !== 'expense' && (
+        <AttachmentsPage attachments={expense.attachments || []} />
+      )}
     </Document>
   );
 };

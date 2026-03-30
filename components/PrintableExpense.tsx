@@ -3,10 +3,12 @@
 import React from 'react';
 import { PrintHeader, PrintItems, PrintFooter } from './print';
 import type { Expense, ApprovalLine, ExpenseAttachment } from './print/types';
+import type { PrintMode } from './print';
 
 interface PrintableExpenseProps {
   expense: Expense;
   approvalLine?: ApprovalLine | null;
+  printMode?: PrintMode;
 }
 
 // 첨부파일 타입 분류 (문서 vs 영수증)
@@ -58,9 +60,9 @@ const getReceiptGridClass = (count: number): string => {
   return 'receipt-many';
 };
 
-export default function PrintableExpense({ expense, approvalLine }: PrintableExpenseProps) {
+export default function PrintableExpense({ expense, approvalLine, printMode = 'both' }: PrintableExpenseProps) {
   return (
-    <div className="print-only">
+    <div className={`print-only print-mode-${printMode}`}>
       {/* 지출결의서 본문 */}
       <div className="expense-document">
         {/* 1. 지출결의서 상단 (헤더) */}
@@ -314,6 +316,20 @@ export default function PrintableExpense({ expense, approvalLine }: PrintableExp
             border-top: 1px solid #ddd;
             padding-top: 4px;
             word-break: break-all;
+          }
+
+          /* 인쇄 모드별 페이지 선택 */
+          .print-mode-expense .attachments-page {
+            display: none !important;
+          }
+          .print-mode-expense .expense-document {
+            page-break-after: auto;
+          }
+          .print-mode-receipt .expense-document {
+            display: none !important;
+          }
+          .print-mode-receipt .attachments-page {
+            page-break-before: auto;
           }
         }
       `}</style>

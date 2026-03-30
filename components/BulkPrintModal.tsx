@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Printer, X } from 'lucide-react';
 import BulkPrintableExpenses, { ExpenseWithApproval } from './BulkPrintableExpenses';
+import { PrintOptionsSelector, PrintMode } from './print';
 
 interface BulkPrintModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export function BulkPrintModal({
   const [printing, setPrinting] = useState(false);
   const [expenses, setExpenses] = useState<ExpenseWithApproval[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [printMode, setPrintMode] = useState<PrintMode>('both');
   const printContentRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -169,6 +171,16 @@ export function BulkPrintModal({
           </button>
         </div>
 
+        {/* 인쇄 옵션 */}
+        <div className="px-6 py-4 border-b bg-gray-50">
+          <p className="text-sm font-medium text-gray-700 mb-2">인쇄 옵션</p>
+          <PrintOptionsSelector
+            value={printMode}
+            onChange={setPrintMode}
+            disabled={printing}
+          />
+        </div>
+
         {/* 본문 */}
         <div className="flex-1 overflow-y-auto p-6">
           {loading ? (
@@ -272,7 +284,7 @@ export function BulkPrintModal({
       {/* Hidden: 인쇄용 컨텐츠 */}
       <div ref={printContentRef} className="hidden">
         {expenses.length > 0 && (
-          <BulkPrintableExpenses expenses={expenses} />
+          <BulkPrintableExpenses expenses={expenses} printMode={printMode} />
         )}
       </div>
 
