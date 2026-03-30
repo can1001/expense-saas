@@ -84,7 +84,8 @@
       "Bash(npm init:*)",
       "Bash(npx playwright --version)",
       "Bash(chmod:*)",
-      "Bash(./scripts/ralph/ralph.sh:*)"
+      "Bash(./scripts/ralph/ralph.sh:*)",
+      "Bash(npx playwright test:*)"
     ],
     "deny": [],
     "ask": []
