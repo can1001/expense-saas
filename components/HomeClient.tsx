@@ -184,38 +184,6 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
                   </p>
                 </div>
               </Link>
-
-              <Link
-                href="/expenses/simple"
-                className={`hidden group bg-white rounded-xl shadow-lg ${PADDING_CARD} hover:shadow-xl transition-all hover:-translate-y-1 border-2 border-purple-100`}
-              >
-                <div className="flex items-center justify-between mb-3 sm:mb-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 sm:w-6 sm:h-6 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded">NEW</span>
-                </div>
-                <div>
-                  <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
-                    간편 지출결의서 목록
-                  </h2>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    간편 양식 지출결의서를 조회하고 관리하세요
-                  </p>
-                </div>
-              </Link>
             </div>
           </div>
         )}
