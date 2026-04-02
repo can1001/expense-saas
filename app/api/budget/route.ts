@@ -142,7 +142,17 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // 빈 body 처리
+    let body: Record<string, string | undefined> = {};
+    try {
+      const text = await request.text();
+      if (text && text.trim()) {
+        body = JSON.parse(text);
+      }
+    } catch {
+      // JSON 파싱 실패 시 빈 객체로 처리
+      body = {};
+    }
     const { committee, department, category, subcategory } = body;
 
     let field = '';
