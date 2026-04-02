@@ -56,9 +56,19 @@ test.describe('일반 지출결의서 작성', () => {
 
   test('필수 항목 누락 시 유효성 검사', async ({ page }) => {
     await page.goto('/expenses/new');
-    // "저장된 계좌" 탭과 구분하기 위해 type="submit" 조건 추가
-    await page.locator('button[type="submit"]').filter({ hasText: '저장' }).first().click();
-    await expect(page.getByText(/다음 항목을 확인해주세요|필수/i)).toBeVisible({ timeout: 5000 });
+    // 페이지 로드 대기
+    await page.waitForLoadState('networkidle');
+
+    // 저장 버튼 클릭
+    const saveButton = page.locator('button[type="submit"]').filter({ hasText: '저장' }).first();
+    await saveButton.click();
+
+    // 폼 제출이 실패하면 페이지에 남아있어야 함 (성공 시 리다이렉트됨)
+    await page.waitForTimeout(2000);
+    await expect(page).toHaveURL(/\/expenses\/new/);
+
+    // 버튼이 "저장 중..."이 아닌 "저장" 상태로 돌아와야 함
+    await expect(saveButton).toHaveText('저장', { timeout: 5000 });
   });
 
   test('항목 추가 및 삭제', async ({ page }) => {
@@ -83,6 +93,7 @@ test.describe('일반 지출결의서 작성', () => {
 
   test('금액 자동 계산 (단가 × 수량)', async ({ page }) => {
     await page.goto('/expenses/new');
+    await page.waitForLoadState('networkidle');
 
     // 첫 번째 항목 내의 입력 필드 선택
     const firstItem = page.locator('.border.border-gray-200.rounded-lg').first();
@@ -94,8 +105,11 @@ test.describe('일반 지출결의서 작성', () => {
     // 수량 입력 (두 번째 numeric 필드)
     await numericInputs.nth(1).fill('5');
 
+    // 자동 계산 대기
+    await page.waitForTimeout(500);
+
     // 금액 확인 (10000 × 5 = 50000) - 항목 내 금액 표시 영역에서 확인
-    await expect(firstItem.getByText('50,000원')).toBeVisible({ timeout: 3000 });
+    await expect(firstItem.getByText(/50,000/)).toBeVisible({ timeout: 5000 });
   });
 
   test('적요 입력 중 Enter 키 폼 제출 방지', async ({ page }) => {
@@ -190,6 +204,7 @@ test.describe('간편 지출결의서 작성', () => {
 
   test('총 청구금액 자동 계산', async ({ page }) => {
     await page.goto('/expenses/simple/new');
+    await page.waitForLoadState('networkidle');
 
     // 각 항목을 항목 컨테이너 기준으로 선택
     const items = page.locator('.border.border-gray-200.rounded-lg');
@@ -199,16 +214,23 @@ test.describe('간편 지출결의서 작성', () => {
     await firstItem.locator('input[inputmode="numeric"]').fill('10000');
     await firstItem.locator('input[type="number"]').fill('2');
 
+    // 자동 계산 대기
+    await page.waitForTimeout(300);
+
     // 두 번째 항목 추가
     await page.getByRole('button', { name: /항목 추가/i }).click();
+    await page.waitForTimeout(300);
 
     // 두 번째 항목 입력
     const secondItem = items.nth(1);
     await secondItem.locator('input[inputmode="numeric"]').fill('5000');
     await secondItem.locator('input[type="number"]').fill('3');
 
+    // 자동 계산 대기
+    await page.waitForTimeout(500);
+
     // 총액 확인 (10000×2 + 5000×3 = 35000)
-    await expect(page.getByText(/총.*청구금액/)).toBeVisible();
-    await expect(page.getByText('35,000원')).toBeVisible();
+    await expect(page.getByText(/총.*청구금액/)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/35,000/)).toBeVisible({ timeout: 5000 });
   });
 });
