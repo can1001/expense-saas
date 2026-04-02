@@ -37,6 +37,9 @@ const prisma = new PrismaClient({ adapter });
 // 현재 연도
 const CURRENT_YEAR = new Date().getFullYear();
 
+// UserYearRole에 생성할 연도 목록 (현재 연도 + 이전 연도)
+const YEARS_TO_SEED = [CURRENT_YEAR - 1, CURRENT_YEAR];
+
 // 역할 시드 데이터
 const rolesData = [
   {
@@ -161,12 +164,14 @@ const usersData: Array<{
   { userid: '청연테스트', username: '테스트', baseRole: 'user', password: 'chc2026' },
 
   // 관리자 (영구 역할)
-  { userid: '청연정혜종', username: '정혜종', baseRole: 'admin' },
-  { userid: '청연송원경', username: '송원경', baseRole: 'admin' },
+  { userid: '청연송원경', username: '송원경', baseRole: 'admin', yearRole: 'admin_assistant' },
 
   // 재정팀장/회계 (연도별 역할)
-  { userid: '청연신창국', username: '신창국', baseRole: 'user', yearRole: 'finance_head' },
-  { userid: '청연윤운문', username: '윤운문', baseRole: 'user', yearRole: 'accountant' },
+  { userid: '청연윤운문', username: '윤운문', baseRole: 'user', yearRole: 'finance_head' },
+  { userid: '청연정혜종', username: '정혜종', baseRole: 'admin', yearRole: 'accountant' },
+
+  // 일반 사용자
+  { userid: '청연신창국', username: '신창국', baseRole: 'user' },
 
   // 교육훈련위원회 팀장
   { userid: '청연김흥래', username: '김흥래', baseRole: 'user', yearRole: 'team_leader', department: '교육훈련위원회' },
@@ -200,7 +205,7 @@ const usersData: Array<{
 
 async function seedUsers() {
   console.log('\n👥 Seeding users...');
-  console.log(`📅 Current year: ${CURRENT_YEAR}`);
+  console.log(`📅 Years to seed: ${YEARS_TO_SEED.join(', ')}`);
 
   let userCount = 0;
   let yearRoleCount = 0;
@@ -233,29 +238,31 @@ async function seedUsers() {
       });
       userCount++;
 
-      // 2. 연도별 역할이 있으면 UserYearRole 생성
+      // 2. 연도별 역할이 있으면 각 연도에 대해 UserYearRole 생성
       if (userData.yearRole) {
-        await prisma.userYearRole.upsert({
-          where: {
-            userId_year: {
-              userId: user.id,
-              year: CURRENT_YEAR,
+        for (const year of YEARS_TO_SEED) {
+          await prisma.userYearRole.upsert({
+            where: {
+              userId_year: {
+                userId: user.id,
+                year: year,
+              },
             },
-          },
-          update: {
-            role: userData.yearRole,
-            roleId: yearRoleId,
-            department: userData.department,
-          },
-          create: {
-            userId: user.id,
-            year: CURRENT_YEAR,
-            role: userData.yearRole,
-            roleId: yearRoleId,
-            department: userData.department,
-          },
-        });
-        yearRoleCount++;
+            update: {
+              role: userData.yearRole,
+              roleId: yearRoleId,
+              department: userData.department,
+            },
+            create: {
+              userId: user.id,
+              year: year,
+              role: userData.yearRole,
+              roleId: yearRoleId,
+              department: userData.department,
+            },
+          });
+          yearRoleCount++;
+        }
       }
     } catch (error: unknown) {
       console.error('Error inserting user:', userData, error);
@@ -263,7 +270,7 @@ async function seedUsers() {
   }
 
   console.log(`✅ Upserted ${userCount}/${usersData.length} users`);
-  console.log(`✅ Upserted ${yearRoleCount} year roles for ${CURRENT_YEAR}`);
+  console.log(`✅ Upserted ${yearRoleCount} year roles for years: ${YEARS_TO_SEED.join(', ')}`);
 
   // 기본 역할별 통계
   const baseRoleStats = await prisma.user.groupBy({
@@ -276,16 +283,18 @@ async function seedUsers() {
     console.log(`  - ${stat.role}: ${stat._count} users`);
   }
 
-  // 연도별 역할 통계
-  const yearRoleStats = await prisma.userYearRole.groupBy({
-    by: ['role'],
-    where: { year: CURRENT_YEAR },
-    _count: true,
-  });
+  // 연도별 역할 통계 (각 연도별)
+  for (const year of YEARS_TO_SEED) {
+    const yearRoleStats = await prisma.userYearRole.groupBy({
+      by: ['role'],
+      where: { year },
+      _count: true,
+    });
 
-  console.log(`\n📊 Year Role Statistics (${CURRENT_YEAR}):`);
-  for (const stat of yearRoleStats) {
-    console.log(`  - ${stat.role}: ${stat._count} users`);
+    console.log(`\n📊 Year Role Statistics (${year}):`);
+    for (const stat of yearRoleStats) {
+      console.log(`  - ${stat.role}: ${stat._count} users`);
+    }
   }
 }
 

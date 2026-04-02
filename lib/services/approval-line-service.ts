@@ -112,11 +112,10 @@ export async function calculateApprovalLine(
     isOverBudget: usedAmount > budgetAmount,
   };
 
-  // 2. 연도별 역할 담당자 조회 (재정팀장, 회계, 팀장)
-  const [financeHead, accountant, teamLeader] = await Promise.all([
+  // 2. 연도별 역할 담당자 조회 (재정팀장, 회계)
+  const [financeHead, accountant] = await Promise.all([
     getYearRoleUser(year, 'finance_head'),
     getYearRoleUser(year, 'accountant'),
-    getYearRoleUser(year, 'team_leader'),
   ]);
 
   if (!financeHead) {
@@ -160,14 +159,15 @@ export async function calculateApprovalLine(
       approverName: financeHead.username,
       isAutoApproved: false,
     });
-  } else if (isSubmitterManager && teamLeader) {
-    // 신청자가 세목담당자인 경우 → 3단계 (팀장 1차 자동승인)
+  } else if (isSubmitterManager) {
+    // 신청자가 세목담당자인 경우 → 3단계 (본인이 팀장 전결, 1차 자동승인)
+    // 신청자 = 세목담당자 = 팀장이므로 본인이 1차 결재자
     steps.push({
       stepNumber: 1,
       stepName: '팀장(전결)',
       role: 'team_leader',
-      approverId: teamLeader.id,
-      approverName: teamLeader.username,
+      approverId: manager!.id,
+      approverName: manager!.username,
       isAutoApproved: true, // 제출 시 자동 승인
     });
     steps.push({
