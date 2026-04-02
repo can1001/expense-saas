@@ -73,6 +73,9 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   // 서명 미등록 안내 모달
   const [showNoSignatureModal, setShowNoSignatureModal] = useState(false);
 
+  // 파일 업로드 상태 (업로드 중 폼 제출 방지용)
+  const [isUploading, setIsUploading] = useState(false);
+
   const {
     control,
     register,
@@ -351,6 +354,13 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
     }
   };
 
+  // 업로드 중 엔터키 제출 방지
+  const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === 'Enter' && isUploading) {
+      e.preventDefault();
+    }
+  };
+
   // 저장 버튼 클릭 (임시저장)
   const handleSave = () => {
     setSubmitMode('save');
@@ -374,7 +384,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8 pb-24 sm:pb-0">
+    <form onSubmit={handleSubmit(onSubmit)} onKeyDown={handleFormKeyDown} className="space-y-6 sm:space-y-8 pb-24 sm:pb-0">
       {/* 에러 메시지 */}
       {error && (
         <div className={`${ALERT_ERROR} text-sm sm:text-base`}>
@@ -475,6 +485,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
           expenseId={expenseId}
           initialFiles={attachments}
           onChange={setAttachments}
+          onUploadingChange={setIsUploading}
           maxFiles={10}
           disabled={loading || isSubmitting}
         />
@@ -494,7 +505,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         <button
           type="button"
           onClick={() => router.back()}
-          disabled={loading || isSubmitting}
+          disabled={loading || isSubmitting || isUploading}
           className={`${BTN_OUTLINE} ${BTN_LG} disabled:cursor-not-allowed`}
         >
           취소
@@ -502,24 +513,24 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         <button
           type="submit"
           onClick={handleSave}
-          disabled={loading || isSubmitting}
+          disabled={loading || isSubmitting || isUploading}
           className={`${BTN_PRIMARY} ${BTN_LG} disabled:cursor-not-allowed`}
         >
           {(loading || isSubmitting) && submitMode === 'save' && (
             <div className={SPINNER}></div>
           )}
-          {(loading || isSubmitting) && submitMode === 'save' ? '저장 중...' : '저장'}
+          {(loading || isSubmitting) && submitMode === 'save' ? '저장 중...' : isUploading ? '업로드 중...' : '저장'}
         </button>
         <button
           type="submit"
           onClick={handleSubmitClick}
-          disabled={loading || isSubmitting}
+          disabled={loading || isSubmitting || isUploading}
           className={`${BTN_SUCCESS} ${BTN_LG} disabled:cursor-not-allowed`}
         >
           {(loading || isSubmitting) && submitMode === 'submit' && (
             <div className={SPINNER}></div>
           )}
-          {(loading || isSubmitting) && submitMode === 'submit' ? '제출 중...' : '제출'}
+          {(loading || isSubmitting) && submitMode === 'submit' ? '제출 중...' : isUploading ? '업로드 중...' : '제출'}
         </button>
       </div>
 
@@ -531,7 +542,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         <button
           type="button"
           onClick={() => router.back()}
-          disabled={loading || isSubmitting}
+          disabled={loading || isSubmitting || isUploading}
           className={`${BTN_OUTLINE} flex-1 min-h-[48px] disabled:cursor-not-allowed`}
         >
           취소
@@ -539,24 +550,24 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
         <button
           type="submit"
           onClick={handleSave}
-          disabled={loading || isSubmitting}
+          disabled={loading || isSubmitting || isUploading}
           className={`${BTN_PRIMARY} flex-1 min-h-[48px] disabled:cursor-not-allowed flex items-center justify-center gap-2`}
         >
           {(loading || isSubmitting) && submitMode === 'save' && (
             <div className={SPINNER}></div>
           )}
-          {(loading || isSubmitting) && submitMode === 'save' ? '저장 중...' : '저장'}
+          {(loading || isSubmitting) && submitMode === 'save' ? '저장 중...' : isUploading ? '업로드 중...' : '저장'}
         </button>
         <button
           type="submit"
           onClick={handleSubmitClick}
-          disabled={loading || isSubmitting}
+          disabled={loading || isSubmitting || isUploading}
           className={`${BTN_SUCCESS} flex-1 min-h-[48px] disabled:cursor-not-allowed flex items-center justify-center gap-2`}
         >
           {(loading || isSubmitting) && submitMode === 'submit' && (
             <div className={SPINNER}></div>
           )}
-          {(loading || isSubmitting) && submitMode === 'submit' ? '제출 중...' : '제출'}
+          {(loading || isSubmitting) && submitMode === 'submit' ? '제출 중...' : isUploading ? '업로드 중...' : '제출'}
         </button>
       </div>
 

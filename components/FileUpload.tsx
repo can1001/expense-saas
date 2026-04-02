@@ -7,7 +7,6 @@ import { uploadFiles, removeFile, FileServiceError } from '@/lib/services/file-s
 import { FILE_VALIDATION } from '@/lib/constants/file-validation';
 import { UploadedFile } from '@/lib/types';
 import { SPINNER_BLUE } from '@/lib/constants/styles';
-import { CameraButton } from './mobile/CameraCapture';
 
 export type { UploadedFile };
 
@@ -15,6 +14,7 @@ interface FileUploadProps {
   expenseId?: string; // 기존 지출결의서 수정 시
   initialFiles?: UploadedFile[];
   onChange?: (files: UploadedFile[]) => void;
+  onUploadingChange?: (uploading: boolean) => void; // 업로드 상태 변경 콜백
   maxFiles?: number;
   disabled?: boolean;
 }
@@ -23,6 +23,7 @@ export default function FileUpload({
   expenseId,
   initialFiles = [],
   onChange,
+  onUploadingChange,
   maxFiles = FILE_VALIDATION.MAX_FILES,
   disabled = false,
 }: FileUploadProps) {
@@ -46,6 +47,7 @@ export default function FileUpload({
       }
 
       setUploading(true);
+      onUploadingChange?.(true);
       setUploadProgress(`${acceptedFiles.length}개 파일 업로드 중...`);
 
       try {
@@ -84,12 +86,13 @@ export default function FileUpload({
         alert(error.message || '파일 업로드에 실패했습니다.');
       } finally {
         setUploading(false);
+        onUploadingChange?.(false);
         if (uploadProgress.includes('중...')) {
           setUploadProgress('');
         }
       }
     },
-    [files, maxFiles, expenseId, onChange, uploadProgress]
+    [files, maxFiles, expenseId, onChange, onUploadingChange, uploadProgress]
   );
 
   const onDrop = useCallback(
@@ -131,21 +134,8 @@ export default function FileUpload({
     }
   };
 
-  // 카메라로 촬영한 파일 처리
-  const handleCameraCapture = useCallback(
-    (file: File) => {
-      handleFiles([file]);
-    },
-    [handleFiles]
-  );
-
   return (
     <div className="space-y-4">
-      {/* 모바일 카메라 버튼 */}
-      {!disabled && files.length < maxFiles && (
-        <CameraButton onCapture={handleCameraCapture} />
-      )}
-
       {/* 드래그 앤 드롭 영역 */}
       <div
         {...getRootProps()}
