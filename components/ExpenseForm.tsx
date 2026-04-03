@@ -73,6 +73,9 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   // 서명 미등록 안내 모달
   const [showNoSignatureModal, setShowNoSignatureModal] = useState(false);
 
+  // 신규 생성 후 제출 대기 중인 지출결의서 ID (서명 미등록 시 나중에 제출용)
+  const [createdExpenseId, setCreatedExpenseId] = useState<string | null>(null);
+
   // 영수증 미첨부 안내 모달
   const [showNoAttachmentModal, setShowNoAttachmentModal] = useState(false);
 
@@ -279,20 +282,67 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       return;
     }
 
-    // 신규 생성 + 제출: 기존 로직 사용 (신규는 상세 페이지에서 제출)
-    handleFormSubmit({ ...data, status: 'PENDING' });
+    // 신규 생성 + 제출: DRAFT로 먼저 생성 후 서명과 함께 제출
+    try {
+      setLoading(true);
+
+      // 1. DRAFT 상태로 먼저 생성
+      const createResponse = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...data,
+          status: 'DRAFT',
+          expenseDate: data.expenseDate || null,
+        }),
+      });
+
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || '저장에 실패했습니다.');
+      }
+
+      const created = await createResponse.json();
+      const newExpenseId = created.id;
+
+      // 2. 첨부파일 저장 (아직 저장되지 않은 파일들)
+      const unsavedAttachments = attachments.filter((att) => !att.id);
+      if (unsavedAttachments.length > 0) {
+        await Promise.all(
+          unsavedAttachments.map((att) => createAttachment(newExpenseId, att))
+        );
+      }
+
+      // 3. 기본 서명 확인 후 submit API 호출
+      const defaultSignature = await fetchDefaultSignature();
+
+      if (defaultSignature) {
+        // 기본 서명이 있으면 자동 제출
+        setLoading(false);
+        await submitWithSignature(defaultSignature, newExpenseId);
+      } else {
+        // 서명이 없으면 안내 모달 표시 (나중에 제출용으로 ID 저장)
+        setLoading(false);
+        setCreatedExpenseId(newExpenseId);
+        setShowNoSignatureModal(true);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      setLoading(false);
+    }
   };
 
   // 서명 선택 후 제출 확정
   const handleSignatureConfirm = async () => {
-    if (!signatureData || !expenseId) {
+    const idToSubmit = expenseId || createdExpenseId;
+    if (!signatureData || !idToSubmit) {
       alert('서명 또는 도장을 선택해주세요.');
       return;
     }
 
     try {
       setSubmitLoading(true);
-      const submitResponse = await fetch(`/api/expenses/${expenseId}/submit`, {
+      const submitResponse = await fetch(`/api/expenses/${idToSubmit}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ signature: signatureData }),
@@ -304,8 +354,9 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       }
 
       setShowSignatureModal(false);
+      setCreatedExpenseId(null); // 초기화
       alert('지출결의서가 성공적으로 제출되었습니다.');
-      router.push(`/expenses/${expenseId}`);
+      router.push(`/expenses/${idToSubmit}`);
     } catch (err) {
       alert(err instanceof Error ? err.message : '제출에 실패했습니다.');
     } finally {
@@ -334,13 +385,14 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
     }
   };
 
-  // 서명 데이터로 제출 처리
-  const submitWithSignature = async (signature: SignatureData) => {
-    if (!expenseId) return;
+  // 서명 데이터로 제출 처리 (targetId: 신규 생성된 ID 또는 기존 expenseId)
+  const submitWithSignature = async (signature: SignatureData, targetId?: string) => {
+    const idToSubmit = targetId || expenseId;
+    if (!idToSubmit) return;
 
     try {
       setSubmitLoading(true);
-      const submitResponse = await fetch(`/api/expenses/${expenseId}/submit`, {
+      const submitResponse = await fetch(`/api/expenses/${idToSubmit}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ signature }),
@@ -352,7 +404,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       }
 
       alert('지출결의서가 성공적으로 제출되었습니다.');
-      router.push(`/expenses/${expenseId}`);
+      router.push(`/expenses/${idToSubmit}`);
     } catch (err) {
       alert(err instanceof Error ? err.message : '제출에 실패했습니다.');
     } finally {

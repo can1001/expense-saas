@@ -133,7 +133,16 @@ export async function POST(request: NextRequest) {
     const requestAmount = calculateTotal(itemsWithCalculatedAmount);
 
     // 상태 처리: 클라이언트에서 전달된 status 사용 (기본값: DRAFT)
-    const isSubmit = body.status === 'PENDING';
+    // 신규 생성 시 PENDING 직접 제출은 서명 누락 문제가 있으므로 차단
+    // 제출은 /api/expenses/[id]/submit API를 통해 서명과 함께 처리해야 함
+    if (body.status === 'PENDING') {
+      throw new ApiError(
+        '신규 생성 시 직접 제출은 지원하지 않습니다. DRAFT로 저장 후 submit API를 사용해주세요.',
+        400
+      );
+    }
+
+    const isSubmit = false; // 신규 생성은 항상 DRAFT
     const now = new Date();
 
     // 제출인 경우 결재선 데이터 준비
