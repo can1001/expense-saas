@@ -51,7 +51,7 @@ test.describe('일반 지출결의서 작성', () => {
     await expect(page.getByText('예산 정보')).toBeVisible();
     await expect(page.getByText('세부 항목')).toBeVisible();
     // "저장된 계좌" 탭과 구분하기 위해 type="submit" 조건 추가
-    await expect(page.locator('button[type="submit"]').filter({ hasText: '저장' }).first()).toBeVisible();
+    await expect(page.locator('button[type="submit"]').filter({ hasText: '임시저장' }).first()).toBeVisible();
   });
 
   test('필수 항목 누락 시 유효성 검사', async ({ page }) => {
@@ -59,16 +59,16 @@ test.describe('일반 지출결의서 작성', () => {
     // 페이지 로드 대기
     await page.waitForLoadState('networkidle');
 
-    // 저장 버튼 클릭
-    const saveButton = page.locator('button[type="submit"]').filter({ hasText: '저장' }).first();
+    // 임시저장 버튼 클릭
+    const saveButton = page.locator('button[type="submit"]').filter({ hasText: '임시저장' }).first();
     await saveButton.click();
 
     // 폼 제출이 실패하면 페이지에 남아있어야 함 (성공 시 리다이렉트됨)
     await page.waitForTimeout(2000);
     await expect(page).toHaveURL(/\/expenses\/new/);
 
-    // 버튼이 "저장 중..."이 아닌 "저장" 상태로 돌아와야 함
-    await expect(saveButton).toHaveText('저장', { timeout: 5000 });
+    // 버튼이 "임시저장 중..."이 아닌 "임시저장" 상태로 돌아와야 함
+    await expect(saveButton).toHaveText('임시저장', { timeout: 5000 });
   });
 
   test('항목 추가 및 삭제', async ({ page }) => {
