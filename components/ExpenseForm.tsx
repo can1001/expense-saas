@@ -27,6 +27,7 @@ import { SignatureSelector } from './signature/SignatureSelector';
 import { createAttachment } from '@/lib/services/file-service';
 import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_OUTLINE, BTN_SUCCESS, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER, ALERT_ERROR } from '@/lib/constants/styles';
 import { deriveRequestTeam } from '@/lib/domain/request-team';
+import { areAllItemsReceiptExempt } from '@/lib/constants/receipt-exempt-details';
 import {
   useFetchCurrentUser,
   useExpenseFormState,
@@ -426,8 +427,8 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
 
   // 제출 버튼 클릭 (최종제출)
   const handleSubmitClick = () => {
-    // 영수증 첨부 여부 확인
-    if (attachments.length === 0) {
+    // 영수증 첨부 여부 확인 (예외 세목은 영수증 없이 제출 가능)
+    if (attachments.length === 0 && !areAllItemsReceiptExempt(items || [])) {
       setShowNoAttachmentModal(true);
       return;
     }

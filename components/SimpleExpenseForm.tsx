@@ -41,6 +41,7 @@ import {
   useExpenseFormState,
   useExpenseFormSubmit,
 } from '@/lib/hooks';
+import { areAllItemsReceiptExempt } from '@/lib/constants/receipt-exempt-details';
 
 interface SimpleExpenseFormProps {
   expenseId?: string;
@@ -79,6 +80,9 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
   const bankName = watch('bankName');
   const accountNumber = watch('accountNumber');
   const accountHolder = watch('accountHolder');
+
+  // 항목 watch (영수증 예외 세목 확인용)
+  const items = watch('items');
 
   // 제출 모드 상태 (저장 / 제출)
   const [submitMode, setSubmitMode] = useState<'save' | 'submit'>('save');
@@ -376,8 +380,8 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
         <button
           type="button"
           onClick={() => {
-            // 영수증 첨부 여부 확인
-            if (attachments.length === 0) {
+            // 영수증 첨부 여부 확인 (예외 세목은 영수증 없이 제출 가능)
+            if (attachments.length === 0 && !areAllItemsReceiptExempt(items || [])) {
               setShowNoAttachmentModal(true);
               return;
             }
