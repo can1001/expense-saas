@@ -66,35 +66,29 @@ export async function GET(request: NextRequest) {
     // status === 'all'이면 모든 건 조회
 
     // 결재선과 함께 지출결의서 조회
-    const [approvalLines] = await Promise.all([
-      prisma.approvalLine.findMany({
-        where: whereCondition,
-        skip,
-        take: limit,
-        orderBy: {
-          createdAt: 'desc',
-        },
-        include: {
-          expense: {
-            include: {
-              items: {
-                orderBy: {
-                  order: 'asc',
-                },
+    // Note: pending 상태일 때는 isMyTurn 필터링이 필요하므로 먼저 전체 조회 후 필터링
+    const approvalLines = await prisma.approvalLine.findMany({
+      where: whereCondition,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        expense: {
+          include: {
+            items: {
+              orderBy: {
+                order: 'asc',
               },
             },
           },
-          steps: {
-            orderBy: {
-              stepNumber: 'asc',
-            },
+        },
+        steps: {
+          orderBy: {
+            stepNumber: 'asc',
           },
         },
-      }),
-      prisma.approvalLine.count({
-        where: whereCondition,
-      }),
-    ]);
+      },
+    });
 
     // 현재 결재자 차례인 건만 필터 (pending 상태일 때)
     const filteredResults = approvalLines.filter((line) => {
@@ -106,8 +100,12 @@ export async function GET(request: NextRequest) {
       return currentStep?.approverName === approverName;
     });
 
+    // 필터링 후 페이지네이션 적용
+    const totalFiltered = filteredResults.length;
+    const paginatedResults = filteredResults.slice(skip, skip + limit);
+
     // 응답 데이터 구성
-    const approvals = filteredResults.map((line) => {
+    const approvals = paginatedResults.map((line) => {
       const currentStep = line.steps.find(
         (step) => step.stepNumber === line.currentStep
       );
@@ -159,8 +157,8 @@ export async function GET(request: NextRequest) {
       pagination: {
         page,
         limit,
-        total: filteredResults.length,
-        totalPages: Math.ceil(filteredResults.length / limit),
+        total: totalFiltered,
+        totalPages: Math.ceil(totalFiltered / limit),
       },
     });
   } catch (error: any) {
