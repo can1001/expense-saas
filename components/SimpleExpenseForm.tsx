@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -82,6 +82,12 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
 
   // 제출 모드 상태 (저장 / 제출)
   const [submitMode, setSubmitMode] = useState<'save' | 'submit'>('save');
+
+  // 영수증 미첨부 안내 모달
+  const [showNoAttachmentModal, setShowNoAttachmentModal] = useState(false);
+
+  // 첨부파일 영역 ref (스크롤 이동용)
+  const attachmentSectionRef = useRef<HTMLDivElement>(null);
 
   // 폼 제출 훅 - Expense 테이블에 저장 (리다이렉트 /expenses로 변경)
   const { handleSubmit: handleFormSubmit } = useExpenseFormSubmit({
@@ -329,8 +335,11 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
       />
 
       {/* 첨부파일 */}
-      <div className={SECTION_CARD}>
-        <h2 className={SECTION_TITLE}>첨부파일</h2>
+      <div className={SECTION_CARD} ref={attachmentSectionRef}>
+        <h2 className={SECTION_TITLE}>
+          첨부파일
+          <span className="text-sm font-normal text-gray-500 ml-2">(제출 시 필수)</span>
+        </h2>
         <FileUpload
           expenseId={expenseId}
           initialFiles={attachments}
@@ -350,7 +359,7 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
         >
           취소
         </button>
-        {/* 저장 버튼 (DRAFT 상태) */}
+        {/* 임시저장 버튼 (DRAFT 상태) */}
         <button
           type="button"
           onClick={() => {
@@ -361,12 +370,17 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
           className={`${BTN_OUTLINE} ${BTN_LG} disabled:cursor-not-allowed border-blue-500 text-blue-600 hover:bg-blue-50`}
         >
           {(loading || isSubmitting) && submitMode === 'save' && <div className={SPINNER}></div>}
-          {loading || isSubmitting && submitMode === 'save' ? '저장 중...' : '저장'}
+          {loading || isSubmitting && submitMode === 'save' ? '임시저장 중...' : '임시저장'}
         </button>
         {/* 제출 버튼 (PENDING 상태) */}
         <button
           type="button"
           onClick={() => {
+            // 영수증 첨부 여부 확인
+            if (attachments.length === 0) {
+              setShowNoAttachmentModal(true);
+              return;
+            }
             setSubmitMode('submit');
             handleSubmit(onSubmit)();
           }}
@@ -377,6 +391,46 @@ export default function SimpleExpenseForm({ expenseId, initialData }: SimpleExpe
           {loading || isSubmitting && submitMode === 'submit' ? '제출 중...' : '제출'}
         </button>
       </div>
+
+      {/* 영수증 미첨부 안내 모달 */}
+      {showNoAttachmentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">영수증을 첨부해주세요</h3>
+              <p className="text-gray-600 text-sm">
+                지출결의서 제출을 위해 영수증 이미지를 첨부해야 합니다.
+                <br />
+                첨부파일 영역에서 영수증을 업로드해주세요.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowNoAttachmentModal(false)}
+                className={`${BTN_OUTLINE} flex-1`}
+              >
+                닫기
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNoAttachmentModal(false);
+                  attachmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
+                className={`${BTN_PRIMARY} flex-1`}
+              >
+                첨부하러 가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

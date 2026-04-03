@@ -215,7 +215,8 @@ export default function FileUpload({
       {/* 안내 문구 */}
       {files.length === 0 && !uploading && (
         <p className="text-sm text-gray-500 text-center">
-          영수증 이미지를 업로드해주세요 (선택사항)
+          영수증 이미지를 업로드해주세요
+          <span className="text-amber-600 font-medium"> (제출 시 필수)</span>
         </p>
       )}
     </div>
