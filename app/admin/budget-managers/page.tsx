@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Save, Copy, Search, ChevronDown, ChevronRight, Users } from 'lucide-react';
+import { ArrowLeft, Save, Copy, Search, ChevronDown, ChevronRight, Users, AlertTriangle } from 'lucide-react';
 import {
   SECTION_CARD,
   BTN_PRIMARY,
@@ -77,22 +77,35 @@ export default function BudgetManagersPage() {
   const [expandedSubcategories, setExpandedSubcategories] = useState<Set<string>>(new Set());
   const [copyFromYear, setCopyFromYear] = useState(currentYear - 1);
   const [showCopyModal, setShowCopyModal] = useState(false);
+  const [showExceptionsOnly, setShowExceptionsOnly] = useState(false);
+  const [teamLeaders, setTeamLeaders] = useState<Map<string, { id: string; name: string }>>(new Map());
 
   // 데이터 로드
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [detailsRes, usersRes] = await Promise.all([
+      const [detailsRes, usersRes, yearRolesRes] = await Promise.all([
         fetch(`/api/budget-details/year?year=${year}`),
         fetch('/api/users?pageSize=1000&isActive=true'),
+        fetch(`/api/users/year-roles?year=${year}&includeUser=true`),
       ]);
 
       const detailsData = await detailsRes.json();
       const usersData = await usersRes.json();
+      const yearRolesData = await yearRolesRes.json();
 
       setDetails(detailsData.details || []);
       setUsers(usersData.users || []);
       setChanges(new Map());
+
+      // 팀장 정보 맵 생성 (department -> teamLeader)
+      const leaderMap = new Map<string, { id: string; name: string }>();
+      (yearRolesData.yearRoles || []).forEach((yr: { role: string; department: string | null; userId: string; user: { username: string } }) => {
+        if (yr.role === 'team_leader' && yr.department) {
+          leaderMap.set(yr.department, { id: yr.userId, name: yr.user.username });
+        }
+      });
+      setTeamLeaders(leaderMap);
 
       // 모든 위원회 펼치기
       const committees = new Set<string>();
@@ -306,6 +319,20 @@ export default function BudgetManagersPage() {
     return new Intl.NumberFormat('ko-KR').format(amount);
   };
 
+  // 예외 케이스 확인 (담당자가 팀장과 다른 경우)
+  const isException = (detail: BudgetDetail, deptName: string): boolean => {
+    const managerId = getCurrentManager(detail);
+    if (!managerId) return false;
+    const teamLeader = teamLeaders.get(deptName);
+    if (!teamLeader) return true; // 팀장이 지정되지 않은 경우도 예외
+    return managerId !== teamLeader.id;
+  };
+
+  // 팀장 이름 가져오기
+  const getTeamLeaderName = (deptName: string): string | null => {
+    return teamLeaders.get(deptName)?.name || null;
+  };
+
   // 예산금액 입력 처리 (콤마 제거 후 숫자만 추출)
   const handleBudgetInputChange = (detailId: string, inputValue: string) => {
     const numericValue = parseInt(inputValue.replace(/[^0-9]/g, '')) || 0;
@@ -374,7 +401,21 @@ export default function BudgetManagersPage() {
               className={`${INPUT_BASE} pl-10`}
             />
           </div>
-          <div className="text-sm text-gray-500">총 {details.length}개 세목</div>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showExceptionsOnly}
+                onChange={(e) => setShowExceptionsOnly(e.target.checked)}
+                className="w-4 h-4 text-amber-600 rounded border-gray-300 focus:ring-amber-500"
+              />
+              <span className="text-sm text-amber-700 flex items-center gap-1">
+                <AlertTriangle className="w-4 h-4" />
+                예외만 보기
+              </span>
+            </label>
+            <div className="text-sm text-gray-500">총 {details.length}개 세목</div>
+          </div>
         </div>
       </div>
 
@@ -508,12 +549,16 @@ export default function BudgetManagersPage() {
 
                                             {/* 5단계: 세목 목록 */}
                                             {isSubExpanded &&
-                                              filteredItems.map((detail) => {
+                                              filteredItems
+                                                .filter((detail) => !showExceptionsOnly || isException(detail, department))
+                                                .map((detail) => {
                                                 const isChanged = changes.has(detail.id);
+                                                const hasException = isException(detail, department);
+                                                const leaderName = getTeamLeaderName(department);
                                                 return (
                                                   <tr
                                                     key={`${subKey}|${detail.id}`}
-                                                    className={`hover:bg-gray-50 ${isChanged ? 'bg-yellow-50' : ''}`}
+                                                    className={`hover:bg-gray-50 ${isChanged ? 'bg-yellow-50' : ''} ${hasException ? 'bg-amber-50' : ''}`}
                                                   >
                                                     <td className={`${TABLE_CELL} pl-20`}>
                                                       <div className="font-medium">{detail.name}</div>
@@ -522,18 +567,29 @@ export default function BudgetManagersPage() {
                                                       )}
                                                     </td>
                                                     <td className={TABLE_CELL}>
-                                                      <select
-                                                        value={getCurrentManager(detail)}
-                                                        onChange={(e) => handleManagerChange(detail.id, e.target.value || null)}
-                                                        className={`${SELECT_BASE} text-sm py-1 ${isChanged ? 'ring-2 ring-yellow-400' : ''}`}
-                                                      >
-                                                        <option value="">선택</option>
-                                                        {users.map((user) => (
-                                                          <option key={user.id} value={user.id}>
-                                                            {user.username}
-                                                          </option>
-                                                        ))}
-                                                      </select>
+                                                      <div className="flex items-center gap-2">
+                                                        <select
+                                                          value={getCurrentManager(detail)}
+                                                          onChange={(e) => handleManagerChange(detail.id, e.target.value || null)}
+                                                          className={`${SELECT_BASE} text-sm py-1 ${isChanged ? 'ring-2 ring-yellow-400' : ''}`}
+                                                        >
+                                                          <option value="">선택</option>
+                                                          {users.map((user) => (
+                                                            <option key={user.id} value={user.id}>
+                                                              {user.username}
+                                                            </option>
+                                                          ))}
+                                                        </select>
+                                                        {hasException && (
+                                                          <span
+                                                            className="px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded flex items-center gap-1"
+                                                            title={leaderName ? `기본 팀장: ${leaderName}` : '팀장 미지정'}
+                                                          >
+                                                            <AlertTriangle className="w-3 h-3" />
+                                                            예외
+                                                          </span>
+                                                        )}
+                                                      </div>
                                                     </td>
                                                     <td className={`${TABLE_CELL} text-right`}>
                                                       <input

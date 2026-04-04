@@ -1,5 +1,8 @@
 /**
  * 어드민 사이드바 메뉴 구조 정의
+ *
+ * 8개 그룹:
+ * 대시보드 / 조직 관리 / 사용자·역할 / 예산 편성 / 결산·실적 / 결재 관리 / 수입 관리 / 시스템
  */
 
 import {
@@ -20,6 +23,10 @@ import {
   Bell,
   PieChart,
   HandCoins,
+  Settings,
+  GitBranch,
+  AlertTriangle,
+  TrendingUp,
   LucideIcon,
 } from 'lucide-react';
 
@@ -42,52 +49,61 @@ export const ADMIN_SIDEBAR_MENU: SidebarGroup[] = [
     ],
   },
   {
-    title: '연도 설정',
+    title: '조직 관리',
     items: [
-      { href: '/admin/budget-wizard', label: '설정 마법사', icon: Wand2 },
       { href: '/admin/committees', label: '위원회 관리', icon: Building2 },
       { href: '/admin/departments', label: '사역팀(부) 관리', icon: Users2 },
-      { href: '/admin/budget-upload', label: '예산 마스터 업로드', icon: FileSpreadsheet },
     ],
   },
   {
-    title: '인원 관리',
+    title: '사용자/역할',
     items: [
       { href: '/admin/users', label: '사용자 관리', icon: Users },
       { href: '/admin/users-upload', label: '사용자 일괄 등록', icon: Upload },
+      { href: '/admin/roles', label: '역할 관리', icon: Shield },
+      { href: '/admin/year-roles', label: '연도별 역할 설정', icon: CalendarCog },
       { href: '/admin/leaders-upload', label: '팀장 일괄 등록', icon: Upload },
-      { href: '/admin/year-roles', label: '연도별 역할 관리', icon: CalendarCog },
+      { href: '/admin/year-roles-summary', label: '팀장 현황', icon: BarChart3 },
     ],
   },
   {
-    title: '예산 관리',
+    title: '예산 편성',
     items: [
-      { href: '/admin/budget-managers', label: '세목별 담당자 관리', icon: UserCog },
+      { href: '/admin/budget-wizard', label: '설정 마법사', icon: Wand2 },
+      { href: '/admin/budget-upload', label: '예산 마스터 업로드', icon: FileSpreadsheet },
+      { href: '/admin/budget-managers', label: '세목별 담당자', icon: UserCog },
       { href: '/admin/memo-examples', label: '적요 예제 관리', icon: FileText },
+      { href: '/admin/year-setup-status', label: '설정 완료 현황', icon: CheckCircle },
+    ],
+  },
+  {
+    title: '결산/실적',
+    items: [
       { href: '/admin/budget-view', label: '예산 현황 조회', icon: Eye },
-    ],
-  },
-  {
-    title: '현황/리포트',
-    items: [
-      { href: '/admin/year-setup-status', label: '연도별 설정 현황', icon: CheckCircle },
-      { href: '/admin/year-roles-summary', label: '연도별 팀장 현황', icon: BarChart3 },
       { href: '/admin/budget-execution', label: '사역비 집행 현황', icon: PieChart },
-      { href: '/admin/hr-admin-execution', label: '인사/행정비 집행 현황', icon: BarChart3 },
+      { href: '/admin/hr-admin-execution', label: '인사/행정비 현황', icon: BarChart3 },
       { href: '/admin/quarterly-report', label: '분기별 회계보고', icon: BarChart3 },
-      { href: '/admin/roles', label: '역할 안내', icon: Shield },
+      { href: '/admin/cumulative-report', label: '분기별 누적 현황', icon: TrendingUp },
     ],
   },
   {
-    title: '알림',
+    title: '결재 관리',
     items: [
-      { href: '/admin/notifications', label: '알림 발송', icon: Bell },
+      { href: '/admin/approval-rules', label: '결재라인 규칙', icon: GitBranch },
+      { href: '/admin/manager-exceptions', label: '담당자 예외 현황', icon: AlertTriangle },
     ],
   },
   {
-    title: '재정 수입',
+    title: '수입 관리',
     items: [
       { href: '/admin/offerings', label: '헌금 관리', icon: HandCoins },
+    ],
+  },
+  {
+    title: '시스템',
+    items: [
+      { href: '/admin/settings', label: '시스템 설정', icon: Settings },
+      { href: '/admin/notifications', label: '알림 발송', icon: Bell },
     ],
   },
 ];
