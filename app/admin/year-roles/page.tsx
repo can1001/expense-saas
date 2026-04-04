@@ -281,9 +281,13 @@ export default function YearRolesPage() {
     try {
       let successCount = 0;
       let errorCount = 0;
+      let skippedCount = 0;
 
       for (const [userId, { role, department }] of changedEntries) {
-        if (!role) continue; // 역할이 없으면 건너뜀
+        if (!role) {
+          skippedCount++; // 역할이 없으면 건너뜀
+          continue;
+        }
 
         try {
           const response = await fetch('/api/users/year-roles', {
@@ -301,18 +305,24 @@ export default function YearRolesPage() {
             successCount++;
           } else {
             errorCount++;
+            const errorData = await response.json().catch(() => ({}));
+            console.error(`Failed to save year role for ${userId}:`, errorData);
           }
-        } catch {
+        } catch (err) {
           errorCount++;
+          console.error(`Error saving year role for ${userId}:`, err);
         }
       }
 
       if (errorCount > 0) {
-        setError(`${errorCount}건 저장 실패`);
+        setError(`${errorCount}건 저장 실패 (콘솔에서 상세 오류 확인)`);
       }
       if (successCount > 0) {
-        setSuccess(`${successCount}건 저장 완료`);
+        const skippedMsg = skippedCount > 0 ? ` (역할 미선택 ${skippedCount}건 건너뜀)` : '';
+        setSuccess(`${successCount}건 저장 완료${skippedMsg}`);
         fetchData(); // 데이터 새로고침
+      } else if (skippedCount > 0 && errorCount === 0) {
+        setError(`역할이 선택되지 않아 ${skippedCount}건 모두 건너뛰었습니다. 역할을 먼저 선택해주세요.`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '저장 실패');
