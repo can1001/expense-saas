@@ -248,9 +248,108 @@
 
 ---
 
+## 6. 추가 개선 사항 (오후 작업)
+
+### 6.1 담당자 예외 현황 페이지 - 팀장 직접 지정 기능
+
+#### 변경 파일
+- `app/admin/manager-exceptions/page.tsx`
+
+#### 추가 기능
+- 팀장이 "미지정"인 경우 드롭다운에서 팀장 직접 지정 가능
+- 사용자 선택 시 자동으로 `UserYearRole`에 등록
+- 지정 완료 시 데이터 자동 새로고침
+
+---
+
+### 6.2 위원회/사역팀 관리 - 사용자 목록 API 버그 수정
+
+#### 변경 파일
+- `app/admin/committees/page.tsx`
+- `app/admin/departments/page.tsx`
+
+#### 문제
+- 사용자 목록 API 호출 시 잘못된 파라미터 사용
+- `?active=true` (잘못됨) → `?isActive=true&pageSize=200` (수정)
+
+#### 결과
+- 위원장/팀장 선택 시 전체 사용자 목록 정상 표시
+
+---
+
+### 6.3 사역팀 관리 페이지 - UserYearRole 연동
+
+#### 변경 파일
+- `app/admin/departments/page.tsx`
+
+#### 문제
+- `/admin/departments`: `Department.leaderId` 사용 (레거시)
+- `/admin/manager-exceptions`: `UserYearRole` 사용 (연도별)
+- 두 페이지의 팀장 정보 불일치
+
+#### 해결
+- departments 페이지에서 `UserYearRole`을 조회하여 팀장 표시
+- 팀장 지정 시 `UserYearRole`에 등록
+- 두 페이지의 팀장 데이터 일관성 확보
+
+---
+
+### 6.4 팀장 겸직 지원 (스키마 변경)
+
+#### 변경 파일
+- `prisma/schema.prisma`
+- `lib/services/user-service.ts`
+- `prisma/seed.ts`
+- `app/api/users/year-roles/route.ts`
+
+#### 문제
+- 기존 유니크 제약: `@@unique([userId, year])`
+- 한 사용자가 연도별로 하나의 역할만 가능
+- 예: 윤운문이 재정팀장 + 행정비 팀장 + 인사위 팀장 불가
+
+#### 해결
+```prisma
+// 변경 전
+@@unique([userId, year])
+
+// 변경 후
+@@unique([userId, year, department])
+```
+
+- 같은 사용자가 여러 부서의 팀장 겸직 가능
+- `setYearRole` 함수 로직 수정 (nullable department 처리)
+
+---
+
+## 파일 변경 요약 (추가분)
+
+### 수정 (6개)
+| 파일 | 변경 내용 |
+|------|----------|
+| `app/admin/manager-exceptions/page.tsx` | 팀장 직접 지정 드롭다운 추가 |
+| `app/admin/committees/page.tsx` | 사용자 API 버그 수정 |
+| `app/admin/departments/page.tsx` | UserYearRole 연동, 사용자 API 버그 수정 |
+| `prisma/schema.prisma` | UserYearRole 유니크 제약 변경 |
+| `lib/services/user-service.ts` | setYearRole 함수 로직 수정 |
+| `prisma/seed.ts` | 새 유니크 제약 적용 |
+
+---
+
+## 커밋 내역 (4월 4일)
+
+| 커밋 | 메시지 |
+|------|--------|
+| `23344a7` | feat: 관리자 페이지 리뉴얼 - 메뉴 구조 개편 및 신규 페이지 추가 |
+| `05c4389` | feat: 담당자 예외 현황 페이지에서 팀장 직접 지정 기능 추가 |
+| `39bc091` | fix: 위원회 관리 페이지 사용자 목록 조회 버그 수정 |
+| `a2c51cf` | feat: 팀장 겸직 지원 및 departments 페이지 UserYearRole 연동 |
+
+---
+
 ## 향후 개선 가능 사항
 
 1. **결재라인 규칙 편집 기능**: 현재 읽기 전용, 향후 규칙 수정 기능 추가 가능
 2. **대시보드 차트 추가**: 분기별 추이 라인 차트
 3. **담당자 예외 사유 입력**: 예외 케이스에 사유 필드 추가
 4. **알림 연동**: 예외 케이스 발생 시 관리자 알림
+5. **Department.leaderId 필드 폐기**: UserYearRole로 완전 이전 후 레거시 필드 제거
