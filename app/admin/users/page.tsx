@@ -24,13 +24,7 @@ import {
 } from '@/lib/constants/styles';
 import { useRoles } from '@/hooks/useRoles';
 import { downloadUserExcel, UserForExcel } from '@/lib/user-excel-export';
-
-interface YearRole {
-  id: string;
-  role: string;
-  department: string | null;
-  year: number;
-}
+import { getDisplayRole, YearRole } from '@/lib/utils/getDisplayRole';
 
 interface User {
   id: string;
@@ -69,22 +63,6 @@ function UsersPageContent() {
   const [roleFilter, setRoleFilter] = useState(searchParams.get('role') ?? '');
   const [activeFilter, setActiveFilter] = useState(searchParams.get('isActive') ?? '');
   const currentPage = parseInt(searchParams.get('page') ?? '1');
-
-  // 연도별 역할 우선 표시 함수
-  const getDisplayRole = (user: User): { role: string; department: string | null } => {
-    // yearRoles가 있으면 첫 번째 역할 사용 (finance_head, accountant 등 우선)
-    if (user.yearRoles && user.yearRoles.length > 0) {
-      // 우선순위: finance_head > accountant > admin_assistant > team_leader
-      const priorityOrder = ['finance_head', 'accountant', 'admin_assistant', 'team_leader'];
-      const sorted = [...user.yearRoles].sort((a, b) => {
-        const aIdx = priorityOrder.indexOf(a.role);
-        const bIdx = priorityOrder.indexOf(b.role);
-        return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
-      });
-      return { role: sorted[0].role, department: sorted[0].department };
-    }
-    return { role: user.role, department: user.department };
-  };
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
