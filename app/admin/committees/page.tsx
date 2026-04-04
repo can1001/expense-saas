@@ -53,7 +53,7 @@ export default function CommitteesPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/users?active=true');
+      const response = await fetch('/api/users?isActive=true&pageSize=200');
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users || []);
