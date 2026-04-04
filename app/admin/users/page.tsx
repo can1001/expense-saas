@@ -25,6 +25,13 @@ import {
 import { useRoles } from '@/hooks/useRoles';
 import { downloadUserExcel, UserForExcel } from '@/lib/user-excel-export';
 
+interface YearRole {
+  id: string;
+  role: string;
+  department: string | null;
+  year: number;
+}
+
 interface User {
   id: string;
   userid: string;
@@ -34,6 +41,7 @@ interface User {
   isActive: boolean;
   canRegisterUsers: boolean;
   createdAt: string;
+  yearRoles?: YearRole[];
 }
 
 interface Pagination {
@@ -62,6 +70,22 @@ function UsersPageContent() {
   const [activeFilter, setActiveFilter] = useState(searchParams.get('isActive') ?? '');
   const currentPage = parseInt(searchParams.get('page') ?? '1');
 
+  // 연도별 역할 우선 표시 함수
+  const getDisplayRole = (user: User): { role: string; department: string | null } => {
+    // yearRoles가 있으면 첫 번째 역할 사용 (finance_head, accountant 등 우선)
+    if (user.yearRoles && user.yearRoles.length > 0) {
+      // 우선순위: finance_head > accountant > admin_assistant > team_leader
+      const priorityOrder = ['finance_head', 'accountant', 'admin_assistant', 'team_leader'];
+      const sorted = [...user.yearRoles].sort((a, b) => {
+        const aIdx = priorityOrder.indexOf(a.role);
+        const bIdx = priorityOrder.indexOf(b.role);
+        return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
+      });
+      return { role: sorted[0].role, department: sorted[0].department };
+    }
+    return { role: user.role, department: user.department };
+  };
+
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -70,6 +94,7 @@ function UsersPageContent() {
       const params = new URLSearchParams();
       params.set('page', currentPage.toString());
       params.set('pageSize', '20');
+      params.set('includeYearRoles', 'true'); // 연도별 역할 포함
       if (search) params.set('search', search);
       if (roleFilter) params.set('role', roleFilter);
       if (activeFilter) params.set('isActive', activeFilter);
@@ -274,9 +299,17 @@ function UsersPageContent() {
                         <td className={TABLE_CELL}>{user.userid}</td>
                         <td className={TABLE_CELL}>{user.username}</td>
                         <td className={TABLE_CELL}>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(user.role).bg} ${getRoleColor(user.role).text}`}>
-                            {getRoleName(user.role)}
-                          </span>
+                          {(() => {
+                            const displayRole = getDisplayRole(user);
+                            return (
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(displayRole.role).bg} ${getRoleColor(displayRole.role).text}`}>
+                                {getRoleName(displayRole.role)}
+                                {displayRole.role === 'team_leader' && displayRole.department && (
+                                  <span className="ml-1 text-gray-600">({displayRole.department})</span>
+                                )}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className={TABLE_CELL}>{user.department ?? '-'}</td>
                         <td className={TABLE_CELL}>

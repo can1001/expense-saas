@@ -323,10 +323,13 @@ export async function findUsers(options?: {
   isActive?: boolean;
   search?: string;
   includeRoleRef?: boolean;
-}): Promise<{ users: (User & { roleRef?: Role | null })[]; total: number }> {
+  includeYearRoles?: boolean;
+  year?: number;
+}): Promise<{ users: (User & { roleRef?: Role | null; yearRoles?: UserYearRole[] })[]; total: number }> {
   const page = options?.page ?? 1;
   const pageSize = options?.pageSize ?? 20;
   const skip = (page - 1) * pageSize;
+  const year = options?.year ?? CURRENT_YEAR;
 
   const where: Record<string, unknown> = {};
 
@@ -346,13 +349,25 @@ export async function findUsers(options?: {
     ];
   }
 
+  // include 옵션 구성
+  const include: Record<string, unknown> = {};
+  if (options?.includeRoleRef) {
+    include.roleRef = true;
+  }
+  if (options?.includeYearRoles) {
+    include.yearRoles = {
+      where: { year },
+      orderBy: { role: 'asc' },
+    };
+  }
+
   const [users, total] = await Promise.all([
     prisma.user.findMany({
       where,
       skip,
       take: pageSize,
       orderBy: [{ role: 'asc' }, { username: 'asc' }],
-      include: options?.includeRoleRef ? { roleRef: true } : undefined,
+      include: Object.keys(include).length > 0 ? include : undefined,
     }),
     prisma.user.count({ where }),
   ]);

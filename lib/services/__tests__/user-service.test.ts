@@ -63,6 +63,8 @@ vi.mock('../../prisma', () => ({
     },
     userYearRole: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
+      create: vi.fn(),
       upsert: vi.fn(),
       deleteMany: vi.fn(),
     },
@@ -1032,18 +1034,30 @@ describe('user-service', () => {
           { id: 'role-6', code: 'user', name: '사용자', stepNumber: null },
         ] as any);
 
-      vi.mocked(prisma.userYearRole.upsert).mockResolvedValue(mockYearRole);
+      // Mock findFirst to return null (no existing role)
+      vi.mocked(prisma.userYearRole.findFirst).mockResolvedValue(null);
+
+      // Mock create to return the new year role
+      vi.mocked(prisma.userYearRole.create).mockResolvedValue(mockYearRole);
 
       await getAllRoles(true); // Force refresh
       await setYearRole('user-1', 2025, 'user');
 
-      expect(prisma.userYearRole.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          create: expect.objectContaining({
-            department: undefined,
-          }),
-        })
-      );
+      // Verify findFirst was called to check for existing role without department
+      expect(prisma.userYearRole.findFirst).toHaveBeenCalledWith({
+        where: { userId: 'user-1', year: 2025, department: null },
+      });
+
+      // Verify create was called since no existing role was found
+      expect(prisma.userYearRole.create).toHaveBeenCalledWith({
+        data: {
+          userId: 'user-1',
+          year: 2025,
+          role: 'user',
+          roleId: undefined,
+          department: null,
+        },
+      });
     });
   });
 

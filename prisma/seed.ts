@@ -164,13 +164,13 @@ const usersData: Array<{
   { userid: '청연테스트', username: '테스트', baseRole: 'user', password: 'chc2026' },
 
   // 관리자/행정간사 (영구 역할)
-  { userid: '청연송원경', username: '송원경', baseRole: 'admin', yearRole: 'admin_assistant', departments: ['재정팀'] },
+  { userid: '청연송원경', username: '송원경', baseRole: 'user', yearRole: 'admin_assistant', departments: ['재정팀'] },
 
   // 재정팀장 (연도별 역할)
   { userid: '청연윤운문', username: '윤운문', baseRole: 'user', yearRole: 'finance_head' },
 
   // 회계 (연도별 역할)
-  { userid: '청연정혜종', username: '정혜종', baseRole: 'admin', yearRole: 'accountant', departments: ['재정팀'] },
+  { userid: '청연정혜종', username: '정혜종', baseRole: 'user', yearRole: 'accountant', departments: ['재정팀'] },
 
   // 일반 사용자
   { userid: '청연신창국', username: '신창국', baseRole: 'user' },
@@ -187,19 +187,13 @@ const usersData: Array<{
   { userid: '청연류지성', username: '류지성', baseRole: 'user', yearRole: 'team_leader', departments: ['마중물팀'] },
   { userid: '청연박영미', username: '박영미', baseRole: 'user', yearRole: 'team_leader', departments: ['영유아부'] },
   { userid: '청연박예송', username: '박예송', baseRole: 'user', yearRole: 'team_leader', departments: ['예배지원팀'] },
-  { userid: '청연방순화', username: '방순화', baseRole: 'user', yearRole: 'team_leader', departments: ['기도팀', '예배위원회/기도팀'] },
+  { userid: '청연방순화', username: '방순화', baseRole: 'user', yearRole: 'team_leader', departments: ['기도팀'] },
   { userid: '청연서주형', username: '서주형', baseRole: 'user', yearRole: 'team_leader', departments: ['홍보팀'] },
   { userid: '청연양찬승', username: '양찬승', baseRole: 'user', yearRole: 'team_leader', departments: ['공간사역팀'] },
-  { userid: '청연오승환', username: '오승환', baseRole: 'user', yearRole: 'team_leader', departments: ['교육훈련위원회/청세포팀'] },
   { userid: '청연오혜성', username: '오혜성', baseRole: 'user', yearRole: 'team_leader', departments: ['청년유스'] },
   { userid: '청연유미정', username: '유미정', baseRole: 'user', yearRole: 'team_leader', departments: ['유치부'] },
-  { userid: '청연유정희', username: '유정희', baseRole: 'user', yearRole: 'team_leader', departments: ['예배위원회/예배지원팀'] },
-  { userid: '청연이문희', username: '이문희', baseRole: 'user', yearRole: 'team_leader', departments: ['기획위원회/시설관리팀'] },
   { userid: '청연이선아B', username: '이선아B', baseRole: 'user', yearRole: 'team_leader', departments: ['안내팀'] },
   { userid: '청연임대웅', username: '임대웅', baseRole: 'user', yearRole: 'team_leader', departments: ['양육지원'] },
-  { userid: '청연임한결', username: '임한결', baseRole: 'user', yearRole: 'team_leader', departments: ['기획위원회/이웃사랑팀'] },
-  { userid: '청연장태규', username: '장태규', baseRole: 'user', yearRole: 'team_leader', departments: ['교육훈련위원회/새가족팀'] },
-  { userid: '청연전수희', username: '전수희', baseRole: 'user', yearRole: 'team_leader', departments: ['예배위원회/안내팀'] },
   { userid: '청연조민경', username: '조민경', baseRole: 'user', yearRole: 'team_leader', departments: ['초등부'] },
   { userid: '청연최보영', username: '최보영', baseRole: 'user', yearRole: 'team_leader', departments: ['시설관리팀'] },
   { userid: '청연최준영', username: '최준영', baseRole: 'user', yearRole: 'team_leader', departments: ['청세포팀'] },
