@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, RefreshCw, Download, ArrowRight, Info } from 'lucide-react';
 import { SECTION_CARD, BTN_OUTLINE, BTN_SM, SELECT_BASE } from '@/lib/constants/styles';
 
+interface User {
+  id: string;
+  username: string;
+  userid: string;
+}
+
 interface ExceptionData {
   year: number;
   summary: {
@@ -31,19 +37,58 @@ export default function ManagerExceptionsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filterCommittee, setFilterCommittee] = useState<string>('');
+  const [users, setUsers] = useState<User[]>([]);
+  const [assigning, setAssigning] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/admin/manager-exceptions?year=${year}`);
-      if (!response.ok) throw new Error('데이터를 불러오는데 실패했습니다.');
-      const result = await response.json();
+      const [exceptionsRes, usersRes] = await Promise.all([
+        fetch(`/api/admin/manager-exceptions?year=${year}`),
+        fetch('/api/users?isActive=true&pageSize=200'),
+      ]);
+      if (!exceptionsRes.ok) throw new Error('데이터를 불러오는데 실패했습니다.');
+      const result = await exceptionsRes.json();
       setData(result);
+
+      if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        setUsers(usersData.users || []);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '오류가 발생했습니다.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAssignTeamLeader = async (department: string, userId: string) => {
+    if (!userId) return;
+
+    setAssigning(department);
+    try {
+      const response = await fetch('/api/users/year-roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          year,
+          role: 'team_leader',
+          department,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '팀장 지정에 실패했습니다.');
+      }
+
+      await fetchData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '팀장 지정 중 오류가 발생했습니다.');
+    } finally {
+      setAssigning(null);
     }
   };
 
@@ -213,7 +258,28 @@ export default function ManagerExceptionsPage() {
                             {exception.teamLeader ? (
                               <span className="text-gray-600">{exception.teamLeader.name}</span>
                             ) : (
-                              <span className="text-gray-400 text-xs">미지정</span>
+                              <div className="flex items-center gap-2">
+                                <select
+                                  className={`${SELECT_BASE} text-xs py-1 px-2 min-w-[120px]`}
+                                  defaultValue=""
+                                  disabled={assigning === exception.department}
+                                  onChange={(e) =>
+                                    handleAssignTeamLeader(exception.department, e.target.value)
+                                  }
+                                >
+                                  <option value="" disabled>
+                                    팀장 선택
+                                  </option>
+                                  {users.map((user) => (
+                                    <option key={user.id} value={user.id}>
+                                      {user.username}
+                                    </option>
+                                  ))}
+                                </select>
+                                {assigning === exception.department && (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
+                                )}
+                              </div>
                             )}
                           </td>
                           <td className="py-3">
@@ -242,6 +308,9 @@ export default function ManagerExceptionsPage() {
                 <ul className="list-disc list-inside space-y-1 text-blue-700">
                   <li>예외 케이스는 세목의 담당자가 해당 사역팀의 팀장과 다른 경우입니다.</li>
                   <li>예: 공간사역팀 인건비의 담당자가 재정팀장인 경우</li>
+                  <li>
+                    <strong>팀장 미지정</strong> 시 드롭다운에서 팀장을 직접 지정할 수 있습니다.
+                  </li>
                   <li>담당자 변경은 [예산 편성 → 세목별 담당자] 메뉴에서 가능합니다.</li>
                 </ul>
               </div>
