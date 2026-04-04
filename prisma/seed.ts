@@ -157,50 +157,53 @@ const usersData: Array<{
   username: string;
   baseRole: 'admin' | 'user';
   yearRole?: UserRole;        // 연도별 역할 (finance_head, accountant, team_leader, admin_assistant)
-  department?: string;
+  departments?: string[];     // 복수 부서 지원 (팀장 겸직)
   password?: string;          // 로그인 비밀번호
 }> = [
   // E2E 테스트 사용자
   { userid: '청연테스트', username: '테스트', baseRole: 'user', password: 'chc2026' },
 
-  // 관리자 (영구 역할)
-  { userid: '청연송원경', username: '송원경', baseRole: 'admin', yearRole: 'admin_assistant' },
+  // 관리자/행정간사 (영구 역할)
+  { userid: '청연송원경', username: '송원경', baseRole: 'admin', yearRole: 'admin_assistant', departments: ['재정팀'] },
 
-  // 재정팀장/회계 (연도별 역할)
+  // 재정팀장 (연도별 역할)
   { userid: '청연윤운문', username: '윤운문', baseRole: 'user', yearRole: 'finance_head' },
-  { userid: '청연정혜종', username: '정혜종', baseRole: 'admin', yearRole: 'accountant' },
+
+  // 회계 (연도별 역할)
+  { userid: '청연정혜종', username: '정혜종', baseRole: 'admin', yearRole: 'accountant', departments: ['재정팀'] },
 
   // 일반 사용자
   { userid: '청연신창국', username: '신창국', baseRole: 'user' },
 
-  // 교육훈련위원회 팀장
-  { userid: '청연김흥래', username: '김흥래', baseRole: 'user', yearRole: 'team_leader', department: '교육훈련위원회' },
-  { userid: '청연장태규', username: '장태규', baseRole: 'user', yearRole: 'team_leader', department: '교육훈련위원회/새가족팀' },
-  { userid: '청연허지혜', username: '허지혜', baseRole: 'user', yearRole: 'team_leader', department: '교육훈련위원회/세바맘팀' },
-  { userid: '청연박영미', username: '박영미', baseRole: 'user', yearRole: 'team_leader', department: '교육훈련위원회/영유아부' },
-  { userid: '청연유미정', username: '유미정', baseRole: 'user', yearRole: 'team_leader', department: '교육훈련위원회/유치부' },
-  { userid: '청연김경민', username: '김경민', baseRole: 'user', yearRole: 'team_leader', department: '교육훈련위원회/유년부' },
-  { userid: '청연조민경', username: '조민경', baseRole: 'user', yearRole: 'team_leader', department: '교육훈련위원회/초등부' },
-  { userid: '청연김대현', username: '김대현', baseRole: 'user', yearRole: 'team_leader', department: '교육훈련위원회/중고등부' },
-  { userid: '청연오승환', username: '오승환', baseRole: 'user', yearRole: 'team_leader', department: '교육훈련위원회/청세포팀' },
-
-  // 예배위원회 팀장
-  { userid: '청연김예찬', username: '김예찬', baseRole: 'user', yearRole: 'team_leader', department: '예배위원회/방송팀' },
-  { userid: '청연김민광', username: '김민광', baseRole: 'user', yearRole: 'team_leader', department: '예배위원회/찬양팀' },
-  { userid: '청연방순화', username: '방순화', baseRole: 'user', yearRole: 'team_leader', department: '예배위원회/기도팀' },
-  { userid: '청연전수희', username: '전수희', baseRole: 'user', yearRole: 'team_leader', department: '예배위원회/안내팀' },
-  { userid: '청연유정희', username: '유정희', baseRole: 'user', yearRole: 'team_leader', department: '예배위원회/예배지원팀' },
-
-  // 목양위원회 팀장
-  { userid: '청연강홍재', username: '강홍재', baseRole: 'user', yearRole: 'team_leader', department: '목양위원회/목양팀' },
-  { userid: '청연류지성', username: '류지성', baseRole: 'user', yearRole: 'team_leader', department: '목양위원회/마중물팀' },
-  { userid: '청연임대웅', username: '임대웅', baseRole: 'user', yearRole: 'team_leader', department: '목양위원회/양육지원' },
-
-  // 기획위원회 팀장
-  { userid: '청연서주형', username: '서주형', baseRole: 'user', yearRole: 'team_leader', department: '기획위원회/홍보팀' },
-  { userid: '청연양찬승', username: '양찬승', baseRole: 'user', yearRole: 'team_leader', department: '기획위원회/공간사역팀' },
-  { userid: '청연이문희', username: '이문희', baseRole: 'user', yearRole: 'team_leader', department: '기획위원회/시설관리팀' },
-  { userid: '청연임한결', username: '임한결', baseRole: 'user', yearRole: 'team_leader', department: '기획위원회/이웃사랑팀' },
+  // 팀장 (DB 기준 2026년)
+  { userid: '청연강홍재', username: '강홍재', baseRole: 'user', yearRole: 'team_leader', departments: ['목양팀'] },
+  { userid: '청연김경민', username: '김경민', baseRole: 'user', yearRole: 'team_leader', departments: ['유년부'] },
+  { userid: '청연김대현', username: '김대현', baseRole: 'user', yearRole: 'team_leader', departments: ['기획팀', '중고등부', '이웃사랑팀', '전교인행사TF'] },
+  { userid: '청연김민광', username: '김민광', baseRole: 'user', yearRole: 'team_leader', departments: ['예배위원회/찬양팀'] },
+  { userid: '청연김수정', username: '김수정', baseRole: 'user', yearRole: 'team_leader', departments: ['세바맘팀'] },
+  { userid: '청연김영은', username: '김영은', baseRole: 'user', yearRole: 'team_leader', departments: ['새가족팀'] },
+  { userid: '청연김예찬', username: '김예찬', baseRole: 'user', yearRole: 'team_leader', departments: ['방송팀'] },
+  { userid: '청연김흥래', username: '김흥래', baseRole: 'user', yearRole: 'team_leader', departments: ['교육훈련위원회'] },
+  { userid: '청연류지성', username: '류지성', baseRole: 'user', yearRole: 'team_leader', departments: ['마중물팀'] },
+  { userid: '청연박영미', username: '박영미', baseRole: 'user', yearRole: 'team_leader', departments: ['영유아부'] },
+  { userid: '청연박예송', username: '박예송', baseRole: 'user', yearRole: 'team_leader', departments: ['예배지원팀'] },
+  { userid: '청연방순화', username: '방순화', baseRole: 'user', yearRole: 'team_leader', departments: ['기도팀', '예배위원회/기도팀'] },
+  { userid: '청연서주형', username: '서주형', baseRole: 'user', yearRole: 'team_leader', departments: ['홍보팀'] },
+  { userid: '청연양찬승', username: '양찬승', baseRole: 'user', yearRole: 'team_leader', departments: ['공간사역팀'] },
+  { userid: '청연오승환', username: '오승환', baseRole: 'user', yearRole: 'team_leader', departments: ['교육훈련위원회/청세포팀'] },
+  { userid: '청연오혜성', username: '오혜성', baseRole: 'user', yearRole: 'team_leader', departments: ['청년유스'] },
+  { userid: '청연유미정', username: '유미정', baseRole: 'user', yearRole: 'team_leader', departments: ['유치부'] },
+  { userid: '청연유정희', username: '유정희', baseRole: 'user', yearRole: 'team_leader', departments: ['예배위원회/예배지원팀'] },
+  { userid: '청연이문희', username: '이문희', baseRole: 'user', yearRole: 'team_leader', departments: ['기획위원회/시설관리팀'] },
+  { userid: '청연이선아B', username: '이선아B', baseRole: 'user', yearRole: 'team_leader', departments: ['안내팀'] },
+  { userid: '청연임대웅', username: '임대웅', baseRole: 'user', yearRole: 'team_leader', departments: ['양육지원'] },
+  { userid: '청연임한결', username: '임한결', baseRole: 'user', yearRole: 'team_leader', departments: ['기획위원회/이웃사랑팀'] },
+  { userid: '청연장태규', username: '장태규', baseRole: 'user', yearRole: 'team_leader', departments: ['교육훈련위원회/새가족팀'] },
+  { userid: '청연전수희', username: '전수희', baseRole: 'user', yearRole: 'team_leader', departments: ['예배위원회/안내팀'] },
+  { userid: '청연조민경', username: '조민경', baseRole: 'user', yearRole: 'team_leader', departments: ['초등부'] },
+  { userid: '청연최보영', username: '최보영', baseRole: 'user', yearRole: 'team_leader', departments: ['시설관리팀'] },
+  { userid: '청연최준영', username: '최준영', baseRole: 'user', yearRole: 'team_leader', departments: ['청세포팀'] },
+  { userid: '청연허지혜', username: '허지혜', baseRole: 'user', yearRole: 'team_leader', departments: ['찬양팀'] },
 ];
 
 async function seedUsers() {
@@ -216,6 +219,9 @@ async function seedUsers() {
       const baseRoleId = roleIdCache.get(userData.baseRole);
       const yearRoleId = userData.yearRole ? roleIdCache.get(userData.yearRole) : null;
 
+      // 대표 부서 (첫 번째 부서 또는 undefined)
+      const primaryDepartment = userData.departments?.[0];
+
       // 1. User 생성/업데이트 (기본 역할)
       const hashedPassword = userData.password ? await hashPassword(userData.password) : null;
       const user = await prisma.user.upsert({
@@ -224,7 +230,7 @@ async function seedUsers() {
           username: userData.username,
           role: userData.baseRole,
           roleId: baseRoleId,
-          department: userData.department,
+          department: primaryDepartment,
           ...(hashedPassword && { password: hashedPassword }),
         },
         create: {
@@ -232,36 +238,40 @@ async function seedUsers() {
           username: userData.username,
           role: userData.baseRole,
           roleId: baseRoleId,
-          department: userData.department,
+          department: primaryDepartment,
           password: hashedPassword,
         },
       });
       userCount++;
 
-      // 2. 연도별 역할이 있으면 각 연도에 대해 UserYearRole 생성
+      // 2. 연도별 역할이 있으면 각 연도/부서에 대해 UserYearRole 생성
       if (userData.yearRole) {
+        const departments = userData.departments?.length ? userData.departments : [undefined];
+
         for (const year of YEARS_TO_SEED) {
-          await prisma.userYearRole.upsert({
-            where: {
-              userId_year_department: {
+          for (const dept of departments) {
+            await prisma.userYearRole.upsert({
+              where: {
+                userId_year_department: {
+                  userId: user.id,
+                  year: year,
+                  department: dept || '',
+                },
+              },
+              update: {
+                role: userData.yearRole,
+                roleId: yearRoleId,
+              },
+              create: {
                 userId: user.id,
                 year: year,
-                department: userData.department || '',
+                role: userData.yearRole,
+                roleId: yearRoleId,
+                department: dept,
               },
-            },
-            update: {
-              role: userData.yearRole,
-              roleId: yearRoleId,
-            },
-            create: {
-              userId: user.id,
-              year: year,
-              role: userData.yearRole,
-              roleId: yearRoleId,
-              department: userData.department,
-            },
-          });
-          yearRoleCount++;
+            });
+            yearRoleCount++;
+          }
         }
       }
     } catch (error: unknown) {
