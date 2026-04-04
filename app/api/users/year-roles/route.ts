@@ -75,8 +75,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(yearRole, { status: 201 });
   } catch (error) {
     console.error('Error setting year role:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to set year role' },
+      { error: 'Failed to set year role', details: errorMessage },
       { status: 500 }
     );
   }

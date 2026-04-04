@@ -243,15 +243,15 @@ async function seedUsers() {
         for (const year of YEARS_TO_SEED) {
           await prisma.userYearRole.upsert({
             where: {
-              userId_year: {
+              userId_year_department: {
                 userId: user.id,
                 year: year,
+                department: userData.department || '',
               },
             },
             update: {
               role: userData.yearRole,
               roleId: yearRoleId,
-              department: userData.department,
             },
             create: {
               userId: user.id,

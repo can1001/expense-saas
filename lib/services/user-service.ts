@@ -506,11 +506,31 @@ export async function setYearRole(
     resolvedRoleId = roleRef?.id;
   }
 
+  // department가 없으면 upsert 대신 findFirst + create/update 사용
+  if (!department) {
+    // department 없이 해당 사용자+연도의 역할 찾기
+    const existing = await prisma.userYearRole.findFirst({
+      where: { userId, year, department: null },
+    });
+
+    if (existing) {
+      return prisma.userYearRole.update({
+        where: { id: existing.id },
+        data: { role, roleId: resolvedRoleId },
+      });
+    } else {
+      return prisma.userYearRole.create({
+        data: { userId, year, role, roleId: resolvedRoleId, department: null },
+      });
+    }
+  }
+
+  // department가 있는 경우 upsert 사용
   return prisma.userYearRole.upsert({
     where: {
-      userId_year: { userId, year },
+      userId_year_department: { userId, year, department },
     },
-    update: { role, roleId: resolvedRoleId, department },
+    update: { role, roleId: resolvedRoleId },
     create: { userId, year, role, roleId: resolvedRoleId, department },
   });
 }

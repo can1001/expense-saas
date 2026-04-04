@@ -1004,9 +1004,9 @@ describe('user-service', () => {
       expect(prisma.userYearRole.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            userId_year: { userId: 'user-1', year: 2025 },
+            userId_year_department: { userId: 'user-1', year: 2025, department: '재정팀' },
           },
-          update: expect.objectContaining({ role: 'accountant', department: '재정팀' }),
+          update: expect.objectContaining({ role: 'accountant' }),
           create: expect.objectContaining({ userId: 'user-1', year: 2025, role: 'accountant', department: '재정팀' }),
         })
       );
