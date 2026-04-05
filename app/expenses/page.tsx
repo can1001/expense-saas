@@ -1139,6 +1139,16 @@ export default function ExpensesPage() {
                       {renderSortIcon('applicantName')}
                     </div>
                   </th>
+                  <th
+                    className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    onClick={() => handleSort('committee')}
+                  >
+                    <div className="flex items-center">
+                      위원회<br />
+                      사역팀
+                      {renderSortIcon('committee')}
+                    </div>
+                  </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
                     <div className="flex flex-col gap-1">
                       <div
@@ -1177,15 +1187,6 @@ export default function ExpensesPage() {
                     <div className="flex items-center justify-end">
                       청구금액
                       {renderSortIcon('requestAmount')}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600 transition-colors select-none"
-                    onClick={() => handleSort('committee')}
-                  >
-                    <div className="flex items-center">
-                      위원회/사역팀
-                      {renderSortIcon('committee')}
                     </div>
                   </th>
                   <th
@@ -1255,6 +1256,15 @@ export default function ExpensesPage() {
                         onClick={() => handleRowClick(expense.id)}
                       >
                         <div className="flex flex-col text-xs">
+                          <span className="font-medium text-gray-900">{expense.committee}</span>
+                          <span className="text-gray-500">{expense.department}</span>
+                        </div>
+                      </td>
+                      <td
+                        className="px-6 py-4 text-sm text-gray-700"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
+                        <div className="flex flex-col text-xs">
                           <span className="font-medium text-gray-900">{expense.items?.[0]?.budgetCategory || '-'}</span>
                           <span className="text-gray-700">{expense.items?.[0]?.budgetSubcategory || '-'}</span>
                           <span className="text-gray-500">{expense.items?.[0]?.budgetDetail || '-'}</span>
@@ -1287,15 +1297,6 @@ export default function ExpensesPage() {
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {formatCurrency(expense.requestAmount)}
-                      </td>
-                      <td
-                        className="px-6 py-4 text-sm text-gray-700"
-                        onClick={() => handleRowClick(expense.id)}
-                      >
-                        <div className="flex flex-col text-xs">
-                          <span className="font-medium text-gray-900">{expense.committee}</span>
-                          <span className="text-gray-500">{expense.department}</span>
-                        </div>
                       </td>
                       <td
                         className="px-6 py-4 whitespace-nowrap text-sm text-center"
