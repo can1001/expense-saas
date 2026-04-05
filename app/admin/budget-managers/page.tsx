@@ -349,6 +349,15 @@ export default function BudgetManagersPage() {
     return sum + budget;
   }, 0);
 
+  // 세목 배열에서 예산/사용 합계 계산
+  const calculateTotals = (items: BudgetDetail[]) => {
+    return items.reduce((acc, d) => {
+      const budget = changes.get(d.id)?.budgetAmount ?? d.yearSetting?.budgetAmount ?? 0;
+      const used = d.yearSetting?.usedAmount ?? 0;
+      return { budget: acc.budget + budget, used: acc.used + used };
+    }, { budget: 0, used: 0 });
+  };
+
   // 예외 케이스 확인 (담당자가 팀장과 다른 경우)
   const isException = (detail: BudgetDetail, deptName: string): boolean => {
     const managerId = getCurrentManager(detail);
@@ -483,6 +492,15 @@ export default function BudgetManagersPage() {
 
                 if (!hasSearchResults) return null;
 
+                // 위원회 내 모든 세목 수집
+                const committeeDetails: BudgetDetail[] = [];
+                Object.values(departments).forEach((cats) =>
+                  Object.values(cats).forEach((subs) =>
+                    Object.values(subs).forEach((items) => committeeDetails.push(...items))
+                  )
+                );
+                const committeeTotals = calculateTotals(committeeDetails);
+
                 return (
                   <React.Fragment key={committee}>
                     {/* 1단계: 위원회 헤더 */}
@@ -490,13 +508,18 @@ export default function BudgetManagersPage() {
                       className="bg-indigo-100 cursor-pointer hover:bg-indigo-200"
                       onClick={() => toggleCommittee(committee)}
                     >
-                      <td colSpan={6} className="px-4 py-2">
+                      <td className="px-4 py-2">
                         <div className="flex items-center gap-2 font-bold text-indigo-900">
                           {isCommitteeExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                           <span>{committee}</span>
                           <span className="text-sm font-normal text-indigo-600">({committeeDetailCount}개 세목)</span>
                         </div>
                       </td>
+                      <td></td>
+                      <td className="px-4 py-2 text-right font-bold text-indigo-900">{formatAmount(committeeTotals.budget)}</td>
+                      <td className="px-4 py-2 text-right font-bold text-indigo-900">{formatPercent(committeeTotals.budget, totalBudget)}</td>
+                      <td className="px-4 py-2 text-right font-bold text-indigo-900">{formatAmount(committeeTotals.used)}</td>
+                      <td className={`px-4 py-2 text-right font-bold ${getUsageColorClass(committeeTotals.used, committeeTotals.budget)}`}>{formatPercent(committeeTotals.used, committeeTotals.budget)}</td>
                     </tr>
 
                     {isCommitteeExpanded &&
@@ -514,6 +537,13 @@ export default function BudgetManagersPage() {
 
                         if (!hasDeptSearchResults) return null;
 
+                        // 사역팀 내 모든 세목 수집
+                        const deptDetails: BudgetDetail[] = [];
+                        Object.values(categories).forEach((subs) =>
+                          Object.values(subs).forEach((items) => deptDetails.push(...items))
+                        );
+                        const deptTotals = calculateTotals(deptDetails);
+
                         return (
                           <React.Fragment key={deptKey}>
                             {/* 2단계: 사역팀 헤더 */}
@@ -521,13 +551,18 @@ export default function BudgetManagersPage() {
                               className="bg-blue-50 cursor-pointer hover:bg-blue-100"
                               onClick={() => toggleDepartment(deptKey)}
                             >
-                              <td colSpan={6} className="px-4 py-2 pl-8">
+                              <td className="px-4 py-2 pl-8">
                                 <div className="flex items-center gap-2 font-semibold text-blue-800">
                                   {isDeptExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                   <span>{department}</span>
                                   <span className="text-sm font-normal text-blue-600">({deptDetailCount}개 세목)</span>
                                 </div>
                               </td>
+                              <td></td>
+                              <td className="px-4 py-2 text-right font-semibold text-blue-800">{formatAmount(deptTotals.budget)}</td>
+                              <td className="px-4 py-2 text-right font-semibold text-blue-800">{formatPercent(deptTotals.budget, totalBudget)}</td>
+                              <td className="px-4 py-2 text-right font-semibold text-blue-800">{formatAmount(deptTotals.used)}</td>
+                              <td className={`px-4 py-2 text-right font-semibold ${getUsageColorClass(deptTotals.used, deptTotals.budget)}`}>{formatPercent(deptTotals.used, deptTotals.budget)}</td>
                             </tr>
 
                             {isDeptExpanded &&
@@ -543,6 +578,11 @@ export default function BudgetManagersPage() {
 
                                 if (!hasCatSearchResults) return null;
 
+                                // 항 내 모든 세목 수집
+                                const catDetails: BudgetDetail[] = [];
+                                Object.values(subcategories).forEach((items) => catDetails.push(...items));
+                                const catTotals = calculateTotals(catDetails);
+
                                 return (
                                   <React.Fragment key={catKey}>
                                     {/* 3단계: 항 헤더 */}
@@ -550,13 +590,18 @@ export default function BudgetManagersPage() {
                                       className="bg-gray-100 cursor-pointer hover:bg-gray-200"
                                       onClick={() => toggleCategory(catKey)}
                                     >
-                                      <td colSpan={6} className="px-4 py-2 pl-12">
+                                      <td className="px-4 py-2 pl-12">
                                         <div className="flex items-center gap-2 font-medium text-gray-700">
                                           {isCatExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                           <span>{category}</span>
                                           <span className="text-sm font-normal text-gray-500">({catDetailCount}개)</span>
                                         </div>
                                       </td>
+                                      <td></td>
+                                      <td className="px-4 py-2 text-right font-medium text-gray-700">{formatAmount(catTotals.budget)}</td>
+                                      <td className="px-4 py-2 text-right font-medium text-gray-700">{formatPercent(catTotals.budget, totalBudget)}</td>
+                                      <td className="px-4 py-2 text-right font-medium text-gray-700">{formatAmount(catTotals.used)}</td>
+                                      <td className={`px-4 py-2 text-right font-medium ${getUsageColorClass(catTotals.used, catTotals.budget)}`}>{formatPercent(catTotals.used, catTotals.budget)}</td>
                                     </tr>
 
                                     {isCatExpanded &&
@@ -567,6 +612,9 @@ export default function BudgetManagersPage() {
 
                                         if (filteredItems.length === 0 && searchTerm) return null;
 
+                                        // 목 내 세목 합계 계산
+                                        const subTotals = calculateTotals(items);
+
                                         return (
                                           <React.Fragment key={subKey}>
                                             {/* 4단계: 목 헤더 */}
@@ -574,13 +622,18 @@ export default function BudgetManagersPage() {
                                               className="bg-gray-50 cursor-pointer hover:bg-gray-100"
                                               onClick={() => toggleSubcategory(subKey)}
                                             >
-                                              <td colSpan={6} className="px-4 py-2 pl-16">
+                                              <td className="px-4 py-2 pl-16">
                                                 <div className="flex items-center gap-2 text-gray-600">
                                                   {isSubExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                                   <span>{subcategory}</span>
                                                   <span className="text-sm font-normal text-gray-400">({items.length}개)</span>
                                                 </div>
                                               </td>
+                                              <td></td>
+                                              <td className="px-4 py-2 text-right text-gray-600">{formatAmount(subTotals.budget)}</td>
+                                              <td className="px-4 py-2 text-right text-gray-600">{formatPercent(subTotals.budget, totalBudget)}</td>
+                                              <td className="px-4 py-2 text-right text-gray-600">{formatAmount(subTotals.used)}</td>
+                                              <td className={`px-4 py-2 text-right ${getUsageColorClass(subTotals.used, subTotals.budget)}`}>{formatPercent(subTotals.used, subTotals.budget)}</td>
                                             </tr>
 
                                             {/* 5단계: 세목 목록 */}
