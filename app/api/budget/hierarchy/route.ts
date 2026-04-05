@@ -9,6 +9,26 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const committeeId = searchParams.get('committeeId') || '';
 
+    // 지급완료된 지출결의서의 세목별 사용금액 집계
+    const usedAmounts = await prisma.expenseItem.groupBy({
+      by: ['budgetDetail'],
+      where: {
+        expense: {
+          paymentStatus: 'COMPLETED',
+          expenseDate: {
+            gte: new Date(year, 0, 1),
+            lt: new Date(year + 1, 0, 1),
+          },
+        },
+      },
+      _sum: { amount: true },
+    });
+
+    // Map으로 변환하여 빠른 조회
+    const usedAmountMap = new Map(
+      usedAmounts.map((item) => [item.budgetDetail, item._sum.amount || 0])
+    );
+
     // 위원회 필터 조건
     const committeeWhere: Record<string, unknown> = { isActive: true };
     if (committeeId) {
@@ -80,7 +100,7 @@ export async function GET(request: NextRequest) {
                   managerId: yearSetting?.managerId || null,
                   managerName: yearSetting?.manager?.username || null,
                   budgetAmount: yearSetting?.budgetAmount || 0,
-                  usedAmount: yearSetting?.usedAmount || 0,
+                  usedAmount: usedAmountMap.get(detail.name) || 0,
                 };
               })
               .filter((d) => {
