@@ -1167,6 +1167,9 @@ export default function ExpensesPage() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
                     적요
                   </th>
+                  <th className="px-3 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                    첨부
+                  </th>
                   <th
                     className="px-6 py-4 text-right text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600 transition-colors select-none"
                     onClick={() => handleSort('requestAmount')}
@@ -1181,7 +1184,7 @@ export default function ExpensesPage() {
                     onClick={() => handleSort('committee')}
                   >
                     <div className="flex items-center">
-                      위원회
+                      위원회/사역팀
                       {renderSortIcon('committee')}
                     </div>
                   </th>
@@ -1217,7 +1220,7 @@ export default function ExpensesPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
                       {searchQuery ? '검색 결과가 없습니다.' : '등록된 지출결의서가 없습니다.'}
                     </td>
                   </tr>
@@ -1266,16 +1269,33 @@ export default function ExpensesPage() {
                         </span>
                       </td>
                       <td
+                        className="px-3 py-4 text-center"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
+                        {expense.attachments && expense.attachments.length > 0 ? (
+                          <img
+                            src={expense.attachments[0].secureUrl}
+                            alt="첨부파일"
+                            className="w-8 h-8 object-cover rounded border border-gray-200 mx-auto"
+                          />
+                        ) : (
+                          <span className="text-gray-300">-</span>
+                        )}
+                      </td>
+                      <td
                         className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900"
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {formatCurrency(expense.requestAmount)}
                       </td>
                       <td
-                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-700"
+                        className="px-6 py-4 text-sm text-gray-700"
                         onClick={() => handleRowClick(expense.id)}
                       >
-                        {expense.committee}
+                        <div className="flex flex-col text-xs">
+                          <span className="font-medium text-gray-900">{expense.committee}</span>
+                          <span className="text-gray-500">{expense.department}</span>
+                        </div>
                       </td>
                       <td
                         className="px-6 py-4 whitespace-nowrap text-sm text-center"

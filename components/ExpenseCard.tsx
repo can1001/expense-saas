@@ -222,10 +222,22 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick }: 
           }}
           className="cursor-pointer"
         >
-          {/* 청구인 + 위원회 */}
+          {/* 청구인 + 썸네일 + 위원회/사역팀 */}
           <div className="flex items-center justify-between mb-2">
-            <span className="font-semibold text-gray-900">{expense.applicantName}</span>
-            <span className="text-sm text-gray-500">{expense.committee}</span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-900">{expense.applicantName}</span>
+              {expense.attachments && expense.attachments.length > 0 && (
+                <img
+                  src={expense.attachments[0].secureUrl}
+                  alt="첨부"
+                  className="w-6 h-6 object-cover rounded border border-gray-200"
+                />
+              )}
+            </div>
+            <div className="text-right text-xs">
+              <div className="text-gray-700">{expense.committee}</div>
+              <div className="text-gray-500">{expense.department}</div>
+            </div>
           </div>
 
           {/* 예산 정보 (첫 번째 항목 기준) */}

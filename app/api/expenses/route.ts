@@ -62,6 +62,17 @@ export async function GET(request: NextRequest) {
               order: 'asc',
             },
           },
+          attachments: {
+            select: {
+              id: true,
+              secureUrl: true,
+              format: true,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+            take: 1,
+          },
         },
       }),
       prisma.expense.count({ where }),
