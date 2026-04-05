@@ -1122,7 +1122,7 @@ export default function ExpensesPage() {
                     />
                   </th>
                   <th
-                    className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    className="px-3 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
                     onClick={() => handleSort('requestDate')}
                   >
                     <div className="flex items-center">
@@ -1131,7 +1131,7 @@ export default function ExpensesPage() {
                     </div>
                   </th>
                   <th
-                    className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    className="px-3 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
                     onClick={() => handleSort('applicantName')}
                   >
                     <div className="flex items-center">
@@ -1140,33 +1140,32 @@ export default function ExpensesPage() {
                     </div>
                   </th>
                   <th
-                    className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    className="px-3 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600 transition-colors select-none"
                     onClick={() => handleSort('committee')}
                   >
-                    <div className="flex items-center">
-                      위원회<br />
-                      사역팀
-                      {renderSortIcon('committee')}
+                    <div className="flex flex-col text-xs leading-tight">
+                      <span>위원회</span>
+                      <span>사역팀</span>
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                    <div className="flex flex-col gap-1">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                    <div className="flex flex-col gap-0.5">
                       <div
-                        className="flex items-center cursor-pointer hover:bg-blue-600 px-1 py-0.5 rounded transition-colors select-none"
+                        className="flex items-center cursor-pointer hover:bg-blue-600 px-1 py-0.5 rounded transition-colors select-none whitespace-nowrap"
                         onClick={() => handleSort('budgetCategory')}
                       >
                         예산(항)
                         {renderSortIcon('budgetCategory')}
                       </div>
                       <div
-                        className="flex items-center cursor-pointer hover:bg-blue-600 px-1 py-0.5 rounded transition-colors select-none text-blue-200"
+                        className="flex items-center cursor-pointer hover:bg-blue-600 px-1 py-0.5 rounded transition-colors select-none text-blue-200 whitespace-nowrap"
                         onClick={() => handleSort('budgetSubcategory')}
                       >
                         예산(목)
                         {renderSortIcon('budgetSubcategory')}
                       </div>
                       <div
-                        className="flex items-center cursor-pointer hover:bg-blue-600 px-1 py-0.5 rounded transition-colors select-none text-blue-300"
+                        className="flex items-center cursor-pointer hover:bg-blue-600 px-1 py-0.5 rounded transition-colors select-none text-blue-300 whitespace-nowrap"
                         onClick={() => handleSort('budgetDetail')}
                       >
                         예산(세목)
@@ -1174,14 +1173,14 @@ export default function ExpensesPage() {
                       </div>
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap">
                     적요
                   </th>
-                  <th className="px-3 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                  <th className="px-2 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap">
                     첨부
                   </th>
                   <th
-                    className="px-6 py-4 text-right text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    className="px-3 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
                     onClick={() => handleSort('requestAmount')}
                   >
                     <div className="flex items-center justify-end">
@@ -1190,7 +1189,7 @@ export default function ExpensesPage() {
                     </div>
                   </th>
                   <th
-                    className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    className="px-3 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
                     onClick={() => handleSort('status')}
                   >
                     <div className="flex items-center justify-center">
@@ -1199,7 +1198,7 @@ export default function ExpensesPage() {
                     </div>
                   </th>
                   <th
-                    className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    className="px-3 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
                     onClick={() => handleSort('approvedAt')}
                   >
                     <div className="flex items-center justify-center">
@@ -1208,7 +1207,7 @@ export default function ExpensesPage() {
                     </div>
                   </th>
                   <th
-                    className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    className="px-3 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
                     onClick={() => handleSort('paymentStatus')}
                   >
                     <div className="flex items-center justify-center">
@@ -1231,7 +1230,7 @@ export default function ExpensesPage() {
                       key={expense.id}
                       className="hover:bg-blue-50 cursor-pointer transition-colors"
                     >
-                      <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={selectedIds.has(expense.id)}
@@ -1240,66 +1239,66 @@ export default function ExpensesPage() {
                         />
                       </td>
                       <td
-                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                        className="px-3 py-3 whitespace-nowrap text-sm text-gray-900"
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {format(new Date(expense.requestDate), 'yyyy-MM-dd')}
                       </td>
                       <td
-                        className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+                        className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900"
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {expense.applicantName}
                       </td>
                       <td
-                        className="px-6 py-4 text-sm text-gray-700"
+                        className="px-3 py-3 text-sm text-gray-700"
                         onClick={() => handleRowClick(expense.id)}
                       >
-                        <div className="flex flex-col text-xs">
+                        <div className="flex flex-col text-xs leading-tight">
                           <span className="font-medium text-gray-900">{expense.committee}</span>
                           <span className="text-gray-500">{expense.department}</span>
                         </div>
                       </td>
                       <td
-                        className="px-6 py-4 text-sm text-gray-700"
+                        className="px-3 py-3 text-sm text-gray-700"
                         onClick={() => handleRowClick(expense.id)}
                       >
-                        <div className="flex flex-col text-xs">
+                        <div className="flex flex-col text-xs leading-tight">
                           <span className="font-medium text-gray-900">{expense.items?.[0]?.budgetCategory || '-'}</span>
                           <span className="text-gray-700">{expense.items?.[0]?.budgetSubcategory || '-'}</span>
                           <span className="text-gray-500">{expense.items?.[0]?.budgetDetail || '-'}</span>
                         </div>
                       </td>
                       <td
-                        className="px-6 py-4 text-sm text-gray-700"
+                        className="px-3 py-3 text-sm text-gray-700"
                         onClick={() => handleRowClick(expense.id)}
                       >
-                        <span className="block max-w-[200px] line-clamp-2 text-sm">
+                        <span className="block max-w-[180px] line-clamp-2 text-xs">
                           {expense.items?.[0]?.description || '-'}
                         </span>
                       </td>
                       <td
-                        className="px-3 py-4 text-center"
+                        className="px-2 py-3 text-center"
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {expense.attachments && expense.attachments.length > 0 ? (
                           <img
                             src={expense.attachments[0].secureUrl}
                             alt="첨부파일"
-                            className="w-8 h-8 object-cover rounded border border-gray-200 mx-auto"
+                            className="w-7 h-7 object-cover rounded border border-gray-200 mx-auto"
                           />
                         ) : (
                           <span className="text-gray-300">-</span>
                         )}
                       </td>
                       <td
-                        className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900"
+                        className="px-3 py-3 whitespace-nowrap text-sm text-right font-semibold text-gray-900"
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {formatCurrency(expense.requestAmount)}
                       </td>
                       <td
-                        className="px-6 py-4 whitespace-nowrap text-sm text-center"
+                        className="px-3 py-3 whitespace-nowrap text-sm text-center"
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {expense.status === 'DRAFT' ? (
@@ -1337,7 +1336,7 @@ export default function ExpensesPage() {
                         )}
                       </td>
                       <td
-                        className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900"
+                        className="px-3 py-3 whitespace-nowrap text-sm text-center text-gray-900"
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {expense.approvedAt
@@ -1345,7 +1344,7 @@ export default function ExpensesPage() {
                           : '-'}
                       </td>
                       <td
-                        className="px-6 py-4 whitespace-nowrap text-sm text-center"
+                        className="px-3 py-3 whitespace-nowrap text-sm text-center"
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {expense.status === 'APPROVED_FINAL' ? (
