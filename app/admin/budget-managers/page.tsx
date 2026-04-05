@@ -328,6 +328,27 @@ export default function BudgetManagersPage() {
     return new Intl.NumberFormat('ko-KR').format(amount);
   };
 
+  // 비율 포맷 (표시용)
+  const formatPercent = (value: number, total: number): string => {
+    if (total === 0) return '-';
+    return ((value / total) * 100).toFixed(1) + '%';
+  };
+
+  // 사용율 색상 클래스
+  const getUsageColorClass = (used: number, budget: number): string => {
+    if (budget === 0) return 'text-gray-500';
+    const rate = (used / budget) * 100;
+    if (rate >= 80) return 'text-red-600 font-medium';
+    if (rate >= 50) return 'text-orange-600';
+    return 'text-gray-600';
+  };
+
+  // 전체 예산금액 합계
+  const totalBudget = details.reduce((sum, d) => {
+    const budget = changes.get(d.id)?.budgetAmount ?? d.yearSetting?.budgetAmount ?? 0;
+    return sum + budget;
+  }, 0);
+
   // 예외 케이스 확인 (담당자가 팀장과 다른 경우)
   const isException = (detail: BudgetDetail, deptName: string): boolean => {
     const managerId = getCurrentManager(detail);
@@ -441,7 +462,9 @@ export default function BudgetManagersPage() {
                 <th className={`${TABLE_HEADER_CELL} w-80`}>위원회 / 사역팀 / 항 / 목 / 세목</th>
                 <th className={`${TABLE_HEADER_CELL} w-40`}>담당자</th>
                 <th className={`${TABLE_HEADER_CELL} w-32 text-right`}>예산금액</th>
+                <th className={`${TABLE_HEADER_CELL} w-16 text-right`}>배분율</th>
                 <th className={`${TABLE_HEADER_CELL} w-32 text-right`}>사용금액</th>
+                <th className={`${TABLE_HEADER_CELL} w-16 text-right`}>사용율</th>
               </tr>
             </thead>
             <tbody className={TABLE_BODY}>
@@ -467,7 +490,7 @@ export default function BudgetManagersPage() {
                       className="bg-indigo-100 cursor-pointer hover:bg-indigo-200"
                       onClick={() => toggleCommittee(committee)}
                     >
-                      <td colSpan={4} className="px-4 py-2">
+                      <td colSpan={6} className="px-4 py-2">
                         <div className="flex items-center gap-2 font-bold text-indigo-900">
                           {isCommitteeExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                           <span>{committee}</span>
@@ -498,7 +521,7 @@ export default function BudgetManagersPage() {
                               className="bg-blue-50 cursor-pointer hover:bg-blue-100"
                               onClick={() => toggleDepartment(deptKey)}
                             >
-                              <td colSpan={4} className="px-4 py-2 pl-8">
+                              <td colSpan={6} className="px-4 py-2 pl-8">
                                 <div className="flex items-center gap-2 font-semibold text-blue-800">
                                   {isDeptExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                   <span>{department}</span>
@@ -527,7 +550,7 @@ export default function BudgetManagersPage() {
                                       className="bg-gray-100 cursor-pointer hover:bg-gray-200"
                                       onClick={() => toggleCategory(catKey)}
                                     >
-                                      <td colSpan={4} className="px-4 py-2 pl-12">
+                                      <td colSpan={6} className="px-4 py-2 pl-12">
                                         <div className="flex items-center gap-2 font-medium text-gray-700">
                                           {isCatExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                           <span>{category}</span>
@@ -551,7 +574,7 @@ export default function BudgetManagersPage() {
                                               className="bg-gray-50 cursor-pointer hover:bg-gray-100"
                                               onClick={() => toggleSubcategory(subKey)}
                                             >
-                                              <td colSpan={4} className="px-4 py-2 pl-16">
+                                              <td colSpan={6} className="px-4 py-2 pl-16">
                                                 <div className="flex items-center gap-2 text-gray-600">
                                                   {isSubExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                                   <span>{subcategory}</span>
@@ -614,8 +637,18 @@ export default function BudgetManagersPage() {
                                                       />
                                                     </td>
                                                     <td className={`${TABLE_CELL} text-right`}>
+                                                      <span className="text-gray-500 text-sm">
+                                                        {formatPercent(getCurrentBudget(detail), totalBudget)}
+                                                      </span>
+                                                    </td>
+                                                    <td className={`${TABLE_CELL} text-right`}>
                                                       <span className="text-gray-600">
                                                         {formatAmount(detail.yearSetting?.usedAmount || 0)}
+                                                      </span>
+                                                    </td>
+                                                    <td className={`${TABLE_CELL} text-right`}>
+                                                      <span className={getUsageColorClass(detail.yearSetting?.usedAmount || 0, getCurrentBudget(detail))}>
+                                                        {formatPercent(detail.yearSetting?.usedAmount || 0, getCurrentBudget(detail))}
                                                       </span>
                                                     </td>
                                                   </tr>
