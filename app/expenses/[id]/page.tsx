@@ -344,6 +344,13 @@ export default function ExpenseDetailPage() {
         {/* 데스크톱 헤더 */}
         <div className="hidden md:flex mb-8 justify-between items-start">
           <div>
+            <button
+              onClick={() => router.push('/expenses')}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-2"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span>목록으로</span>
+            </button>
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold text-gray-900">
                 {expense.version === '4.1.4' ? '간편 지출결의서 상세' : '지출결의서 상세'}
