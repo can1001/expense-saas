@@ -66,7 +66,8 @@ export default function ExpensesPage() {
     endDate: '',
     minAmount: '',
     maxAmount: '',
-    paymentStatus: '',  // 지출 상태 필터 추가
+    status: '',         // 결재상태 필터
+    paymentStatus: '',  // 지출 상태 필터
     approvedStartDate: '',  // 최종승인일 시작
     approvedEndDate: '',    // 최종승인일 종료
   });
@@ -162,6 +163,11 @@ export default function ExpensesPage() {
     }
 
     if (filters.maxAmount && expense.requestAmount > Number(filters.maxAmount)) {
+      return false;
+    }
+
+    // 결재상태 필터
+    if (filters.status && expense.status !== filters.status) {
       return false;
     }
 
@@ -366,6 +372,7 @@ export default function ExpensesPage() {
       endDate: '',
       minAmount: '',
       maxAmount: '',
+      status: '',
       paymentStatus: '',
       approvedStartDate: '',
       approvedEndDate: '',
@@ -679,6 +686,17 @@ export default function ExpensesPage() {
                       <button onClick={() => handleFilterChange('budgetCategory', '')} className="hover:text-blue-900">×</button>
                     </span>
                   )}
+                  {filters.status && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      {filters.status === 'DRAFT' ? '임시저장' :
+                       filters.status === 'PENDING' ? '결재대기' :
+                       filters.status === 'APPROVED_STEP_1' ? '1차승인' :
+                       filters.status === 'APPROVED_STEP_2' ? '2차승인' :
+                       filters.status === 'APPROVED_FINAL' ? '최종승인' :
+                       filters.status === 'REJECTED' ? '반려' : '회수'}
+                      <button onClick={() => handleFilterChange('status', '')} className="hover:text-blue-900">×</button>
+                    </span>
+                  )}
                   {filters.paymentStatus && (
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
                       {filters.paymentStatus === 'PENDING' ? '지급대기' :
@@ -796,6 +814,26 @@ export default function ExpensesPage() {
                       {uniqueCategories.map(c => (
                         <option key={c} value={c}>{c}</option>
                       ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      결재상태
+                    </label>
+                    <select
+                      value={filters.status}
+                      onChange={(e) => handleFilterChange('status', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                    >
+                      <option value="">전체</option>
+                      <option value="DRAFT">임시저장</option>
+                      <option value="PENDING">결재대기</option>
+                      <option value="APPROVED_STEP_1">1차승인</option>
+                      <option value="APPROVED_STEP_2">2차승인</option>
+                      <option value="APPROVED_FINAL">최종승인</option>
+                      <option value="REJECTED">반려</option>
+                      <option value="WITHDRAWN">회수</option>
                     </select>
                   </div>
 
