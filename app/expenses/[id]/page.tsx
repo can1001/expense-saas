@@ -261,10 +261,13 @@ export default function ExpenseDetailPage() {
 
   // 수정/삭제 가능한 상태 확인
   // 기본: DRAFT, REJECTED, WITHDRAWN
-  // 추가: APPROVED_FINAL이면서 paymentStatus가 PENDING인 경우 (수정만 가능)
+  // 추가: APPROVED_FINAL이면서 paymentStatus가 PENDING인 경우 (특정 역할만 수정 가능)
   const basicEditable = ['DRAFT', 'REJECTED', 'WITHDRAWN'].includes(expense.status || '');
   const approvedPending = expense.status === 'APPROVED_FINAL' && expense.paymentStatus === 'PENDING';
-  const canEdit = basicEditable || approvedPending;
+  // 최종승인 상태 수정 가능 역할: admin, finance_head, accountant, admin_assistant
+  const approvedEditRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
+  const canEditApprovedPending = approvedPending && currentUser && approvedEditRoles.includes(currentUser.role);
+  const canEdit = basicEditable || canEditApprovedPending;
   // 삭제는 최종승인 전에만 가능 (APPROVED_FINAL이면 삭제 불가)
   const canDelete = basicEditable;
 

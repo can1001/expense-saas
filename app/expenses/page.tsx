@@ -1096,6 +1096,7 @@ export default function ExpensesPage() {
                   isSelected={selectedIds.has(expense.id)}
                   onSelect={handleSelectOne}
                   onClick={handleRowClick}
+                  userRole={currentUser?.role}
                 />
               ))}
               {/* 무한 스크롤 로딩 인디케이터 */}

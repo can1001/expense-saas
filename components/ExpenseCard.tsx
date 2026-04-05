@@ -14,6 +14,7 @@ interface ExpenseCardProps {
   isSelected: boolean;
   onSelect: (id: string, checked: boolean) => void;
   onClick: (id: string) => void;
+  userRole?: string;
 }
 
 // 결재 상태 배지 컴포넌트
@@ -75,7 +76,7 @@ function SwipeHint({ show }: { show: boolean }) {
   );
 }
 
-export default function ExpenseCard({ expense, isSelected, onSelect, onClick }: ExpenseCardProps) {
+export default function ExpenseCard({ expense, isSelected, onSelect, onClick, userRole }: ExpenseCardProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [translateX, setTranslateX] = useState(0);
@@ -141,10 +142,13 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick }: 
 
   // 수정 가능 여부 체크
   // 기본: 임시저장, 반려, 회수 상태
-  // 추가: 최종승인 + 지급대기 상태
+  // 추가: 최종승인 + 지급대기 상태 (특정 역할만)
   const basicEditable = ['DRAFT', 'REJECTED', 'WITHDRAWN'].includes(expense.status || '');
   const approvedPending = expense.status === 'APPROVED_FINAL' && expense.paymentStatus === 'PENDING';
-  const canEdit = basicEditable || approvedPending;
+  // 최종승인 상태 수정 가능 역할: admin, finance_head, accountant, admin_assistant
+  const approvedEditRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
+  const canEditApprovedPending = approvedPending && userRole && approvedEditRoles.includes(userRole);
+  const canEdit = basicEditable || canEditApprovedPending;
 
   return (
     <div className="relative overflow-hidden rounded-lg" ref={cardRef}>
