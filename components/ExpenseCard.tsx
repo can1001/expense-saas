@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { format } from 'date-fns';
 import { useSwipeable } from 'react-swipeable';
 import { ExpenseListItem } from '@/lib/types';
@@ -227,10 +228,12 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick }: 
             <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-900">{expense.applicantName}</span>
               {expense.attachments && expense.attachments.length > 0 && (
-                <img
+                <Image
                   src={expense.attachments[0].secureUrl}
                   alt="첨부"
-                  className="w-6 h-6 object-cover rounded border border-gray-200"
+                  width={24}
+                  height={24}
+                  className="object-cover rounded border border-gray-200"
                 />
               )}
             </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import Image from 'next/image';
 import Header from '@/components/Header';
 import { ExcelExportModal } from '@/components/ExcelExportModal';
 import { BulkPaymentStatusModal } from '@/components/BulkPaymentStatusModal';
@@ -1282,10 +1283,12 @@ export default function ExpensesPage() {
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {expense.attachments && expense.attachments.length > 0 ? (
-                          <img
+                          <Image
                             src={expense.attachments[0].secureUrl}
                             alt="첨부파일"
-                            className="w-7 h-7 object-cover rounded border border-gray-200 mx-auto"
+                            width={28}
+                            height={28}
+                            className="object-cover rounded border border-gray-200 mx-auto"
                           />
                         ) : (
                           <span className="text-gray-300">-</span>
