@@ -94,6 +94,7 @@ export default function ManagerExceptionsPage() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year]);
 
   // 위원회 목록 추출

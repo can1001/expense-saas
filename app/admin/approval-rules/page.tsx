@@ -56,6 +56,7 @@ export default function ApprovalRulesPage() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year]);
 
   // 결재 단계별 역할 정리
