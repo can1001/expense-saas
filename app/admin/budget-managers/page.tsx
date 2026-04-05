@@ -289,6 +289,40 @@ export default function BudgetManagersPage() {
     });
   };
 
+  // 전체 펼치기
+  const expandAll = () => {
+    const committees = new Set<string>();
+    const departments = new Set<string>();
+    const categories = new Set<string>();
+    const subcategories = new Set<string>();
+
+    Object.entries(treeData).forEach(([committee, depts]) => {
+      committees.add(committee);
+      Object.entries(depts).forEach(([dept, cats]) => {
+        departments.add(`${committee}|${dept}`);
+        Object.entries(cats).forEach(([cat, subs]) => {
+          categories.add(`${committee}|${dept}|${cat}`);
+          Object.keys(subs).forEach((sub) => {
+            subcategories.add(`${committee}|${dept}|${cat}|${sub}`);
+          });
+        });
+      });
+    });
+
+    setExpandedCommittees(committees);
+    setExpandedDepartments(departments);
+    setExpandedCategories(categories);
+    setExpandedSubcategories(subcategories);
+  };
+
+  // 전체 접기
+  const collapseAll = () => {
+    setExpandedCommittees(new Set());
+    setExpandedDepartments(new Set());
+    setExpandedCategories(new Set());
+    setExpandedSubcategories(new Set());
+  };
+
   // 금액 포맷 (표시용)
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('ko-KR').format(amount);
@@ -385,6 +419,14 @@ export default function BudgetManagersPage() {
                 예외만 보기
               </span>
             </label>
+            <div className="flex items-center gap-2">
+              <button onClick={expandAll} className={`${BTN_OUTLINE} ${BTN_SM}`}>
+                전체 펼치기
+              </button>
+              <button onClick={collapseAll} className={`${BTN_OUTLINE} ${BTN_SM}`}>
+                전체 접기
+              </button>
+            </div>
             <div className="text-sm text-gray-500">총 {details.length}개 세목</div>
           </div>
         </div>
