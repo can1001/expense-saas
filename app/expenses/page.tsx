@@ -638,11 +638,19 @@ export default function ExpensesPage() {
       <Header />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 헤더 */}
-        <div className="mb-4 sm:mb-6 md:mb-8">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">지출결의서 목록</h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
-            총 {sortedExpenses.length}건의 지출결의서
-          </p>
+        <div className="mb-4 sm:mb-6 md:mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">지출결의서 목록</h1>
+            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
+              총 {sortedExpenses.length}건의 지출결의서
+            </p>
+          </div>
+          <button
+            onClick={() => router.push('/expenses/new')}
+            className={`${BTN_PRIMARY} hidden sm:flex items-center gap-2`}
+          >
+            + 신규 지출결의서 작성
+          </button>
         </div>
 
         {/* 검색 및 필터 */}
