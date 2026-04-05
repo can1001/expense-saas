@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Save, Copy, Search, ChevronDown, ChevronRight, Users, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Save, Search, ChevronDown, ChevronRight, Users, AlertTriangle } from 'lucide-react';
 import {
   SECTION_CARD,
   BTN_PRIMARY,
@@ -75,8 +75,6 @@ export default function BudgetManagersPage() {
   const [expandedDepartments, setExpandedDepartments] = useState<Set<string>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedSubcategories, setExpandedSubcategories] = useState<Set<string>>(new Set());
-  const [copyFromYear, setCopyFromYear] = useState(currentYear - 1);
-  const [showCopyModal, setShowCopyModal] = useState(false);
   const [showExceptionsOnly, setShowExceptionsOnly] = useState(false);
   const [teamLeaders, setTeamLeaders] = useState<Map<string, { id: string; name: string }>>(new Map());
 
@@ -201,29 +199,6 @@ export default function BudgetManagersPage() {
       alert('저장 중 오류가 발생했습니다.');
     } finally {
       setSaving(false);
-    }
-  };
-
-  // 이전 연도 복사
-  const handleCopy = async () => {
-    try {
-      const res = await fetch('/api/budget-details/year/copy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromYear: copyFromYear, toYear: year }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        alert(`${data.createdCount}건 복사 완료 (${data.skippedCount}건 스킵)`);
-        setShowCopyModal(false);
-        loadData();
-      } else {
-        alert(`복사 실패: ${data.error}`);
-      }
-    } catch (error) {
-      console.error('복사 오류:', error);
-      alert('복사 중 오류가 발생했습니다.');
     }
   };
 
@@ -366,10 +341,6 @@ export default function BudgetManagersPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => setShowCopyModal(true)} className={`${BTN_OUTLINE} ${BTN_SM}`}>
-              <Copy className="w-4 h-4" />
-              이전연도 복사
-            </button>
             <button onClick={handleSave} disabled={saving || changes.size === 0} className={`${BTN_SUCCESS} ${BTN_SM}`}>
               <Save className="w-4 h-4" />
               {saving ? '저장 중...' : `저장 (${changes.size}건)`}
@@ -624,46 +595,6 @@ export default function BudgetManagersPage() {
           </table>
         </div>
       </div>
-
-      {/* 이전 연도 복사 모달 */}
-      {showCopyModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold">이전 연도 설정 복사</h3>
-            </div>
-            <div className="px-6 py-4">
-              <p className="text-gray-600 mb-4">선택한 연도의 담당자 및 예산 설정을 {year}년으로 복사합니다.</p>
-              <div className="flex items-center gap-4">
-                <label className="text-sm font-medium text-gray-700">복사할 연도:</label>
-                <select
-                  value={copyFromYear}
-                  onChange={(e) => setCopyFromYear(parseInt(e.target.value))}
-                  className={`${SELECT_BASE} w-28`}
-                >
-                  {[year - 1, year - 2, year - 3].map((y) => (
-                    <option key={y} value={y}>
-                      {y}년
-                    </option>
-                  ))}
-                </select>
-                <span className="text-gray-500">→</span>
-                <span className="font-medium">{year}년</span>
-              </div>
-              <p className="text-sm text-amber-600 mt-4">* 이미 설정된 항목은 스킵됩니다.</p>
-            </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-              <button onClick={() => setShowCopyModal(false)} className={BTN_OUTLINE}>
-                취소
-              </button>
-              <button onClick={handleCopy} className={BTN_PRIMARY}>
-                <Copy className="w-4 h-4" />
-                복사
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
