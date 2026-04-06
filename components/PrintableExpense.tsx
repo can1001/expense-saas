@@ -72,7 +72,6 @@ export default function PrintableExpense({ expense, approvalLine, printMode = 'b
         <PrintItems
           items={expense.items}
           totalAmount={expense.requestAmount}
-          isSimpleExpense={expense.version === '4.1.4'}
         />
 
         {/* 3. 청구내역 (푸터) */}

@@ -53,7 +53,7 @@ async function main() {
     { name: 'UserYearRoleHistory', fn: () => prisma.userYearRoleHistory.deleteMany() },
     { name: 'UserYearRole', fn: () => prisma.userYearRole.deleteMany() },
 
-    // 9. 저장된 계좌
+    // 8. 저장된 계좌
     { name: 'SavedBankAccount', fn: () => prisma.savedBankAccount.deleteMany() },
   ];
 

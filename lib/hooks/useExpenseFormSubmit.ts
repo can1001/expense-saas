@@ -2,7 +2,6 @@
  * 지출결의서 폼 제출 훅
  *
  * 폼 제출 로직을 통합 관리합니다.
- * ExpenseForm과 SimpleExpenseForm에서 공통으로 사용합니다.
  *
  * 오프라인 지원:
  * - 네트워크가 없으면 IndexedDB에 저장
