@@ -6,6 +6,7 @@ import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { deriveRequestTeam } from '@/lib/domain/request-team';
 import { getSessionUserId, getCurrentUser } from '@/lib/auth';
 import { maskAccountNumber } from '@/lib/utils';
+import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
 
 // GET /api/expenses/[id] - 지출결의서 상세 조회
 export async function GET(
@@ -41,14 +42,11 @@ export async function GET(
     // 계좌번호 열람 권한이 있는 역할 (프린트 시 계좌번호 전체 표시 필요)
     const ACCOUNT_VIEW_ROLES = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
 
-    // 계좌번호 열람 권한 확인
+    // 계좌번호 열람 권한 확인 (연도별 유효 역할 기준)
     let canViewAccount = isOwner;
     if (currentUserId && !canViewAccount) {
-      const currentUser = await prisma.user.findUnique({
-        where: { id: currentUserId },
-        select: { role: true },
-      });
-      canViewAccount = !!(currentUser?.role && ACCOUNT_VIEW_ROLES.includes(currentUser.role));
+      const { role: effectiveRole } = await getEffectiveRole(currentUserId, CURRENT_YEAR);
+      canViewAccount = ACCOUNT_VIEW_ROLES.includes(effectiveRole);
     }
 
     // 계좌번호 열람 권한이 없는 경우에만 마스킹
@@ -95,11 +93,14 @@ export async function PUT(
     // 최종승인 상태 수정 가능 역할
     const APPROVED_EDIT_ROLES = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
 
-    // 최종승인 + 지급대기 상태에서는 역할 체크 필요
+    // 최종승인 + 지급대기 상태에서는 역할 체크 필요 (연도별 유효 역할 기준)
     let canEditApprovedPending = false;
     if (isApprovedPending) {
       const currentUser = await getCurrentUser();
-      canEditApprovedPending = !!(currentUser && APPROVED_EDIT_ROLES.includes(currentUser.role));
+      if (currentUser) {
+        const { role: effectiveRole } = await getEffectiveRole(currentUser.id, CURRENT_YEAR);
+        canEditApprovedPending = APPROVED_EDIT_ROLES.includes(effectiveRole);
+      }
     }
 
     if (!isBasicEditable && !canEditApprovedPending) {

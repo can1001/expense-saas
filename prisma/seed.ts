@@ -150,7 +150,7 @@ async function seedRoles() {
 
 // 사용자 시드 데이터
 // - baseRole: User.role에 저장 (admin, user만 사용)
-// - yearRole: UserYearRole에 저장 (연도별 역할)
+// - yearRole: UserYearRole에 저장 (연도별 역할) - 모든 연도에 동일하게 적용
 // - password: 로그인 비밀번호 (E2E 테스트용)
 const usersData: Array<{
   userid: string;
@@ -166,13 +166,9 @@ const usersData: Array<{
   // 관리자/행정간사 (영구 역할)
   { userid: '청연송원경', username: '송원경', baseRole: 'user', yearRole: 'admin_assistant', departments: ['재정팀'] },
 
-  // 재정팀장 (연도별 역할)
-  { userid: '청연윤운문', username: '윤운문', baseRole: 'user', yearRole: 'finance_head' },
-
-  // 회계 (연도별 역할)
-  { userid: '청연정혜종', username: '정혜종', baseRole: 'user', yearRole: 'accountant', departments: ['재정팀'] },
-
-  // 일반 사용자
+  // 재정팀장/회계 - 연도별 역할은 yearSpecificRoles에서 별도 관리
+  { userid: '청연윤운문', username: '윤운문', baseRole: 'user' },
+  { userid: '청연정혜종', username: '정혜종', baseRole: 'user', departments: ['재정팀'] },
   { userid: '청연신창국', username: '신창국', baseRole: 'user' },
 
   // 팀장 (DB 기준 2026년)
@@ -198,6 +194,22 @@ const usersData: Array<{
   { userid: '청연최보영', username: '최보영', baseRole: 'user', yearRole: 'team_leader', departments: ['시설관리팀'] },
   { userid: '청연최준영', username: '최준영', baseRole: 'user', yearRole: 'team_leader', departments: ['청세포팀'] },
   { userid: '청연허지혜', username: '허지혜', baseRole: 'user', yearRole: 'team_leader', departments: ['찬양팀'] },
+];
+
+// 연도별 다른 역할이 필요한 사용자 설정
+// 예: 신창국은 2025년 재정팀장, 윤운문은 2026년 재정팀장
+const yearSpecificRoles: Array<{
+  userid: string;
+  year: number;
+  role: UserRole;
+  department?: string;
+}> = [
+  // 2025년 역할
+  { userid: '청연신창국', year: 2025, role: 'finance_head' },
+  { userid: '청연정혜종', year: 2025, role: 'accountant', department: '재정팀' },
+  // 2026년 역할
+  { userid: '청연윤운문', year: 2026, role: 'finance_head' },
+  { userid: '청연정혜종', year: 2026, role: 'accountant', department: '재정팀' },
 ];
 
 async function seedUsers() {
@@ -286,6 +298,63 @@ async function seedUsers() {
   for (const stat of baseRoleStats) {
     console.log(`  - ${stat.role}: ${stat._count} users`);
   }
+
+  // 연도별 특수 역할 설정 (finance_head, accountant 등)
+  // 먼저 기존 finance_head, accountant 역할 삭제 (중복 방지)
+  console.log('\n📅 Clearing existing finance_head/accountant roles...');
+  const deleteResult = await prisma.userYearRole.deleteMany({
+    where: {
+      role: { in: ['finance_head', 'accountant'] },
+      year: { in: YEARS_TO_SEED },
+    },
+  });
+  console.log(`  Deleted ${deleteResult.count} existing finance_head/accountant roles`);
+
+  console.log('\n📅 Setting year-specific roles...');
+  let yearSpecificCount = 0;
+
+  for (const roleData of yearSpecificRoles) {
+    // 해당 연도가 YEARS_TO_SEED에 포함되어 있는지 확인
+    if (!YEARS_TO_SEED.includes(roleData.year)) {
+      continue;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { userid: roleData.userid },
+    });
+
+    if (!user) {
+      console.log(`  ⚠️ User not found: ${roleData.userid}`);
+      continue;
+    }
+
+    const yearRoleId = roleIdCache.get(roleData.role);
+
+    await prisma.userYearRole.upsert({
+      where: {
+        userId_year_department: {
+          userId: user.id,
+          year: roleData.year,
+          department: roleData.department || '',
+        },
+      },
+      update: {
+        role: roleData.role,
+        roleId: yearRoleId,
+      },
+      create: {
+        userId: user.id,
+        year: roleData.year,
+        role: roleData.role,
+        roleId: yearRoleId,
+        department: roleData.department,
+      },
+    });
+    yearSpecificCount++;
+    console.log(`  ✓ ${roleData.userid} → ${roleData.role} (${roleData.year})`);
+  }
+
+  console.log(`✅ Set ${yearSpecificCount} year-specific roles`);
 
   // 연도별 역할 통계 (각 연도별)
   for (const year of YEARS_TO_SEED) {
@@ -511,6 +580,17 @@ async function seedNormalizedBudget() {
 
   console.log(`📊 Valid budget items: ${validData.length}/${budgetMasterData.length}`);
 
+  // 사용자 이름 → ID 캐시 생성 (manager 연결용)
+  const userCache = new Map<string, string>();
+  const allUsers = await prisma.user.findMany({
+    where: { isActive: true },
+    select: { id: true, username: true },
+  });
+  for (const user of allUsers) {
+    userCache.set(user.username, user.id);
+  }
+  console.log(`📊 User cache: ${userCache.size} users`);
+
   // 캐시 맵 (성능 최적화)
   const committeeCache = new Map<string, string>();
   const departmentCache = new Map<string, string>();
@@ -519,6 +599,7 @@ async function seedNormalizedBudget() {
 
   let detailCount = 0;
   let departmentDetailCount = 0;
+  let budgetDetailYearCount = 0;
 
   for (const item of validData) {
     try {
@@ -643,6 +724,32 @@ async function seedNormalizedBudget() {
       });
       departmentDetailCount++;
 
+      // 7. BudgetDetailYear 생성 (연도별 담당자 설정)
+      // manager 이름으로 User ID 조회
+      const managerId = item.manager ? userCache.get(item.manager) : null;
+      if (item.manager && !managerId) {
+        console.log(`  ⚠️ Manager not found: ${item.manager} for ${item.detail}`);
+      }
+
+      for (const year of YEARS_TO_SEED) {
+        await prisma.budgetDetailYear.upsert({
+          where: {
+            budgetDetailId_year: { budgetDetailId, year },
+          },
+          update: {
+            managerId: managerId || null,
+          },
+          create: {
+            budgetDetailId,
+            year,
+            managerId: managerId || null,
+            budgetAmount: 0,
+            usedAmount: 0,
+          },
+        });
+        budgetDetailYearCount++;
+      }
+
     } catch (error) {
       console.error('Error inserting budget item:', item, error);
     }
@@ -650,6 +757,7 @@ async function seedNormalizedBudget() {
 
   console.log(`✅ Created ${detailCount} new budget details`);
   console.log(`✅ Created/Updated ${departmentDetailCount} department-detail links`);
+  console.log(`✅ Created/Updated ${budgetDetailYearCount} budget detail years`);
 
   // 통계 출력
   const committeeStats = await prisma.committee.count();
@@ -657,6 +765,12 @@ async function seedNormalizedBudget() {
   const categoryStats = await prisma.budgetCategory.count();
   const subcategoryStats = await prisma.budgetSubcategory.count();
   const detailStats = await prisma.budgetDetail.count();
+  const detailYearStats = await prisma.budgetDetailYear.count();
+
+  // 담당자가 설정된 세목 수
+  const detailWithManager = await prisma.budgetDetailYear.count({
+    where: { managerId: { not: null } },
+  });
 
   console.log('\n📊 Normalized Budget Statistics:');
   console.log(`  - Committees: ${committeeStats}`);
@@ -664,6 +778,7 @@ async function seedNormalizedBudget() {
   console.log(`  - Categories: ${categoryStats}`);
   console.log(`  - Subcategories: ${subcategoryStats}`);
   console.log(`  - Details: ${detailStats}`);
+  console.log(`  - Detail Years: ${detailYearStats} (with manager: ${detailWithManager})`);
 }
 
 /**

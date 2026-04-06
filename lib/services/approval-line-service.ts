@@ -79,6 +79,8 @@ export async function calculateApprovalLine(
   year: number,
   submitterId?: string
 ): Promise<ApprovalLineInfo> {
+  console.log(`[ApprovalLine] 결재선 산출 시작`, { budgetDetailId, year, submitterId });
+
   // 1. 세목의 연도별 담당자 조회
   const budgetDetailYear = await prisma.budgetDetailYear.findUnique({
     where: {
@@ -100,6 +102,16 @@ export async function calculateApprovalLine(
       },
     },
   });
+
+  // 연도별 설정 없음 경고
+  if (!budgetDetailYear) {
+    console.warn(`[ApprovalLine] ${year}년 세목 설정 없음: ${budgetDetailId}`);
+  }
+
+  // 담당자 미지정 경고
+  if (budgetDetailYear && !budgetDetailYear.manager) {
+    console.warn(`[ApprovalLine] ${year}년 담당자 미지정: ${budgetDetailYear.budgetDetail?.name || budgetDetailId}`);
+  }
 
   // 예산 정보 계산
   const budgetAmount = budgetDetailYear?.budgetAmount || 0;
@@ -226,7 +238,7 @@ export async function calculateApprovalLine(
     });
   }
 
-  return {
+  const result: ApprovalLineInfo = {
     budgetDetailId,
     budgetDetailName: budgetDetailYear?.budgetDetail?.name,
     managerId: manager?.id || null,
@@ -238,6 +250,22 @@ export async function calculateApprovalLine(
     year,
     budget: budgetInfo,
   };
+
+  console.log(`[ApprovalLine] 결재선 산출 완료`, {
+    budgetDetailName: result.budgetDetailName,
+    managerId: result.managerId,
+    managerName: result.managerName,
+    isDirectApproval: result.isDirectApproval,
+    isSubmitterManager: result.isSubmitterManager,
+    steps: result.steps.map(s => ({
+      step: s.stepNumber,
+      name: s.stepName,
+      approver: s.approverName,
+      autoApproved: s.isAutoApproved,
+    })),
+  });
+
+  return result;
 }
 
 /**
