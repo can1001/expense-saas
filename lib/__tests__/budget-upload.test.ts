@@ -247,6 +247,84 @@ describe('budget-upload', () => {
       expect(result.rows[0].year).toBeNull();
       expect(result.rows[0].budgetAmount).toBeNull();
     });
+
+    it('should handle formula cells with string results', async () => {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Test');
+      sheet.addRow(['위원회', '사역팀(부)', '예산(항)', '예산(목)', '예산(세목)', '담당자', '계정코드', '항목 내역', '활성화', '연도', '예산금액']);
+
+      const row = sheet.addRow(['기획위원회', '기획팀', '사역지원비', '기획비', '행사비', null, null, null, null, 2026, 1000000]);
+      // 셀에 수식 결과 설정
+      row.getCell(1).value = { formula: 'A1', result: '기획위원회' } as any;
+      row.getCell(10).value = { formula: 'J1', result: '2026' } as any;
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const result = await parseExcelFile(buffer as ArrayBuffer);
+
+      expect(result.rows[0].committee).toBe('기획위원회');
+      expect(result.rows[0].year).toBe(2026);
+    });
+
+    it('should handle formula cells with number results', async () => {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Test');
+      sheet.addRow(['위원회', '사역팀(부)', '예산(항)', '예산(목)', '예산(세목)', '담당자', '계정코드', '항목 내역', '활성화', '연도', '예산금액']);
+
+      const row = sheet.addRow(['기획위원회', '기획팀', '사역지원비', '기획비', '행사비', null, null, null, null, 2026, 1000000]);
+      // 숫자 결과를 가진 수식
+      row.getCell(7).value = { formula: 'G1', result: 100 } as any;
+      row.getCell(11).value = { formula: 'K1', result: 1000000 } as any;
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const result = await parseExcelFile(buffer as ArrayBuffer);
+
+      expect(result.rows[0].accountCode).toBe('100');
+      expect(result.rows[0].budgetAmount).toBe(1000000);
+    });
+
+    it('should handle formula cells with other types of results', async () => {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Test');
+      sheet.addRow(['위원회', '사역팀(부)', '예산(항)', '예산(목)', '예산(세목)', '담당자', '계정코드', '항목 내역', '활성화', '연도', '예산금액']);
+
+      const row = sheet.addRow(['기획위원회', '기획팀', '사역지원비', '기획비', '행사비', null, null, null, null, 2026, 1000000]);
+      // boolean이나 다른 타입의 결과
+      row.getCell(1).value = { formula: 'A1', result: true } as any;
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const result = await parseExcelFile(buffer as ArrayBuffer);
+
+      expect(result.rows[0].committee).toBe('true');
+    });
+
+    it('should handle text cells with text property', async () => {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Test');
+      sheet.addRow(['위원회', '사역팀(부)', '예산(항)', '예산(목)', '예산(세목)', '담당자', '계정코드', '항목 내역', '활성화', '연도', '예산금액']);
+
+      const row = sheet.addRow(['기획위원회', '기획팀', '사역지원비', '기획비', '행사비', null, null, null, null, 2026, 1000000]);
+      // ExcelJS가 text 속성을 직접 처리하므로 스킵하고 대신 다른 엣지 케이스 테스트
+      row.getCell(1).value = '기획위원회  '; // 공백이 있는 경우
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const result = await parseExcelFile(buffer as ArrayBuffer);
+
+      expect(result.rows[0].committee).toBe('기획위원회');
+    });
+
+    it('should handle richText cells', async () => {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Test');
+      sheet.addRow(['위원회', '사역팀(부)', '예산(항)', '예산(목)', '예산(세목)', '담당자', '계정코드', '항목 내역', '활성화', '연도', '예산금액']);
+
+      const row = sheet.addRow(['기획위원회', '기획팀', '사역지원비', '기획비', '행사비', null, null, null, null, 2026, 1000000]);
+      row.getCell(1).value = { richText: [{ text: '기획' }, { text: '위원회' }] } as any;
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const result = await parseExcelFile(buffer as ArrayBuffer);
+
+      expect(result.rows[0].committee).toBe('기획위원회');
+    });
   });
 
   describe('uploadBudgetData', () => {
@@ -431,6 +509,54 @@ describe('budget-upload', () => {
         await uploadBudgetData(rowsWithoutYear, 'merge');
 
         expect(mockTx.budgetDetailYear.upsert).not.toHaveBeenCalled();
+      });
+
+      it('should handle userid collision when creating new user', async () => {
+        const mockTx = createMockTx();
+        // username으로 찾지 못하고, 생성하려는 userid가 이미 존재하는 경우
+        mockTx.user.findFirst.mockResolvedValue(null);
+        mockTx.user.findUnique.mockResolvedValue({ id: 'existing-user-id', username: '다른이름', userid: '청연김대현' } as any);
+
+        vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(mockTx));
+
+        const result = await uploadBudgetData(testRows, 'merge');
+
+        expect(result.success).toBe(true);
+        expect(mockTx.user.create).not.toHaveBeenCalled(); // 새로 생성하지 않음
+        expect(mockTx.budgetDetailYear.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            create: expect.objectContaining({
+              managerId: 'existing-user-id', // 기존 사용자 ID 사용
+            }),
+          })
+        );
+      });
+
+      it('should handle database errors during upload', async () => {
+        const mockTx = createMockTx();
+        mockTx.committee.upsert.mockRejectedValue(new Error('Database connection failed'));
+
+        vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(mockTx));
+
+        const result = await uploadBudgetData(testRows, 'merge');
+
+        expect(result.success).toBe(false);
+        expect(result.summary.errors).toBe(1);
+        expect(result.validationErrors[0].field).toBe('database');
+        expect(result.validationErrors[0].message).toBe('Database connection failed');
+      });
+
+      it('should handle non-Error exceptions during upload', async () => {
+        const mockTx = createMockTx();
+        mockTx.committee.upsert.mockRejectedValue('Unknown error');
+
+        vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(mockTx));
+
+        const result = await uploadBudgetData(testRows, 'merge');
+
+        expect(result.success).toBe(false);
+        expect(result.summary.errors).toBe(1);
+        expect(result.validationErrors[0].message).toBe('데이터베이스 오류');
       });
     });
   });

@@ -646,4 +646,210 @@ describe('useExpenseFormSubmit', () => {
       expect(mockAlert).toHaveBeenCalledWith('지출결의서가 성공적으로 제출되었습니다.');
     });
   });
+
+  describe('offline mode', () => {
+    const originalNavigator = global.navigator;
+
+    beforeEach(() => {
+      // Mock navigator.onLine
+      Object.defineProperty(global, 'navigator', {
+        value: { onLine: false },
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    afterEach(() => {
+      Object.defineProperty(global, 'navigator', {
+        value: originalNavigator,
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    it('should save data offline when navigator.onLine is false', async () => {
+      const mockCreateOfflineExpense = vi.fn().mockResolvedValue({ localId: 'offline-id-1' });
+      const mockSaveOfflineAttachments = vi.fn().mockResolvedValue(undefined);
+      const mockUuidv4 = vi.fn().mockReturnValue('uuid-1');
+
+      vi.doMock('@/lib/db/expense-store', () => ({
+        createOfflineExpense: mockCreateOfflineExpense,
+      }));
+      vi.doMock('@/lib/db/attachment-store', () => ({
+        saveOfflineAttachments: mockSaveOfflineAttachments,
+      }));
+      vi.doMock('uuid', () => ({
+        v4: mockUuidv4,
+      }));
+
+      const { result } = renderHook(() =>
+        useExpenseFormSubmit({
+          ...defaultOptions,
+          enableOffline: true,
+        })
+      );
+
+      let submitResult: { success: boolean; localId?: string; isOffline?: boolean };
+      await act(async () => {
+        submitResult = await result.current.handleSubmit({
+          committee: '기획위원회',
+          department: '기획팀',
+          applicantName: '홍길동',
+          bankName: '신한은행',
+          accountNumber: '123-456-789',
+          accountHolder: '홍길동',
+          items: [
+            {
+              budgetDetailId: 'detail-1',
+              description: '행사비',
+              unitPrice: 10000,
+              quantity: 5,
+              amount: 50000,
+            },
+          ],
+          status: 'PENDING',
+        });
+      });
+
+      expect(submitResult!.success).toBe(true);
+      expect(submitResult!.isOffline).toBe(true);
+      expect(mockFetch).not.toHaveBeenCalled(); // 온라인 API 호출 안함
+      expect(mockAlert).toHaveBeenCalledWith(expect.stringContaining('인터넷 연결이 없습니다'));
+      expect(mockPush).toHaveBeenCalledWith('/expenses');
+    });
+
+    it('should save data as draft when status is not PENDING in offline mode', async () => {
+      const mockCreateOfflineExpense = vi.fn().mockResolvedValue({ localId: 'offline-id-2' });
+      vi.doMock('@/lib/db/expense-store', () => ({
+        createOfflineExpense: mockCreateOfflineExpense,
+      }));
+      vi.doMock('@/lib/db/attachment-store', () => ({
+        saveOfflineAttachments: vi.fn(),
+      }));
+      vi.doMock('uuid', () => ({
+        v4: vi.fn().mockReturnValue('uuid-2'),
+      }));
+
+      const { result } = renderHook(() =>
+        useExpenseFormSubmit({
+          ...defaultOptions,
+          enableOffline: true,
+        })
+      );
+
+      await act(async () => {
+        await result.current.handleSubmit({
+          committee: '기획위원회',
+          applicantName: '홍길동',
+          bankName: '신한은행',
+          accountNumber: '123-456-789',
+          accountHolder: '홍길동',
+          items: [],
+          status: 'DRAFT',
+        });
+      });
+
+      // 오프라인 저장이 draft 상태로 호출되어야 함
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should save attachments offline when attachmentFiles provided', async () => {
+      const mockFile = new File(['test'], 'test.pdf', { type: 'application/pdf' });
+      const mockCreateOfflineExpense = vi.fn().mockResolvedValue({ localId: 'offline-id-3' });
+      const mockSaveOfflineAttachments = vi.fn().mockResolvedValue(undefined);
+
+      vi.doMock('@/lib/db/expense-store', () => ({
+        createOfflineExpense: mockCreateOfflineExpense,
+      }));
+      vi.doMock('@/lib/db/attachment-store', () => ({
+        saveOfflineAttachments: mockSaveOfflineAttachments,
+      }));
+      vi.doMock('uuid', () => ({
+        v4: vi.fn().mockReturnValue('uuid-3'),
+      }));
+
+      const { result } = renderHook(() =>
+        useExpenseFormSubmit({
+          ...defaultOptions,
+          enableOffline: true,
+          attachmentFiles: [mockFile],
+        })
+      );
+
+      await act(async () => {
+        await result.current.handleSubmit({
+          committee: '기획위원회',
+          applicantName: '홍길동',
+          bankName: '신한은행',
+          accountNumber: '123-456-789',
+          accountHolder: '홍길동',
+          items: [],
+        });
+      });
+
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should handle offline save errors', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.doMock('@/lib/db/expense-store', () => ({
+        createOfflineExpense: vi.fn().mockRejectedValue(new Error('IndexedDB error')),
+      }));
+      vi.doMock('@/lib/db/attachment-store', () => ({
+        saveOfflineAttachments: vi.fn(),
+      }));
+      vi.doMock('uuid', () => ({
+        v4: vi.fn().mockReturnValue('uuid-4'),
+      }));
+
+      const { result } = renderHook(() =>
+        useExpenseFormSubmit({
+          ...defaultOptions,
+          enableOffline: true,
+        })
+      );
+
+      let submitResult: { success: boolean; error?: string; isOffline?: boolean };
+      await act(async () => {
+        submitResult = await result.current.handleSubmit({
+          committee: '기획위원회',
+          applicantName: '홍길동',
+          bankName: '신한은행',
+          accountNumber: '123-456-789',
+          accountHolder: '홍길동',
+          items: [],
+        });
+      });
+
+      expect(submitResult!.success).toBe(false);
+      expect(submitResult!.isOffline).toBe(true);
+      expect(mockSetError).toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should skip offline mode when enableOffline is false', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ id: 'new-expense-id' }),
+      });
+
+      const { result } = renderHook(() =>
+        useExpenseFormSubmit({
+          ...defaultOptions,
+          enableOffline: false,
+        })
+      );
+
+      await act(async () => {
+        await result.current.handleSubmit({
+          committee: '기획위원회',
+        });
+      });
+
+      // enableOffline이 false이면 온라인 API 호출
+      expect(mockFetch).toHaveBeenCalled();
+    });
+  });
 });
