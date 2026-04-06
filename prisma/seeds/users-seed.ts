@@ -8,6 +8,9 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// 기본 비밀번호 (bcrypt 해시됨: chc2026)
+const DEFAULT_PASSWORD_HASH = '$2b$10$y66Vh2AsfiG1z5rYPzk/Ge7OGLfJA8fyhjQPwNx.hmmbbNMrOSpsu';
+
 // ============================================================
 // 역할 (Role) 데이터
 // ============================================================
@@ -85,7 +88,6 @@ const userYearRoles = [
   { id: 'cmnmoxq5200qpcaq5sft0xzjh', userId: 'cmk878pzg0007eg3mwa2fhj6t', year: 2026, role: 'admin_assistant', roleId: 'cmk878pre0004eg3m9yelxwsg', departmentId: 'cmk9cl0bj000z2fif5j2fn1v1' },
   { id: 'cmnn22jik002bcad3a6tu7wj6', userId: 'cmk878q79000aeg3mqlt9wl3t', year: 2026, role: 'finance_head', roleId: 'cmk878pjm0001eg3mjpjvg05s', departmentId: null },
   { id: 'cmnmoxq9k00qrcaq5xq4di629', userId: 'cmk878q79000aeg3mqlt9wl3t', year: 2026, role: 'team_leader', roleId: 'cmk878poo0003eg3mq7pxz5a0', departmentId: 'cmk9cl0bj000z2fif5j2fn1v1' },
-  { id: 'cmnmoxraw00r9caq5diath7nr', userId: 'cmk884lxz00022dg97uj0k0zt', year: 2026, role: 'team_leader', roleId: 'cmk878poo0003eg3mq7pxz5a0', departmentId: null },
   { id: 'cmnmwui2p000fcad3rypnkbgn', userId: 'cmk888ly700092dg9phxe7mv4', year: 2026, role: 'team_leader', roleId: 'cmk878poo0003eg3mq7pxz5a0', departmentId: 'cmncwyqlp002ycam9howty56z' },
   { id: 'cmnmoxqpy00qzcaq5tj9xm71a', userId: 'cmk888ly700092dg9phxe7mv4', year: 2026, role: 'team_leader', roleId: 'cmk878poo0003eg3mq7pxz5a0', departmentId: 'cmk888mzw00822dg9eaj0qsuj' },
   { id: 'cmnmwfdfv0001cad3fluuka8t', userId: 'cmk888ly700092dg9phxe7mv4', year: 2026, role: 'team_leader', roleId: 'cmk878poo0003eg3mq7pxz5a0', departmentId: 'cmk888m3n001a2dg976fi0d9z' },
@@ -147,12 +149,13 @@ async function main() {
         username: user.username,
         role: user.role,
         isActive: user.isActive,
+        password: DEFAULT_PASSWORD_HASH, // E2E 테스트를 위해 비밀번호 재설정
       },
       create: {
         id: user.id,
         userid: user.userid,
         username: user.username,
-        password: 'tempPassword123!', // 임시 비밀번호
+        password: DEFAULT_PASSWORD_HASH, // 기본 비밀번호: chc2026
         role: user.role,
         isActive: user.isActive,
       },

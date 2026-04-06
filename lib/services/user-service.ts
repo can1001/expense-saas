@@ -333,8 +333,18 @@ export async function findUsers(options?: {
 
   const where: Record<string, unknown> = {};
 
+  // 역할 필터링: admin은 User.role, 나머지는 UserYearRole에서 조회
   if (options?.role) {
-    where.role = options.role;
+    if (options.role === 'admin') {
+      where.role = 'admin';
+    } else {
+      // UserYearRole에서 해당 역할을 가진 사용자 ID 조회
+      const yearRoleUsers = await prisma.userYearRole.findMany({
+        where: { role: options.role, year },
+        select: { userId: true },
+      });
+      where.id = { in: yearRoleUsers.map(yr => yr.userId) };
+    }
   }
 
   if (options?.isActive !== undefined) {

@@ -119,7 +119,9 @@ jobs:
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/expense_test
           NODE_ENV: development
-        run: npm run db:seed
+        run: |
+          npm run db:seed
+          npm run db:seed:users
 
       - name: Build application
         env:
