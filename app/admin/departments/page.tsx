@@ -38,6 +38,7 @@ interface GroupedDepartments {
 }
 
 export default function DepartmentsPage() {
+  const currentYear = new Date().getFullYear();
   const [committees, setCommittees] = useState<Committee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -152,12 +153,12 @@ export default function DepartmentsPage() {
     }
   };
 
-  const handleUpdate = async (id: string, deptName: string) => {
+  const handleUpdate = async (dept: Department) => {
     if (!editName.trim()) return;
     setSaving(true);
     try {
       // 1. 부서명 수정 (leaderId 제외)
-      const response = await fetch(`/api/departments/${id}`, {
+      const response = await fetch(`/api/departments/${dept.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -170,8 +171,7 @@ export default function DepartmentsPage() {
       }
 
       // 2. 팀장 변경 시 UserYearRole 업데이트
-      const currentLeader = getTeamLeader(deptName);
-      if (editLeaderId !== (currentLeader?.id || '')) {
+      if (editLeaderId !== (dept.leaderId || '')) {
         if (editLeaderId) {
           // 새 팀장 지정
           await fetch('/api/users/year-roles', {
@@ -181,7 +181,7 @@ export default function DepartmentsPage() {
               userId: editLeaderId,
               year: currentYear,
               role: 'team_leader',
-              department: editName.trim(),
+              departmentId: dept.id,
             }),
           });
         }
@@ -356,7 +356,7 @@ export default function DepartmentsPage() {
                             className={`${INPUT_BASE} max-w-[200px]`}
                             autoFocus
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleUpdate(dept.id, dept.name);
+                              if (e.key === 'Enter') handleUpdate(dept);
                               if (e.key === 'Escape') cancelEdit();
                             }}
                           />
@@ -400,7 +400,7 @@ export default function DepartmentsPage() {
                       {editingId === dept.id ? (
                         <>
                           <button
-                            onClick={() => handleUpdate(dept.id, dept.name)}
+                            onClick={() => handleUpdate(dept)}
                             disabled={saving}
                             className={`${BTN_SM} text-green-600 hover:bg-green-50`}
                           >
