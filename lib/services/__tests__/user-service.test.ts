@@ -733,7 +733,8 @@ describe('user-service', () => {
         userId: 'user-1',
         year: CURRENT_YEAR,
         role: 'team_leader',
-        department: '기획팀',
+        roleId: null,
+        departmentId: 'dept-1',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -813,7 +814,7 @@ describe('user-service', () => {
 
       expect(result).toEqual({
         role: 'admin',
-        department: null,
+        departmentId: null,
       });
     });
 
@@ -823,7 +824,8 @@ describe('user-service', () => {
         userId: 'user-1',
         year: CURRENT_YEAR,
         role: 'team_leader',
-        department: '기획팀',
+        roleId: null,
+        departmentId: 'dept-1',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -837,7 +839,7 @@ describe('user-service', () => {
 
       expect(result).toEqual({
         role: 'team_leader',
-        department: '기획팀',
+        departmentId: 'dept-1',
       });
     });
 
@@ -851,7 +853,7 @@ describe('user-service', () => {
 
       expect(result).toEqual({
         role: 'user',
-        department: '재정팀',
+        departmentId: null,
       });
     });
 
@@ -862,7 +864,7 @@ describe('user-service', () => {
 
       expect(result).toEqual({
         role: 'user',
-        department: null,
+        departmentId: null,
       });
     });
 
@@ -905,7 +907,7 @@ describe('user-service', () => {
       expect(result).toMatchObject({
         id: 'admin-1',
         effectiveRole: 'admin',
-        effectiveDepartment: null,
+        effectiveDepartmentId: null,
       });
     });
 
@@ -915,7 +917,8 @@ describe('user-service', () => {
         userId: 'user-1',
         year: CURRENT_YEAR,
         role: 'accountant',
-        department: '재정팀',
+        roleId: null,
+        departmentId: 'dept-finance',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -930,7 +933,7 @@ describe('user-service', () => {
       expect(result).toMatchObject({
         id: 'user-1',
         effectiveRole: 'accountant',
-        effectiveDepartment: '재정팀',
+        effectiveDepartmentId: 'dept-finance',
       });
     });
 
@@ -945,7 +948,7 @@ describe('user-service', () => {
       expect(result).toMatchObject({
         id: 'user-1',
         effectiveRole: 'user',
-        effectiveDepartment: '재정팀',
+        effectiveDepartmentId: null,
       });
     });
   });
@@ -971,7 +974,8 @@ describe('user-service', () => {
           userId: 'user-1',
           year: CURRENT_YEAR,
           role: 'team_leader' as UserRole,
-          department: '기획팀',
+          roleId: null,
+          departmentId: 'dept-1',
           createdAt: new Date(),
           updatedAt: new Date(),
           user: mockTeamLeader,
@@ -994,7 +998,8 @@ describe('user-service', () => {
           userId: 'user-1',
           year: CURRENT_YEAR,
           role: 'accountant' as UserRole,
-          department: '재정팀',
+          roleId: null,
+          departmentId: 'dept-1',
           createdAt: new Date(),
           updatedAt: new Date(),
           user: inactiveUser,
@@ -1016,7 +1021,8 @@ describe('user-service', () => {
         userId: 'user-1',
         year: CURRENT_YEAR,
         role: 'team_leader',
-        department: '기획팀',
+        roleId: null,
+        departmentId: 'dept-1',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -1057,7 +1063,8 @@ describe('user-service', () => {
         userId: 'user-1',
         year: 2025,
         role: 'accountant',
-        department: '재정팀',
+        roleId: 'role-3',
+        departmentId: 'dept-1',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -1074,16 +1081,16 @@ describe('user-service', () => {
       vi.mocked(prisma.userYearRole.upsert).mockResolvedValue(mockYearRole);
 
       await getAllRoles(true); // Force refresh to populate cache
-      const result = await setYearRole('user-1', 2025, 'accountant', '재정팀');
+      const result = await setYearRole('user-1', 2025, 'accountant', 'dept-1');
 
       expect(result).toEqual(mockYearRole);
       expect(prisma.userYearRole.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            userId_year_department: { userId: 'user-1', year: 2025, department: '재정팀' },
+            userId_year_departmentId: { userId: 'user-1', year: 2025, departmentId: 'dept-1' },
           },
           update: expect.objectContaining({ role: 'accountant' }),
-          create: expect.objectContaining({ userId: 'user-1', year: 2025, role: 'accountant', department: '재정팀' }),
+          create: expect.objectContaining({ userId: 'user-1', year: 2025, role: 'accountant', departmentId: 'dept-1' }),
         })
       );
     });
@@ -1094,7 +1101,8 @@ describe('user-service', () => {
         userId: 'user-1',
         year: 2025,
         role: 'user',
-        department: null,
+        roleId: null,
+        departmentId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -1119,7 +1127,7 @@ describe('user-service', () => {
 
       // Verify findFirst was called to check for existing role without department
       expect(prisma.userYearRole.findFirst).toHaveBeenCalledWith({
-        where: { userId: 'user-1', year: 2025, department: null },
+        where: { userId: 'user-1', year: 2025, departmentId: null },
       });
 
       // Verify create was called since no existing role was found
@@ -1129,7 +1137,7 @@ describe('user-service', () => {
           year: 2025,
           role: 'user',
           roleId: undefined,
-          department: null,
+          departmentId: null,
         },
       });
     });
@@ -1155,7 +1163,8 @@ describe('user-service', () => {
           userId: 'user-1',
           year: CURRENT_YEAR,
           role: 'team_leader' as UserRole,
-          department: '기획팀',
+          roleId: null,
+          departmentId: 'dept-1',
           createdAt: new Date(),
           updatedAt: new Date(),
           user: mockTeamLeader,
@@ -1194,7 +1203,8 @@ describe('user-service', () => {
         userId: 'user-1',
         year: CURRENT_YEAR,
         role: 'team_leader',
-        department: '기획팀',
+        roleId: null,
+        departmentId: 'dept-1',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
