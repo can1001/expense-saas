@@ -30,30 +30,25 @@ async function main() {
     { name: 'ExpenseItem', fn: () => prisma.expenseItem.deleteMany() },
     { name: 'Expense', fn: () => prisma.expense.deleteMany() },
 
-    // 3. 간편 지출결의서
-    { name: 'SimpleExpenseAttachment', fn: () => prisma.simpleExpenseAttachment.deleteMany() },
-    { name: 'SimpleExpenseItem', fn: () => prisma.simpleExpenseItem.deleteMany() },
-    { name: 'SimpleExpense', fn: () => prisma.simpleExpense.deleteMany() },
-
-    // 4. 예산 관련 히스토리/매핑
+    // 3. 예산 관련 히스토리/매핑
     { name: 'BudgetDetailYearHistory', fn: () => prisma.budgetDetailYearHistory.deleteMany() },
     { name: 'DepartmentBudgetDetail', fn: () => prisma.departmentBudgetDetail.deleteMany() },
     { name: 'BudgetDetailYear', fn: () => prisma.budgetDetailYear.deleteMany() },
 
-    // 5. 예산 상세
+    // 4. 예산 상세
     { name: 'BudgetDetail', fn: () => prisma.budgetDetail.deleteMany() },
     { name: 'BudgetSubcategory', fn: () => prisma.budgetSubcategory.deleteMany() },
     { name: 'BudgetCategory', fn: () => prisma.budgetCategory.deleteMany() },
 
-    // 6. 조직 구조
+    // 5. 조직 구조
     { name: 'Department', fn: () => prisma.department.deleteMany() },
     { name: 'Committee', fn: () => prisma.committee.deleteMany() },
 
-    // 7. 사용자 연도별 역할 (User는 유지)
+    // 6. 사용자 연도별 역할 (User는 유지)
     { name: 'UserYearRoleHistory', fn: () => prisma.userYearRoleHistory.deleteMany() },
     { name: 'UserYearRole', fn: () => prisma.userYearRole.deleteMany() },
 
-    // 9. 저장된 계좌
+    // 7. 저장된 계좌
     { name: 'SavedBankAccount', fn: () => prisma.savedBankAccount.deleteMany() },
   ];
 
