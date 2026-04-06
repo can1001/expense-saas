@@ -86,7 +86,10 @@
       "Bash(chmod:*)",
       "Bash(./scripts/ralph/ralph.sh:*)",
       "Bash(npx playwright test:*)",
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "Bash(pip3 install:*)",
+      "Bash(PORT=3000 npm run dev:*)",
+      "WebFetch(domain:localhost)"
     ],
     "deny": [],
     "ask": []
