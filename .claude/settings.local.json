@@ -85,7 +85,8 @@
       "Bash(npx playwright --version)",
       "Bash(chmod:*)",
       "Bash(./scripts/ralph/ralph.sh:*)",
-      "Bash(npx playwright test:*)"
+      "Bash(npx playwright test:*)",
+      "Bash(xargs cat:*)"
     ],
     "deny": [],
     "ask": []
