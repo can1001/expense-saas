@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   getYearRoles,
   setYearRole,
+  deleteYearRole,
   findUserByUserid,
   CURRENT_YEAR,
   UserRole,
 } from '@/lib/services/user-service';
+import { prisma } from '@/lib/prisma';
 
 // GET /api/users/year-roles - 연도별 역할 목록 조회
 export async function GET(request: NextRequest) {
@@ -75,8 +77,42 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(yearRole, { status: 201 });
   } catch (error) {
     console.error('Error setting year role:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to set year role' },
+      { error: 'Failed to set year role', details: errorMessage },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/users/year-roles - 연도별 역할 삭제
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { userId, year, department } = body;
+
+    if (!userId || !year) {
+      return NextResponse.json(
+        { error: 'userId and year are required' },
+        { status: 400 }
+      );
+    }
+
+    if (department) {
+      // 특정 부서 역할만 삭제
+      await prisma.userYearRole.deleteMany({
+        where: { userId, year, department },
+      });
+    } else {
+      // 해당 연도 전체 역할 삭제
+      await deleteYearRole(userId, year);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting year role:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete year role' },
       { status: 500 }
     );
   }

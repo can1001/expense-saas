@@ -83,6 +83,9 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   // 파일 업로드 상태 (업로드 중 폼 제출 방지용)
   const [isUploading, setIsUploading] = useState(false);
 
+  // 현재 지출결의서 상태 (최종승인 상태에서 수정 시 상태 유지용)
+  const [currentExpenseStatus, setCurrentExpenseStatus] = useState<string | null>(null);
+
   // 첨부파일 영역 ref (스크롤 이동용)
   const attachmentSectionRef = useRef<HTMLDivElement>(null);
 
@@ -181,6 +184,9 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   };
 
   const loadInitialData = (data: Record<string, unknown>) => {
+    // 현재 상태 저장 (최종승인 상태에서 수정 시 상태 유지용)
+    setCurrentExpenseStatus(data.status as string);
+
     // 계좌번호가 마스킹되어 있는지 확인 (다른 사람의 지출결의서인 경우)
     const accountNumber = data.accountNumber as string;
     const isMaskedAccount = accountNumber?.startsWith('****');
@@ -238,9 +244,12 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
 
   // onSubmit 핸들러 - useExpenseFormSubmit 훅 사용
   const onSubmit = async (data: ExpenseFormData) => {
+    // 최종승인 상태에서는 status를 변경하지 않음
+    const isApprovedFinal = currentExpenseStatus === 'APPROVED_FINAL';
+
     // 저장 모드: 기존 로직 사용
     if (submitMode === 'save') {
-      handleFormSubmit({ ...data, status: 'DRAFT' });
+      handleFormSubmit({ ...data, status: isApprovedFinal ? undefined : 'DRAFT' });
       return;
     }
 
@@ -248,13 +257,13 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
     if (expenseId) {
       try {
         setLoading(true);
-        // 먼저 저장 (PUT - DRAFT 상태로)
+        // 먼저 저장 (PUT - 최종승인 상태에서는 상태 유지)
         const saveResponse = await fetch(`/api/expenses/${expenseId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...data,
-            status: 'DRAFT',
+            status: isApprovedFinal ? undefined : 'DRAFT',
             expenseDate: data.expenseDate || null,
           }),
         });

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import Image from 'next/image';
 import Header from '@/components/Header';
 import { ExcelExportModal } from '@/components/ExcelExportModal';
 import { BulkPaymentStatusModal } from '@/components/BulkPaymentStatusModal';
@@ -23,6 +24,9 @@ interface CurrentUser {
   role: UserRole | string;
 }
 
+type SortKey = 'requestDate' | 'applicantName' | 'budgetCategory' | 'budgetSubcategory' | 'budgetDetail' | 'requestAmount' | 'committee' | 'status' | 'approvedAt' | 'paymentStatus';
+type SortDirection = 'asc' | 'desc';
+
 export default function ExpensesPage() {
   const router = useRouter();
   const [expenses, setExpenses] = useState<ExpenseListItem[]>([]);
@@ -31,6 +35,10 @@ export default function ExpensesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
+
+  // 정렬 상태
+  const [sortKey, setSortKey] = useState<SortKey>('requestDate');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   // 엑셀 다운로드용 선택 상태
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -59,7 +67,8 @@ export default function ExpensesPage() {
     endDate: '',
     minAmount: '',
     maxAmount: '',
-    paymentStatus: '',  // 지출 상태 필터 추가
+    status: '',         // 결재상태 필터
+    paymentStatus: '',  // 지출 상태 필터
     approvedStartDate: '',  // 최종승인일 시작
     approvedEndDate: '',    // 최종승인일 종료
   });
@@ -158,6 +167,11 @@ export default function ExpensesPage() {
       return false;
     }
 
+    // 결재상태 필터
+    if (filters.status && expense.status !== filters.status) {
+      return false;
+    }
+
     // 지출 상태 필터
     if (filters.paymentStatus) {
       // 최종 승인된 항목만 지출 상태 필터 적용
@@ -189,24 +203,137 @@ export default function ExpensesPage() {
     return true;
   });
 
+  // 정렬 함수
+  const sortedExpenses = [...filteredExpenses].sort((a, b) => {
+    let aValue: string | number | null = null;
+    let bValue: string | number | null = null;
+
+    switch (sortKey) {
+      case 'requestDate':
+        aValue = new Date(a.requestDate).getTime();
+        bValue = new Date(b.requestDate).getTime();
+        break;
+      case 'applicantName':
+        aValue = a.applicantName;
+        bValue = b.applicantName;
+        break;
+      case 'budgetCategory':
+        aValue = a.items?.[0]?.budgetCategory || '';
+        bValue = b.items?.[0]?.budgetCategory || '';
+        break;
+      case 'budgetSubcategory': {
+        // 1차: 항 비교
+        const subCatA = a.items?.[0]?.budgetCategory || '';
+        const subCatB = b.items?.[0]?.budgetCategory || '';
+        const catCompare = subCatA.localeCompare(subCatB, 'ko');
+        if (catCompare !== 0) return sortDirection === 'asc' ? catCompare : -catCompare;
+        // 2차: 목 비교
+        aValue = a.items?.[0]?.budgetSubcategory || '';
+        bValue = b.items?.[0]?.budgetSubcategory || '';
+        break;
+      }
+      case 'budgetDetail': {
+        // 1차: 항 비교
+        const detCatA = a.items?.[0]?.budgetCategory || '';
+        const detCatB = b.items?.[0]?.budgetCategory || '';
+        const catCmp = detCatA.localeCompare(detCatB, 'ko');
+        if (catCmp !== 0) return sortDirection === 'asc' ? catCmp : -catCmp;
+        // 2차: 목 비교
+        const detSubA = a.items?.[0]?.budgetSubcategory || '';
+        const detSubB = b.items?.[0]?.budgetSubcategory || '';
+        const subCmp = detSubA.localeCompare(detSubB, 'ko');
+        if (subCmp !== 0) return sortDirection === 'asc' ? subCmp : -subCmp;
+        // 3차: 세목 비교
+        aValue = a.items?.[0]?.budgetDetail || '';
+        bValue = b.items?.[0]?.budgetDetail || '';
+        break;
+      }
+      case 'requestAmount':
+        aValue = a.requestAmount;
+        bValue = b.requestAmount;
+        break;
+      case 'committee':
+        aValue = a.committee;
+        bValue = b.committee;
+        break;
+      case 'status':
+        aValue = a.status || '';
+        bValue = b.status || '';
+        break;
+      case 'approvedAt':
+        aValue = a.approvedAt ? new Date(a.approvedAt).getTime() : 0;
+        bValue = b.approvedAt ? new Date(b.approvedAt).getTime() : 0;
+        break;
+      case 'paymentStatus':
+        aValue = a.paymentStatus || '';
+        bValue = b.paymentStatus || '';
+        break;
+      default:
+        return 0;
+    }
+
+    if (aValue === null || bValue === null) return 0;
+
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      const comparison = aValue.localeCompare(bValue, 'ko');
+      return sortDirection === 'asc' ? comparison : -comparison;
+    }
+
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    }
+
+    return 0;
+  });
+
+  // 정렬 토글 핸들러
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+  };
+
+  // 정렬 아이콘 렌더링
+  const renderSortIcon = (key: SortKey) => {
+    if (sortKey !== key) {
+      return (
+        <svg className="w-4 h-4 ml-1 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      );
+    }
+    return sortDirection === 'asc' ? (
+      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+      </svg>
+    ) : (
+      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    );
+  };
+
   // 페이지네이션
-  const totalPages = Math.ceil(filteredExpenses.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedExpenses.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedExpenses = filteredExpenses.slice(startIndex, endIndex);
+  const paginatedExpenses = sortedExpenses.slice(startIndex, endIndex);
 
   // 페이지 변경 시 첫 페이지로 리셋
   useEffect(() => {
     setCurrentPage(1);
     setMobileVisibleCount(10); // 모바일도 리셋
-  }, [searchQuery, itemsPerPage, filters]);
+  }, [searchQuery, itemsPerPage, filters, sortKey, sortDirection]);
 
   // 모바일 무한 스크롤 - Intersection Observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && mobileVisibleCount < filteredExpenses.length) {
-          setMobileVisibleCount(prev => Math.min(prev + 10, filteredExpenses.length));
+        if (entries[0].isIntersecting && mobileVisibleCount < sortedExpenses.length) {
+          setMobileVisibleCount(prev => Math.min(prev + 10, sortedExpenses.length));
         }
       },
       { threshold: 0.1, rootMargin: '100px' }
@@ -217,11 +344,11 @@ export default function ExpensesPage() {
     }
 
     return () => observer.disconnect();
-  }, [mobileVisibleCount, filteredExpenses.length]);
+  }, [mobileVisibleCount, sortedExpenses.length]);
 
   // 모바일용 표시 항목
-  const mobileVisibleExpenses = filteredExpenses.slice(0, mobileVisibleCount);
-  const hasMoreMobile = mobileVisibleCount < filteredExpenses.length;
+  const mobileVisibleExpenses = sortedExpenses.slice(0, mobileVisibleCount);
+  const hasMoreMobile = mobileVisibleCount < sortedExpenses.length;
 
   // 필터 옵션 추출 (첫 번째 항목의 예산 정보 사용)
   const uniqueCommittees = Array.from(new Set(expenses.map(e => e.committee))).sort();
@@ -246,6 +373,7 @@ export default function ExpensesPage() {
       endDate: '',
       minAmount: '',
       maxAmount: '',
+      status: '',
       paymentStatus: '',
       approvedStartDate: '',
       approvedEndDate: '',
@@ -282,6 +410,13 @@ export default function ExpensesPage() {
   const isAllSelected = paginatedExpenses.length > 0 &&
     paginatedExpenses.every(e => selectedIds.has(e.id));
 
+  // 정렬 순서를 유지한 선택된 ID 목록 반환
+  const getSortedSelectedIds = () => {
+    return sortedExpenses
+      .filter(e => selectedIds.has(e.id))
+      .map(e => e.id);
+  };
+
   // 엑셀 다운로드 모달 열기
   const handleOpenExportModal = () => {
     if (selectedIds.size === 0) {
@@ -295,7 +430,7 @@ export default function ExpensesPage() {
   const handleExportExcel = async (options: { date: string | null; useSameDate: boolean }) => {
     try {
       setExporting(true);
-      const ids = Array.from(selectedIds).join(',');
+      const ids = getSortedSelectedIds().join(',');
 
       // URL 파라미터 구성
       const params = new URLSearchParams({
@@ -392,7 +527,7 @@ export default function ExpensesPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ids: Array.from(selectedIds),
+          ids: getSortedSelectedIds(),
           paymentStatus: newStatus,
           signature,
           expenseDate: dateOptions?.expenseDate,
@@ -428,7 +563,7 @@ export default function ExpensesPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ids: Array.from(selectedIds),
+          ids: getSortedSelectedIds(),
           expenseDate,
           overwriteExisting,
         }),
@@ -504,11 +639,19 @@ export default function ExpensesPage() {
       <Header />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 헤더 */}
-        <div className="mb-4 sm:mb-6 md:mb-8">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">지출결의서 목록</h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
-            총 {filteredExpenses.length}건의 지출결의서
-          </p>
+        <div className="mb-4 sm:mb-6 md:mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">지출결의서 목록</h1>
+            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
+              총 {sortedExpenses.length}건의 지출결의서
+            </p>
+          </div>
+          <button
+            onClick={() => router.push('/expenses/new')}
+            className={`${BTN_PRIMARY} hidden sm:flex items-center gap-2`}
+          >
+            + 신규 지출결의서 작성
+          </button>
         </div>
 
         {/* 검색 및 필터 */}
@@ -550,6 +693,17 @@ export default function ExpensesPage() {
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
                       {filters.budgetCategory}
                       <button onClick={() => handleFilterChange('budgetCategory', '')} className="hover:text-blue-900">×</button>
+                    </span>
+                  )}
+                  {filters.status && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      {filters.status === 'DRAFT' ? '임시저장' :
+                       filters.status === 'PENDING' ? '결재대기' :
+                       filters.status === 'APPROVED_STEP_1' ? '1차승인' :
+                       filters.status === 'APPROVED_STEP_2' ? '2차승인' :
+                       filters.status === 'APPROVED_FINAL' ? '최종승인' :
+                       filters.status === 'REJECTED' ? '반려' : '회수'}
+                      <button onClick={() => handleFilterChange('status', '')} className="hover:text-blue-900">×</button>
                     </span>
                   )}
                   {filters.paymentStatus && (
@@ -669,6 +823,26 @@ export default function ExpensesPage() {
                       {uniqueCategories.map(c => (
                         <option key={c} value={c}>{c}</option>
                       ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      결재상태
+                    </label>
+                    <select
+                      value={filters.status}
+                      onChange={(e) => handleFilterChange('status', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                    >
+                      <option value="">전체</option>
+                      <option value="DRAFT">임시저장</option>
+                      <option value="PENDING">결재대기</option>
+                      <option value="APPROVED_STEP_1">1차승인</option>
+                      <option value="APPROVED_STEP_2">2차승인</option>
+                      <option value="APPROVED_FINAL">최종승인</option>
+                      <option value="REJECTED">반려</option>
+                      <option value="WITHDRAWN">회수</option>
                     </select>
                   </div>
 
@@ -864,7 +1038,7 @@ export default function ExpensesPage() {
               {/* 대량이체 다운로드 버튼 (우리은행) */}
               <button
                 onClick={() => {
-                  const ids = Array.from(selectedIds).join(',');
+                  const ids = getSortedSelectedIds().join(',');
                   window.location.href = `/api/expenses/export/excel?ids=${ids}&format=woori`;
                 }}
                 disabled={exporting || bulkProcessing}
@@ -904,12 +1078,12 @@ export default function ExpensesPage() {
               <span className="text-sm font-medium text-gray-700">전체 선택</span>
             </label>
             <span className="text-sm text-gray-500">
-              {mobileVisibleExpenses.length} / {filteredExpenses.length}건
+              {mobileVisibleExpenses.length} / {sortedExpenses.length}건
             </span>
           </div>
 
           {/* 카드 목록 - 무한 스크롤 */}
-          {filteredExpenses.length === 0 ? (
+          {sortedExpenses.length === 0 ? (
             <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
               {searchQuery ? '검색 결과가 없습니다.' : '등록된 지출결의서가 없습니다.'}
             </div>
@@ -922,6 +1096,7 @@ export default function ExpensesPage() {
                   isSelected={selectedIds.has(expense.id)}
                   onSelect={handleSelectOne}
                   onClick={handleRowClick}
+                  userRole={currentUser?.role}
                 />
               ))}
               {/* 무한 스크롤 로딩 인디케이터 */}
@@ -948,39 +1123,106 @@ export default function ExpensesPage() {
                       className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                     />
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                    신청일자
+                  <th
+                    className="px-3 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    onClick={() => handleSort('requestDate')}
+                  >
+                    <div className="flex items-center">
+                      신청일자
+                      {renderSortIcon('requestDate')}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                    청구인
+                  <th
+                    className="px-3 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    onClick={() => handleSort('applicantName')}
+                  >
+                    <div className="flex items-center">
+                      청구인
+                      {renderSortIcon('applicantName')}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                    예산항목
+                  <th
+                    className="px-3 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    onClick={() => handleSort('committee')}
+                  >
+                    <div className="flex flex-col text-xs leading-tight">
+                      <span>위원회</span>
+                      <span>사역팀</span>
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                    <div className="flex flex-col gap-0.5">
+                      <div
+                        className="flex items-center cursor-pointer hover:bg-blue-600 px-1 py-0.5 rounded transition-colors select-none whitespace-nowrap"
+                        onClick={() => handleSort('budgetCategory')}
+                      >
+                        예산(항)
+                        {renderSortIcon('budgetCategory')}
+                      </div>
+                      <div
+                        className="flex items-center cursor-pointer hover:bg-blue-600 px-1 py-0.5 rounded transition-colors select-none text-blue-200 whitespace-nowrap"
+                        onClick={() => handleSort('budgetSubcategory')}
+                      >
+                        예산(목)
+                        {renderSortIcon('budgetSubcategory')}
+                      </div>
+                      <div
+                        className="flex items-center cursor-pointer hover:bg-blue-600 px-1 py-0.5 rounded transition-colors select-none text-blue-300 whitespace-nowrap"
+                        onClick={() => handleSort('budgetDetail')}
+                      >
+                        예산(세목)
+                        {renderSortIcon('budgetDetail')}
+                      </div>
+                    </div>
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap">
                     적요
                   </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                    청구금액
+                  <th className="px-2 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap">
+                    첨부
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                    위원회
+                  <th
+                    className="px-3 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    onClick={() => handleSort('requestAmount')}
+                  >
+                    <div className="flex items-center justify-end">
+                      청구금액
+                      {renderSortIcon('requestAmount')}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
-                    결재상태
+                  <th
+                    className="px-3 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    onClick={() => handleSort('status')}
+                  >
+                    <div className="flex items-center justify-center">
+                      결재상태
+                      {renderSortIcon('status')}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
-                    최종승인일
+                  <th
+                    className="px-3 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    onClick={() => handleSort('approvedAt')}
+                  >
+                    <div className="flex items-center justify-center">
+                      최종승인일
+                      {renderSortIcon('approvedAt')}
+                    </div>
                   </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
-                    지급상태
+                  <th
+                    className="px-3 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    onClick={() => handleSort('paymentStatus')}
+                  >
+                    <div className="flex items-center justify-center">
+                      지급상태
+                      {renderSortIcon('paymentStatus')}
+                    </div>
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
                       {searchQuery ? '검색 결과가 없습니다.' : '등록된 지출결의서가 없습니다.'}
                     </td>
                   </tr>
@@ -990,7 +1232,7 @@ export default function ExpensesPage() {
                       key={expense.id}
                       className="hover:bg-blue-50 cursor-pointer transition-colors"
                     >
-                      <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={selectedIds.has(expense.id)}
@@ -999,49 +1241,68 @@ export default function ExpensesPage() {
                         />
                       </td>
                       <td
-                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                        className="px-3 py-3 whitespace-nowrap text-sm text-gray-900"
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {format(new Date(expense.requestDate), 'yyyy-MM-dd')}
                       </td>
                       <td
-                        className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+                        className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900"
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {expense.applicantName}
                       </td>
                       <td
-                        className="px-6 py-4 text-sm text-gray-700"
+                        className="px-3 py-3 text-sm text-gray-700"
                         onClick={() => handleRowClick(expense.id)}
                       >
-                        <div className="flex flex-col text-xs">
+                        <div className="flex flex-col text-xs leading-tight">
+                          <span className="font-medium text-gray-900">{expense.committee}</span>
+                          <span className="text-gray-500">{expense.department}</span>
+                        </div>
+                      </td>
+                      <td
+                        className="px-3 py-3 text-sm text-gray-700"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
+                        <div className="flex flex-col text-xs leading-tight">
                           <span className="font-medium text-gray-900">{expense.items?.[0]?.budgetCategory || '-'}</span>
                           <span className="text-gray-700">{expense.items?.[0]?.budgetSubcategory || '-'}</span>
                           <span className="text-gray-500">{expense.items?.[0]?.budgetDetail || '-'}</span>
                         </div>
                       </td>
                       <td
-                        className="px-6 py-4 text-sm text-gray-700"
+                        className="px-3 py-3 text-sm text-gray-700"
                         onClick={() => handleRowClick(expense.id)}
                       >
-                        <span className="block max-w-[200px] line-clamp-2 text-sm">
+                        <span className="block max-w-[180px] line-clamp-2 text-xs">
                           {expense.items?.[0]?.description || '-'}
                         </span>
                       </td>
                       <td
-                        className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900"
+                        className="px-2 py-3 text-center"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
+                        {expense.attachments && expense.attachments.length > 0 ? (
+                          <Image
+                            src={expense.attachments[0].secureUrl}
+                            alt="첨부파일"
+                            width={28}
+                            height={28}
+                            className="object-cover rounded border border-gray-200 mx-auto"
+                          />
+                        ) : (
+                          <span className="text-gray-300">-</span>
+                        )}
+                      </td>
+                      <td
+                        className="px-3 py-3 whitespace-nowrap text-sm text-right font-semibold text-gray-900"
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {formatCurrency(expense.requestAmount)}
                       </td>
                       <td
-                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-700"
-                        onClick={() => handleRowClick(expense.id)}
-                      >
-                        {expense.committee}
-                      </td>
-                      <td
-                        className="px-6 py-4 whitespace-nowrap text-sm text-center"
+                        className="px-3 py-3 whitespace-nowrap text-sm text-center"
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {expense.status === 'DRAFT' ? (
@@ -1079,7 +1340,7 @@ export default function ExpensesPage() {
                         )}
                       </td>
                       <td
-                        className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900"
+                        className="px-3 py-3 whitespace-nowrap text-sm text-center text-gray-900"
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {expense.approvedAt
@@ -1087,7 +1348,7 @@ export default function ExpensesPage() {
                           : '-'}
                       </td>
                       <td
-                        className="px-6 py-4 whitespace-nowrap text-sm text-center"
+                        className="px-3 py-3 whitespace-nowrap text-sm text-center"
                         onClick={() => handleRowClick(expense.id)}
                       >
                         {expense.status === 'APPROVED_FINAL' ? (
@@ -1130,10 +1391,10 @@ export default function ExpensesPage() {
               <span className="font-medium">{startIndex + 1}</span>
               {' - '}
               <span className="font-medium">
-                {Math.min(endIndex, filteredExpenses.length)}
+                {Math.min(endIndex, sortedExpenses.length)}
               </span>
               {' / '}
-              <span className="font-medium">{filteredExpenses.length}</span>
+              <span className="font-medium">{sortedExpenses.length}</span>
               {' 건'}
             </div>
 
@@ -1245,7 +1506,7 @@ export default function ExpensesPage() {
       <BulkPrintModal
         isOpen={showBulkPrintModal}
         onClose={() => setShowBulkPrintModal(false)}
-        selectedIds={Array.from(selectedIds)}
+        selectedIds={getSortedSelectedIds()}
       />
 
       {/* 모바일 필터 패널 */}

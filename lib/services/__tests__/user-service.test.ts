@@ -63,6 +63,8 @@ vi.mock('../../prisma', () => ({
     },
     userYearRole: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
+      create: vi.fn(),
       upsert: vi.fn(),
       deleteMany: vi.fn(),
     },
@@ -724,6 +726,80 @@ describe('user-service', () => {
         })
       );
     });
+
+    it('includes yearRoles when includeYearRoles is true', async () => {
+      const mockYearRole: UserYearRole = {
+        id: 'yr-1',
+        userId: 'user-1',
+        year: CURRENT_YEAR,
+        role: 'team_leader',
+        department: '기획팀',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const userWithYearRoles = { ...mockUser, yearRoles: [mockYearRole] };
+      vi.mocked(prisma.user.findMany).mockResolvedValue([userWithYearRoles] as any);
+      vi.mocked(prisma.user.count).mockResolvedValue(1);
+
+      await findUsers({ includeYearRoles: true });
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({
+            yearRoles: expect.objectContaining({
+              where: { year: CURRENT_YEAR },
+              orderBy: { role: 'asc' },
+            }),
+          }),
+        })
+      );
+    });
+
+    it('does not include yearRoles when includeYearRoles is false', async () => {
+      vi.mocked(prisma.user.findMany).mockResolvedValue([mockUser]);
+      vi.mocked(prisma.user.count).mockResolvedValue(1);
+
+      await findUsers({ includeYearRoles: false });
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: undefined,
+        })
+      );
+    });
+
+    it('filters yearRoles by specific year', async () => {
+      vi.mocked(prisma.user.findMany).mockResolvedValue([mockUser] as any);
+      vi.mocked(prisma.user.count).mockResolvedValue(1);
+
+      await findUsers({ includeYearRoles: true, year: 2025 });
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({
+            yearRoles: expect.objectContaining({
+              where: { year: 2025 },
+            }),
+          }),
+        })
+      );
+    });
+
+    it('includes both yearRoles and roleRef when both options are true', async () => {
+      vi.mocked(prisma.user.findMany).mockResolvedValue([mockUser] as any);
+      vi.mocked(prisma.user.count).mockResolvedValue(1);
+
+      await findUsers({ includeYearRoles: true, includeRoleRef: true });
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({
+            yearRoles: expect.any(Object),
+            roleRef: true,
+          }),
+        })
+      );
+    });
   });
 
   describe('getEffectiveRole', () => {
@@ -1004,9 +1080,9 @@ describe('user-service', () => {
       expect(prisma.userYearRole.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            userId_year: { userId: 'user-1', year: 2025 },
+            userId_year_department: { userId: 'user-1', year: 2025, department: '재정팀' },
           },
-          update: expect.objectContaining({ role: 'accountant', department: '재정팀' }),
+          update: expect.objectContaining({ role: 'accountant' }),
           create: expect.objectContaining({ userId: 'user-1', year: 2025, role: 'accountant', department: '재정팀' }),
         })
       );
@@ -1032,18 +1108,30 @@ describe('user-service', () => {
           { id: 'role-6', code: 'user', name: '사용자', stepNumber: null },
         ] as any);
 
-      vi.mocked(prisma.userYearRole.upsert).mockResolvedValue(mockYearRole);
+      // Mock findFirst to return null (no existing role)
+      vi.mocked(prisma.userYearRole.findFirst).mockResolvedValue(null);
+
+      // Mock create to return the new year role
+      vi.mocked(prisma.userYearRole.create).mockResolvedValue(mockYearRole);
 
       await getAllRoles(true); // Force refresh
       await setYearRole('user-1', 2025, 'user');
 
-      expect(prisma.userYearRole.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          create: expect.objectContaining({
-            department: undefined,
-          }),
-        })
-      );
+      // Verify findFirst was called to check for existing role without department
+      expect(prisma.userYearRole.findFirst).toHaveBeenCalledWith({
+        where: { userId: 'user-1', year: 2025, department: null },
+      });
+
+      // Verify create was called since no existing role was found
+      expect(prisma.userYearRole.create).toHaveBeenCalledWith({
+        data: {
+          userId: 'user-1',
+          year: 2025,
+          role: 'user',
+          roleId: undefined,
+          department: null,
+        },
+      });
     });
   });
 

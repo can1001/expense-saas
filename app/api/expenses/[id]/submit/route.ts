@@ -68,6 +68,14 @@ export async function POST(
     const year = expense.requestDate.getFullYear();
 
     // 정규화된 테이블 기반 결재선 자동 산출 (첫 번째 항목에서 예산 정보 가져옴)
+    console.log(`[Submit] 지출결의서 제출 시작`, {
+      expenseId: id,
+      applicantName: expense.applicantName,
+      userId: expense.userId,
+      year,
+      budgetDetail: firstItem.budgetDetail,
+    });
+
     let approvalLineInfo: ApprovalLineInfo;
     try {
       approvalLineInfo = await calculateApprovalLineForExpense(
@@ -77,8 +85,22 @@ export async function POST(
         year,
         expense.userId  // 신청자 ID - 세목담당자 전결 판단용
       );
+
+      console.log(`[Submit] 결재선 산출 결과`, {
+        managerId: approvalLineInfo.managerId,
+        managerName: approvalLineInfo.managerName,
+        isDirectApproval: approvalLineInfo.isDirectApproval,
+        isSubmitterManager: approvalLineInfo.isSubmitterManager,
+        steps: approvalLineInfo.steps.map(s => ({
+          step: s.stepNumber,
+          name: s.stepName,
+          approver: s.approverName,
+          autoApproved: s.isAutoApproved,
+        })),
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : '결재선 산출 실패';
+      console.error(`[Submit] 결재선 산출 실패`, { expenseId: id, error: message });
       return NextResponse.json({ error: message }, { status: 400 });
     }
 

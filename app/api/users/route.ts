@@ -18,6 +18,8 @@ export async function GET(request: NextRequest) {
     const isActive = searchParams.get('isActive');
     const search = searchParams.get('search') ?? undefined;
     const includeRoleRef = searchParams.get('includeRoleRef') === 'true';
+    const includeYearRoles = searchParams.get('includeYearRoles') === 'true';
+    const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
 
     const { users, total } = await findUsers({
       page,
@@ -26,6 +28,8 @@ export async function GET(request: NextRequest) {
       isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
       search,
       includeRoleRef,
+      includeYearRoles,
+      year,
     });
 
     return NextResponse.json({

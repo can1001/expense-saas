@@ -643,7 +643,7 @@ model UserYearRole {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@unique([userId, year])                // 사용자당 연도별 1개의 역할만 가능
+  @@unique([userId, year, department])    // 사용자+연도+부서 조합으로 유니크 (팀장 겸직 허용)
   @@index([year])
   @@index([role])
   @@index([roleId])

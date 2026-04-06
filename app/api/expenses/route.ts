@@ -9,6 +9,7 @@ import {
 } from '@/lib/services/approval-line-service';
 import type { ApprovalStatus } from '@/lib/types';
 import { getCurrentUser } from '@/lib/auth';
+import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
 
 // 전체 조회 권한이 있는 역할
 const FULL_ACCESS_ROLES = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
@@ -30,15 +31,20 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
 
+    // 연도별 유효 역할 조회 (UserYearRole 테이블 기준)
+    const { role: effectiveRole, department: effectiveDepartment } =
+      await getEffectiveRole(currentUser.id, CURRENT_YEAR);
+
     // 역할에 따른 조회 조건 설정
     const where: Prisma.ExpenseWhereInput = {};
 
-    if (FULL_ACCESS_ROLES.includes(currentUser.role)) {
+    if (FULL_ACCESS_ROLES.includes(effectiveRole)) {
       // 전체 조회 권한: 필터 없음
-    } else if (currentUser.role === 'team_leader') {
+    } else if (effectiveRole === 'team_leader') {
       // 팀장: 본인 부서 지출결의서만 조회
-      if (currentUser.department) {
-        where.department = currentUser.department;
+      const department = effectiveDepartment ?? currentUser.department;
+      if (department) {
+        where.department = department;
       } else {
         // 부서가 없으면 본인 작성만
         where.userId = currentUser.id;
@@ -61,6 +67,17 @@ export async function GET(request: NextRequest) {
             orderBy: {
               order: 'asc',
             },
+          },
+          attachments: {
+            select: {
+              id: true,
+              secureUrl: true,
+              format: true,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+            take: 1,
           },
         },
       }),

@@ -15,22 +15,37 @@ export default function EditExpensePage() {
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const res = await fetch(`/api/expenses/${id}`);
-        if (res.ok) {
-          const data = await res.json();
-          const basicEditable = ['DRAFT', 'REJECTED', 'WITHDRAWN'];
-          // 기본 수정 가능 상태이거나, 최종승인 + 지급대기 상태
-          const isEditable = basicEditable.includes(data.status) ||
-            (data.status === 'APPROVED_FINAL' && data.paymentStatus === 'PENDING');
-          if (!isEditable) {
-            alert('이 상태에서는 수정할 수 없습니다.');
-            router.push(`/expenses/${id}`);
-          } else {
-            setCanEdit(true);
-          }
-        } else {
+        // 지출결의서 정보와 사용자 정보를 함께 조회
+        const [expenseRes, userRes] = await Promise.all([
+          fetch(`/api/expenses/${id}`),
+          fetch('/api/auth/me'),
+        ]);
+
+        if (!expenseRes.ok) {
           alert('지출결의서를 찾을 수 없습니다.');
           router.push('/expenses');
+          return;
+        }
+
+        const data = await expenseRes.json();
+        const userData = userRes.ok ? await userRes.json() : null;
+        const userRole = userData?.user?.role;
+
+        const basicEditable = ['DRAFT', 'REJECTED', 'WITHDRAWN'];
+        const isBasicEditable = basicEditable.includes(data.status);
+
+        // 최종승인 + 지급대기 상태에서는 특정 역할만 수정 가능
+        const approvedEditRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
+        const isApprovedPending = data.status === 'APPROVED_FINAL' && data.paymentStatus === 'PENDING';
+        const canEditApprovedPending = isApprovedPending && userRole && approvedEditRoles.includes(userRole);
+
+        const isEditable = isBasicEditable || canEditApprovedPending;
+
+        if (!isEditable) {
+          alert('이 상태에서는 수정할 수 없습니다.');
+          router.push(`/expenses/${id}`);
+        } else {
+          setCanEdit(true);
         }
       } catch {
         alert('오류가 발생했습니다.');

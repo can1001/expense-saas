@@ -323,10 +323,13 @@ export async function findUsers(options?: {
   isActive?: boolean;
   search?: string;
   includeRoleRef?: boolean;
-}): Promise<{ users: (User & { roleRef?: Role | null })[]; total: number }> {
+  includeYearRoles?: boolean;
+  year?: number;
+}): Promise<{ users: (User & { roleRef?: Role | null; yearRoles?: UserYearRole[] })[]; total: number }> {
   const page = options?.page ?? 1;
   const pageSize = options?.pageSize ?? 20;
   const skip = (page - 1) * pageSize;
+  const year = options?.year ?? CURRENT_YEAR;
 
   const where: Record<string, unknown> = {};
 
@@ -346,13 +349,25 @@ export async function findUsers(options?: {
     ];
   }
 
+  // include 옵션 구성
+  const include: Record<string, unknown> = {};
+  if (options?.includeRoleRef) {
+    include.roleRef = true;
+  }
+  if (options?.includeYearRoles) {
+    include.yearRoles = {
+      where: { year },
+      orderBy: { role: 'asc' },
+    };
+  }
+
   const [users, total] = await Promise.all([
     prisma.user.findMany({
       where,
       skip,
       take: pageSize,
       orderBy: [{ role: 'asc' }, { username: 'asc' }],
-      include: options?.includeRoleRef ? { roleRef: true } : undefined,
+      include: Object.keys(include).length > 0 ? include : undefined,
     }),
     prisma.user.count({ where }),
   ]);
@@ -506,11 +521,31 @@ export async function setYearRole(
     resolvedRoleId = roleRef?.id;
   }
 
+  // department가 없으면 upsert 대신 findFirst + create/update 사용
+  if (!department) {
+    // department 없이 해당 사용자+연도의 역할 찾기
+    const existing = await prisma.userYearRole.findFirst({
+      where: { userId, year, department: null },
+    });
+
+    if (existing) {
+      return prisma.userYearRole.update({
+        where: { id: existing.id },
+        data: { role, roleId: resolvedRoleId },
+      });
+    } else {
+      return prisma.userYearRole.create({
+        data: { userId, year, role, roleId: resolvedRoleId, department: null },
+      });
+    }
+  }
+
+  // department가 있는 경우 upsert 사용
   return prisma.userYearRole.upsert({
     where: {
-      userId_year: { userId, year },
+      userId_year_department: { userId, year, department },
     },
-    update: { role, roleId: resolvedRoleId, department },
+    update: { role, roleId: resolvedRoleId },
     create: { userId, year, role, roleId: resolvedRoleId, department },
   });
 }

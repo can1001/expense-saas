@@ -4,7 +4,7 @@ import { ADMIN_SIDEBAR_MENU } from '../admin-menu';
 describe('admin-menu', () => {
   describe('ADMIN_SIDEBAR_MENU structure', () => {
     it('should have correct number of groups', () => {
-      expect(ADMIN_SIDEBAR_MENU).toHaveLength(7);
+      expect(ADMIN_SIDEBAR_MENU).toHaveLength(8);
     });
 
     it('should have dashboard group', () => {
@@ -15,34 +15,46 @@ describe('admin-menu', () => {
       expect(dashboardGroup.items[0].label).toBe('홈');
     });
 
-    it('should have year setup group', () => {
-      const yearSetupGroup = ADMIN_SIDEBAR_MENU[1];
-      expect(yearSetupGroup.title).toBe('연도 설정');
-      expect(yearSetupGroup.items).toHaveLength(4);
+    it('should have organization management group', () => {
+      const orgGroup = ADMIN_SIDEBAR_MENU[1];
+      expect(orgGroup.title).toBe('조직 관리');
+      expect(orgGroup.items).toHaveLength(2);
     });
 
-    it('should have personnel management group', () => {
-      const personnelGroup = ADMIN_SIDEBAR_MENU[2];
-      expect(personnelGroup.title).toBe('인원 관리');
-      expect(personnelGroup.items).toHaveLength(4);
+    it('should have user/role management group', () => {
+      const userRoleGroup = ADMIN_SIDEBAR_MENU[2];
+      expect(userRoleGroup.title).toBe('사용자/역할');
+      expect(userRoleGroup.items).toHaveLength(6);
     });
 
-    it('should have budget management group', () => {
+    it('should have budget planning group', () => {
       const budgetGroup = ADMIN_SIDEBAR_MENU[3];
-      expect(budgetGroup.title).toBe('예산 관리');
-      expect(budgetGroup.items).toHaveLength(3);
+      expect(budgetGroup.title).toBe('예산 편성');
+      expect(budgetGroup.items).toHaveLength(5);
     });
 
-    it('should have status/report group', () => {
-      const statusGroup = ADMIN_SIDEBAR_MENU[4];
-      expect(statusGroup.title).toBe('현황/리포트');
-      expect(statusGroup.items).toHaveLength(6);
+    it('should have settlement/performance group', () => {
+      const settlementGroup = ADMIN_SIDEBAR_MENU[4];
+      expect(settlementGroup.title).toBe('결산/실적');
+      expect(settlementGroup.items).toHaveLength(5);
     });
 
-    it('should have notification group', () => {
-      const notificationGroup = ADMIN_SIDEBAR_MENU[5];
-      expect(notificationGroup.title).toBe('알림');
-      expect(notificationGroup.items).toHaveLength(1);
+    it('should have approval management group', () => {
+      const approvalGroup = ADMIN_SIDEBAR_MENU[5];
+      expect(approvalGroup.title).toBe('결재 관리');
+      expect(approvalGroup.items).toHaveLength(2);
+    });
+
+    it('should have income management group', () => {
+      const incomeGroup = ADMIN_SIDEBAR_MENU[6];
+      expect(incomeGroup.title).toBe('수입 관리');
+      expect(incomeGroup.items).toHaveLength(1);
+    });
+
+    it('should have system group', () => {
+      const systemGroup = ADMIN_SIDEBAR_MENU[7];
+      expect(systemGroup.title).toBe('시스템');
+      expect(systemGroup.items).toHaveLength(2);
     });
   });
 
@@ -78,8 +90,8 @@ describe('admin-menu', () => {
 
   describe('Specific menu items', () => {
     it('should include budget wizard', () => {
-      const yearSetupGroup = ADMIN_SIDEBAR_MENU[1];
-      const wizardItem = yearSetupGroup.items.find(
+      const budgetPlanningGroup = ADMIN_SIDEBAR_MENU[3];
+      const wizardItem = budgetPlanningGroup.items.find(
         (item) => item.href === '/admin/budget-wizard'
       );
       expect(wizardItem).toBeDefined();
@@ -87,8 +99,8 @@ describe('admin-menu', () => {
     });
 
     it('should include user management', () => {
-      const personnelGroup = ADMIN_SIDEBAR_MENU[2];
-      const userItem = personnelGroup.items.find(
+      const userRoleGroup = ADMIN_SIDEBAR_MENU[2];
+      const userItem = userRoleGroup.items.find(
         (item) => item.href === '/admin/users'
       );
       expect(userItem).toBeDefined();
@@ -96,8 +108,8 @@ describe('admin-menu', () => {
     });
 
     it('should include budget upload', () => {
-      const yearSetupGroup = ADMIN_SIDEBAR_MENU[1];
-      const uploadItem = yearSetupGroup.items.find(
+      const budgetPlanningGroup = ADMIN_SIDEBAR_MENU[3];
+      const uploadItem = budgetPlanningGroup.items.find(
         (item) => item.href === '/admin/budget-upload'
       );
       expect(uploadItem).toBeDefined();
@@ -105,8 +117,8 @@ describe('admin-menu', () => {
     });
 
     it('should include notification sending', () => {
-      const notificationGroup = ADMIN_SIDEBAR_MENU[5];
-      const notifItem = notificationGroup.items.find(
+      const systemGroup = ADMIN_SIDEBAR_MENU[7];
+      const notifItem = systemGroup.items.find(
         (item) => item.href === '/admin/notifications'
       );
       expect(notifItem).toBeDefined();
@@ -119,12 +131,13 @@ describe('admin-menu', () => {
       const titles = ADMIN_SIDEBAR_MENU.map((group) => group.title);
       expect(titles).toEqual([
         '대시보드',
-        '연도 설정',
-        '인원 관리',
-        '예산 관리',
-        '현황/리포트',
-        '알림',
-        '재정 수입',
+        '조직 관리',
+        '사용자/역할',
+        '예산 편성',
+        '결산/실적',
+        '결재 관리',
+        '수입 관리',
+        '시스템',
       ]);
     });
 

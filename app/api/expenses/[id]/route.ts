@@ -4,8 +4,9 @@ import { updateExpenseSchema, calculateAmount, calculateTotal } from '@/lib/vali
 import { deleteImages } from '@/lib/cloudinary';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { deriveRequestTeam } from '@/lib/domain/request-team';
-import { getSessionUserId } from '@/lib/auth';
+import { getSessionUserId, getCurrentUser } from '@/lib/auth';
 import { maskAccountNumber } from '@/lib/utils';
+import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
 
 // GET /api/expenses/[id] - 지출결의서 상세 조회
 export async function GET(
@@ -41,14 +42,11 @@ export async function GET(
     // 계좌번호 열람 권한이 있는 역할 (프린트 시 계좌번호 전체 표시 필요)
     const ACCOUNT_VIEW_ROLES = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
 
-    // 계좌번호 열람 권한 확인
+    // 계좌번호 열람 권한 확인 (연도별 유효 역할 기준)
     let canViewAccount = isOwner;
     if (currentUserId && !canViewAccount) {
-      const currentUser = await prisma.user.findUnique({
-        where: { id: currentUserId },
-        select: { role: true },
-      });
-      canViewAccount = !!(currentUser?.role && ACCOUNT_VIEW_ROLES.includes(currentUser.role));
+      const { role: effectiveRole } = await getEffectiveRole(currentUserId, CURRENT_YEAR);
+      canViewAccount = ACCOUNT_VIEW_ROLES.includes(effectiveRole);
     }
 
     // 계좌번호 열람 권한이 없는 경우에만 마스킹
@@ -92,7 +90,20 @@ export async function PUT(
     const isApprovedPending = existing.status === 'APPROVED_FINAL' &&
                               existing.paymentStatus === 'PENDING';
 
-    if (!isBasicEditable && !isApprovedPending) {
+    // 최종승인 상태 수정 가능 역할
+    const APPROVED_EDIT_ROLES = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
+
+    // 최종승인 + 지급대기 상태에서는 역할 체크 필요 (연도별 유효 역할 기준)
+    let canEditApprovedPending = false;
+    if (isApprovedPending) {
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        const { role: effectiveRole } = await getEffectiveRole(currentUser.id, CURRENT_YEAR);
+        canEditApprovedPending = APPROVED_EDIT_ROLES.includes(effectiveRole);
+      }
+    }
+
+    if (!isBasicEditable && !canEditApprovedPending) {
       throw new ApiError('이 상태에서는 수정할 수 없습니다.', 403);
     }
 
@@ -139,14 +150,16 @@ export async function PUT(
       ? calculateTotal(itemsWithCalculatedAmount)
       : undefined;
 
-    // 상태 처리: 클라이언트에서 전달된 status 사용
+    // 상태 처리: 최종승인 + 지급대기 상태에서는 상태 변경하지 않음
     const statusUpdate: { status?: 'DRAFT' | 'PENDING'; submittedAt?: Date | null } = {};
-    if (body.status === 'PENDING') {
-      statusUpdate.status = 'PENDING';
-      statusUpdate.submittedAt = new Date();
-    } else if (body.status === 'DRAFT') {
-      statusUpdate.status = 'DRAFT';
-      // submittedAt은 그대로 유지 (재저장 시)
+    if (!canEditApprovedPending) {
+      if (body.status === 'PENDING') {
+        statusUpdate.status = 'PENDING';
+        statusUpdate.submittedAt = new Date();
+      } else if (body.status === 'DRAFT') {
+        statusUpdate.status = 'DRAFT';
+        // submittedAt은 그대로 유지 (재저장 시)
+      }
     }
 
     // 데이터베이스 업데이트 (budgetCategory, budgetSubcategory는 items에만 저장)
@@ -181,7 +194,7 @@ export async function PUT(
     });
 
     // 최종승인 + 지급대기 상태에서 수정한 경우 감사 로그 기록
-    if (isApprovedPending) {
+    if (canEditApprovedPending) {
       await prisma.approvalLog.create({
         data: {
           expenseId: id,

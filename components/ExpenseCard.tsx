@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { format } from 'date-fns';
 import { useSwipeable } from 'react-swipeable';
 import { ExpenseListItem } from '@/lib/types';
@@ -13,6 +14,7 @@ interface ExpenseCardProps {
   isSelected: boolean;
   onSelect: (id: string, checked: boolean) => void;
   onClick: (id: string) => void;
+  userRole?: string;
 }
 
 // 결재 상태 배지 컴포넌트
@@ -74,7 +76,7 @@ function SwipeHint({ show }: { show: boolean }) {
   );
 }
 
-export default function ExpenseCard({ expense, isSelected, onSelect, onClick }: ExpenseCardProps) {
+export default function ExpenseCard({ expense, isSelected, onSelect, onClick, userRole }: ExpenseCardProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [translateX, setTranslateX] = useState(0);
@@ -140,10 +142,13 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick }: 
 
   // 수정 가능 여부 체크
   // 기본: 임시저장, 반려, 회수 상태
-  // 추가: 최종승인 + 지급대기 상태
+  // 추가: 최종승인 + 지급대기 상태 (특정 역할만)
   const basicEditable = ['DRAFT', 'REJECTED', 'WITHDRAWN'].includes(expense.status || '');
   const approvedPending = expense.status === 'APPROVED_FINAL' && expense.paymentStatus === 'PENDING';
-  const canEdit = basicEditable || approvedPending;
+  // 최종승인 상태 수정 가능 역할: admin, finance_head, accountant, admin_assistant
+  const approvedEditRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
+  const canEditApprovedPending = approvedPending && userRole && approvedEditRoles.includes(userRole);
+  const canEdit = basicEditable || canEditApprovedPending;
 
   return (
     <div className="relative overflow-hidden rounded-lg" ref={cardRef}>
@@ -222,10 +227,24 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick }: 
           }}
           className="cursor-pointer"
         >
-          {/* 청구인 + 위원회 */}
+          {/* 청구인 + 썸네일 + 위원회/사역팀 */}
           <div className="flex items-center justify-between mb-2">
-            <span className="font-semibold text-gray-900">{expense.applicantName}</span>
-            <span className="text-sm text-gray-500">{expense.committee}</span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-900">{expense.applicantName}</span>
+              {expense.attachments && expense.attachments.length > 0 && (
+                <Image
+                  src={expense.attachments[0].secureUrl}
+                  alt="첨부"
+                  width={24}
+                  height={24}
+                  className="object-cover rounded border border-gray-200"
+                />
+              )}
+            </div>
+            <div className="text-right text-xs">
+              <div className="text-gray-700">{expense.committee}</div>
+              <div className="text-gray-500">{expense.department}</div>
+            </div>
           </div>
 
           {/* 예산 정보 (첫 번째 항목 기준) */}

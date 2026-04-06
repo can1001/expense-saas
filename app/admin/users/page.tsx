@@ -24,6 +24,7 @@ import {
 } from '@/lib/constants/styles';
 import { useRoles } from '@/hooks/useRoles';
 import { downloadUserExcel, UserForExcel } from '@/lib/user-excel-export';
+import { getDisplayRole, YearRole } from '@/lib/utils/getDisplayRole';
 
 interface User {
   id: string;
@@ -34,6 +35,7 @@ interface User {
   isActive: boolean;
   canRegisterUsers: boolean;
   createdAt: string;
+  yearRoles?: YearRole[];
 }
 
 interface Pagination {
@@ -70,6 +72,7 @@ function UsersPageContent() {
       const params = new URLSearchParams();
       params.set('page', currentPage.toString());
       params.set('pageSize', '20');
+      params.set('includeYearRoles', 'true'); // 연도별 역할 포함
       if (search) params.set('search', search);
       if (roleFilter) params.set('role', roleFilter);
       if (activeFilter) params.set('isActive', activeFilter);
@@ -274,9 +277,17 @@ function UsersPageContent() {
                         <td className={TABLE_CELL}>{user.userid}</td>
                         <td className={TABLE_CELL}>{user.username}</td>
                         <td className={TABLE_CELL}>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(user.role).bg} ${getRoleColor(user.role).text}`}>
-                            {getRoleName(user.role)}
-                          </span>
+                          {(() => {
+                            const displayRole = getDisplayRole(user);
+                            return (
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(displayRole.role).bg} ${getRoleColor(displayRole.role).text}`}>
+                                {getRoleName(displayRole.role)}
+                                {displayRole.role === 'team_leader' && displayRole.department && (
+                                  <span className="ml-1 text-gray-600">({displayRole.department})</span>
+                                )}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className={TABLE_CELL}>{user.department ?? '-'}</td>
                         <td className={TABLE_CELL}>

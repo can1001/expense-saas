@@ -280,10 +280,43 @@ export default function YearRolesPage() {
 
     try {
       let successCount = 0;
+      let deleteCount = 0;
       let errorCount = 0;
+      let skippedCount = 0;
 
       for (const [userId, { role, department }] of changedEntries) {
-        if (!role) continue; // 역할이 없으면 건너뜀
+        const user = users.find((u) => u.id === userId);
+        const hadExistingRole = user?.yearRole; // 기존 역할이 있었는지
+
+        if (!role && hadExistingRole) {
+          // 기존 역할이 있고 "(선택 안함)"으로 변경 -> 삭제
+          try {
+            const response = await fetch('/api/users/year-roles', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId,
+                year: selectedYear,
+              }),
+            });
+
+            if (response.ok) {
+              deleteCount++;
+            } else {
+              errorCount++;
+              console.error(`Failed to delete year role for ${userId}`);
+            }
+          } catch (err) {
+            errorCount++;
+            console.error(`Error deleting year role for ${userId}:`, err);
+          }
+          continue;
+        }
+
+        if (!role) {
+          skippedCount++; // 역할 없고 기존에도 없으면 건너뜀
+          continue;
+        }
 
         try {
           const response = await fetch('/api/users/year-roles', {
@@ -301,18 +334,28 @@ export default function YearRolesPage() {
             successCount++;
           } else {
             errorCount++;
+            const errorData = await response.json().catch(() => ({}));
+            console.error(`Failed to save year role for ${userId}:`, errorData);
           }
-        } catch {
+        } catch (err) {
           errorCount++;
+          console.error(`Error saving year role for ${userId}:`, err);
         }
       }
 
       if (errorCount > 0) {
-        setError(`${errorCount}건 저장 실패`);
+        setError(`${errorCount}건 저장 실패 (콘솔에서 상세 오류 확인)`);
       }
-      if (successCount > 0) {
-        setSuccess(`${successCount}건 저장 완료`);
+      const totalSuccess = successCount + deleteCount;
+      if (totalSuccess > 0) {
+        const parts: string[] = [];
+        if (successCount > 0) parts.push(`${successCount}건 저장`);
+        if (deleteCount > 0) parts.push(`${deleteCount}건 삭제`);
+        const skippedMsg = skippedCount > 0 ? ` (${skippedCount}건 건너뜀)` : '';
+        setSuccess(`${parts.join(', ')} 완료${skippedMsg}`);
         fetchData(); // 데이터 새로고침
+      } else if (skippedCount > 0 && errorCount === 0) {
+        setError(`역할이 선택되지 않아 ${skippedCount}건 모두 건너뛰었습니다. 역할을 먼저 선택해주세요.`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '저장 실패');
