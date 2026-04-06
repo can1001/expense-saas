@@ -103,6 +103,18 @@ function UsersPageContent() {
     router.push(`/admin/users?${params.toString()}`);
   };
 
+  // 필터 변경 시 페이지를 1로 리셋하고 검색 실행
+  const handleFilterChange = (newRole?: string, newActive?: string) => {
+    const params = new URLSearchParams();
+    params.set('page', '1');
+    if (search) params.set('search', search);
+    const role = newRole !== undefined ? newRole : roleFilter;
+    const active = newActive !== undefined ? newActive : activeFilter;
+    if (role) params.set('role', role);
+    if (active) params.set('isActive', active);
+    router.push(`/admin/users?${params.toString()}`);
+  };
+
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('page', page.toString());
@@ -207,7 +219,10 @@ function UsersPageContent() {
             <label className="block text-sm font-medium text-gray-700 mb-1">역할</label>
             <select
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
+              onChange={(e) => {
+                setRoleFilter(e.target.value);
+                handleFilterChange(e.target.value, undefined);
+              }}
               className={SELECT_BASE}
             >
               <option value="">전체</option>
@@ -220,7 +235,10 @@ function UsersPageContent() {
             <label className="block text-sm font-medium text-gray-700 mb-1">상태</label>
             <select
               value={activeFilter}
-              onChange={(e) => setActiveFilter(e.target.value)}
+              onChange={(e) => {
+                setActiveFilter(e.target.value);
+                handleFilterChange(undefined, e.target.value);
+              }}
               className={SELECT_BASE}
             >
               <option value="">전체</option>
