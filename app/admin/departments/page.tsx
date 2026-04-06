@@ -56,7 +56,6 @@ export default function DepartmentsPage() {
   useEffect(() => {
     fetchData();
     fetchUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUsers = async () => {

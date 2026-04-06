@@ -1179,7 +1179,7 @@ describe('user-service', () => {
       expect(result).toEqual(mockYearRoles);
       expect(prisma.userYearRole.findMany).toHaveBeenCalledWith({
         where: { year: CURRENT_YEAR },
-        include: { user: true },
+        include: { user: true, department: true },
         orderBy: [{ role: 'asc' }, { user: { username: 'asc' } }],
       });
     });
@@ -1191,7 +1191,7 @@ describe('user-service', () => {
 
       expect(prisma.userYearRole.findMany).toHaveBeenCalledWith({
         where: { year: 2024 },
-        include: { user: true },
+        include: { user: true, department: true },
         orderBy: [{ role: 'asc' }, { user: { username: 'asc' } }],
       });
     });
