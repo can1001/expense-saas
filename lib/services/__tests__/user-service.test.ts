@@ -704,6 +704,11 @@ describe('user-service', () => {
     });
 
     it('combines multiple filters', async () => {
+      // team_leader는 UserYearRole에서 조회
+      vi.mocked(prisma.userYearRole.findMany).mockResolvedValue([
+        { userId: 'user-1' } as any,
+        { userId: 'user-2' } as any,
+      ]);
       vi.mocked(prisma.user.findMany).mockResolvedValue([]);
       vi.mocked(prisma.user.count).mockResolvedValue(0);
 
@@ -715,10 +720,18 @@ describe('user-service', () => {
         pageSize: 5,
       });
 
+      // UserYearRole에서 team_leader 사용자 조회
+      expect(prisma.userYearRole.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { role: 'team_leader', year: CURRENT_YEAR },
+        })
+      );
+
+      // User.findMany에서는 id로 필터링
       expect(prisma.user.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            role: 'team_leader',
+            id: { in: ['user-1', 'user-2'] },
             isActive: true,
             OR: expect.any(Array),
           }),
