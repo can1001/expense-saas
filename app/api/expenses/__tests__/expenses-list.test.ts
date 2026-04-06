@@ -26,14 +26,22 @@ vi.mock('@/lib/auth', () => ({
   getCurrentUser: vi.fn(),
 }));
 
+// Mock user-service for getEffectiveRole
+vi.mock('@/lib/services/user-service', () => ({
+  getEffectiveRole: vi.fn(),
+  CURRENT_YEAR: 2026,
+}));
+
 // Import after mocking
 import { GET } from '../route';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { getEffectiveRole } from '@/lib/services/user-service';
 
 describe('GET /api/expenses', () => {
   const mockPrisma = prisma as any;
   const mockGetCurrentUser = getCurrentUser as ReturnType<typeof vi.fn>;
+  const mockGetEffectiveRole = getEffectiveRole as ReturnType<typeof vi.fn>;
 
   const mockExpenseWithAttachments = {
     id: 'expense-1',
@@ -83,6 +91,12 @@ describe('GET /api/expenses', () => {
       id: 'admin-1',
       userid: 'admin',
       username: '관리자',
+      role: 'admin',
+      department: null,
+    });
+
+    // Default: getEffectiveRole returns admin role
+    mockGetEffectiveRole.mockResolvedValue({
       role: 'admin',
       department: null,
     });
@@ -174,6 +188,10 @@ describe('GET /api/expenses', () => {
         role: 'admin',
         department: null,
       });
+      mockGetEffectiveRole.mockResolvedValue({
+        role: 'admin',
+        department: null,
+      });
 
       mockPrisma.expense.findMany.mockResolvedValue([]);
       mockPrisma.expense.count.mockResolvedValue(0);
@@ -197,6 +215,10 @@ describe('GET /api/expenses', () => {
         role: 'user',
         department: '청년부',
       });
+      mockGetEffectiveRole.mockResolvedValue({
+        role: 'user',
+        department: '청년부',
+      });
 
       mockPrisma.expense.findMany.mockResolvedValue([]);
       mockPrisma.expense.count.mockResolvedValue(0);
@@ -217,7 +239,11 @@ describe('GET /api/expenses', () => {
         id: 'leader-1',
         userid: 'leader',
         username: '팀장',
-        role: 'team_leader',
+        role: 'user',  // User.role은 user
+        department: '청년부',
+      });
+      mockGetEffectiveRole.mockResolvedValue({
+        role: 'team_leader',  // effectiveRole은 team_leader
         department: '청년부',
       });
 
@@ -231,6 +257,123 @@ describe('GET /api/expenses', () => {
       expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { department: '청년부' },
+        })
+      );
+    });
+  });
+
+  describe('연도별 역할(UserYearRole) 기반 필터링 테스트', () => {
+    it('User.role이 user이지만 UserYearRole이 accountant면 전체 조회 가능', async () => {
+      // 정혜종 시나리오: User.role = 'user', UserYearRole = 'accountant'
+      mockGetCurrentUser.mockResolvedValue({
+        id: 'accountant-1',
+        userid: '청연정혜종',
+        username: '정혜종',
+        role: 'user',  // User.role은 user
+        department: '재정팀',
+      });
+      mockGetEffectiveRole.mockResolvedValue({
+        role: 'accountant',  // effectiveRole은 accountant
+        department: '재정팀',
+      });
+
+      mockPrisma.expense.findMany.mockResolvedValue([]);
+      mockPrisma.expense.count.mockResolvedValue(0);
+
+      const request = new NextRequest('http://localhost:3000/api/expenses');
+      await GET(request);
+
+      // getEffectiveRole이 호출되었는지 확인
+      expect(mockGetEffectiveRole).toHaveBeenCalledWith('accountant-1', 2026);
+
+      // accountant는 FULL_ACCESS_ROLES에 포함되므로 where 조건이 비어있어야 함
+      expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {},
+        })
+      );
+    });
+
+    it('User.role이 user이지만 UserYearRole이 finance_head면 전체 조회 가능', async () => {
+      // 윤운문 시나리오: User.role = 'user', UserYearRole = 'finance_head' (2026년)
+      mockGetCurrentUser.mockResolvedValue({
+        id: 'fh-1',
+        userid: '청연윤운문',
+        username: '윤운문',
+        role: 'user',  // User.role은 user
+        department: null,
+      });
+      mockGetEffectiveRole.mockResolvedValue({
+        role: 'finance_head',  // effectiveRole은 finance_head
+        department: null,
+      });
+
+      mockPrisma.expense.findMany.mockResolvedValue([]);
+      mockPrisma.expense.count.mockResolvedValue(0);
+
+      const request = new NextRequest('http://localhost:3000/api/expenses');
+      await GET(request);
+
+      // finance_head는 FULL_ACCESS_ROLES에 포함되므로 where 조건이 비어있어야 함
+      expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {},
+        })
+      );
+    });
+
+    it('User.role이 user이고 UserYearRole도 없으면 본인 작성만 조회', async () => {
+      // 일반 사용자 시나리오: User.role = 'user', UserYearRole 없음
+      mockGetCurrentUser.mockResolvedValue({
+        id: 'normal-user-1',
+        userid: '일반사용자',
+        username: '김철수',
+        role: 'user',
+        department: '청년부',
+      });
+      mockGetEffectiveRole.mockResolvedValue({
+        role: 'user',  // effectiveRole도 user
+        department: '청년부',
+      });
+
+      mockPrisma.expense.findMany.mockResolvedValue([]);
+      mockPrisma.expense.count.mockResolvedValue(0);
+
+      const request = new NextRequest('http://localhost:3000/api/expenses');
+      await GET(request);
+
+      // user는 본인 작성��� 조회
+      expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'normal-user-1' },
+        })
+      );
+    });
+
+    it('UserYearRole의 department를 사용하여 팀장 필터링', async () => {
+      // 팀장 시나리오: User.department와 UserYearRole.department가 다를 수 있음
+      mockGetCurrentUser.mockResolvedValue({
+        id: 'leader-2',
+        userid: '팀장',
+        username: '박팀장',
+        role: 'user',
+        department: '기획팀',  // User.department
+      });
+      mockGetEffectiveRole.mockResolvedValue({
+        role: 'team_leader',
+        department: '개발팀',  // UserYearRole.department (다를 수 있음)
+      });
+
+      mockPrisma.expense.findMany.mockResolvedValue([]);
+      mockPrisma.expense.count.mockResolvedValue(0);
+
+      const request = new NextRequest('http://localhost:3000/api/expenses');
+      await GET(request);
+
+      // UserYearRole의 department (개발팀)으로 필터링되어야 함
+      expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { department: '개발팀' },
         })
       );
     });

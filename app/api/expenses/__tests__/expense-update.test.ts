@@ -33,6 +33,12 @@ vi.mock('@/lib/auth', () => ({
   getSessionUserId: vi.fn(),
 }));
 
+// Mock user-service for getEffectiveRole
+vi.mock('@/lib/services/user-service', () => ({
+  getEffectiveRole: vi.fn(),
+  CURRENT_YEAR: 2026,
+}));
+
 // Mock validators
 vi.mock('@/lib/validators', () => ({
   updateExpenseSchema: {
@@ -51,10 +57,12 @@ vi.mock('@/lib/domain/request-team', () => ({
 import { PUT } from '../[id]/route';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { getEffectiveRole } from '@/lib/services/user-service';
 
 describe('PUT /api/expenses/[id]', () => {
   const mockPrisma = prisma as any;
   const mockGetCurrentUser = getCurrentUser as ReturnType<typeof vi.fn>;
+  const mockGetEffectiveRole = getEffectiveRole as ReturnType<typeof vi.fn>;
 
   const createMockExpense = (overrides = {}) => ({
     id: 'test-expense-id',
@@ -173,6 +181,7 @@ describe('PUT /api/expenses/[id]', () => {
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
       mockPrisma.expense.update.mockResolvedValue(approvedPendingExpense);
       mockGetCurrentUser.mockResolvedValue(createMockUser('admin'));
+      mockGetEffectiveRole.mockResolvedValue({ role: 'admin', department: null });
 
       const request = createPutRequest({
         committee: '선교위원회',
@@ -189,6 +198,7 @@ describe('PUT /api/expenses/[id]', () => {
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
       mockPrisma.expense.update.mockResolvedValue(approvedPendingExpense);
       mockGetCurrentUser.mockResolvedValue(createMockUser('finance_head'));
+      mockGetEffectiveRole.mockResolvedValue({ role: 'finance_head', department: null });
 
       const request = createPutRequest({
         committee: '선교위원회',
@@ -205,6 +215,7 @@ describe('PUT /api/expenses/[id]', () => {
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
       mockPrisma.expense.update.mockResolvedValue(approvedPendingExpense);
       mockGetCurrentUser.mockResolvedValue(createMockUser('accountant'));
+      mockGetEffectiveRole.mockResolvedValue({ role: 'accountant', department: '재정팀' });
 
       const request = createPutRequest({
         committee: '선교위원회',
@@ -221,6 +232,7 @@ describe('PUT /api/expenses/[id]', () => {
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
       mockPrisma.expense.update.mockResolvedValue(approvedPendingExpense);
       mockGetCurrentUser.mockResolvedValue(createMockUser('admin_assistant'));
+      mockGetEffectiveRole.mockResolvedValue({ role: 'admin_assistant', department: null });
 
       const request = createPutRequest({
         committee: '선교위원회',
@@ -236,6 +248,7 @@ describe('PUT /api/expenses/[id]', () => {
     it('APPROVED_FINAL + PENDING 상태에서 user 역할 수정 거부 (403)', async () => {
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
       mockGetCurrentUser.mockResolvedValue(createMockUser('user'));
+      mockGetEffectiveRole.mockResolvedValue({ role: 'user', department: '청년부' });
 
       const request = createPutRequest({
         committee: '선교위원회',
@@ -253,6 +266,7 @@ describe('PUT /api/expenses/[id]', () => {
     it('APPROVED_FINAL + PENDING 상태에서 team_leader 역할 수정 거부 (403)', async () => {
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
       mockGetCurrentUser.mockResolvedValue(createMockUser('team_leader'));
+      mockGetEffectiveRole.mockResolvedValue({ role: 'team_leader', department: '청년부' });
 
       const request = createPutRequest({
         committee: '선교위원회',
@@ -370,6 +384,7 @@ describe('PUT /api/expenses/[id]', () => {
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
       mockPrisma.expense.update.mockResolvedValue(approvedPendingExpense);
       mockGetCurrentUser.mockResolvedValue(createMockUser('admin'));
+      mockGetEffectiveRole.mockResolvedValue({ role: 'admin', department: null });
 
       const request = createPutRequest({
         committee: '선교위원회',
@@ -416,6 +431,7 @@ describe('PUT /api/expenses/[id]', () => {
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
       mockPrisma.expense.update.mockResolvedValue(approvedPendingExpense);
       mockGetCurrentUser.mockResolvedValue(createMockUser('admin'));
+      mockGetEffectiveRole.mockResolvedValue({ role: 'admin', department: null });
 
       const request = createPutRequest({
         committee: '선교위원회',
