@@ -15,12 +15,6 @@ interface User {
   username: string;
 }
 
-interface YearRole {
-  userId: string;
-  department: string | null;
-  user?: { id: string; username: string };
-}
-
 interface Committee {
   id: string;
   name: string;
@@ -48,7 +42,6 @@ export default function DepartmentsPage() {
   const [committees, setCommittees] = useState<Committee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [yearRoles, setYearRoles] = useState<YearRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -63,7 +56,6 @@ export default function DepartmentsPage() {
   useEffect(() => {
     fetchData();
     fetchUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUsers = async () => {
@@ -81,10 +73,9 @@ export default function DepartmentsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [committeeRes, departmentRes, yearRolesRes] = await Promise.all([
+      const [committeeRes, departmentRes] = await Promise.all([
         fetch('/api/committees'),
         fetch('/api/departments'),
-        fetch(`/api/users/year-roles?year=${currentYear}`),
       ]);
 
       if (!committeeRes.ok || !departmentRes.ok) {
@@ -97,15 +88,6 @@ export default function DepartmentsPage() {
       setCommittees(committeeData.committees || []);
       setDepartments(departmentData.departments || []);
 
-      // 팀장 역할만 필터링
-      if (yearRolesRes.ok) {
-        const yearRolesData = await yearRolesRes.json();
-        const teamLeaders = (yearRolesData.yearRoles || []).filter(
-          (yr: YearRole & { role: string }) => yr.role === 'team_leader'
-        );
-        setYearRoles(teamLeaders);
-      }
-
       // 모든 위원회 펼치기
       setExpandedCommittees(new Set(committeeData.committees?.map((c: Committee) => c.id) || []));
     } catch (err) {
@@ -113,12 +95,6 @@ export default function DepartmentsPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // 부서명으로 팀장 찾기
-  const getTeamLeader = (deptName: string) => {
-    const yearRole = yearRoles.find((yr) => yr.department === deptName);
-    return yearRole?.user || null;
   };
 
   const toggleExpand = (committeeId: string) => {
@@ -176,12 +152,12 @@ export default function DepartmentsPage() {
     }
   };
 
-  const handleUpdate = async (id: string, deptName: string) => {
+  const handleUpdate = async (dept: Department) => {
     if (!editName.trim()) return;
     setSaving(true);
     try {
       // 1. 부서명 수정 (leaderId 제외)
-      const response = await fetch(`/api/departments/${id}`, {
+      const response = await fetch(`/api/departments/${dept.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -194,10 +170,22 @@ export default function DepartmentsPage() {
       }
 
       // 2. 팀장 변경 시 UserYearRole 업데이트
-      const currentLeader = getTeamLeader(deptName);
-      if (editLeaderId !== (currentLeader?.id || '')) {
+      if (editLeaderId !== (dept.leaderId || '')) {
+        // 기존 팀장 제거 (새 팀장 지정 전에)
+        if (dept.leaderId) {
+          await fetch('/api/users/year-roles', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: dept.leaderId,
+              year: currentYear,
+              departmentId: dept.id,
+            }),
+          });
+        }
+
+        // 새 팀장 지정
         if (editLeaderId) {
-          // 새 팀장 지정
           await fetch('/api/users/year-roles', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -205,11 +193,10 @@ export default function DepartmentsPage() {
               userId: editLeaderId,
               year: currentYear,
               role: 'team_leader',
-              department: editName.trim(),
+              departmentId: dept.id,
             }),
           });
         }
-        // 기존 팀장 제거는 새 팀장 지정으로 자동 대체됨 (upsert)
       }
 
       setEditingId(null);
@@ -239,8 +226,7 @@ export default function DepartmentsPage() {
   const startEdit = (department: Department) => {
     setEditingId(department.id);
     setEditName(department.name);
-    const leader = getTeamLeader(department.name);
-    setEditLeaderId(leader?.id || '');
+    setEditLeaderId(department.leaderId || '');
   };
 
   const cancelEdit = () => {
@@ -381,7 +367,7 @@ export default function DepartmentsPage() {
                             className={`${INPUT_BASE} max-w-[200px]`}
                             autoFocus
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleUpdate(dept.id, dept.name);
+                              if (e.key === 'Enter') handleUpdate(dept);
                               if (e.key === 'Escape') cancelEdit();
                             }}
                           />
@@ -403,14 +389,9 @@ export default function DepartmentsPage() {
                           <span className={!dept.isActive ? 'line-through' : ''}>
                             {dept.name}
                           </span>
-                          {(() => {
-                            const leader = getTeamLeader(dept.name);
-                            return (
-                              <span className={`text-sm ${leader ? 'text-blue-600' : 'text-gray-400'}`}>
-                                ({leader?.username || '팀장 미지정'})
-                              </span>
-                            );
-                          })()}
+                          <span className={`text-sm ${dept.leaderName ? 'text-blue-600' : 'text-gray-400'}`}>
+                            ({dept.leaderName || '팀장 미지정'})
+                          </span>
                         </>
                       )}
                     </div>
@@ -430,7 +411,7 @@ export default function DepartmentsPage() {
                       {editingId === dept.id ? (
                         <>
                           <button
-                            onClick={() => handleUpdate(dept.id, dept.name)}
+                            onClick={() => handleUpdate(dept)}
                             disabled={saving}
                             className={`${BTN_SM} text-green-600 hover:bg-green-50`}
                           >

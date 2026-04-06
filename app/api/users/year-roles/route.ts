@@ -19,14 +19,21 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       year,
-      yearRoles: yearRoles.map(yr => ({
-        id: yr.id,
-        userId: yr.userId,
-        year: yr.year,
-        role: yr.role,
-        departmentId: yr.departmentId,
-        user: 'user' in yr ? yr.user : undefined,
-      })),
+      yearRoles: yearRoles.map(yr => {
+        const yrWithRelations = yr as typeof yr & {
+          department?: { name: string } | null;
+          user?: { id: string; username: string } | null;
+        };
+        return {
+          id: yr.id,
+          userId: yr.userId,
+          year: yr.year,
+          role: yr.role,
+          departmentId: yr.departmentId,
+          department: yrWithRelations.department?.name ?? null,
+          user: yrWithRelations.user,
+        };
+      }),
     });
   } catch (error) {
     console.error('Error fetching year roles:', error);

@@ -565,7 +565,7 @@ export async function deleteYearRole(userId: string, year: number): Promise<void
 export async function getYearRoles(year: number = CURRENT_YEAR): Promise<UserYearRole[]> {
   return prisma.userYearRole.findMany({
     where: { year },
-    include: { user: true },
+    include: { user: true, department: true },
     orderBy: [{ role: 'asc' }, { user: { username: 'asc' } }],
   });
 }

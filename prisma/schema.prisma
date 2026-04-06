@@ -170,6 +170,10 @@ model Committee {
   sortOrder   Int          @default(0)
   isActive    Boolean      @default(true)
 
+  // 위원장
+  leaderId    String?
+  leader      User?        @relation("CommitteeLeader", fields: [leaderId], references: [id])
+
   departments Department[]
 
   createdAt   DateTime     @default(now())
@@ -177,6 +181,7 @@ model Committee {
 
   @@index([sortOrder])
   @@index([isActive])
+  @@index([leaderId])
 }
 
 // 사역팀(부)
@@ -604,6 +609,7 @@ model User {
   signatures         UserSignature[]            // 저장된 서명/도장들
   notificationPreference NotificationPreference? // 알림 설정
   pushSubscriptions  PushSubscription[]         // 웹 푸시 구독 정보
+  ledCommittees      Committee[]  @relation("CommitteeLeader")  // 위원장으로 있는 위원회
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

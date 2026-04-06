@@ -73,6 +73,13 @@ export default function YearRolesSummaryPage() {
   const [selectedCommittee, setSelectedCommittee] = useState<string>('');
   const [allUsers, setAllUsers] = useState<User[]>([]);
 
+  // 글로벌 역할 (부서 무관)
+  const [globalRoles, setGlobalRoles] = useState<{
+    accountant?: { user: User; yearRole: YearRole };
+    financeHead?: { user: User; yearRole: YearRole };
+    adminAssistant?: { user: User; yearRole: YearRole };
+  }>({});
+
   // 변경 사항 추적
   const [changes, setChanges] = useState<RoleChange[]>([]);
 
@@ -159,6 +166,30 @@ export default function YearRolesSummaryPage() {
       const deptRolesArray = Array.from(deptMap.values());
       setDepartmentRoles(deptRolesArray);
 
+      // 글로벌 역할 추출 (accountant, finance_head, admin_assistant는 모든 부서에 표시)
+      const globalRoleData: {
+        accountant?: { user: User; yearRole: YearRole };
+        financeHead?: { user: User; yearRole: YearRole };
+        adminAssistant?: { user: User; yearRole: YearRole };
+      } = {};
+      yearRoles.forEach((yr) => {
+        if (!yr.user) return;
+        // 글로벌 역할 (부서 상관없이 추출)
+        const roleData = { user: yr.user!, yearRole: yr };
+        switch (yr.role) {
+          case 'accountant':
+            if (!globalRoleData.accountant) globalRoleData.accountant = roleData;
+            break;
+          case 'finance_head':
+            if (!globalRoleData.financeHead) globalRoleData.financeHead = roleData;
+            break;
+          case 'admin_assistant':
+            if (!globalRoleData.adminAssistant) globalRoleData.adminAssistant = roleData;
+            break;
+        }
+      });
+      setGlobalRoles(globalRoleData);
+
       // 통계 계산
       let teamLeaders = 0;
       let accountants = 0;
@@ -223,15 +254,16 @@ export default function YearRolesSummaryPage() {
     const change = changes.find((c) => c.department === dept.department && c.role === role);
     if (change) return change.userId;
 
+    // 부서별 역할 확인, 없으면 글로벌 역할 fallback
     switch (role) {
       case 'team_leader':
         return dept.teamLeader?.user.id || '';
       case 'accountant':
-        return dept.accountant?.user.id || '';
+        return dept.accountant?.user.id || globalRoles.accountant?.user.id || '';
       case 'finance_head':
-        return dept.financeHead?.user.id || '';
+        return dept.financeHead?.user.id || globalRoles.financeHead?.user.id || '';
       case 'admin_assistant':
-        return dept.adminAssistant?.user.id || '';
+        return dept.adminAssistant?.user.id || globalRoles.adminAssistant?.user.id || '';
     }
   };
 
@@ -319,21 +351,37 @@ export default function YearRolesSummaryPage() {
     const currentUserId = getCurrentValue(dept, role);
     const isChanged = changes.some((c) => c.department === dept.department && c.role === role);
 
+    // 글로벌 역할 사용 여부 확인 (부서별 역할이 없고 글로벌 역할로 채워진 경우)
+    const getDeptRoleUserId = () => {
+      switch (role) {
+        case 'team_leader': return dept.teamLeader?.user.id;
+        case 'accountant': return dept.accountant?.user.id;
+        case 'finance_head': return dept.financeHead?.user.id;
+        case 'admin_assistant': return dept.adminAssistant?.user.id;
+      }
+    };
+    const isGlobalRole = role !== 'team_leader' && !getDeptRoleUserId() && currentUserId && !isChanged;
+
     return (
-      <select
-        value={currentUserId}
-        onChange={(e) => handleRoleChange(dept.department, role, e.target.value)}
-        className={`${SELECT_BASE} ${BTN_SM} w-28 text-xs ${isChanged ? 'ring-2 ring-yellow-400' : ''} ${
-          currentUserId ? colorClass : 'bg-gray-50'
-        }`}
-      >
-        <option value="">선택</option>
-        {allUsers.map((user) => (
-          <option key={user.id} value={user.id}>
-            {user.username}
-          </option>
-        ))}
-      </select>
+      <div className="relative inline-block">
+        <select
+          value={currentUserId}
+          onChange={(e) => handleRoleChange(dept.department, role, e.target.value)}
+          className={`${SELECT_BASE} ${BTN_SM} w-28 text-xs ${isChanged ? 'ring-2 ring-yellow-400' : ''} ${
+            currentUserId ? colorClass : 'bg-gray-50'
+          }`}
+        >
+          <option value="">선택</option>
+          {allUsers.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.username}
+            </option>
+          ))}
+        </select>
+        {isGlobalRole && (
+          <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" title="글로벌 역할" />
+        )}
+      </div>
     );
   };
 
