@@ -8,6 +8,9 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// 기본 비밀번호 (bcrypt 해시됨: chc2026)
+const DEFAULT_PASSWORD_HASH = '$2b$10$y66Vh2AsfiG1z5rYPzk/Ge7OGLfJA8fyhjQPwNx.hmmbbNMrOSpsu';
+
 // ============================================================
 // 역할 (Role) 데이터
 // ============================================================
@@ -147,12 +150,13 @@ async function main() {
         username: user.username,
         role: user.role,
         isActive: user.isActive,
+        password: DEFAULT_PASSWORD_HASH, // E2E 테스트를 위해 비밀번호 재설정
       },
       create: {
         id: user.id,
         userid: user.userid,
         username: user.username,
-        password: 'tempPassword123!', // 임시 비밀번호
+        password: DEFAULT_PASSWORD_HASH, // 기본 비밀번호: chc2026
         role: user.role,
         isActive: user.isActive,
       },
