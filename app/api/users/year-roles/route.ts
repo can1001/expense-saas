@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
         year: yr.year,
         role: yr.role,
         departmentId: yr.departmentId,
+        department: 'department' in yr && yr.department ? yr.department.name : null,
         user: 'user' in yr ? yr.user : undefined,
       })),
     });
