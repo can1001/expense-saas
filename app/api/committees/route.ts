@@ -7,9 +7,6 @@ export async function GET() {
     const committees = await prisma.committee.findMany({
       orderBy: { sortOrder: 'asc' },
       include: {
-        leader: {
-          select: { id: true, username: true },
-        },
         _count: {
           select: { departments: true },
         },
@@ -30,7 +27,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, leaderId } = body;
+    const { name } = body;
 
     if (!name?.trim()) {
       return NextResponse.json(
@@ -60,12 +57,6 @@ export async function POST(request: NextRequest) {
       data: {
         name: name.trim(),
         sortOrder: (lastCommittee?.sortOrder ?? 0) + 1,
-        leaderId: leaderId || null,
-      },
-      include: {
-        leader: {
-          select: { id: true, username: true },
-        },
       },
     });
 

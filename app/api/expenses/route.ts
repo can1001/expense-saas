@@ -32,8 +32,20 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // 연도별 유효 역할 조회 (UserYearRole 테이블 기준)
-    const { role: effectiveRole, department: effectiveDepartment } =
+    const { role: effectiveRole, departmentId: effectiveDepartmentId } =
       await getEffectiveRole(currentUser.id, CURRENT_YEAR);
+
+    // departmentId가 있으면 해당 부서 경로 조회
+    let effectiveDepartment: string | null = null;
+    if (effectiveDepartmentId) {
+      const dept = await prisma.department.findUnique({
+        where: { id: effectiveDepartmentId },
+        include: { committee: { select: { name: true } } },
+      });
+      if (dept) {
+        effectiveDepartment = `${dept.committee.name}/${dept.name}`;
+      }
+    }
 
     // 역할에 따른 조회 조건 설정
     const where: Prisma.ExpenseWhereInput = {};

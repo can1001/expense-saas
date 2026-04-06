@@ -24,7 +24,7 @@ export async function GET() {
     });
 
     // 연도별 유효 역할 조회 (UserYearRole 테이블 기준)
-    const { role: effectiveRole, department: effectiveDepartment } =
+    const { role: effectiveRole, departmentId: effectiveDepartmentId } =
       await getEffectiveRole(user.id, CURRENT_YEAR);
 
     // 기본 계좌 조회 (없으면 null)
@@ -47,6 +47,18 @@ export async function GET() {
       // 계좌 조회 실패 시 null 유지
     }
 
+    // departmentId가 있으면 해당 부서 이름 조회
+    let effectiveDepartment: string | null = null;
+    if (effectiveDepartmentId) {
+      const dept = await prisma.department.findUnique({
+        where: { id: effectiveDepartmentId },
+        include: { committee: { select: { name: true } } },
+      });
+      if (dept) {
+        effectiveDepartment = `${dept.committee.name}/${dept.name}`;
+      }
+    }
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -54,6 +66,7 @@ export async function GET() {
         username: user.username,
         role: effectiveRole,  // 연도별 유효 역할 사용
         department: effectiveDepartment ?? user.department,
+        departmentId: effectiveDepartmentId,  // 부서 ID도 함께 반환
         defaultBankAccount,
         canRegisterUsers: userWithRole?.canRegisterUsers ?? false,
         roleRef: userWithRole?.roleRef ?? null,

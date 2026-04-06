@@ -41,10 +41,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 사역팀 존재 확인 (팀장 정보 포함)
+    const currentYear = year || new Date().getFullYear();
+
+    // 사역팀 존재 확인 + 연도별 팀장 조회
     const department = await prisma.department.findUnique({
       where: { id: departmentId },
-      select: { id: true, leaderId: true },
+      include: {
+        yearRoles: {
+          where: {
+            year: currentYear,
+            role: 'team_leader',
+          },
+          select: { userId: true },
+          take: 1,
+        },
+      },
     });
 
     if (!department) {
@@ -66,7 +77,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const currentYear = year || new Date().getFullYear();
+    // 사역팀 팀장 ID (연도별)
+    const departmentLeaderId = department.yearRoles[0]?.userId || null;
     const createdDetails: string[] = [];
 
     // 트랜잭션으로 일괄 생성
@@ -93,7 +105,7 @@ export async function POST(request: NextRequest) {
 
         // 연도별 설정 생성 (담당자 + 예산금액)
         // 담당자: 입력값 우선, 없으면 사역팀 팀장을 기본값으로 설정
-        const managerId = detail.managerId || department.leaderId || null;
+        const managerId = detail.managerId || departmentLeaderId;
 
         await tx.budgetDetailYear.create({
           data: {

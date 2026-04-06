@@ -13,11 +13,12 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
 
-    // 1. 연도별 팀장 목록 조회 (department별로 매핑)
+    // 1. 연도별 팀장 목록 조회 (departmentId별로 매핑)
     const teamLeaders = await prisma.userYearRole.findMany({
       where: {
         year,
         role: 'team_leader',
+        departmentId: { not: null },
       },
       include: {
         user: {
@@ -29,11 +30,11 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // department -> teamLeader 매핑
+    // departmentId -> teamLeader 매핑
     const deptLeaderMap = new Map<string, { id: string; name: string }>();
     for (const tl of teamLeaders) {
-      if (tl.department) {
-        deptLeaderMap.set(tl.department, {
+      if (tl.departmentId) {
+        deptLeaderMap.set(tl.departmentId, {
           id: tl.userId,
           name: tl.user.username,
         });
@@ -96,8 +97,7 @@ export async function GET(request: NextRequest) {
       // 각 세목이 연결된 부서 확인
       for (const dd of bd.budgetDetail.departmentDetails) {
         totalDetails++;
-        const deptName = dd.department.name;
-        const teamLeader = deptLeaderMap.get(deptName) || null;
+        const teamLeader = deptLeaderMap.get(dd.departmentId) || null;
 
         // 담당자와 팀장이 다른 경우만 예외로 추가
         if (bd.manager && (!teamLeader || teamLeader.id !== bd.managerId)) {
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
             budgetDetailId: bd.budgetDetailId,
             budgetDetailYearId: bd.id,
             committee: dd.department.committee.name,
-            department: deptName,
+            department: dd.department.name,
             category: bd.budgetDetail.subcategory.category.name,
             subcategory: bd.budgetDetail.subcategory.name,
             detail: bd.budgetDetail.name,

@@ -9,7 +9,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, isActive, sortOrder, leaderId } = body;
+    const { name, isActive, sortOrder } = body;
 
     // 위원회 존재 확인
     const existing = await prisma.committee.findUnique({
@@ -41,16 +41,10 @@ export async function PATCH(
     if (name !== undefined) updateData.name = name.trim();
     if (isActive !== undefined) updateData.isActive = isActive;
     if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
-    if (leaderId !== undefined) updateData.leaderId = leaderId || null;
 
     const committee = await prisma.committee.update({
       where: { id },
       data: updateData,
-      include: {
-        leader: {
-          select: { id: true, username: true },
-        },
-      },
     });
 
     return NextResponse.json(committee);

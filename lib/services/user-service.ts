@@ -12,7 +12,7 @@ export const CURRENT_YEAR = new Date().getFullYear();
 export interface UserWithYearRole extends User {
   yearRoles?: UserYearRole[];
   effectiveRole?: string;        // 현재 연도 기준 유효 역할
-  effectiveDepartment?: string | null;  // 현재 연도 기준 부서
+  effectiveDepartmentId?: string | null;  // 현재 연도 기준 부서 ID
   roleRef?: Role | null;         // Role 테이블 참조 정보
 }
 
@@ -388,7 +388,7 @@ export async function findUsers(options?: {
 export async function getEffectiveRole(
   userId: string,
   year: number = CURRENT_YEAR
-): Promise<{ role: string; department: string | null }> {
+): Promise<{ role: string; departmentId: string | null }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
@@ -399,22 +399,22 @@ export async function getEffectiveRole(
   });
 
   if (!user) {
-    return { role: 'user', department: null };
+    return { role: 'user', departmentId: null };
   }
 
   // admin은 영구 역할
   if (user.role === 'admin') {
-    return { role: 'admin', department: user.department };
+    return { role: 'admin', departmentId: null };
   }
 
   // 연도별 역할이 있으면 해당 역할 반환
   const yearRole = user.yearRoles?.[0];
   if (yearRole) {
-    return { role: yearRole.role, department: yearRole.department };
+    return { role: yearRole.role, departmentId: yearRole.departmentId };
   }
 
   // 기본값: user
-  return { role: 'user', department: user.department };
+  return { role: 'user', departmentId: null };
 }
 
 /**
@@ -439,7 +439,7 @@ export async function findUserWithEffectiveRole(
   return {
     ...user,
     effectiveRole: user.role === 'admin' ? 'admin' : (yearRole?.role ?? 'user'),
-    effectiveDepartment: user.role === 'admin' ? user.department : (yearRole?.department ?? user.department),
+    effectiveDepartmentId: user.role === 'admin' ? null : (yearRole?.departmentId ?? null),
   };
 }
 
@@ -474,7 +474,7 @@ export async function findUsersByYearRole(
       ...yr.user,
       yearRoles: [yr],
       effectiveRole: yr.role,
-      effectiveDepartment: yr.department,
+      effectiveDepartmentId: yr.departmentId,
     }));
 }
 
@@ -499,7 +499,7 @@ export async function findAllUsersWithEffectiveRole(
     return {
       ...user,
       effectiveRole: user.role === 'admin' ? 'admin' : (yearRole?.role ?? 'user'),
-      effectiveDepartment: user.role === 'admin' ? user.department : (yearRole?.department ?? user.department),
+      effectiveDepartmentId: user.role === 'admin' ? null : (yearRole?.departmentId ?? null),
     };
   });
 }
@@ -511,7 +511,7 @@ export async function setYearRole(
   userId: string,
   year: number,
   role: string,
-  department?: string,
+  departmentId?: string,
   roleId?: string
 ): Promise<UserYearRole> {
   // roleId가 없으면 role enum에서 찾아서 설정
@@ -521,11 +521,11 @@ export async function setYearRole(
     resolvedRoleId = roleRef?.id;
   }
 
-  // department가 없으면 upsert 대신 findFirst + create/update 사용
-  if (!department) {
-    // department 없이 해당 사용자+연도의 역할 찾기
+  // departmentId가 없으면 upsert 대신 findFirst + create/update 사용
+  if (!departmentId) {
+    // departmentId 없이 해당 사용자+연도의 역할 찾기
     const existing = await prisma.userYearRole.findFirst({
-      where: { userId, year, department: null },
+      where: { userId, year, departmentId: null },
     });
 
     if (existing) {
@@ -535,18 +535,18 @@ export async function setYearRole(
       });
     } else {
       return prisma.userYearRole.create({
-        data: { userId, year, role, roleId: resolvedRoleId, department: null },
+        data: { userId, year, role, roleId: resolvedRoleId, departmentId: null },
       });
     }
   }
 
-  // department가 있는 경우 upsert 사용
+  // departmentId가 있는 경우 upsert 사용
   return prisma.userYearRole.upsert({
     where: {
-      userId_year_department: { userId, year, department },
+      userId_year_departmentId: { userId, year, departmentId },
     },
     update: { role, roleId: resolvedRoleId },
-    create: { userId, year, role, roleId: resolvedRoleId, department },
+    create: { userId, year, role, roleId: resolvedRoleId, departmentId },
   });
 }
 

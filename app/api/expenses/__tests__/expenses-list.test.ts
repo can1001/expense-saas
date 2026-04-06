@@ -17,6 +17,9 @@ vi.mock('@/lib/prisma', () => ({
       findMany: vi.fn(),
       count: vi.fn(),
     },
+    department: {
+      findUnique: vi.fn(),
+    },
   },
   Prisma: {},
 }));
@@ -98,7 +101,7 @@ describe('GET /api/expenses', () => {
     // Default: getEffectiveRole returns admin role
     mockGetEffectiveRole.mockResolvedValue({
       role: 'admin',
-      department: null,
+      departmentId: null,
     });
   });
 
@@ -190,7 +193,7 @@ describe('GET /api/expenses', () => {
       });
       mockGetEffectiveRole.mockResolvedValue({
         role: 'admin',
-        department: null,
+        departmentId: null,
       });
 
       mockPrisma.expense.findMany.mockResolvedValue([]);
@@ -217,7 +220,7 @@ describe('GET /api/expenses', () => {
       });
       mockGetEffectiveRole.mockResolvedValue({
         role: 'user',
-        department: '청년부',
+        departmentId: null,
       });
 
       mockPrisma.expense.findMany.mockResolvedValue([]);
@@ -244,8 +247,18 @@ describe('GET /api/expenses', () => {
       });
       mockGetEffectiveRole.mockResolvedValue({
         role: 'team_leader',  // effectiveRole은 team_leader
-        department: '청년부',
+        departmentId: 'dept-youth-id',
       });
+
+      // Mock department lookup
+      mockPrisma.department.findUnique.mockResolvedValue({
+        id: 'dept-youth-id',
+        name: '청년부',
+        committeeId: 'committee-1',
+        committee: {
+          name: '교육위원회',
+        },
+      } as any);
 
       mockPrisma.expense.findMany.mockResolvedValue([]);
       mockPrisma.expense.count.mockResolvedValue(0);
@@ -256,7 +269,7 @@ describe('GET /api/expenses', () => {
       // where 조건에 department가 포함되어야 함
       expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { department: '청년부' },
+          where: { department: '교육위원회/청년부' },
         })
       );
     });
@@ -274,7 +287,7 @@ describe('GET /api/expenses', () => {
       });
       mockGetEffectiveRole.mockResolvedValue({
         role: 'accountant',  // effectiveRole은 accountant
-        department: '재정팀',
+        departmentId: 'dept-finance-id',
       });
 
       mockPrisma.expense.findMany.mockResolvedValue([]);
@@ -305,7 +318,7 @@ describe('GET /api/expenses', () => {
       });
       mockGetEffectiveRole.mockResolvedValue({
         role: 'finance_head',  // effectiveRole은 finance_head
-        department: null,
+        departmentId: null,
       });
 
       mockPrisma.expense.findMany.mockResolvedValue([]);
@@ -333,7 +346,7 @@ describe('GET /api/expenses', () => {
       });
       mockGetEffectiveRole.mockResolvedValue({
         role: 'user',  // effectiveRole도 user
-        department: '청년부',
+        departmentId: null,
       });
 
       mockPrisma.expense.findMany.mockResolvedValue([]);
@@ -351,7 +364,7 @@ describe('GET /api/expenses', () => {
     });
 
     it('UserYearRole의 department를 사용하여 팀장 필터링', async () => {
-      // 팀장 시나리오: User.department와 UserYearRole.department가 다를 수 있음
+      // 팀장 시나리오: User.department와 UserYearRole.departmentId가 다를 수 있음
       mockGetCurrentUser.mockResolvedValue({
         id: 'leader-2',
         userid: '팀장',
@@ -361,8 +374,18 @@ describe('GET /api/expenses', () => {
       });
       mockGetEffectiveRole.mockResolvedValue({
         role: 'team_leader',
-        department: '개발팀',  // UserYearRole.department (다를 수 있음)
+        departmentId: 'dept-dev-id',  // UserYearRole.departmentId (다를 수 있음)
       });
+
+      // Mock department lookup
+      mockPrisma.department.findUnique.mockResolvedValue({
+        id: 'dept-dev-id',
+        name: '개발팀',
+        committeeId: 'committee-1',
+        committee: {
+          name: '선교위원회',
+        },
+      } as any);
 
       mockPrisma.expense.findMany.mockResolvedValue([]);
       mockPrisma.expense.count.mockResolvedValue(0);
@@ -370,10 +393,10 @@ describe('GET /api/expenses', () => {
       const request = new NextRequest('http://localhost:3000/api/expenses');
       await GET(request);
 
-      // UserYearRole의 department (개발팀)으로 필터링되어야 함
+      // UserYearRole의 departmentId로 조회한 department 경로로 필터링되어야 함
       expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { department: '개발팀' },
+          where: { department: '선교위원회/개발팀' },
         })
       );
     });

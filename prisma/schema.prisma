@@ -170,10 +170,6 @@ model Committee {
   sortOrder   Int          @default(0)
   isActive    Boolean      @default(true)
 
-  // 위원장 (기본값, 실제 역할은 UserYearRole로 관리)
-  leaderId    String?
-  leader      User?        @relation("CommitteeLeader", fields: [leaderId], references: [id])
-
   departments Department[]
 
   createdAt   DateTime     @default(now())
@@ -181,7 +177,6 @@ model Committee {
 
   @@index([sortOrder])
   @@index([isActive])
-  @@index([leaderId])
 }
 
 // 사역팀(부)
@@ -194,12 +189,9 @@ model Department {
   sortOrder    Int        @default(0)
   isActive     Boolean    @default(true)
 
-  // 팀장 (기본값, 실제 역할은 UserYearRole로 관리)
-  leaderId     String?
-  leader       User?      @relation("DepartmentLeader", fields: [leaderId], references: [id])
-
   // 관계
   budgetDetails DepartmentBudgetDetail[]
+  yearRoles     UserYearRole[]  // 연도별 팀장 (팀장은 UserYearRole에서 조회)
 
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
@@ -208,7 +200,6 @@ model Department {
   @@index([committeeId])
   @@index([sortOrder])
   @@index([isActive])
-  @@index([leaderId])
 }
 
 // 예산(항)
@@ -614,10 +605,6 @@ model User {
   notificationPreference NotificationPreference? // 알림 설정
   pushSubscriptions  PushSubscription[]         // 웹 푸시 구독 정보
 
-  // 리더 역할 (기본값 설정용)
-  ledCommittees      Committee[]   @relation("CommitteeLeader")   // 담당 위원회
-  ledDepartments     Department[]  @relation("DepartmentLeader")  // 담당 사역팀
-
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -630,24 +617,26 @@ model User {
 
 // 연도별 사용자 역할 (finance_head, accountant, team_leader, admin_assistant)
 model UserYearRole {
-  id          String    @id @default(cuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  year        Int                         // 연도 (예: 2024, 2025)
-  role        String                      // 역할 코드 (Role.code 참조)
-  roleId      String?                     // 새 역할 테이블 참조
-  roleRef     Role?     @relation("YearRole", fields: [roleId], references: [id])
-  department  String?                     // 소속 부서 (팀장인 경우)
+  year          Int                         // 연도 (예: 2024, 2025)
+  role          String                      // 역할 코드 (Role.code 참조)
+  roleId        String?                     // 새 역할 테이블 참조
+  roleRef       Role?       @relation("YearRole", fields: [roleId], references: [id])
+  departmentId  String?                     // 소속 부서 FK (팀장인 경우)
+  department    Department? @relation(fields: [departmentId], references: [id])
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  @@unique([userId, year, department])    // 사용자+연도+부서 조합으로 유니크 (팀장 겸직 허용)
+  @@unique([userId, year, departmentId])    // 사용자+연도+부서 조합으로 유니크 (팀장 겸직 허용)
   @@index([year])
   @@index([role])
   @@index([roleId])
   @@index([userId])
+  @@index([departmentId])
 }
 
 // 사용자 서명/도장

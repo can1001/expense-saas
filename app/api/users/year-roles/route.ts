@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
         userId: yr.userId,
         year: yr.year,
         role: yr.role,
-        department: yr.department,
+        departmentId: yr.departmentId,
         user: 'user' in yr ? yr.user : undefined,
       })),
     });
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, userid, year, role, department } = body;
+    const { userId, userid, year, role, departmentId } = body;
 
     // userId 또는 userid로 사용자 찾기
     let targetUserId = userId;
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const yearRole = await setYearRole(targetUserId, year, role, department);
+    const yearRole = await setYearRole(targetUserId, year, role, departmentId);
 
     return NextResponse.json(yearRole, { status: 201 });
   } catch (error) {
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, year, department } = body;
+    const { userId, year, departmentId } = body;
 
     if (!userId || !year) {
       return NextResponse.json(
@@ -98,10 +98,10 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    if (department) {
+    if (departmentId) {
       // 특정 부서 역할만 삭제
       await prisma.userYearRole.deleteMany({
-        where: { userId, year, department },
+        where: { userId, year, departmentId },
       });
     } else {
       // 해당 연도 전체 역할 삭제
