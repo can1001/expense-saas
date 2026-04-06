@@ -172,8 +172,21 @@ export default function DepartmentsPage() {
 
       // 2. 팀장 변경 시 UserYearRole 업데이트
       if (editLeaderId !== (dept.leaderId || '')) {
+        // 기존 팀장 제거 (새 팀장 지정 전에)
+        if (dept.leaderId) {
+          await fetch('/api/users/year-roles', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: dept.leaderId,
+              year: currentYear,
+              departmentId: dept.id,
+            }),
+          });
+        }
+
+        // 새 팀장 지정
         if (editLeaderId) {
-          // 새 팀장 지정
           await fetch('/api/users/year-roles', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -185,7 +198,6 @@ export default function DepartmentsPage() {
             }),
           });
         }
-        // 기존 팀장 제거는 새 팀장 지정으로 자동 대체됨 (upsert)
       }
 
       setEditingId(null);
