@@ -343,7 +343,7 @@ export async function findUsers(options?: {
         where: { role: options.role, year },
         select: { userId: true },
       });
-      where.id = { in: yearRoleUsers.map(yr => yr.userId) };
+      where.id = { in: (yearRoleUsers ?? []).map(yr => yr.userId) };
     }
   }
 

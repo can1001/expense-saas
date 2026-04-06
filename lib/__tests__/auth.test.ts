@@ -1,14 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock Next.js cookies
-const mockCookieStore = {
-  get: vi.fn(),
-  set: vi.fn(),
-  delete: vi.fn(),
-};
+// Hoisted mocks for proper initialization order
+const { mockCookieStore, mockPrisma } = vi.hoisted(() => ({
+  mockCookieStore: {
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn(),
+  },
+  mockPrisma: {
+    userYearRole: {
+      findFirst: vi.fn(),
+    },
+  },
+}));
 
+// Mock Next.js cookies
 vi.mock('next/headers', () => ({
   cookies: vi.fn(() => Promise.resolve(mockCookieStore)),
+}));
+
+// Mock prisma
+vi.mock('../prisma', () => ({
+  prisma: mockPrisma,
 }));
 
 // Mock users module
@@ -32,6 +45,12 @@ vi.mock('../users', () => ({
     }
     return undefined;
   }),
+  toUserInfo: vi.fn((user) => ({
+    id: user.id,
+    userid: user.userid,
+    username: user.username,
+    role: user.role,
+  })),
 }));
 
 import { createSession, deleteSession, getCurrentUser, getSessionUserId } from '../auth';
@@ -40,6 +59,8 @@ import { findUserById } from '../users';
 describe('auth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: no yearRole found (use User.role)
+    mockPrisma.userYearRole.findFirst.mockResolvedValue(null);
   });
 
   describe('createSession', () => {
