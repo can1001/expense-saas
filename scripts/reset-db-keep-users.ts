@@ -49,10 +49,7 @@ async function main() {
     { name: 'Department', fn: () => prisma.department.deleteMany() },
     { name: 'Committee', fn: () => prisma.committee.deleteMany() },
 
-    // 7. 마스터 데이터
-    { name: 'BudgetMaster', fn: () => prisma.budgetMaster.deleteMany() },
-
-    // 8. 사용자 연도별 역할 (User는 유지)
+    // 7. 사용자 연도별 역할 (User는 유지)
     { name: 'UserYearRoleHistory', fn: () => prisma.userYearRoleHistory.deleteMany() },
     { name: 'UserYearRole', fn: () => prisma.userYearRole.deleteMany() },
 
