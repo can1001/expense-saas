@@ -2,7 +2,6 @@
  * 지출결의서 폼 상태 관리 훅
  *
  * loading, error, fetchLoading, attachments 상태를 통합 관리합니다.
- * ExpenseForm과 SimpleExpenseForm에서 공통으로 사용합니다.
  */
 
 'use client';

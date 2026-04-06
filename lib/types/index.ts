@@ -261,21 +261,8 @@ export interface ApprovalLineInfo {
 }
 
 // ============================================
-// 예산 마스터 타입
+// 예산 계층 타입
 // ============================================
-
-export interface BudgetMaster {
-  id: string;
-  committee: string;
-  department: string;
-  category: string;
-  subcategory: string;
-  detail: string;
-  manager?: string;
-  accountCode?: string;
-  description?: string;
-  isActive: boolean;
-}
 
 export interface BudgetHierarchy {
   committees: string[];

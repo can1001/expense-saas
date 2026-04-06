@@ -131,34 +131,6 @@ model ExpenseAttachment {
   @@index([expenseId])
 }
 
-// 예산 마스터 데이터 (드롭다운 옵션) - 레거시, 마이그레이션 후 제거 예정
-model BudgetMaster {
-  id           String   @id @default(cuid())
-
-  // 계층 구조
-  committee    String   // 위원회
-  department   String   // 사역팀(부)
-  category     String   // 예산(항)
-  subcategory  String   // 예산(목)
-  detail       String   // 예산(세목)
-
-  // 추가 정보
-  manager      String?  // 승인권자
-  accountCode  String?  // 계정코드
-  description  String?  // 항목 내역
-
-  // 활성 상태
-  isActive     Boolean  @default(true)
-
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@unique([committee, department, category, subcategory, detail])
-  @@index([category, subcategory, detail])
-  @@index([committee])
-  @@index([department])
-}
-
 // ========================================
 // 정규화된 예산 구조 (Normalized Budget Structure)
 // ========================================

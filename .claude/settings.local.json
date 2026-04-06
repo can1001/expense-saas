@@ -89,7 +89,10 @@
       "Bash(xargs cat:*)",
       "Bash(pip3 install:*)",
       "Bash(PORT=3000 npm run dev:*)",
-      "WebFetch(domain:localhost)"
+      "WebFetch(domain:localhost)",
+      "Bash(git revert:*)",
+      "Bash(git reset:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []
