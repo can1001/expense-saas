@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// PATCH /api/departments/[id] - 사역팀 수정
+// PATCH /api/departments/[id] - 사역팀 수정 (팀장은 UserYearRole로 관리)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -9,7 +9,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, isActive, sortOrder, committeeId, leaderId } = body;
+    const { name, isActive, sortOrder, committeeId } = body;
 
     // 사역팀 존재 확인
     const existing = await prisma.department.findUnique({
@@ -48,16 +48,10 @@ export async function PATCH(
     if (isActive !== undefined) updateData.isActive = isActive;
     if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
     if (committeeId !== undefined) updateData.committeeId = committeeId;
-    if (leaderId !== undefined) updateData.leaderId = leaderId || null;
 
     const department = await prisma.department.update({
       where: { id },
       data: updateData,
-      include: {
-        leader: {
-          select: { id: true, username: true },
-        },
-      },
     });
 
     return NextResponse.json(department);
@@ -86,6 +80,18 @@ export async function DELETE(
     if (budgetDetailCount > 0) {
       return NextResponse.json(
         { error: '연결된 예산 세목이 있는 사역팀은 삭제할 수 없습니다. 비활성화를 사용해주세요.' },
+        { status: 400 }
+      );
+    }
+
+    // 연결된 UserYearRole 확인
+    const yearRoleCount = await prisma.userYearRole.count({
+      where: { departmentId: id },
+    });
+
+    if (yearRoleCount > 0) {
+      return NextResponse.json(
+        { error: '연결된 팀장 역할이 있는 사역팀은 삭제할 수 없습니다. 비활성화를 사용해주세요.' },
         { status: 400 }
       );
     }

@@ -21,11 +21,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '연도를 지정해주세요' }, { status: 400 });
     }
 
-    // 1. 해당 연도의 팀장 역할 조회
+    // 1. 해당 연도의 팀장 역할 조회 (departmentId 기반)
     const teamLeaders = await prisma.userYearRole.findMany({
       where: {
         year,
         role: 'team_leader',
+        departmentId: { not: null },
       },
       include: {
         user: {
@@ -37,16 +38,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 부서별 팀장 매핑 생성 (department 문자열 → userId)
+    // 부서별 팀장 매핑 생성 (departmentId → userId)
     const departmentToLeader = new Map<string, string>();
     teamLeaders.forEach((tl) => {
-      if (tl.department) {
-        // "위원회/부서" 형식에서 부서 이름만 추출
-        const parts = tl.department.split('/');
-        const deptName = parts.length > 1 ? parts[1] : parts[0];
-        departmentToLeader.set(deptName, tl.userId);
-        // 전체 경로도 저장
-        departmentToLeader.set(tl.department, tl.userId);
+      if (tl.departmentId) {
+        departmentToLeader.set(tl.departmentId, tl.userId);
       }
     });
 
@@ -77,11 +73,10 @@ export async function POST(request: NextRequest) {
     }> = [];
 
     for (const dd of departmentDetails) {
-      const deptName = dd.department.name;
-      const committeeDept = `${dd.department.committee.name}/${deptName}`;
+      const committeeDept = `${dd.department.committee.name}/${dd.department.name}`;
 
-      // 팀장 찾기 (부서 이름 또는 전체 경로로)
-      const leaderId = departmentToLeader.get(deptName) || departmentToLeader.get(committeeDept);
+      // 팀장 찾기 (departmentId로 직접 조회)
+      const leaderId = departmentToLeader.get(dd.departmentId);
 
       // 팀장이 없으면 스킵
       if (!leaderId) {

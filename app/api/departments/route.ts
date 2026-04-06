@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const committeeId = searchParams.get('committeeId');
+    const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
 
     const where = committeeId ? { committeeId } : {};
 
@@ -16,23 +17,36 @@ export async function GET(request: NextRequest) {
         committee: {
           select: { id: true, name: true },
         },
-        leader: {
-          select: { id: true, username: true },
+        // 연도별 팀장 조회
+        yearRoles: {
+          where: {
+            year,
+            role: 'team_leader',
+          },
+          include: {
+            user: {
+              select: { id: true, username: true },
+            },
+          },
+          take: 1,
         },
       },
     });
 
     // 응답 형식 변환
-    const formattedDepartments = departments.map((dept) => ({
-      id: dept.id,
-      name: dept.name,
-      committeeId: dept.committeeId,
-      committeeName: dept.committee.name,
-      sortOrder: dept.sortOrder,
-      isActive: dept.isActive,
-      leaderId: dept.leaderId,
-      leaderName: dept.leader?.username || null,
-    }));
+    const formattedDepartments = departments.map((dept) => {
+      const leader = dept.yearRoles[0]?.user || null;
+      return {
+        id: dept.id,
+        name: dept.name,
+        committeeId: dept.committeeId,
+        committeeName: dept.committee.name,
+        sortOrder: dept.sortOrder,
+        isActive: dept.isActive,
+        leaderId: leader?.id || null,
+        leaderName: leader?.username || null,
+      };
+    });
 
     return NextResponse.json({ departments: formattedDepartments });
   } catch (error) {
@@ -48,7 +62,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, committeeId, leaderId } = body;
+    const { name, committeeId } = body;
 
     if (!name?.trim()) {
       return NextResponse.json(
@@ -104,12 +118,6 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         committeeId,
         sortOrder: (lastDepartment?.sortOrder ?? 0) + 1,
-        leaderId: leaderId || null,
-      },
-      include: {
-        leader: {
-          select: { id: true, username: true },
-        },
       },
     });
 

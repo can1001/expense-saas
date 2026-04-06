@@ -150,21 +150,20 @@ async function seedRoles() {
 
 // 사용자 시드 데이터
 // - baseRole: User.role에 저장 (admin, user만 사용)
-// - yearRole: UserYearRole에 저장 (연도별 역할) - 모든 연도에 동일하게 적용
 // - password: 로그인 비밀번호 (E2E 테스트용)
+// - 연도별 역할(팀장, 재정팀장 등)은 yearSpecificRoles에서 관리
 const usersData: Array<{
   userid: string;
   username: string;
   baseRole: 'admin' | 'user';
-  yearRole?: UserRole;        // 연도별 역할 (finance_head, accountant, team_leader, admin_assistant)
-  departments?: string[];     // 복수 부서 지원 (팀장 겸직)
+  departments?: string[];     // 참고용 부서 (User.department에 저장)
   password?: string;          // 로그인 비밀번호
 }> = [
   // E2E 테스트 사용자
   { userid: '청연테스트', username: '테스트', baseRole: 'user', password: 'chc2026' },
 
-  // 행정간사
-  { userid: '청연송원경', username: '송원경', baseRole: 'user', yearRole: 'admin_assistant', departments: ['재정팀'] },
+  // 행정간사 - 연도별 역할은 yearSpecificRoles에서 관리
+  { userid: '청연송원경', username: '송원경', baseRole: 'user', departments: ['재정팀'] },
 
   // 재정팀장/회계 - 연도별 역할은 yearSpecificRoles에서 관리
   { userid: '청연신창국', username: '신창국', baseRole: 'user' },
@@ -228,77 +227,52 @@ const yearSpecificRoles: Array<{
   role: UserRole;
   department?: string;
 }> = [
+  // 2026년 행정간사
+  { userid: '청연송원경', year: 2026, role: 'admin_assistant', department: '기획위원회/재정팀' },
   // 2026년 재정팀장/회계
-  { userid: '청연윤운문', year: 2026, role: 'finance_head', department: '재정팀' },
-  { userid: '청연정혜종', year: 2026, role: 'accountant', department: '재정팀' },
+  { userid: '청연윤운문', year: 2026, role: 'finance_head', department: '기획위원회/재정팀' },
+  { userid: '청연정혜종', year: 2026, role: 'accountant', department: '기획위원회/재정팀' },
   // 2026년 팀장
   { userid: '청연강홍재', year: 2026, role: 'team_leader', department: '목양위원회/목양팀' },
-  { userid: '청연강홍재', year: 2026, role: 'team_leader', department: '목양팀' },
   { userid: '청연김경민', year: 2026, role: 'team_leader', department: '교육훈련위원회/유년부' },
-  { userid: '청연김경민', year: 2026, role: 'team_leader', department: '유년부' },
   { userid: '청연김대현', year: 2026, role: 'team_leader', department: '교육훈련위원회/중고등부' },
-  { userid: '청연김대현', year: 2026, role: 'team_leader', department: '기획팀' },
-  { userid: '청연김대현', year: 2026, role: 'team_leader', department: '이웃사랑팀' },
-  { userid: '청연김대현', year: 2026, role: 'team_leader', department: '전교인행사TF' },
-  { userid: '청연김대현', year: 2026, role: 'team_leader', department: '중고등부' },
   { userid: '청연김민광', year: 2026, role: 'team_leader', department: '예배위원회/찬양팀' },
   { userid: '청연김수정', year: 2026, role: 'team_leader', department: '교육훈련위원회/세바맘팀' },
-  { userid: '청연김수정', year: 2026, role: 'team_leader', department: '세바맘팀' },
   { userid: '청연김영은', year: 2026, role: 'team_leader', department: '교육훈련위원회/새가족팀' },
-  { userid: '청연김영은', year: 2026, role: 'team_leader', department: '새가족팀' },
-  { userid: '청연김예찬', year: 2026, role: 'team_leader', department: '방송팀' },
   { userid: '청연김예찬', year: 2026, role: 'team_leader', department: '예배위원회/방송팀' },
   { userid: '청연김흥래', year: 2026, role: 'team_leader', department: '교육훈련위원회' },
-  { userid: '청연류지성', year: 2026, role: 'team_leader', department: '마중물팀' },
   { userid: '청연류지성', year: 2026, role: 'team_leader', department: '목양위원회/마중물팀' },
   { userid: '청연박영미', year: 2026, role: 'team_leader', department: '교육훈련위원회/영유아부' },
-  { userid: '청연박영미', year: 2026, role: 'team_leader', department: '영유아부' },
   { userid: '청연박예송', year: 2026, role: 'team_leader', department: '예배위원회/예배지원팀' },
-  { userid: '청연박예송', year: 2026, role: 'team_leader', department: '예배지원팀' },
-  { userid: '청연방순화', year: 2026, role: 'team_leader', department: '기도팀' },
   { userid: '청연방순화', year: 2026, role: 'team_leader', department: '예배위원회/기도팀' },
   { userid: '청연서주형', year: 2026, role: 'team_leader', department: '기획위원회/홍보팀' },
-  { userid: '청연서주형', year: 2026, role: 'team_leader', department: '홍보팀' },
-  { userid: '청연양찬승', year: 2026, role: 'team_leader', department: '공간사역팀' },
   { userid: '청연양찬승', year: 2026, role: 'team_leader', department: '기획위원회/공간사역팀' },
   { userid: '청연오혜성', year: 2026, role: 'team_leader', department: '목양위원회/청년유스' },
-  { userid: '청연오혜성', year: 2026, role: 'team_leader', department: '청년유스' },
   { userid: '청연유미정', year: 2026, role: 'team_leader', department: '교육훈련위원회/유치부' },
-  { userid: '청연유미정', year: 2026, role: 'team_leader', department: '유치부' },
   { userid: '청연이선아B', year: 2026, role: 'team_leader', department: '예배위원회/안내팀' },
-  { userid: '청연이선아B', year: 2026, role: 'team_leader', department: '안내팀' },
   { userid: '청연임대웅', year: 2026, role: 'team_leader', department: '목양위원회/양육지원' },
-  { userid: '청연임대웅', year: 2026, role: 'team_leader', department: '양육지원' },
-  { userid: '청연임대웅', year: 2026, role: 'team_leader', department: '청년유스' },
   { userid: '청연조민경', year: 2026, role: 'team_leader', department: '교육훈련위원회/초등부' },
-  { userid: '청연조민경', year: 2026, role: 'team_leader', department: '초등부' },
   { userid: '청연최보영', year: 2026, role: 'team_leader', department: '기획위원회/시설관리팀' },
-  { userid: '청연최보영', year: 2026, role: 'team_leader', department: '시설관리팀' },
   { userid: '청연최준영', year: 2026, role: 'team_leader', department: '교육훈련위원회/청세포팀' },
-  { userid: '청연최준영', year: 2026, role: 'team_leader', department: '청세포팀' },
   { userid: '청연허지혜', year: 2026, role: 'team_leader', department: '교육훈련위원회/세바맘팀' },
-  { userid: '청연허지혜', year: 2026, role: 'team_leader', department: '찬양팀' },
 ];
 
 async function seedUsers() {
   console.log('\n👥 Seeding users...');
-  console.log(`📅 Years to seed: ${YEARS_TO_SEED.join(', ')}`);
 
   let userCount = 0;
-  let yearRoleCount = 0;
 
   for (const userData of usersData) {
     try {
       // roleId 조회
       const baseRoleId = roleIdCache.get(userData.baseRole);
-      const yearRoleId = userData.yearRole ? roleIdCache.get(userData.yearRole) : null;
 
       // 대표 부서 (첫 번째 부서 또는 undefined)
       const primaryDepartment = userData.departments?.[0];
 
       // 1. User 생성/업데이트 (기본 역할)
       const hashedPassword = userData.password ? await hashPassword(userData.password) : null;
-      const user = await prisma.user.upsert({
+      await prisma.user.upsert({
         where: { userid: userData.userid },
         update: {
           username: userData.username,
@@ -317,44 +291,12 @@ async function seedUsers() {
         },
       });
       userCount++;
-
-      // 2. 연도별 역할이 있으면 각 연도/부서에 대해 UserYearRole 생성
-      if (userData.yearRole) {
-        const departments = userData.departments?.length ? userData.departments : [undefined];
-
-        for (const year of YEARS_TO_SEED) {
-          for (const dept of departments) {
-            await prisma.userYearRole.upsert({
-              where: {
-                userId_year_department: {
-                  userId: user.id,
-                  year: year,
-                  department: dept || '',
-                },
-              },
-              update: {
-                role: userData.yearRole,
-                roleId: yearRoleId,
-              },
-              create: {
-                userId: user.id,
-                year: year,
-                role: userData.yearRole,
-                roleId: yearRoleId,
-                department: dept,
-              },
-            });
-            yearRoleCount++;
-          }
-        }
-      }
     } catch (error: unknown) {
       console.error('Error inserting user:', userData, error);
     }
   }
 
   console.log(`✅ Upserted ${userCount}/${usersData.length} users`);
-  console.log(`✅ Upserted ${yearRoleCount} year roles for years: ${YEARS_TO_SEED.join(', ')}`);
 
   // 기본 역할별 통계
   const baseRoleStats = await prisma.user.groupBy({
@@ -366,19 +308,23 @@ async function seedUsers() {
   for (const stat of baseRoleStats) {
     console.log(`  - ${stat.role}: ${stat._count} users`);
   }
+}
 
-  // 연도별 특수 역할 설정 (finance_head, accountant 등)
-  // 먼저 기존 finance_head, accountant 역할 삭제 (중복 방지)
-  console.log('\n📅 Clearing existing finance_head/accountant roles...');
+/**
+ * 연도별 역할 시드 (Department 테이블 생성 후 실행)
+ * UserYearRole에 departmentId FK로 연결
+ */
+async function seedYearSpecificRoles(departmentCache: Map<string, string>) {
+  console.log('\n📅 Setting year-specific roles...');
+
+  // 기존 역할 삭제 (중복 방지)
   const deleteResult = await prisma.userYearRole.deleteMany({
     where: {
-      role: { in: ['finance_head', 'accountant'] },
       year: { in: YEARS_TO_SEED },
     },
   });
-  console.log(`  Deleted ${deleteResult.count} existing finance_head/accountant roles`);
+  console.log(`  Deleted ${deleteResult.count} existing year roles`);
 
-  console.log('\n📅 Setting year-specific roles...');
   let yearSpecificCount = 0;
 
   for (const roleData of yearSpecificRoles) {
@@ -398,12 +344,35 @@ async function seedUsers() {
 
     const yearRoleId = roleIdCache.get(roleData.role);
 
+    // department 문자열에서 departmentId 조회
+    let departmentId: string | null = null;
+    if (roleData.department) {
+      if (roleData.department.includes('/')) {
+        // "위원회/팀" 형식
+        const [committeeName, deptName] = roleData.department.split('/');
+        const cacheKey = `${committeeName}|${deptName}`;
+        departmentId = departmentCache.get(cacheKey) || null;
+      } else {
+        // "팀" 형식만 있는 경우 - 모든 위원회에서 검색
+        for (const [key, id] of departmentCache.entries()) {
+          if (key.endsWith(`|${roleData.department}`)) {
+            departmentId = id;
+            break;
+          }
+        }
+      }
+
+      if (!departmentId && !roleData.department.includes('위원회')) {
+        console.log(`  ⚠️ Department not found: ${roleData.department}`);
+      }
+    }
+
     await prisma.userYearRole.upsert({
       where: {
-        userId_year_department: {
+        userId_year_departmentId: {
           userId: user.id,
           year: roleData.year,
-          department: roleData.department || '',
+          departmentId: departmentId || '',
         },
       },
       update: {
@@ -415,7 +384,7 @@ async function seedUsers() {
         year: roleData.year,
         role: roleData.role,
         roleId: yearRoleId,
-        department: roleData.department,
+        departmentId: departmentId,
       },
     });
     yearSpecificCount++;
@@ -424,7 +393,7 @@ async function seedUsers() {
 
   console.log(`✅ Set ${yearSpecificCount} year-specific roles`);
 
-  // 연도별 역할 통계 (각 연도별)
+  // 연도별 역할 통계
   for (const year of YEARS_TO_SEED) {
     const yearRoleStats = await prisma.userYearRole.groupBy({
       by: ['role'],
@@ -638,7 +607,7 @@ const budgetMasterData: BudgetMasterItem[] = [
 /**
  * 정규화된 예산 테이블에 시드 데이터 삽입
  */
-async function seedNormalizedBudget() {
+async function seedNormalizedBudget(): Promise<Map<string, string>> {
   console.log('\n💰 Seeding normalized budget tables...');
 
   // 유효한 데이터만 필터링 (빈 필드가 없는 항목)
@@ -847,6 +816,8 @@ async function seedNormalizedBudget() {
   console.log(`  - Subcategories: ${subcategoryStats}`);
   console.log(`  - Details: ${detailStats}`);
   console.log(`  - Detail Years: ${detailYearStats} (with manager: ${detailWithManager})`);
+
+  return departmentCache;
 }
 
 /**
@@ -887,74 +858,6 @@ async function seedBudgetMasterLegacy() {
   console.log(`✅ Inserted ${successCount}/${budgetMasterData.length} budget master items`);
 }
 
-/**
- * UserYearRole 기반으로 Department.leaderId 업데이트
- */
-async function updateDepartmentLeaders() {
-  console.log('\n👔 Updating department leaders...');
-
-  // team_leader 역할을 가진 사용자들 조회
-  const teamLeaders = await prisma.userYearRole.findMany({
-    where: {
-      role: 'team_leader',
-      year: CURRENT_YEAR,
-      department: { not: null },
-    },
-    include: {
-      user: true,
-    },
-  });
-
-  let updatedCount = 0;
-
-  for (const yearRole of teamLeaders) {
-    if (!yearRole.department) continue;
-
-    // department 형식: '기획위원회/홍보팀' 또는 '교육훈련위원회'
-    const parts = yearRole.department.split('/');
-
-    if (parts.length !== 2) {
-      // 위원회만 있는 경우 (위원장) - Committee.leaderId 업데이트
-      const committeeName = parts[0];
-      await prisma.committee.updateMany({
-        where: { name: committeeName },
-        data: { leaderId: yearRole.userId },
-      });
-      continue;
-    }
-
-    const [committeeName, departmentName] = parts;
-
-    // 해당 위원회 찾기
-    const committee = await prisma.committee.findUnique({
-      where: { name: committeeName },
-    });
-
-    if (!committee) {
-      console.log(`  ⚠️ Committee not found: ${committeeName}`);
-      continue;
-    }
-
-    // Department 업데이트
-    const result = await prisma.department.updateMany({
-      where: {
-        committeeId: committee.id,
-        name: departmentName,
-      },
-      data: {
-        leaderId: yearRole.userId,
-      },
-    });
-
-    if (result.count > 0) {
-      updatedCount++;
-      console.log(`  ✓ ${committeeName}/${departmentName} → ${yearRole.user.username}`);
-    }
-  }
-
-  console.log(`✅ Updated ${updatedCount} department leaders`);
-}
-
 async function main() {
   console.log('🌱 Starting seed...');
 
@@ -964,11 +867,11 @@ async function main() {
   // 사용자 시드
   await seedUsers();
 
-  // 정규화된 예산 테이블 시드
-  await seedNormalizedBudget();
+  // 정규화된 예산 테이블 시드 (departmentCache 반환)
+  const departmentCache = await seedNormalizedBudget();
 
-  // Department 팀장 연결
-  await updateDepartmentLeaders();
+  // 연도별 역할 시드 (팀장, 재정팀장, 회계 등)
+  await seedYearSpecificRoles(departmentCache);
 
   // BudgetMaster 레거시 테이블 시드 (호환성)
   await seedBudgetMasterLegacy();

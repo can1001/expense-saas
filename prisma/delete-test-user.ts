@@ -17,15 +17,9 @@ async function deleteTestUser() {
   console.log(`삭제 대상: ${user.username} (${user.userid})`);
   console.log(`지출결의서 ${user.expenses.length}건`);
 
-  // 2. 리더 역할 해제
-  await prisma.committee.updateMany({
-    where: { leaderId: user.id },
-    data: { leaderId: null }
-  });
-
-  await prisma.department.updateMany({
-    where: { leaderId: user.id },
-    data: { leaderId: null }
+  // 2. 연도별 역할 해제 (UserYearRole)
+  await prisma.userYearRole.deleteMany({
+    where: { userId: user.id }
   });
 
   // 3. 예산 담당자 해제

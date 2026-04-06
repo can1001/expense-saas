@@ -16,14 +16,27 @@ interface UploadSummary {
 }
 
 // GET: 템플릿 다운로드 (현재 사역팀장 목록 포함)
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // 현재 모든 사역팀 조회 (위원회, 팀장 포함)
+    const searchParams = request.nextUrl.searchParams;
+    const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
+
+    // 현재 모든 사역팀 조회
     const departments = await prisma.department.findMany({
       where: { isActive: true },
       include: {
         committee: { select: { name: true } },
-        leader: { select: { username: true } },
+        // 연도별 팀장 조회
+        yearRoles: {
+          where: {
+            year,
+            role: 'team_leader',
+          },
+          include: {
+            user: { select: { username: true } },
+          },
+          take: 1,
+        },
       },
       orderBy: [
         { committee: { sortOrder: 'asc' } },
@@ -35,7 +48,7 @@ export async function GET() {
     const data = departments.map((dept) => ({
       '위원회': dept.committee.name,
       '사역팀': dept.name,
-      '팀장': dept.leader?.username || '',
+      '팀장': dept.yearRoles[0]?.user?.username || '',
     }));
 
     // 빈 행 추가 (없는 경우)
@@ -62,6 +75,8 @@ export async function GET() {
 
     // 안내 시트 추가
     const guideData = [
+      { 항목: '적용 연도', 설명: String(year), 예시: '' },
+      { 항목: '', 설명: '', 예시: '' },
       { 항목: '위원회', 설명: '위원회 이름 (필수)', 예시: '교육위원회' },
       { 항목: '사역팀', 설명: '사역팀 이름 (필수)', 예시: '유년부' },
       { 항목: '팀장', 설명: '팀장 이름 (사용자 이름과 일치해야 함)', 예시: '정혜종' },
@@ -69,7 +84,7 @@ export async function GET() {
       { 항목: '※ 참고사항', 설명: '', 예시: '' },
       { 항목: '- 팀장 비우기', 설명: '팀장 열을 비워두면 팀장이 해제됩니다', 예시: '' },
       { 항목: '- 사용자 매칭', 설명: '팀장 이름이 정확히 일치해야 합니다', 예시: '' },
-      { 항목: '- 사역팀 매칭', 설명: '위원회 + 사역팀 조합으로 찾습니다', 예시: '' },
+      { 항목: '- 연도별 관리', 설명: '팀장은 연도별로 관리됩니다', 예시: '' },
     ];
     const wsGuide = XLSX.utils.json_to_sheet(guideData);
     wsGuide['!cols'] = [{ wch: 20 }, { wch: 50 }, { wch: 20 }];
@@ -81,7 +96,7 @@ export async function GET() {
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="leaders_template_${new Date().toISOString().split('T')[0]}.xlsx"`,
+        'Content-Disposition': `attachment; filename="leaders_template_${year}_${new Date().toISOString().split('T')[0]}.xlsx"`,
       },
     });
   } catch (error) {
@@ -93,12 +108,13 @@ export async function GET() {
   }
 }
 
-// POST: 엑셀 업로드 처리
+// POST: 엑셀 업로드 처리 (UserYearRole 생성/업데이트)
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const dryRun = formData.get('dryRun') === 'true';
+    const year = parseInt(formData.get('year') as string) || new Date().getFullYear();
 
     if (!file) {
       return NextResponse.json(
@@ -179,9 +195,14 @@ export async function POST(request: NextRequest) {
       userMap.set(u.username, u.id);
     });
 
+    // 역할 ID 조회
+    const teamLeaderRole = await prisma.role.findUnique({
+      where: { code: 'team_leader' },
+    });
+
     // 검증 및 처리 대상 분류
     const validationErrors: Array<{ fieldName: string; message: string }> = [];
-    const toUpdate: Array<{ departmentId: string; leaderId: string | null; departmentName: string; leaderName: string }> = [];
+    const toUpdate: Array<{ departmentId: string; userId: string | null; departmentName: string; leaderName: string }> = [];
 
     rows.forEach((row, index) => {
       const rowNum = index + 2; // 헤더 + 1-based
@@ -216,10 +237,10 @@ export async function POST(request: NextRequest) {
       }
 
       // 팀장 찾기 (비어있으면 null)
-      let leaderId: string | null = null;
+      let userId: string | null = null;
       if (row.leader) {
-        leaderId = userMap.get(row.leader) ?? null;
-        if (!leaderId) {
+        userId = userMap.get(row.leader) ?? null;
+        if (!userId) {
           validationErrors.push({ fieldName: `행 ${rowNum}`, message: `사용자를 찾을 수 없습니다: ${row.leader}` });
           return;
         }
@@ -227,7 +248,7 @@ export async function POST(request: NextRequest) {
 
       toUpdate.push({
         departmentId,
-        leaderId,
+        userId,
         departmentName: row.department,
         leaderName: row.leader || '(없음)',
       });
@@ -259,6 +280,7 @@ export async function POST(request: NextRequest) {
         data: {
           summary,
           dryRun: true,
+          year,
           preview: toUpdate.slice(0, 10).map((u) => ({
             department: u.departmentName,
             leader: u.leaderName,
@@ -267,20 +289,49 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 실제 DB 업데이트
+    // 실제 DB 업데이트 (UserYearRole)
     for (const item of toUpdate) {
-      await prisma.department.update({
-        where: { id: item.departmentId },
-        data: { leaderId: item.leaderId },
-      });
+      if (item.userId) {
+        // 팀장 설정: UserYearRole upsert
+        await prisma.userYearRole.upsert({
+          where: {
+            userId_year_departmentId: {
+              userId: item.userId,
+              year,
+              departmentId: item.departmentId,
+            },
+          },
+          update: {
+            role: 'team_leader',
+            roleId: teamLeaderRole?.id,
+          },
+          create: {
+            userId: item.userId,
+            year,
+            role: 'team_leader',
+            roleId: teamLeaderRole?.id,
+            departmentId: item.departmentId,
+          },
+        });
+      } else {
+        // 팀장 해제: 해당 부서의 기존 팀장 역할 삭제
+        await prisma.userYearRole.deleteMany({
+          where: {
+            year,
+            departmentId: item.departmentId,
+            role: 'team_leader',
+          },
+        });
+      }
     }
 
     return NextResponse.json({
       success: true,
-      message: `업로드 완료: ${summary.updated}개 사역팀 팀장 설정`,
+      message: `업로드 완료: ${year}년도 ${summary.updated}개 사역팀 팀장 설정`,
       data: {
         summary,
         dryRun: false,
+        year,
       },
     });
   } catch (error) {
