@@ -15,12 +15,6 @@ interface User {
   username: string;
 }
 
-interface YearRole {
-  userId: string;
-  department: string | null;
-  user?: { id: string; username: string };
-}
-
 interface Committee {
   id: string;
   name: string;
@@ -44,11 +38,9 @@ interface GroupedDepartments {
 }
 
 export default function DepartmentsPage() {
-  const currentYear = new Date().getFullYear();
   const [committees, setCommittees] = useState<Committee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [yearRoles, setYearRoles] = useState<YearRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -81,10 +73,9 @@ export default function DepartmentsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [committeeRes, departmentRes, yearRolesRes] = await Promise.all([
+      const [committeeRes, departmentRes] = await Promise.all([
         fetch('/api/committees'),
         fetch('/api/departments'),
-        fetch(`/api/users/year-roles?year=${currentYear}`),
       ]);
 
       if (!committeeRes.ok || !departmentRes.ok) {
@@ -97,15 +88,6 @@ export default function DepartmentsPage() {
       setCommittees(committeeData.committees || []);
       setDepartments(departmentData.departments || []);
 
-      // 팀장 역할만 필터링
-      if (yearRolesRes.ok) {
-        const yearRolesData = await yearRolesRes.json();
-        const teamLeaders = (yearRolesData.yearRoles || []).filter(
-          (yr: YearRole & { role: string }) => yr.role === 'team_leader'
-        );
-        setYearRoles(teamLeaders);
-      }
-
       // 모든 위원회 펼치기
       setExpandedCommittees(new Set(committeeData.committees?.map((c: Committee) => c.id) || []));
     } catch (err) {
@@ -113,12 +95,6 @@ export default function DepartmentsPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // 부서명으로 팀장 찾기
-  const getTeamLeader = (deptName: string) => {
-    const yearRole = yearRoles.find((yr) => yr.department === deptName);
-    return yearRole?.user || null;
   };
 
   const toggleExpand = (committeeId: string) => {
@@ -239,8 +215,7 @@ export default function DepartmentsPage() {
   const startEdit = (department: Department) => {
     setEditingId(department.id);
     setEditName(department.name);
-    const leader = getTeamLeader(department.name);
-    setEditLeaderId(leader?.id || '');
+    setEditLeaderId(department.leaderId || '');
   };
 
   const cancelEdit = () => {
@@ -403,14 +378,9 @@ export default function DepartmentsPage() {
                           <span className={!dept.isActive ? 'line-through' : ''}>
                             {dept.name}
                           </span>
-                          {(() => {
-                            const leader = getTeamLeader(dept.name);
-                            return (
-                              <span className={`text-sm ${leader ? 'text-blue-600' : 'text-gray-400'}`}>
-                                ({leader?.username || '팀장 미지정'})
-                              </span>
-                            );
-                          })()}
+                          <span className={`text-sm ${dept.leaderName ? 'text-blue-600' : 'text-gray-400'}`}>
+                            ({dept.leaderName || '팀장 미지정'})
+                          </span>
                         </>
                       )}
                     </div>
