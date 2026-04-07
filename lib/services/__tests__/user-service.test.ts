@@ -48,6 +48,7 @@ import {
   deleteYearRole,
   getYearRoles,
   canApproveByYear,
+  getUserAllYearRoles,
 } from '../user-service';
 
 // Mock Prisma
@@ -1450,6 +1451,131 @@ describe('user-service', () => {
       expect(result.length).toBe(2);
       expect(result[0].effectiveRole).toBe('team_leader');
       expect(result[1].effectiveRole).toBe('admin');
+    });
+  });
+
+  // 다중 역할(Multi-role) 지원 테스트
+  describe('getUserAllYearRoles', () => {
+    it('should return all roles for a user in the given year', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        yearRoles: [
+          { role: 'team_leader' },
+          { role: 'finance_head' },
+        ],
+      } as any);
+
+      const result = await import('../user-service').then(m => m.getUserAllYearRoles('user-1', CURRENT_YEAR));
+
+      expect(result).toEqual(['team_leader', 'finance_head']);
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        include: {
+          yearRoles: {
+            where: { year: CURRENT_YEAR },
+            select: { role: true },
+          },
+        },
+      });
+    });
+
+    it('should return user role as fallback when no year roles exist', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        role: 'team_leader',
+        yearRoles: [],
+      } as any);
+
+      const result = await import('../user-service').then(m => m.getUserAllYearRoles('user-1', CURRENT_YEAR));
+
+      // UserYearRole이 없으면 User.role을 fallback으로 사용
+      expect(result).toEqual(['team_leader']);
+    });
+
+    it('should return ["user"] when user not found', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+
+      const result = await import('../user-service').then(m => m.getUserAllYearRoles('nonexistent', CURRENT_YEAR));
+
+      expect(result).toEqual(['user']);
+    });
+
+    it('should return ["admin"] for admin user', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockAdmin,
+        yearRoles: [],
+      } as any);
+
+      const result = await import('../user-service').then(m => m.getUserAllYearRoles('admin-1', CURRENT_YEAR));
+
+      expect(result).toEqual(['admin']);
+    });
+
+    it('should use default year (CURRENT_YEAR) when year is not specified', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        yearRoles: [],
+      } as any);
+
+      await import('../user-service').then(m => m.getUserAllYearRoles('user-1'));
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        include: {
+          yearRoles: {
+            where: { year: CURRENT_YEAR },
+            select: { role: true },
+          },
+        },
+      });
+    });
+
+    it('should handle custom year parameter', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        yearRoles: [],
+      } as any);
+
+      await import('../user-service').then(m => m.getUserAllYearRoles('user-1', 2024));
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        include: {
+          yearRoles: {
+            where: { year: 2024 },
+            select: { role: true },
+          },
+        },
+      });
+    });
+
+    it('should handle real-world scenario: 재정팀장 with team_leader + finance_head', async () => {
+      // 재정팀장이 같은 부서에서 두 역할을 가진 경우
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        role: 'team_leader',
+        yearRoles: [
+          { role: 'team_leader' },
+          { role: 'finance_head' },
+        ],
+      } as any);
+
+      const result = await import('../user-service').then(m => m.getUserAllYearRoles('finance-head-user', CURRENT_YEAR));
+
+      expect(result).toContain('team_leader');
+      expect(result).toContain('finance_head');
+      expect(result.length).toBe(2);
+    });
+
+    it('should handle user with single year role', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        ...mockUser,
+        yearRoles: [{ role: 'accountant' }],
+      } as any);
+
+      const result = await import('../user-service').then(m => m.getUserAllYearRoles('user-1', CURRENT_YEAR));
+
+      expect(result).toEqual(['accountant']);
     });
   });
 });

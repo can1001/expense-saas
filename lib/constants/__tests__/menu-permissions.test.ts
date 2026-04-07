@@ -15,6 +15,9 @@ import {
   canAccessAdminMenuPath,
   filterAdminMenuByRole,
   canShowUserRegisterMenu,
+  canAccessAdminMenuWithRoles,
+  canAccessAdminMenuPathWithRoles,
+  filterAdminMenuByRoles,
 } from '../menu-permissions';
 
 describe('menu-permissions', () => {
@@ -380,6 +383,127 @@ describe('menu-permissions', () => {
     it('should return empty array for unknown role', () => {
       const result = filterAdminMenuByRole(mockMenu, 'unknown');
       expect(result).toEqual([]);
+    });
+  });
+
+  // 다중 역할(Multi-role) 지원 테스트
+  describe('canAccessAdminMenuWithRoles', () => {
+    it('should return true if any role can access admin menu', () => {
+      expect(canAccessAdminMenuWithRoles(['team_leader', 'finance_head'])).toBe(true);
+      expect(canAccessAdminMenuWithRoles(['user', 'accountant'])).toBe(true);
+      expect(canAccessAdminMenuWithRoles(['admin'])).toBe(true);
+    });
+
+    it('should return false if no role can access admin menu', () => {
+      expect(canAccessAdminMenuWithRoles(['team_leader'])).toBe(false);
+      expect(canAccessAdminMenuWithRoles(['user'])).toBe(false);
+      expect(canAccessAdminMenuWithRoles(['team_leader', 'user'])).toBe(false);
+    });
+
+    it('should return false for empty array', () => {
+      expect(canAccessAdminMenuWithRoles([])).toBe(false);
+    });
+
+    it('should handle mixed known and unknown roles', () => {
+      expect(canAccessAdminMenuWithRoles(['unknown', 'finance_head'])).toBe(true);
+      expect(canAccessAdminMenuWithRoles(['unknown', 'invalid'])).toBe(false);
+    });
+  });
+
+  describe('canAccessAdminMenuPathWithRoles', () => {
+    it('should return true if any role can access the path', () => {
+      // team_leader는 /admin 접근 불가, finance_head는 가능
+      expect(canAccessAdminMenuPathWithRoles(['team_leader', 'finance_head'], '/admin')).toBe(true);
+      expect(canAccessAdminMenuPathWithRoles(['team_leader', 'finance_head'], '/admin/committees')).toBe(true);
+    });
+
+    it('should return false if no role can access the path', () => {
+      // finance_head는 /admin/users 접근 불가
+      expect(canAccessAdminMenuPathWithRoles(['finance_head'], '/admin/users')).toBe(false);
+      expect(canAccessAdminMenuPathWithRoles(['team_leader', 'user'], '/admin')).toBe(false);
+    });
+
+    it('should return true for admin on any path', () => {
+      expect(canAccessAdminMenuPathWithRoles(['admin'], '/admin/users')).toBe(true);
+      expect(canAccessAdminMenuPathWithRoles(['team_leader', 'admin'], '/admin/settings')).toBe(true);
+    });
+
+    it('should combine permissions from multiple roles', () => {
+      // accountant는 /admin/committees 접근 가능
+      expect(canAccessAdminMenuPathWithRoles(['accountant'], '/admin/committees')).toBe(true);
+      // user + accountant 조합
+      expect(canAccessAdminMenuPathWithRoles(['user', 'accountant'], '/admin/committees')).toBe(true);
+    });
+
+    it('should return false for empty roles array', () => {
+      expect(canAccessAdminMenuPathWithRoles([], '/admin')).toBe(false);
+    });
+  });
+
+  describe('filterAdminMenuByRoles', () => {
+    const mockMenu = [
+      {
+        title: '대시보드',
+        items: [{ href: '/admin', label: '홈' }],
+      },
+      {
+        title: '조직 관리',
+        items: [
+          { href: '/admin/committees', label: '위원회 관리' },
+          { href: '/admin/departments', label: '사역팀(부) 관리' },
+        ],
+      },
+      {
+        title: '사용자/역할',
+        items: [
+          { href: '/admin/users', label: '사용자 관리' },
+          { href: '/admin/roles', label: '역할 관리' },
+        ],
+      },
+    ];
+
+    it('should return all menu if any role is admin', () => {
+      const result = filterAdminMenuByRoles(mockMenu, ['team_leader', 'admin']);
+      expect(result).toEqual(mockMenu);
+    });
+
+    it('should combine menu items from multiple roles', () => {
+      // finance_head는 조직 관리 접근 가능, team_leader는 접근 불가
+      const result = filterAdminMenuByRoles(mockMenu, ['team_leader', 'finance_head']);
+      expect(result.length).toBeGreaterThan(0);
+      expect(result.some(g => g.title === '대시보드')).toBe(true);
+      expect(result.some(g => g.title === '조직 관리')).toBe(true);
+    });
+
+    it('should return empty array if no role has access', () => {
+      const result = filterAdminMenuByRoles(mockMenu, ['team_leader', 'user']);
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array for empty roles', () => {
+      const result = filterAdminMenuByRoles(mockMenu, []);
+      expect(result).toEqual([]);
+    });
+
+    it('should filter to unique items when roles overlap', () => {
+      // accountant와 finance_head는 같은 권한을 가짐
+      const result = filterAdminMenuByRoles(mockMenu, ['accountant', 'finance_head']);
+      // 중복 없이 결과가 나와야 함
+      const allHrefs = result.flatMap(g => g.items.map(i => i.href));
+      const uniqueHrefs = [...new Set(allHrefs)];
+      expect(allHrefs.length).toBe(uniqueHrefs.length);
+    });
+
+    it('should handle real-world scenario: 재정팀장 with team_leader + finance_head', () => {
+      // 재정팀장이 team_leader와 finance_head 두 역할을 가진 경우
+      const roles = ['team_leader', 'finance_head'];
+      const result = filterAdminMenuByRoles(mockMenu, roles);
+
+      // finance_head 권한으로 조직 관리에 접근 가능해야 함
+      expect(result.some(g => g.title === '대시보드')).toBe(true);
+      expect(result.some(g => g.title === '조직 관리')).toBe(true);
+      // 하지만 사용자/역할 메뉴는 접근 불가 (admin만 가능)
+      expect(result.some(g => g.title === '사용자/역할')).toBe(false);
     });
   });
 });
