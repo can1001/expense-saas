@@ -944,3 +944,95 @@ model AdminNotification {
   @@index([createdAt])
   @@index([status])
 }
+
+// ========================================
+// 재정보고서 시스템 (Account Report System)
+// ========================================
+
+// 재정보고서 타입
+enum AccountReportType {
+  CURRENT_YEAR    // 당해년도
+  PREVIOUS_YEAR   // 전년도
+}
+
+// 재정보고서 메인
+model AccountReport {
+  id               String            @id @default(cuid())
+
+  // 보고서 정보
+  year             Int                         // 연도 (2024, 2025 등)
+  quarter          Int                         // 분기 (1~4)
+  reportType       AccountReportType           // 당해/전년
+
+  // 파일 정보
+  originalFileName String                      // 원본 파일명
+  uploadedAt       DateTime          @default(now())
+  uploadedBy       String?                     // 업로드한 사용자 ID
+
+  // 요약 정보 (1. 수지개황)
+  summaryData      Json?                       // 수지개황 JSON
+
+  // 상세 데이터 관계
+  incomeItems      AccountReportIncome[]
+  expenseItems     AccountReportExpense[]
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([year, quarter, reportType])
+  @@index([year])
+  @@index([quarter])
+  @@index([reportType])
+}
+
+// 수입부 항목 (2. 수입부)
+model AccountReportIncome {
+  id               String        @id @default(cuid())
+  reportId         String
+  report           AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  // 항목 정보
+  itemName         String                      // 항목명 (예: 주헌금, 십일조)
+  parentItemName   String?                     // 상위 항목명 (계층 구조용)
+  level            Int           @default(1)  // 계층 레벨 (1: 대분류, 2: 중분류)
+
+  // 금액 데이터
+  budgetAmount     Int           @default(0)  // 예산액
+  cumulativeAmount Int           @default(0)  // 누계
+  currentAmount    Int           @default(0)  // 당기
+  executionRate    Float         @default(0)  // 대비(%) = (누계/예산액)*100
+
+  sortOrder        Int           @default(0)  // 정렬 순서
+
+  createdAt        DateTime      @default(now())
+
+  @@index([reportId])
+  @@index([itemName])
+  @@index([level])
+}
+
+// 지출부 항목 (3. 지출부)
+model AccountReportExpense {
+  id               String        @id @default(cuid())
+  reportId         String
+  report           AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  // 항목 정보
+  itemName         String                      // 항목명 (예: 교역자사례비)
+  parentItemName   String?                     // 상위 항목명
+  level            Int           @default(1)  // 계층 레벨
+
+  // 금액 데이터
+  budgetAmount     Int           @default(0)  // 예산액
+  cumulativeAmount Int           @default(0)  // 누계
+  currentAmount    Int           @default(0)  // 당기
+  executionRate    Float         @default(0)  // 대비(%)
+
+  sortOrder        Int           @default(0)
+
+  createdAt        DateTime      @default(now())
+
+  @@index([reportId])
+  @@index([itemName])
+  @@index([level])
+}
