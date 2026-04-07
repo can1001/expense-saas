@@ -12,7 +12,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
 
 // 전체 조회 권한이 있는 역할
-const FULL_ACCESS_ROLES = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
+const FULL_ACCESS_ROLES = ['admin', 'finance_head', 'accountant', 'finance_member', 'admin_assistant'];
 
 // GET /api/expenses - 지출결의서 목록 조회 (역할 기반 필터링)
 export async function GET(request: NextRequest) {
