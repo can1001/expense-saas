@@ -1,7 +1,8 @@
 /**
  * 사용자, 역할, 연도별 역할 시드 데이터
  * 생성일: 2026-04-06
- * 사용자: 51명, 역할: 6개, 연도별역할: 28개
+ * 수정일: 2026-04-07 (finance_member 역할 및 테스트 사용자 추가)
+ * 사용자: 52명, 역할: 7개, 연도별역할: 29개
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -20,7 +21,8 @@ const roles = [
   { id: 'cmk878plq0002eg3mbyuccaqa', code: 'accountant', name: '회계', description: '2차 결재권자', stepNumber: 2, sortOrder: 2, isActive: true, canApprove: true, canManageExpense: true, canAccessAdmin: false, canExportData: true, canRegisterUsers: true },
   { id: 'cmk878poo0003eg3mq7pxz5a0', code: 'team_leader', name: '팀장', description: '1차 결재권자', stepNumber: 1, sortOrder: 3, isActive: true, canApprove: true, canManageExpense: false, canAccessAdmin: false, canExportData: false, canRegisterUsers: true },
   { id: 'cmk878pre0004eg3m9yelxwsg', code: 'admin_assistant', name: '행정간사', description: '지출관리, 데이터 내보내기 권한', stepNumber: null, sortOrder: 4, isActive: true, canApprove: false, canManageExpense: true, canAccessAdmin: false, canExportData: true, canRegisterUsers: true },
-  { id: 'cmk878pu00005eg3mptqb10hg', code: 'user', name: '사용자', description: '일반 사용자', stepNumber: null, sortOrder: 5, isActive: true, canApprove: false, canManageExpense: false, canAccessAdmin: false, canExportData: false, canRegisterUsers: false },
+  { id: 'cmnd9fm0001eg3m7fincmembr', code: 'finance_member', name: '재정팀원', description: '재정팀원 - 회계와 동일한 권한', stepNumber: 2, sortOrder: 5, isActive: true, canApprove: true, canManageExpense: true, canAccessAdmin: false, canExportData: true, canRegisterUsers: true },
+  { id: 'cmk878pu00005eg3mptqb10hg', code: 'user', name: '사용자', description: '일반 사용자', stepNumber: null, sortOrder: 6, isActive: true, canApprove: false, canManageExpense: false, canAccessAdmin: false, canExportData: false, canRegisterUsers: false },
 ];
 
 // ============================================================
@@ -78,6 +80,7 @@ const users = [
   { id: 'cmnct2ywg0003i028hniu62dn', userid: '청연테스트', username: '테스트', role: 'user', isActive: true },
   { id: 'cmk888m8900272dg98915y8ih', userid: '청연허지혜', username: '허지혜', role: 'user', isActive: true },
   { id: 'cmn1dztrd0001hh28pv4r1pt0', userid: '청연홍길동', username: '홍길동', role: 'user', isActive: true },
+  { id: 'cmnd9fm0002hh28finmembrtst', userid: '청연재정팀원', username: '재정팀원테스트', role: 'finance_member', isActive: true },
 ];
 
 // ============================================================
@@ -111,6 +114,7 @@ const userYearRoles = [
   { id: 'cmnmoxr2m00r5caq531kywa65', userId: 'cmk888n2x008q2dg9jehsp6ka', year: 2026, role: 'team_leader', roleId: 'cmk878poo0003eg3mq7pxz5a0', departmentId: 'cmk888n27008m2dg9f0o1pbsy' },
   { id: 'cmnmoxqyf00r3caq5nwyul67w', userId: 'cmkmp8uj600002eknmyzv4lb0', year: 2026, role: 'team_leader', roleId: 'cmk878poo0003eg3mq7pxz5a0', departmentId: 'cmk888n4300912dg9peipojq8' },
   { id: 'cmnmoxsbv00rncaq5vuyb0gnd', userId: 'cmnjw86b70009iv281xhjlcqp', year: 2026, role: 'team_leader', roleId: 'cmk878poo0003eg3mq7pxz5a0', departmentId: 'cmk888mg3003p2dg9kx89walb' },
+  { id: 'cmnd9fm0003yrcaq5finmembr', userId: 'cmnd9fm0002hh28finmembrtst', year: 2026, role: 'finance_member', roleId: 'cmnd9fm0001eg3m7fincmembr', departmentId: null },
 ];
 
 async function main() {
