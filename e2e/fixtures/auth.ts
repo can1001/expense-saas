@@ -32,6 +32,12 @@ export const TEST_ADMIN_ASSISTANT = {
   // roles: ['admin_assistant']
 };
 
+export const TEST_FINANCE_MEMBER = {
+  userid: '청연재정팀원',
+  password: 'chc2026',
+  // roles: ['finance_member']
+};
+
 // Extend base test with authentication
 export const test = base.extend<{ authenticatedPage: typeof base }>({
   authenticatedPage: async ({ page }, useBase) => {

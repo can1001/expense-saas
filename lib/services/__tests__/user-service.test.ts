@@ -153,6 +153,7 @@ describe('user-service', () => {
       expect(ROLE_NAMES.admin).toBe('관리자');
       expect(ROLE_NAMES.finance_head).toBe('재정팀장');
       expect(ROLE_NAMES.accountant).toBe('회계');
+      expect(ROLE_NAMES.finance_member).toBe('재정팀원');
       expect(ROLE_NAMES.team_leader).toBe('팀장');
       expect(ROLE_NAMES.admin_assistant).toBe('행정간사');
       expect(ROLE_NAMES.user).toBe('사용자');

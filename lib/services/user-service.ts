@@ -31,6 +31,7 @@ export const ROLE_NAMES: Record<string, string> = {
   admin: '관리자',
   finance_head: '재정팀장',
   accountant: '회계',
+  finance_member: '재정팀원',
   team_leader: '팀장',
   admin_assistant: '행정간사',
   user: '사용자',

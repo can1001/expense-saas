@@ -3,6 +3,7 @@ import {
   TEST_ADMIN,
   TEST_FINANCE_HEAD,
   TEST_ACCOUNTANT,
+  TEST_FINANCE_MEMBER,
   TEST_ADMIN_ASSISTANT,
   TEST_USER,
 } from './fixtures/auth';
@@ -14,6 +15,7 @@ import {
  * - 관리자(admin): 모든 메뉴 접근 가능
  * - 재정팀장(finance_head + team_leader): 제한된 메뉴 접근 (조직관리, 세목별 담당자, 결산/실적, 수입관리)
  * - 회계(accountant): 제한된 메뉴 접근
+ * - 재정팀원(finance_member): 회계와 동일한 제한된 메뉴 접근
  * - 행정간사(admin_assistant): 제한된 메뉴 접근
  * - 일반 사용자(user/team_leader only): 관리 메뉴 접근 불가
  */
@@ -175,6 +177,47 @@ test.describe('Admin Menu Access - Multi-role Support', () => {
     });
   });
 
+  test.describe('Finance Member (재정팀원)', () => {
+    test('should see admin menu in header', async ({ page }) => {
+      await login(page, TEST_FINANCE_MEMBER.userid, TEST_FINANCE_MEMBER.password);
+
+      await page.waitForSelector('header nav', { timeout: 10000 });
+      await expect(page.locator('header nav a[href="/admin"]')).toBeVisible({ timeout: 10000 });
+    });
+
+    test('should access admin dashboard', async ({ page }) => {
+      await login(page, TEST_FINANCE_MEMBER.userid, TEST_FINANCE_MEMBER.password);
+
+      await page.goto('/admin');
+      await expect(page).toHaveURL('/admin');
+      await expect(page.getByText('권한 확인 중...')).not.toBeVisible({ timeout: 10000 });
+    });
+
+    test('should access committees management page', async ({ page }) => {
+      await login(page, TEST_FINANCE_MEMBER.userid, TEST_FINANCE_MEMBER.password);
+
+      await page.goto('/admin/committees');
+      await expect(page).toHaveURL('/admin/committees');
+      await expect(page.getByText('권한 확인 중...')).not.toBeVisible({ timeout: 10000 });
+    });
+
+    test('should access budget-view page', async ({ page }) => {
+      await login(page, TEST_FINANCE_MEMBER.userid, TEST_FINANCE_MEMBER.password);
+
+      await page.goto('/admin/budget-view');
+      await expect(page).toHaveURL('/admin/budget-view');
+      await expect(page.getByText('권한 확인 중...')).not.toBeVisible({ timeout: 10000 });
+    });
+
+    test('should be redirected when accessing users page (restricted)', async ({ page }) => {
+      await login(page, TEST_FINANCE_MEMBER.userid, TEST_FINANCE_MEMBER.password);
+
+      await page.goto('/admin/users');
+      // finance_member는 /admin/users 접근 불가 -> /admin으로 리다이��트
+      await expect(page).toHaveURL('/admin', { timeout: 10000 });
+    });
+  });
+
   test.describe('Regular User (일반 사용자)', () => {
     test('should not see admin menu in header', async ({ page }) => {
       await login(page, TEST_USER.userid, TEST_USER.password);
@@ -223,6 +266,20 @@ test.describe('Admin Sidebar Menu Filtering', () => {
     // 사용자/역할 그룹은 보이지 않아야 함
     await expect(page.getByRole('heading', { name: /사용자\/역할/i })).not.toBeVisible();
   });
+
+  test('finance_member should see limited menu groups (same as accountant)', async ({ page }) => {
+    await login(page, TEST_FINANCE_MEMBER.userid, TEST_FINANCE_MEMBER.password);
+
+    await page.goto('/admin');
+    await expect(page.getByText('권한 확인 중...')).not.toBeVisible({ timeout: 10000 });
+
+    await page.setViewportSize({ width: 1280, height: 720 });
+
+    // 조직 관리 그룹은 보여야 함
+    await expect(page.getByRole('heading', { name: /조직 관리/i })).toBeVisible();
+    // 사용자/역할 그룹은 보이지 않아야 함
+    await expect(page.getByRole('heading', { name: /사용자\/역할/i })).not.toBeVisible();
+  });
 });
 
 test.describe('API /api/auth/me - Multi-role Response', () => {
@@ -252,6 +309,17 @@ test.describe('API /api/auth/me - Multi-role Response', () => {
     const data = await response.json();
     expect(data.user.roles).toBeDefined();
     expect(data.user.roles).toContain('accountant');
+  });
+
+  test('should return roles array for finance_member', async ({ page }) => {
+    await login(page, TEST_FINANCE_MEMBER.userid, TEST_FINANCE_MEMBER.password);
+
+    const response = await page.request.get('/api/auth/me');
+    expect(response.ok()).toBeTruthy();
+
+    const data = await response.json();
+    expect(data.user.roles).toBeDefined();
+    expect(data.user.roles).toContain('finance_member');
   });
 
   test('should return admin role for admin user', async ({ page }) => {
