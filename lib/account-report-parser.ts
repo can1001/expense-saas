@@ -420,42 +420,44 @@ export function validateParsedReport(report: ParsedAccountReport): {
     warnings.push('요약 데이터의 수입/지출 총계가 0입니다.');
   }
 
-  // 수입 합계와 요약의 수입총계 비교 (5% 초과 시 오류)
-  const incomeTotal = report.incomeItems
+  // 수입 누계 합계와 요약의 누계 수입총계 비교 (5% 초과 시 오류)
+  const incomeCumulativeTotal = report.incomeItems
     .filter((item) => item.level === 1)
     .reduce((sum, item) => sum + item.cumulativeAmount, 0);
 
-  if (incomeTotal > 0) {
-    const incomeDifference = Math.abs(incomeTotal - summary.current.totalIncome);
-    const incomeErrorRate = (incomeDifference / summary.current.totalIncome) * 100;
+  const summaryIncomeCumulative = summary.cumulative.totalIncome;
+  if (incomeCumulativeTotal > 0 && summaryIncomeCumulative > 0) {
+    const incomeDifference = Math.abs(incomeCumulativeTotal - summaryIncomeCumulative);
+    const incomeErrorRate = (incomeDifference / summaryIncomeCumulative) * 100;
 
     if (incomeErrorRate > 5) {
       warnings.push(
-        `수입 항목 합계 오차율이 ${incomeErrorRate.toFixed(2)}%로 5%를 초과합니다. (항목합계: ${incomeTotal.toLocaleString()}, 요약: ${summary.current.totalIncome.toLocaleString()})`
+        `수입 항목 누계 합계 오차율이 ${incomeErrorRate.toFixed(2)}%로 5%를 초과합니다. (항목합계: ${incomeCumulativeTotal.toLocaleString()}, 요약누계: ${summaryIncomeCumulative.toLocaleString()})`
       );
     } else if (incomeDifference > 1000) {
       warnings.push(
-        `수입 항목 합계(${incomeTotal.toLocaleString()})와 요약의 수입총계(${summary.current.totalIncome.toLocaleString()})가 다릅니다. (오차율: ${incomeErrorRate.toFixed(2)}%)`
+        `수입 항목 누계 합계(${incomeCumulativeTotal.toLocaleString()})와 요약의 누계 수입총계(${summaryIncomeCumulative.toLocaleString()})가 다릅니다. (오차율: ${incomeErrorRate.toFixed(2)}%)`
       );
     }
   }
 
-  // 지출 합계와 요약의 지출총계 비교 (5% 초과 시 오류)
-  const expenseTotal = report.expenseItems
+  // 지출 누계 합계와 요약의 누계 지출총계 비교 (5% 초과 시 오류)
+  const expenseCumulativeTotal = report.expenseItems
     .filter((item) => item.level === 1)
     .reduce((sum, item) => sum + item.cumulativeAmount, 0);
 
-  if (expenseTotal > 0) {
-    const expenseDifference = Math.abs(expenseTotal - summary.current.totalExpense);
-    const expenseErrorRate = (expenseDifference / summary.current.totalExpense) * 100;
+  const summaryExpenseCumulative = summary.cumulative.totalExpense;
+  if (expenseCumulativeTotal > 0 && summaryExpenseCumulative > 0) {
+    const expenseDifference = Math.abs(expenseCumulativeTotal - summaryExpenseCumulative);
+    const expenseErrorRate = (expenseDifference / summaryExpenseCumulative) * 100;
 
     if (expenseErrorRate > 5) {
       warnings.push(
-        `지출 항목 합계 오차율이 ${expenseErrorRate.toFixed(2)}%로 5%를 초과합니다. (항목합계: ${expenseTotal.toLocaleString()}, 요약: ${summary.current.totalExpense.toLocaleString()})`
+        `지출 항목 누계 합계 오차율이 ${expenseErrorRate.toFixed(2)}%로 5%를 초과합니다. (항목합계: ${expenseCumulativeTotal.toLocaleString()}, 요약누계: ${summaryExpenseCumulative.toLocaleString()})`
       );
     } else if (expenseDifference > 1000) {
       warnings.push(
-        `지출 항목 합계(${expenseTotal.toLocaleString()})와 요약의 지출총계(${summary.current.totalExpense.toLocaleString()})가 다릅니다. (오차율: ${expenseErrorRate.toFixed(2)}%)`
+        `지출 항목 누계 합계(${expenseCumulativeTotal.toLocaleString()})와 요약의 누계 지출총계(${summaryExpenseCumulative.toLocaleString()})가 다릅니다. (오차율: ${expenseErrorRate.toFixed(2)}%)`
       );
     }
   }
