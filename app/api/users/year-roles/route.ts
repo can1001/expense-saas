@@ -71,10 +71,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 역할 검증 (admin, user는 연도별 역할로 설정 불가)
-    const validYearRoles: UserRole[] = ['finance_head', 'accountant', 'team_leader', 'admin_assistant'];
+    const validYearRoles: UserRole[] = ['finance_head', 'accountant', 'finance_member', 'team_leader', 'admin_assistant'];
     if (!validYearRoles.includes(role)) {
       return NextResponse.json(
-        { error: 'Invalid role for year role. Valid roles: finance_head, accountant, team_leader, admin_assistant' },
+        { error: 'Invalid role for year role. Valid roles: finance_head, accountant, finance_member, team_leader, admin_assistant' },
         { status: 400 }
       );
     }

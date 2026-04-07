@@ -3,7 +3,7 @@ import { User, UserYearRole, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 // 역할 코드 타입 (Role.code와 동일)
-export type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
+export type UserRole = 'admin' | 'finance_head' | 'accountant' | 'finance_member' | 'team_leader' | 'admin_assistant' | 'user';
 
 // 현재 연도
 export const CURRENT_YEAR = new Date().getFullYear();

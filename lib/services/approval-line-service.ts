@@ -10,7 +10,7 @@
 import { prisma } from '@/lib/prisma';
 
 // 역할 코드 타입 (Role.code와 동일)
-type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
+type UserRole = 'admin' | 'finance_head' | 'accountant' | 'finance_member' | 'team_leader' | 'admin_assistant' | 'user';
 
 export interface ApprovalStepInfo {
   stepNumber: number;

@@ -8,7 +8,7 @@
 import { prisma } from '@/lib/prisma';
 
 // 역할 코드 타입
-type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
+type UserRole = 'admin' | 'finance_head' | 'accountant' | 'finance_member' | 'team_leader' | 'admin_assistant' | 'user';
 
 /**
  * 연도별 역할 담당자 조회
