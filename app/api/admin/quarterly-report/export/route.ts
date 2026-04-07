@@ -82,11 +82,11 @@ export async function GET(request: NextRequest) {
         orderBy: [{ committee: 'asc' }, { department: 'asc' }],
       }),
       prisma.expenseItem.groupBy({
-        by: ['budgetCategory', 'budgetSubcategory'],
+        by: ['budgetCategory', 'budgetSubcategory', 'budgetDetail'],
         where: { expense: finalWhere },
         _count: { id: true },
         _sum: { amount: true },
-        orderBy: [{ budgetCategory: 'asc' }, { budgetSubcategory: 'asc' }],
+        orderBy: [{ budgetCategory: 'asc' }, { budgetSubcategory: 'asc' }, { budgetDetail: 'asc' }],
       }),
     ]);
 
@@ -301,19 +301,32 @@ export async function GET(request: NextRequest) {
       Object.assign(cell, { style: headerStyle });
     });
 
-    // 지출 데이터를 예산목별로 집계 (분기)
+    // 지출 데이터를 예산목별/세목별로 집계 (분기)
     const spentBySubcategory = new Map<string, { count: number; amount: number }>();
+    const spentByDetail = new Map<string, { count: number; amount: number }>();
+
     categoryAgg.forEach((item) => {
-      const key = `${item.budgetCategory}|${item.budgetSubcategory}`;
-      spentBySubcategory.set(key, {
-        count: item._count.id,
-        amount: item._sum.amount || 0,
-      });
+      const subKey = `${item.budgetCategory}|${item.budgetSubcategory}`;
+      const detailKey = `${item.budgetCategory}|${item.budgetSubcategory}|${item.budgetDetail}`;
+      const amount = item._sum.amount || 0;
+      const count = item._count.id;
+
+      // 목별 집계
+      const existing = spentBySubcategory.get(subKey);
+      if (existing) {
+        existing.count += count;
+        existing.amount += amount;
+      } else {
+        spentBySubcategory.set(subKey, { count, amount });
+      }
+
+      // 세목별 집계
+      spentByDetail.set(detailKey, { count, amount });
     });
 
-    // 연간 지출 집계
+    // 연간 지출 집계 (세목까지 포함)
     const yearlyCategoryAgg = await prisma.expenseItem.groupBy({
-      by: ['budgetCategory', 'budgetSubcategory'],
+      by: ['budgetCategory', 'budgetSubcategory', 'budgetDetail'],
       where: {
         expense: {
           status: 'APPROVED_FINAL',
@@ -322,10 +335,18 @@ export async function GET(request: NextRequest) {
       },
       _sum: { amount: true },
     });
+
     const yearlySpentBySubcategory = new Map<string, number>();
+    const yearlySpentByDetail = new Map<string, number>();
     yearlyCategoryAgg.forEach((item) => {
-      const key = `${item.budgetCategory}|${item.budgetSubcategory}`;
-      yearlySpentBySubcategory.set(key, item._sum.amount || 0);
+      const subKey = `${item.budgetCategory}|${item.budgetSubcategory}`;
+      const detailKey = `${item.budgetCategory}|${item.budgetSubcategory}|${item.budgetDetail}`;
+      const amount = item._sum.amount || 0;
+
+      // 목별 연간 집계
+      yearlySpentBySubcategory.set(subKey, (yearlySpentBySubcategory.get(subKey) || 0) + amount);
+      // 세목별 연간 집계
+      yearlySpentByDetail.set(detailKey, amount);
     });
 
     // 모든 예산 카테고리에 대해 행 생성
@@ -370,6 +391,51 @@ export async function GET(request: NextRequest) {
     catSheet.getColumn('budgetAmount').numFmt = '#,##0';
     catSheet.getColumn('yearlySpent').numFmt = '#,##0';
     catSheet.getColumn('yearlyRemaining').numFmt = '#,##0';
+
+    // 5. 세목별 상세 시트
+    const detailSheet = workbook.addWorksheet('세목별상세');
+    detailSheet.columns = [
+      { header: '예산(항)', key: 'category', width: 20 },
+      { header: '예산(목)', key: 'subcategory', width: 20 },
+      { header: '예산(세목)', key: 'detail', width: 25 },
+      { header: '분기지출', key: 'spentAmount', width: 15 },
+      { header: '건수', key: 'count', width: 10 },
+      { header: '연간지출', key: 'yearlySpent', width: 15 },
+      { header: '비율(%)', key: 'ratio', width: 12 },
+    ];
+    detailSheet.getRow(1).eachCell((cell) => {
+      Object.assign(cell, { style: headerStyle });
+    });
+
+    // 세목별 데이터를 정렬하여 추가
+    const detailEntries = Array.from(spentByDetail.entries())
+      .map(([key, data]) => {
+        const [category, subcategory, detail] = key.split('|');
+        const yearlySpent = yearlySpentByDetail.get(key) || 0;
+        const ratio = totalAmount > 0 ? Math.round((data.amount / totalAmount) * 1000) / 10 : 0;
+        return {
+          category,
+          subcategory,
+          detail,
+          spentAmount: data.amount,
+          count: data.count,
+          yearlySpent,
+          ratio,
+        };
+      })
+      .sort((a, b) => {
+        if (a.category !== b.category) return a.category.localeCompare(b.category);
+        if (a.subcategory !== b.subcategory) return a.subcategory.localeCompare(b.subcategory);
+        return a.detail.localeCompare(b.detail);
+      });
+
+    detailEntries.forEach((item) => {
+      const newRow = detailSheet.addRow(item);
+      newRow.eachCell((cell) => { cell.border = cellBorder; });
+    });
+
+    detailSheet.getColumn('spentAmount').numFmt = '#,##0';
+    detailSheet.getColumn('yearlySpent').numFmt = '#,##0';
 
     // Buffer로 변환
     const buffer = await workbook.xlsx.writeBuffer();

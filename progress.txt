@@ -58,3 +58,13 @@
 - 발견한 패턴: 기존 헌금 관리 API와 동일한 권한 검증 패턴 (getCurrentUser + ALLOWED_ROLES)
 - 주의사항: 권한 없는 사용자는 403 Forbidden 응답 받음
 ---
+
+[TASK] 재정보고서 UI 아코디언 확장 - 완료 - 23:33
+- 구현 내용: 계정과목별 테이블에 3단계 계층(항→목→세목) 아코디언 지원 추가
+- 수정/생성 파일:
+  - 수정: app/api/admin/quarterly-report/route.ts (budgetDetail 포함한 3단계 집계, categoryMap에 details 배열 추가)
+  - 수정: app/admin/quarterly-report/page.tsx (expandedSubcategories 상태, toggleSubcategory 함수, 세목 UI 추가)
+  - 수정: PRD.md (체크박스 완료 표시)
+- 발견한 패턴: 부서별 테이블과 동일한 다단계 계층 구조, Fragment 활용한 중첩 아코디언 패턴
+- 주의사항: 세목별 예산은 현재 관리하지 않아 '-' 표시, 연간/분기 지출액만 표시 가능
+---
