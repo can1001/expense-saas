@@ -1,14 +1,35 @@
 import { test as base, expect } from '@playwright/test';
 
 // Test user credentials (should exist in test database)
+// Default password: chc2026
+
 export const TEST_USER = {
   userid: 'testuser',
   password: 'test1234',
 };
 
 export const TEST_ADMIN = {
-  userid: 'admin',
-  password: 'admin1234',
+  userid: '청연관리자',
+  password: 'chc2026',
+};
+
+// 다중 역할 테스트용 사용자
+export const TEST_FINANCE_HEAD = {
+  userid: '청연윤운문',
+  password: 'chc2026',
+  // roles: ['team_leader', 'finance_head']
+};
+
+export const TEST_ACCOUNTANT = {
+  userid: '청연정혜종',
+  password: 'chc2026',
+  // roles: ['accountant']
+};
+
+export const TEST_ADMIN_ASSISTANT = {
+  userid: '청연송원경',
+  password: 'chc2026',
+  // roles: ['admin_assistant']
 };
 
 // Extend base test with authentication

@@ -48,7 +48,6 @@ import {
   deleteYearRole,
   getYearRoles,
   canApproveByYear,
-  getUserAllYearRoles,
 } from '../user-service';
 
 // Mock Prisma
