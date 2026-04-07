@@ -390,10 +390,21 @@ export async function findUsers(options?: {
 // 연도별 역할 관리 함수들
 // ========================================
 
+// 역할 우선순위 (낮을수록 높은 우선순위)
+// 다중 역할인 경우 가장 높은 우선순위의 역할을 반환
+const ROLE_PRIORITY: Record<string, number> = {
+  'finance_head': 0,
+  'accountant': 1,
+  'finance_member': 2,
+  'admin_assistant': 3,
+  'team_leader': 4,
+  'user': 99,
+};
+
 /**
  * 사용자의 유효 역할 가져오기 (연도 기준)
  * - User.role이 admin이면 admin 반환
- * - 아니면 해당 연도의 UserYearRole에서 역할 조회
+ * - 아니면 해당 연도의 UserYearRole에서 역할 조회 (우선순위 적용)
  * - 없으면 user 반환
  */
 export async function getEffectiveRole(
@@ -418,9 +429,14 @@ export async function getEffectiveRole(
     return { role: 'admin', departmentId: null };
   }
 
-  // 연도별 역할이 있으면 해당 역할 반환
-  const yearRole = user.yearRoles?.[0];
-  if (yearRole) {
+  // 연도별 역할이 있으면 우선순위에 따라 정렬하여 가장 높은 역할 반환
+  if (user.yearRoles && user.yearRoles.length > 0) {
+    const sortedYearRoles = [...user.yearRoles].sort((a, b) => {
+      const aPriority = ROLE_PRIORITY[a.role] ?? 99;
+      const bPriority = ROLE_PRIORITY[b.role] ?? 99;
+      return aPriority - bPriority;
+    });
+    const yearRole = sortedYearRoles[0];
     return { role: yearRole.role, departmentId: yearRole.departmentId };
   }
 
