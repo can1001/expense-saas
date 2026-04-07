@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import AdminSidebar from './AdminSidebar';
 import { Menu } from 'lucide-react';
+import { canAccessAdminMenuPath, canAccessAdminMenu } from '@/lib/constants/menu-permissions';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -11,6 +13,55 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // 페이지 접근 권한 확인
+  useEffect(() => {
+    const checkAuthorization = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        const data = await response.json();
+
+        if (!response.ok || !data.user) {
+          router.push('/login');
+          return;
+        }
+
+        // 관리 메뉴 접근 권한 자체가 없는 경우
+        if (!canAccessAdminMenu(data.user.role)) {
+          router.push('/');
+          return;
+        }
+
+        // 특정 페이지 접근 권한 확인
+        const hasAccess = canAccessAdminMenuPath(data.user.role, pathname);
+        if (!hasAccess) {
+          router.push('/admin');
+          return;
+        }
+
+        setIsAuthorized(true);
+      } catch {
+        router.push('/login');
+      }
+    };
+
+    checkAuthorization();
+  }, [pathname, router]);
+
+  // 권한 확인 중 로딩
+  if (isAuthorized === null) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <div className="text-gray-500">권한 확인 중...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

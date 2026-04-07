@@ -35,7 +35,51 @@ export const APPROVAL_MENU_ROLES: UserRole[] = [
 // 관리 메뉴 접근 가능 역할
 export const ADMIN_MENU_ROLES: UserRole[] = [
   'admin',
+  'finance_head',
+  'accountant',
+  'admin_assistant',
 ];
+
+// 역할별 접근 가능한 관리자 메뉴 경로 정의
+export const ROLE_ADMIN_MENU_PATHS: Record<string, string[] | 'all'> = {
+  admin: 'all', // 모든 메뉴 접근
+  accountant: [
+    '/admin',                      // 대시보드 홈
+    '/admin/committees',           // 위원회 관리
+    '/admin/departments',          // 사역팀(부) 관리
+    '/admin/budget-managers',      // 세목별 담당자
+    '/admin/budget-view',          // 예산 현황 조회
+    '/admin/budget-execution',     // 사역비 집행 현황
+    '/admin/hr-admin-execution',   // 인사/행정비 현황
+    '/admin/quarterly-report',     // 분기별 회계보고
+    '/admin/cumulative-report',    // 분기별 누적 현황
+    '/admin/offerings',            // 헌금 관리
+  ],
+  admin_assistant: [
+    '/admin',
+    '/admin/committees',
+    '/admin/departments',
+    '/admin/budget-managers',
+    '/admin/budget-view',
+    '/admin/budget-execution',
+    '/admin/hr-admin-execution',
+    '/admin/quarterly-report',
+    '/admin/cumulative-report',
+    '/admin/offerings',
+  ],
+  finance_head: [
+    '/admin',
+    '/admin/committees',
+    '/admin/departments',
+    '/admin/budget-managers',
+    '/admin/budget-view',
+    '/admin/budget-execution',
+    '/admin/hr-admin-execution',
+    '/admin/quarterly-report',
+    '/admin/cumulative-report',
+    '/admin/offerings',
+  ],
+};
 
 /**
  * 확장 메뉴 접근 권한 체크
@@ -81,4 +125,50 @@ export function canShowUserRegisterMenu(user: {
   if (user.roleRef?.canRegisterUsers) return true;
 
   return false;
+}
+
+/**
+ * 특정 관리자 메뉴 경로 접근 권한 체크
+ */
+export function canAccessAdminMenuPath(role: string, path: string): boolean {
+  const allowedPaths = ROLE_ADMIN_MENU_PATHS[role];
+  if (!allowedPaths) return false;
+  if (allowedPaths === 'all') return true;
+
+  return allowedPaths.some(allowed => {
+    // /admin 홈은 정확히 일치하는 경우에만 허용
+    if (allowed === '/admin') {
+      return path === '/admin';
+    }
+    // 다른 경로는 정확히 일치하거나 하위 경로인 경우 허용
+    return path === allowed || path.startsWith(allowed + '/');
+  });
+}
+
+/**
+ * 역할별 접근 가능한 메뉴 그룹 필터링
+ */
+export function filterAdminMenuByRole<T extends { items: { href: string }[] }>(
+  menu: T[],
+  role: string
+): T[] {
+  const allowedPaths = ROLE_ADMIN_MENU_PATHS[role];
+  if (!allowedPaths) return [];
+  if (allowedPaths === 'all') return menu;
+
+  return menu
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item =>
+        allowedPaths.some(allowed => {
+          // /admin 홈은 정확히 일치하는 경우에만 허용
+          if (allowed === '/admin') {
+            return item.href === '/admin';
+          }
+          // 다른 경로는 정확히 일치하거나 하위 경로인 경우 허용
+          return item.href === allowed || item.href.startsWith(allowed + '/');
+        })
+      ),
+    }))
+    .filter(group => group.items.length > 0) as T[];
 }
