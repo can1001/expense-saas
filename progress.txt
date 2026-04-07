@@ -48,3 +48,13 @@
 ---
 
 완료: Mon Mar 30 00:49:39 KST 2026
+
+[TASK] 재정보고서 API 권한 검증 추가 - 완료 - 23:26
+- 구현 내용: finance_head, accountant, finance_member만 재정보고서 API 접근 가능
+- 수정/생성 파일:
+  - 수정: app/api/admin/quarterly-report/route.ts (getCurrentUser() 및 권한 검증 추가)
+  - 수정: app/api/admin/quarterly-report/export/route.ts (getCurrentUser() 및 권한 검증 추가)
+  - 수정: PRD.md (체크박스 완료 표시)
+- 발견한 패턴: 기존 헌금 관리 API와 동일한 권한 검증 패턴 (getCurrentUser + ALLOWED_ROLES)
+- 주의사항: 권한 없는 사용자는 403 Forbidden 응답 받음
+---

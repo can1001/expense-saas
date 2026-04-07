@@ -371,16 +371,16 @@ export async function GET(request: NextRequest) {
     };
 
     const categoryAggregation = await prisma.expenseItem.groupBy({
-      by: ['budgetCategory', 'budgetSubcategory'],
+      by: ['budgetCategory', 'budgetSubcategory', 'budgetDetail'],
       where: itemBaseWhere,
       _count: { id: true },
       _sum: { amount: true },
-      orderBy: [{ budgetCategory: 'asc' }, { budgetSubcategory: 'asc' }],
+      orderBy: [{ budgetCategory: 'asc' }, { budgetSubcategory: 'asc' }, { budgetDetail: 'asc' }],
     });
 
-    // 5-1. 계정과목별 연간 지출 집계
+    // 5-1. 계정과목별 연간 지출 집계 (세목까지 포함)
     const yearlyCategoryAggregation = await prisma.expenseItem.groupBy({
-      by: ['budgetCategory', 'budgetSubcategory'],
+      by: ['budgetCategory', 'budgetSubcategory', 'budgetDetail'],
       where: {
         expense: {
           status: 'APPROVED_FINAL',
@@ -388,21 +388,24 @@ export async function GET(request: NextRequest) {
         },
       },
       _sum: { amount: true },
-      orderBy: [{ budgetCategory: 'asc' }, { budgetSubcategory: 'asc' }],
+      orderBy: [{ budgetCategory: 'asc' }, { budgetSubcategory: 'asc' }, { budgetDetail: 'asc' }],
     });
 
-    // 연간 지출 맵 생성
+    // 연간 지출 맵 생성 (세목별 포함)
     const yearlySpentByCategory = new Map<string, number>();
     const yearlySpentBySubcategory = new Map<string, number>();
+    const yearlySpentByDetail = new Map<string, number>();
     yearlyCategoryAggregation.forEach((item) => {
       const catKey = item.budgetCategory;
       const subKey = `${item.budgetCategory}|${item.budgetSubcategory}`;
+      const detailKey = `${item.budgetCategory}|${item.budgetSubcategory}|${item.budgetDetail}`;
       const amount = item._sum.amount || 0;
       yearlySpentByCategory.set(catKey, (yearlySpentByCategory.get(catKey) || 0) + amount);
-      yearlySpentBySubcategory.set(subKey, amount);
+      yearlySpentBySubcategory.set(subKey, (yearlySpentBySubcategory.get(subKey) || 0) + amount);
+      yearlySpentByDetail.set(detailKey, amount);
     });
 
-    // 예산항별로 그룹핑하고 예산목을 하위로 정리 (예산 정보 포함)
+    // 예산항별로 그룹핑하고 예산목, 예산세목을 하위로 정리 (예산 정보 포함)
     const categoryMap = new Map<string, {
       category: string;
       count: number;
@@ -413,13 +416,22 @@ export async function GET(request: NextRequest) {
         count: number;
         spentAmount: number;
         budgetAmount: number;
+        details: Array<{
+          detail: string;
+          count: number;
+          spentAmount: number;
+          budgetAmount: number;
+        }>;
       }>;
     }>();
 
     let itemTotalAmount = 0;
+
+    // 3단계 계층 데이터 구조 생성 (항 → 목 → 세목)
     categoryAggregation.forEach((item) => {
       itemTotalAmount += item._sum.amount || 0;
 
+      // 항 레벨
       if (!categoryMap.has(item.budgetCategory)) {
         categoryMap.set(item.budgetCategory, {
           category: item.budgetCategory,
@@ -434,12 +446,30 @@ export async function GET(request: NextRequest) {
       cat.count += item._count.id;
       cat.spentAmount += item._sum.amount || 0;
 
-      const subBudget = budgetBySubcategory.get(`${item.budgetCategory}|${item.budgetSubcategory}`) || 0;
-      cat.subcategories.push({
-        subcategory: item.budgetSubcategory,
+      // 목 레벨
+      let sub = cat.subcategories.find(s => s.subcategory === item.budgetSubcategory);
+      if (!sub) {
+        const subBudget = budgetBySubcategory.get(`${item.budgetCategory}|${item.budgetSubcategory}`) || 0;
+        sub = {
+          subcategory: item.budgetSubcategory,
+          count: 0,
+          spentAmount: 0,
+          budgetAmount: subBudget,
+          details: [],
+        };
+        cat.subcategories.push(sub);
+      }
+
+      sub.count += item._count.id;
+      sub.spentAmount += item._sum.amount || 0;
+
+      // 세목 레벨
+      const detailBudget = 0; // 세목별 예산은 현재 별도로 관리하지 않음
+      sub.details.push({
+        detail: item.budgetDetail,
         count: item._count.id,
         spentAmount: item._sum.amount || 0,
-        budgetAmount: subBudget,
+        budgetAmount: detailBudget,
       });
     });
 
@@ -457,7 +487,42 @@ export async function GET(request: NextRequest) {
               count: 0,
               spentAmount: 0,
               budgetAmount: budgetBySubcategory.get(`${cat.name}|${sub.name}`) || 0,
+              details: sub.details.map((detail) => ({
+                detail: detail.name,
+                count: 0,
+                spentAmount: 0,
+                budgetAmount: 0, // 세목별 예산은 현재 별도로 관리하지 않음
+              })),
             })),
+        });
+      } else {
+        // 기존에 있는 카테고리의 경우, 지출이 없는 목과 세목 추가
+        const existingCat = categoryMap.get(cat.name)!;
+        cat.subcategories.forEach((sub) => {
+          let existingSub = existingCat.subcategories.find(s => s.subcategory === sub.name);
+          if (!existingSub) {
+            existingSub = {
+              subcategory: sub.name,
+              count: 0,
+              spentAmount: 0,
+              budgetAmount: budgetBySubcategory.get(`${cat.name}|${sub.name}`) || 0,
+              details: [],
+            };
+            existingCat.subcategories.push(existingSub);
+          }
+
+          // 지출이 없는 세목 추가
+          sub.details.forEach((detail) => {
+            const existingDetail = existingSub.details.find(d => d.detail === detail.name);
+            if (!existingDetail) {
+              existingSub.details.push({
+                detail: detail.name,
+                count: 0,
+                spentAmount: 0,
+                budgetAmount: 0,
+              });
+            }
+          });
         });
       }
     });
@@ -512,6 +577,15 @@ export async function GET(request: NextRequest) {
               quarterlyRemaining: subQuarterlyRemaining,
               quarterlyExecutionRate: subQuarterlyExecutionRate,
               ratio: itemTotalAmount > 0 ? Math.round((sub.spentAmount / itemTotalAmount) * 1000) / 10 : 0,
+              // 세목 정보
+              details: sub.details.map((detail) => {
+                const detailYearlySpentAmount = yearlySpentByDetail.get(`${cat.category}|${sub.subcategory}|${detail.detail}`) || 0;
+                return {
+                  ...detail,
+                  yearlySpentAmount: detailYearlySpentAmount,
+                  ratio: itemTotalAmount > 0 ? Math.round((detail.spentAmount / itemTotalAmount) * 1000) / 10 : 0,
+                };
+              }).sort((a, b) => a.detail.localeCompare(b.detail)),
             };
           }),
         };

@@ -117,6 +117,14 @@ interface QuarterlyReportData {
       quarterlyRemaining: number;
       quarterlyExecutionRate: number;
       ratio: number;
+      details: Array<{
+        detail: string;
+        count: number;
+        spentAmount: number;
+        budgetAmount: number;
+        yearlySpentAmount: number;
+        ratio: number;
+      }>;
     }>;
   }>;
   filterOptions: {
@@ -142,6 +150,7 @@ export default function QuarterlyReportPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<QuarterlyReportData | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [expandedSubcategories, setExpandedSubcategories] = useState<Set<string>>(new Set());
   // 부서별 계층용 상태
   const [expandedCommittees, setExpandedCommittees] = useState<Set<string>>(new Set());
   const [expandedDepartments, setExpandedDepartments] = useState<Set<string>>(new Set());
@@ -181,6 +190,16 @@ export default function QuarterlyReportPage() {
       const next = new Set(prev);
       if (next.has(categoryName)) {
         next.delete(categoryName);
+        // 하위 세목도 접기
+        setExpandedSubcategories((prevSub) => {
+          const nextSub = new Set(prevSub);
+          prevSub.forEach((key) => {
+            if (key.startsWith(categoryName + '|')) {
+              nextSub.delete(key);
+            }
+          });
+          return nextSub;
+        });
       } else {
         next.add(categoryName);
       }
@@ -188,14 +207,40 @@ export default function QuarterlyReportPage() {
     });
   };
 
+  const toggleSubcategory = (categoryName: string, subcategoryName: string) => {
+    const key = `${categoryName}|${subcategoryName}`;
+    setExpandedSubcategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
   const expandAll = () => {
     if (data) {
+      // 모든 항 펼치기
       setExpandedCategories(new Set(data.byCategory.map((c) => c.category)));
+
+      // 모든 목 펼치기
+      const allSubcategories = new Set<string>();
+      data.byCategory.forEach((cat) => {
+        cat.subcategories.forEach((sub) => {
+          if (sub.details && sub.details.length > 0) {
+            allSubcategories.add(`${cat.category}|${sub.subcategory}`);
+          }
+        });
+      });
+      setExpandedSubcategories(allSubcategories);
     }
   };
 
   const collapseAll = () => {
     setExpandedCategories(new Set());
+    setExpandedSubcategories(new Set());
   };
 
   // 위원회 토글
@@ -963,11 +1008,31 @@ export default function QuarterlyReportPage() {
                         )}
                       </tr>
                       {expandedCategories.has(cat.category) &&
-                        cat.subcategories.map((sub, i) => (
-                          <tr key={`${cat.category}-${i}`} className="bg-gray-50">
-                            <td className={TABLE_CELL}>
-                              <div className="pl-8 text-gray-600">└ {sub.subcategory}</div>
-                            </td>
+                        cat.subcategories.map((sub, i) => {
+                          const subKey = `${cat.category}|${sub.subcategory}`;
+                          const hasDetails = sub.details && sub.details.length > 0;
+                          const isSubExpanded = expandedSubcategories.has(subKey);
+
+                          return (
+                            <Fragment key={`${cat.category}-${i}`}>
+                              <tr
+                                className={`bg-gray-50 ${hasDetails ? 'cursor-pointer hover:bg-gray-100' : ''}`}
+                                onClick={hasDetails ? () => toggleSubcategory(cat.category, sub.subcategory) : undefined}
+                              >
+                                <td className={TABLE_CELL}>
+                                  <div className="pl-8 text-gray-600 flex items-center gap-2">
+                                    {hasDetails && (
+                                      <>
+                                        {isSubExpanded ? (
+                                          <ChevronDown className="w-3 h-3 text-gray-400" />
+                                        ) : (
+                                          <ChevronRight className="w-3 h-3 text-gray-400" />
+                                        )}
+                                      </>
+                                    )}
+                                    <span>└ {sub.subcategory}</span>
+                                  </div>
+                                </td>
                             <td className={`${TABLE_CELL_RIGHT} text-gray-600`}>
                               {formatAmount(sub.quarterlyBudget)}
                             </td>
@@ -1026,8 +1091,43 @@ export default function QuarterlyReportPage() {
                                 </td>
                               </>
                             )}
-                          </tr>
-                        ))}
+                              </tr>
+
+                              {/* Level 3: 세목 */}
+                              {isSubExpanded && hasDetails &&
+                                sub.details.map((detail, detailIdx) => (
+                                  <tr key={`${subKey}-${detailIdx}`} className="bg-blue-50">
+                                    <td className={TABLE_CELL}>
+                                      <div className="pl-12 text-gray-500 text-sm">
+                                        └ <span className="text-xs text-gray-400">세목:</span> {detail.detail}
+                                      </div>
+                                    </td>
+                                    <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>-</td>
+                                    <td className={`${TABLE_CELL_RIGHT} text-gray-500 text-sm`}>
+                                      {formatAmount(detail.spentAmount)}
+                                    </td>
+                                    <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>-</td>
+                                    <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>-</td>
+                                    <td className={TABLE_CELL}>
+                                      <div className="w-full bg-gray-200 rounded-full h-1">
+                                        <div className="bg-gray-400 h-1 rounded-full w-0" />
+                                      </div>
+                                    </td>
+                                    {showYearlyColumns && (
+                                      <>
+                                        <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-xs`}>-</td>
+                                        <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-xs`}>
+                                          {formatAmount(detail.yearlySpentAmount)}
+                                        </td>
+                                        <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-xs`}>-</td>
+                                        <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-xs`}>-</td>
+                                      </>
+                                    )}
+                                  </tr>
+                                ))}
+                            </Fragment>
+                          );
+                        })}
                     </>
                   ))}
                   {(!data?.byCategory || data.byCategory.length === 0) && (
