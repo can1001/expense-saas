@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
+import { getEffectiveRole, getUserAllYearRoles, CURRENT_YEAR } from '@/lib/services/user-service';
 
 export async function GET() {
   try {
@@ -26,6 +26,9 @@ export async function GET() {
     // 연도별 유효 역할 조회 (UserYearRole 테이블 기준)
     const { role: effectiveRole, departmentId: effectiveDepartmentId } =
       await getEffectiveRole(user.id, CURRENT_YEAR);
+
+    // 모든 연도별 역할 조회 (다중 역할 지원)
+    const allRoles = await getUserAllYearRoles(user.id, CURRENT_YEAR);
 
     // 기본 계좌 조회 (없으면 null)
     let defaultBankAccount = null;
@@ -64,7 +67,8 @@ export async function GET() {
         id: user.id,
         userid: user.userid,
         username: user.username,
-        role: effectiveRole,  // 연도별 유효 역할 사용
+        role: effectiveRole,  // 연도별 유효 역할 (대표 역할)
+        roles: allRoles,      // 모든 연도별 역할 (다중 역할 지원)
         department: effectiveDepartment ?? user.department,
         departmentId: effectiveDepartmentId,  // 부서 ID도 함께 반환
         defaultBankAccount,

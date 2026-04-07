@@ -295,14 +295,14 @@ export async function POST(request: NextRequest) {
         // 팀장 설정: UserYearRole upsert
         await prisma.userYearRole.upsert({
           where: {
-            userId_year_departmentId: {
+            userId_year_departmentId_role: {
               userId: item.userId,
               year,
               departmentId: item.departmentId,
+              role: 'team_leader',
             },
           },
           update: {
-            role: 'team_leader',
             roleId: teamLeaderRole?.id,
           },
           create: {

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Home, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ADMIN_SIDEBAR_MENU, SidebarGroup } from '@/lib/constants/admin-menu';
-import { filterAdminMenuByRole } from '@/lib/constants/menu-permissions';
+import { filterAdminMenuByRoles } from '@/lib/constants/menu-permissions';
 
 interface AdminSidebarProps {
   isOpen?: boolean;
@@ -15,32 +15,34 @@ interface AdminSidebarProps {
 
 export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRoles, setUserRoles] = useState<string[] | null>(null);
   const [filteredMenu, setFilteredMenu] = useState<SidebarGroup[]>(ADMIN_SIDEBAR_MENU);
 
-  // 사용자 역할 조회
+  // 사용자 역할 조회 (다중 역할 지원)
   useEffect(() => {
-    const fetchUserRole = async () => {
+    const fetchUserRoles = async () => {
       try {
         const response = await fetch('/api/auth/me');
         const data = await response.json();
         if (response.ok && data.user) {
-          setUserRole(data.user.role);
+          // roles 배열 사용, 없으면 role을 배열로 변환
+          const roles = data.user.roles || [data.user.role];
+          setUserRoles(roles);
         }
       } catch {
-        setUserRole(null);
+        setUserRoles(null);
       }
     };
-    fetchUserRole();
+    fetchUserRoles();
   }, []);
 
-  // 역할 기반 메뉴 필터링
+  // 역할 기반 메뉴 필터링 (다중 역할 지원)
   useEffect(() => {
-    if (userRole) {
-      const filtered = filterAdminMenuByRole(ADMIN_SIDEBAR_MENU, userRole);
+    if (userRoles && userRoles.length > 0) {
+      const filtered = filterAdminMenuByRoles(ADMIN_SIDEBAR_MENU, userRoles);
       setFilteredMenu(filtered);
     }
-  }, [userRole]);
+  }, [userRoles]);
 
   // 현재 경로가 메뉴 항목과 일치하는지 확인 (하위 경로 포함)
   const isActive = (href: string) => {

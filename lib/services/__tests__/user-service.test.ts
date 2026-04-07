@@ -1098,15 +1098,13 @@ describe('user-service', () => {
       const result = await setYearRole('user-1', 2025, 'accountant', 'dept-1');
 
       expect(result).toEqual(mockYearRole);
-      expect(prisma.userYearRole.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            userId_year_departmentId: { userId: 'user-1', year: 2025, departmentId: 'dept-1' },
-          },
-          update: expect.objectContaining({ role: 'accountant' }),
-          create: expect.objectContaining({ userId: 'user-1', year: 2025, role: 'accountant', departmentId: 'dept-1' }),
-        })
-      );
+      expect(prisma.userYearRole.upsert).toHaveBeenCalledWith({
+        where: {
+          userId_year_departmentId_role: { userId: 'user-1', year: 2025, departmentId: 'dept-1', role: 'accountant' },
+        },
+        update: { roleId: undefined },
+        create: { userId: 'user-1', year: 2025, role: 'accountant', roleId: undefined, departmentId: 'dept-1' },
+      });
     });
 
     it('creates year role without department', async () => {

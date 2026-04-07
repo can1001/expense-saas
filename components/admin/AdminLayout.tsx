@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import AdminSidebar from './AdminSidebar';
 import { Menu } from 'lucide-react';
-import { canAccessAdminMenuPath, canAccessAdminMenu } from '@/lib/constants/menu-permissions';
+import { canAccessAdminMenuPathWithRoles, canAccessAdminMenuWithRoles } from '@/lib/constants/menu-permissions';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -29,14 +29,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           return;
         }
 
+        // 사용자의 모든 역할 (다중 역할 지원)
+        const userRoles: string[] = data.user.roles || [data.user.role];
+
         // 관리 메뉴 접근 권한 자체가 없는 경우
-        if (!canAccessAdminMenu(data.user.role)) {
+        if (!canAccessAdminMenuWithRoles(userRoles)) {
           router.push('/');
           return;
         }
 
         // 특정 페이지 접근 권한 확인
-        const hasAccess = canAccessAdminMenuPath(data.user.role, pathname);
+        const hasAccess = canAccessAdminMenuPathWithRoles(userRoles, pathname);
         if (!hasAccess) {
           router.push('/admin');
           return;

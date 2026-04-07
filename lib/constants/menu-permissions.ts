@@ -104,6 +104,14 @@ export function canAccessAdminMenu(role: string): boolean {
 }
 
 /**
+ * 관리 메뉴 접근 권한 체크 (다중 역할 지원)
+ * roles 배열 중 하나라도 관리 메뉴 접근 권한이 있으면 true
+ */
+export function canAccessAdminMenuWithRoles(roles: string[]): boolean {
+  return roles.some(role => ADMIN_MENU_ROLES.includes(role as UserRole));
+}
+
+/**
  * 사용자 등록 메뉴 표시 여부 확인
  * - 역할의 canRegisterUsers 플래그 또는 개별 사용자 권한으로 확인
  * - 클라이언트에서는 user 객체에 canRegisterUsers 필드가 있어야 함
@@ -146,6 +154,14 @@ export function canAccessAdminMenuPath(role: string, path: string): boolean {
 }
 
 /**
+ * 특정 관리자 메뉴 경로 접근 권한 체크 (다중 역할 지원)
+ * roles 배열 중 하나라도 해당 경로에 접근 권한이 있으면 true
+ */
+export function canAccessAdminMenuPathWithRoles(roles: string[], path: string): boolean {
+  return roles.some(role => canAccessAdminMenuPath(role, path));
+}
+
+/**
  * 역할별 접근 가능한 메뉴 그룹 필터링
  */
 export function filterAdminMenuByRole<T extends { items: { href: string }[] }>(
@@ -166,6 +182,44 @@ export function filterAdminMenuByRole<T extends { items: { href: string }[] }>(
             return item.href === '/admin';
           }
           // 다른 경로는 정확히 일치하거나 하위 경로인 경우 허용
+          return item.href === allowed || item.href.startsWith(allowed + '/');
+        })
+      ),
+    }))
+    .filter(group => group.items.length > 0) as T[];
+}
+
+/**
+ * 역할별 접근 가능한 메뉴 그룹 필터링 (다중 역할 지원)
+ * 모든 역할의 접근 가능한 경로를 합산하여 필터링
+ */
+export function filterAdminMenuByRoles<T extends { items: { href: string }[] }>(
+  menu: T[],
+  roles: string[]
+): T[] {
+  // admin 역할이 있으면 모든 메뉴 반환
+  if (roles.includes('admin')) return menu;
+
+  // 모든 역할의 허용 경로 합산
+  const allAllowedPaths = new Set<string>();
+  for (const role of roles) {
+    const paths = ROLE_ADMIN_MENU_PATHS[role];
+    if (paths === 'all') return menu;
+    if (Array.isArray(paths)) {
+      paths.forEach(p => allAllowedPaths.add(p));
+    }
+  }
+
+  if (allAllowedPaths.size === 0) return [];
+
+  return menu
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item =>
+        Array.from(allAllowedPaths).some(allowed => {
+          if (allowed === '/admin') {
+            return item.href === '/admin';
+          }
           return item.href === allowed || item.href.startsWith(allowed + '/');
         })
       ),

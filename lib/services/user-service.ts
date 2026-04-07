@@ -428,6 +428,54 @@ export async function getEffectiveRole(
 }
 
 /**
+ * 사용자의 모든 연도별 역할 조회 (다중 역할 지원)
+ * - 관리 메뉴 접근 권한 등 여러 역할 기반 권한 체크에 사용
+ */
+export async function getUserAllYearRoles(
+  userId: string,
+  year: number = CURRENT_YEAR
+): Promise<string[]> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      yearRoles: {
+        where: { year },
+        select: { role: true },
+      },
+    },
+  });
+
+  if (!user) {
+    return ['user'];
+  }
+
+  // admin은 영구 역할
+  if (user.role === 'admin') {
+    return ['admin'];
+  }
+
+  // 연도별 역할이 있으면 모든 역할 반환
+  if (user.yearRoles && user.yearRoles.length > 0) {
+    return user.yearRoles.map(yr => yr.role);
+  }
+
+  // UserYearRole이 없으면 User.role을 fallback으로 사용
+  return [user.role];
+}
+
+/**
+ * 사용자가 특정 역할을 가지고 있는지 확인 (다중 역할 지원)
+ */
+export async function userHasRole(
+  userId: string,
+  targetRole: string,
+  year: number = CURRENT_YEAR
+): Promise<boolean> {
+  const roles = await getUserAllYearRoles(userId, year);
+  return roles.includes(targetRole);
+}
+
+/**
  * 사용자를 유효 역할 정보와 함께 조회
  */
 export async function findUserWithEffectiveRole(
@@ -550,12 +598,12 @@ export async function setYearRole(
     }
   }
 
-  // departmentId가 있는 경우 upsert 사용
+  // departmentId와 role이 있는 경우 upsert 사용
   return prisma.userYearRole.upsert({
     where: {
-      userId_year_departmentId: { userId, year, departmentId },
+      userId_year_departmentId_role: { userId, year, departmentId, role },
     },
-    update: { role, roleId: resolvedRoleId },
+    update: { roleId: resolvedRoleId },
     create: { userId, year, role, roleId: resolvedRoleId, departmentId },
   });
 }

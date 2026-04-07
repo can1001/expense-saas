@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown, Bell, History, Send, UserPlus } from 'lucide-react';
 import { useRoles } from '@/hooks/useRoles';
 import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount';
-import { canShowUserRegisterMenu } from '@/lib/constants/menu-permissions';
+import { canShowUserRegisterMenu, canAccessAdminMenuWithRoles } from '@/lib/constants/menu-permissions';
 import QuickUserRegister from '@/components/QuickUserRegister';
 
 interface UserInfo {
@@ -14,6 +14,7 @@ interface UserInfo {
   userid: string;
   username: string;
   role: string;
+  roles?: string[];  // 다중 역할 지원
   department?: string;
   canRegisterUsers?: boolean;
   roleRef?: { canRegisterUsers?: boolean } | null;
@@ -274,7 +275,7 @@ export default function Header() {
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Role 테이블에서 역할 정보 가져오기
-  const { getRoleName, canAccessAdminMenu } = useRoles();
+  const { getRoleName } = useRoles();
 
   // 결재 대기 건수 조회 (로그인 사용자만)
   const { count: pendingCount } = usePendingApprovalCount({
@@ -352,8 +353,8 @@ export default function Header() {
       icon: CheckSquare,
       active: pathname.startsWith('/approvals'),
     },
-    // admin 메뉴 (관리 권한 있는 역할만 표시)
-    ...(user && canAccessAdminMenu(user.role)
+    // admin 메뉴 (관리 권한 있는 역할만 표시, 다중 역할 지원)
+    ...(user && canAccessAdminMenuWithRoles(user.roles || [user.role])
       ? [
           {
             href: '/admin',
