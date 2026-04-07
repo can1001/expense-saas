@@ -423,8 +423,8 @@ export async function getEffectiveRole(
     return { role: yearRole.role, departmentId: yearRole.departmentId };
   }
 
-  // 기본값: user
-  return { role: 'user', departmentId: null };
+  // UserYearRole이 없으면 User.role을 fallback으로 사용
+  return { role: user.role, departmentId: null };
 }
 
 /**
