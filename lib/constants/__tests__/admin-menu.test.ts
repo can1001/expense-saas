@@ -36,7 +36,7 @@ describe('admin-menu', () => {
     it('should have settlement/performance group', () => {
       const settlementGroup = ADMIN_SIDEBAR_MENU[4];
       expect(settlementGroup.title).toBe('결산/실적');
-      expect(settlementGroup.items).toHaveLength(5);
+      expect(settlementGroup.items).toHaveLength(6);
     });
 
     it('should have approval management group', () => {
