@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
+import { getCurrentUser } from '@/lib/auth';
+
+// 재정보고서 접근 권한이 있는 역할
+const QUARTERLY_REPORT_ALLOWED_ROLES = ['finance_head', 'accountant', 'finance_member'];
 
 /**
  * 분기별 날짜 범위 계산
@@ -27,6 +31,11 @@ function getYearDateRange(year: number) {
  */
 export async function GET(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user || !QUARTERLY_REPORT_ALLOWED_ROLES.includes(user.role)) {
+      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
     const quarter = parseInt(searchParams.get('quarter') || String(Math.floor(new Date().getMonth() / 3) + 1));
