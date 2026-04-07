@@ -129,28 +129,12 @@ export async function parseAccountReportFile(
     // 5. 지출 테이블 파싱 (테이블 6)
     const expenseItems = parseDetailTable(tables[5]);
 
-    // 6. 파싱 결과 검증
+    // 6. 파싱 결과 반환 (검증은 호출측에서 경고로 처리)
     const parsedReport = {
       summary,
       incomeItems,
       expenseItems,
     };
-
-    const validation = validateParsedReport(parsedReport);
-
-    // 5% 초과 오류가 있으면 저장 거부
-    if (!validation.valid) {
-      const highErrorWarnings = validation.warnings.filter(w => w.includes('5%를 초과합니다'));
-      if (highErrorWarnings.length > 0) {
-        return {
-          error: {
-            type: 'VALIDATION_FAILED',
-            message: '합계 검증 오차가 5%를 초과하여 저장할 수 없습니다.',
-            details: highErrorWarnings.join('\n'),
-          },
-        };
-      }
-    }
 
     return {
       data: parsedReport,
