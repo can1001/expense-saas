@@ -4,13 +4,14 @@
  */
 
 // 역할 코드 타입 (Role.code와 동일)
-type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
+type UserRole = 'admin' | 'finance_head' | 'accountant' | 'finance_member' | 'team_leader' | 'admin_assistant' | 'user';
 
 // 역할 한글명 (클라이언트 안전)
 export const ROLE_NAMES: Record<string, string> = {
   admin: '관리자',
   finance_head: '재정팀장',
   accountant: '회계',
+  finance_member: '재정팀원',
   team_leader: '팀장',
   admin_assistant: '행정간사',
   user: '사용자',
@@ -21,6 +22,7 @@ export const EXTENDED_MENU_ROLES: UserRole[] = [
   'admin',
   'finance_head',
   'accountant',
+  'finance_member',
   'admin_assistant',
 ];
 
@@ -37,6 +39,7 @@ export const ADMIN_MENU_ROLES: UserRole[] = [
   'admin',
   'finance_head',
   'accountant',
+  'finance_member',
   'admin_assistant',
 ];
 
@@ -68,6 +71,18 @@ export const ROLE_ADMIN_MENU_PATHS: Record<string, string[] | 'all'> = {
     '/admin/offerings',
   ],
   finance_head: [
+    '/admin',
+    '/admin/committees',
+    '/admin/departments',
+    '/admin/budget-managers',
+    '/admin/budget-view',
+    '/admin/budget-execution',
+    '/admin/hr-admin-execution',
+    '/admin/quarterly-report',
+    '/admin/cumulative-report',
+    '/admin/offerings',
+  ],
+  finance_member: [
     '/admin',
     '/admin/committees',
     '/admin/departments',

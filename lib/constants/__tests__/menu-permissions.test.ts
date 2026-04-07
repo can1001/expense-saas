@@ -27,6 +27,7 @@ describe('menu-permissions', () => {
         admin: '관리자',
         finance_head: '재정팀장',
         accountant: '회계',
+        finance_member: '재정팀원',
         team_leader: '팀장',
         admin_assistant: '행정간사',
         user: '사용자',
@@ -35,11 +36,12 @@ describe('menu-permissions', () => {
   });
 
   describe('EXTENDED_MENU_ROLES', () => {
-    it('should include admin, finance_head, accountant, admin_assistant', () => {
+    it('should include admin, finance_head, accountant, finance_member, admin_assistant', () => {
       expect(EXTENDED_MENU_ROLES).toEqual([
         'admin',
         'finance_head',
         'accountant',
+        'finance_member',
         'admin_assistant',
       ]);
     });
@@ -67,17 +69,18 @@ describe('menu-permissions', () => {
   });
 
   describe('ADMIN_MENU_ROLES', () => {
-    it('should include admin, finance_head, accountant, admin_assistant', () => {
+    it('should include admin, finance_head, accountant, finance_member, admin_assistant', () => {
       expect(ADMIN_MENU_ROLES).toEqual([
         'admin',
         'finance_head',
         'accountant',
+        'finance_member',
         'admin_assistant',
       ]);
     });
 
-    it('should have length of 4', () => {
-      expect(ADMIN_MENU_ROLES).toHaveLength(4);
+    it('should have length of 5', () => {
+      expect(ADMIN_MENU_ROLES).toHaveLength(5);
     });
 
     it('should not include team_leader and user', () => {
@@ -101,6 +104,10 @@ describe('menu-permissions', () => {
 
     it('should return true for admin_assistant', () => {
       expect(canAccessExtendedMenu('admin_assistant')).toBe(true);
+    });
+
+    it('should return true for finance_member', () => {
+      expect(canAccessExtendedMenu('finance_member')).toBe(true);
     });
 
     it('should return false for team_leader', () => {
@@ -169,6 +176,10 @@ describe('menu-permissions', () => {
 
     it('should return true for admin_assistant', () => {
       expect(canAccessAdminMenu('admin_assistant')).toBe(true);
+    });
+
+    it('should return true for finance_member', () => {
+      expect(canAccessAdminMenu('finance_member')).toBe(true);
     });
 
     it('should return false for team_leader', () => {
