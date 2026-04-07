@@ -449,6 +449,30 @@ describe('useExpenseFormSubmit', () => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
       });
 
+      it('should use default save error message when errorData has no error field in edit + submit flow', async () => {
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 400,
+          text: () => Promise.resolve(JSON.stringify({ message: '다른 필드만 있음' })),
+        });
+
+        const { result } = renderHook(() =>
+          useExpenseFormSubmit({ ...defaultOptions, expenseId: 'expense-123' })
+        );
+
+        let submitResult: { success: boolean; error?: string };
+        await act(async () => {
+          submitResult = await result.current.handleSubmit({
+            committee: '기획위원회',
+            status: 'PENDING',
+          });
+        });
+
+        expect(submitResult!.success).toBe(false);
+        expect(submitResult!.error).toBe('저장에 실패했습니다.');
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+      });
+
       it('should handle submit API error without details in edit + submit flow', async () => {
         mockFetch
           .mockResolvedValueOnce({
@@ -475,6 +499,35 @@ describe('useExpenseFormSubmit', () => {
 
         expect(submitResult!.success).toBe(false);
         expect(submitResult!.error).toBe('제출 실패');
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+      });
+
+      it('should use default submit error message when errorData has no error field', async () => {
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ id: 'expense-123' }),
+          })
+          .mockResolvedValueOnce({
+            ok: false,
+            status: 400,
+            text: () => Promise.resolve(JSON.stringify({ message: '다른 필드만 있음' })),
+          });
+
+        const { result } = renderHook(() =>
+          useExpenseFormSubmit({ ...defaultOptions, expenseId: 'expense-123' })
+        );
+
+        let submitResult: { success: boolean; error?: string };
+        await act(async () => {
+          submitResult = await result.current.handleSubmit({
+            committee: '기획위원회',
+            status: 'PENDING',
+          });
+        });
+
+        expect(submitResult!.success).toBe(false);
+        expect(submitResult!.error).toBe('제출에 실패했습니다.');
         expect(mockFetch).toHaveBeenCalledTimes(2);
       });
     });
@@ -521,6 +574,23 @@ describe('useExpenseFormSubmit', () => {
       });
 
       expect(submitResult!.error).toBe('저장 실패');
+    });
+
+    it('should use default error message when errorData has no error field', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve(JSON.stringify({ message: '다른 필드만 있음' })),
+      });
+
+      const { result } = renderHook(() => useExpenseFormSubmit(defaultOptions));
+
+      let submitResult: { success: boolean; error?: string };
+      await act(async () => {
+        submitResult = await result.current.handleSubmit({ committee: '' });
+      });
+
+      expect(submitResult!.error).toBe('저장에 실패했습니다.');
     });
 
     it('should handle API error with non-JSON response', async () => {

@@ -92,7 +92,8 @@
       "WebFetch(domain:localhost)",
       "Bash(git revert:*)",
       "Bash(git reset:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []

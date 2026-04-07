@@ -115,6 +115,16 @@ describe('file-service', () => {
 
       await expect(deleteFromCloudinary('test-id')).rejects.toThrow(FileServiceError);
     });
+
+    it('throws default error message when response has no error field', async () => {
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      });
+
+      await expect(deleteFromCloudinary('test-id')).rejects.toThrow('파일 삭제 실패');
+    });
   });
 
   describe('createAttachment', () => {
@@ -168,6 +178,25 @@ describe('file-service', () => {
 
       await expect(createAttachment('expense-1', fileData)).rejects.toThrow(FileServiceError);
     });
+
+    it('throws default error message when response has no error field', async () => {
+      const fileData = {
+        publicId: 'test-id',
+        url: 'http://test.com/test.jpg',
+        secureUrl: 'https://test.com/test.jpg',
+        format: 'jpg',
+        fileName: 'test.jpg',
+        fileSize: 1024,
+      };
+
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      });
+
+      await expect(createAttachment('expense-1', fileData)).rejects.toThrow('첨부파일 추가 실패');
+    });
   });
 
   describe('getAttachments', () => {
@@ -206,6 +235,16 @@ describe('file-service', () => {
 
       await expect(getAttachments('expense-1')).rejects.toThrow(FileServiceError);
     });
+
+    it('throws default error message when response has no error field', async () => {
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      });
+
+      await expect(getAttachments('expense-1')).rejects.toThrow('첨부파일 목록 조회 실패');
+    });
   });
 
   describe('deleteAttachment', () => {
@@ -239,6 +278,16 @@ describe('file-service', () => {
       });
 
       await expect(deleteAttachment('expense-1', 'att-1')).rejects.toThrow(FileServiceError);
+    });
+
+    it('throws default error message when response has no error field', async () => {
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      });
+
+      await expect(deleteAttachment('expense-1', 'att-1')).rejects.toThrow('첨부파일 삭제 실패');
     });
   });
 
@@ -339,6 +388,48 @@ describe('file-service', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ publicId: 'test-id' }),
       });
+    });
+
+    it('logs error when Cloudinary cleanup fails after DB save failure', async () => {
+      const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+      const cloudinaryData = {
+        publicId: 'test-id',
+        url: 'http://test.com/test.jpg',
+        secureUrl: 'https://test.com/test.jpg',
+        format: 'jpg',
+        width: 100,
+        height: 100,
+        bytes: 1024,
+        fileName: 'test.jpg',
+      };
+
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      (global.fetch as any)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ success: true, data: cloudinaryData }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 400,
+          json: async () => ({ error: 'DB save failed' }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          json: async () => ({ error: 'Cleanup failed' }),
+        });
+
+      await expect(uploadFile(mockFile, 'expense-1')).rejects.toThrow(FileServiceError);
+
+      // Verify cleanup error was logged
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to cleanup Cloudinary file:',
+        expect.any(FileServiceError)
+      );
+
+      consoleErrorSpy.mockRestore();
     });
   });
 

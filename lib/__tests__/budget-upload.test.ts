@@ -226,6 +226,36 @@ describe('budget-upload', () => {
       expect(result.validationErrors.length).toBe(4); // department, category, subcategory, detail
     });
 
+    it('should handle formula cell with empty string result for number value', async () => {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Test');
+      sheet.addRow(['위원회', '사역팀(부)', '예산(항)', '예산(목)', '예산(세목)', '담당자', '계정코드', '항목 내역', '활성화', '연도', '예산금액']);
+
+      const row = sheet.addRow(['기획위원회', '기획팀', '사역지원비', '기획비', '행사비', null, null, null, null, 2026, 1000000]);
+      // 수식 결과가 빈 문자열인 경우
+      row.getCell(10).value = { formula: 'J1', result: '   ' } as any;
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const result = await parseExcelFile(buffer as ArrayBuffer);
+
+      expect(result.rows[0].year).toBeNull();
+    });
+
+    it('should handle non-standard object cell value', async () => {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Test');
+      sheet.addRow(['위원회', '사역팀(부)', '예산(항)', '예산(목)', '예산(세목)', '담당자', '계정코드', '항목 내역', '활성화', '연도', '예산금액']);
+
+      const row = sheet.addRow(['기획위원회', '기획팀', '사역지원비', '기획비', '행사비', null, null, null, null, 2026, 1000000]);
+      // result 속성이 없는 객체
+      row.getCell(10).value = { someOtherProp: 'value' } as any;
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const result = await parseExcelFile(buffer as ArrayBuffer);
+
+      expect(result.rows[0].year).toBeNull();
+    });
+
     it('should parse year and budgetAmount with comma-separated numbers', async () => {
       const buffer = await createTestExcelBuffer([
         ['기획위원회', '기획팀', '사역지원비', '기획비', '행사비', null, null, null, null, '2026', '1,000,000'],
@@ -527,6 +557,27 @@ describe('budget-upload', () => {
           expect.objectContaining({
             create: expect.objectContaining({
               managerId: 'existing-user-id', // 기존 사용자 ID 사용
+            }),
+          })
+        );
+      });
+
+      it('should use existing user when found by username', async () => {
+        const mockTx = createMockTx();
+        // username으로 기존 사용자를 찾은 경우
+        mockTx.user.findFirst.mockResolvedValue({ id: 'found-by-username-id', username: '김대현', userid: '청연김대현' } as any);
+
+        vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(mockTx));
+
+        const result = await uploadBudgetData(testRows, 'merge');
+
+        expect(result.success).toBe(true);
+        expect(mockTx.user.findUnique).not.toHaveBeenCalled(); // userid 조회 불필요
+        expect(mockTx.user.create).not.toHaveBeenCalled(); // 새로 생성하지 않음
+        expect(mockTx.budgetDetailYear.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            create: expect.objectContaining({
+              managerId: 'found-by-username-id', // 기존 사용자 ID 사용
             }),
           })
         );

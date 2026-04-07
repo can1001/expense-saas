@@ -7,6 +7,7 @@ import {
   lookupBudgetHierarchy,
   lookupBudgetHierarchyById,
   isFinanceHeadManager,
+  getManagerIdForDetail,
 } from '../budget-lookup-service';
 import { prisma } from '@/lib/prisma';
 
@@ -315,6 +316,106 @@ describe('budget-lookup-service', () => {
 
       expect(result!.committee).toBe('기획위원회');
       expect(result!.department).toBe('재정팀');
+    });
+  });
+
+  describe('getManagerIdForDetail', () => {
+    const mockManager = { id: 'mgr-1', username: '일반담당자' };
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('should return manager info when budget detail and manager exist', async () => {
+      vi.mocked(prisma.budgetDetail.findFirst).mockResolvedValue({ id: 'bd-1' } as any);
+      vi.mocked(prisma.budgetDetailYear.findUnique).mockResolvedValue({
+        manager: mockManager,
+      } as any);
+
+      const result = await getManagerIdForDetail('사무행정비', '직원교육', '교육비', 2024);
+
+      expect(result.managerId).toBe('mgr-1');
+      expect(result.managerName).toBe('일반담당자');
+    });
+
+    it('should return null values when budget detail not found', async () => {
+      vi.mocked(prisma.budgetDetail.findFirst).mockResolvedValue(null);
+
+      const result = await getManagerIdForDetail('없는항', '없는목', '없는세목', 2024);
+
+      expect(result.managerId).toBeNull();
+      expect(result.managerName).toBeNull();
+      expect(prisma.budgetDetailYear.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('should return null values when budgetDetailYear not found', async () => {
+      vi.mocked(prisma.budgetDetail.findFirst).mockResolvedValue({ id: 'bd-1' } as any);
+      vi.mocked(prisma.budgetDetailYear.findUnique).mockResolvedValue(null);
+
+      const result = await getManagerIdForDetail('사무행정비', '직원교육', '교육비', 2024);
+
+      expect(result.managerId).toBeNull();
+      expect(result.managerName).toBeNull();
+    });
+
+    it('should return null values when manager not assigned', async () => {
+      vi.mocked(prisma.budgetDetail.findFirst).mockResolvedValue({ id: 'bd-1' } as any);
+      vi.mocked(prisma.budgetDetailYear.findUnique).mockResolvedValue({
+        manager: null,
+      } as any);
+
+      const result = await getManagerIdForDetail('사무행정비', '직원교육', '교육비', 2024);
+
+      expect(result.managerId).toBeNull();
+      expect(result.managerName).toBeNull();
+    });
+
+    it('should call prisma with correct parameters', async () => {
+      vi.mocked(prisma.budgetDetail.findFirst).mockResolvedValue({ id: 'bd-123' } as any);
+      vi.mocked(prisma.budgetDetailYear.findUnique).mockResolvedValue(null);
+
+      await getManagerIdForDetail('사무행정비', '직원교육', '교육비', 2026);
+
+      expect(prisma.budgetDetail.findFirst).toHaveBeenCalledWith({
+        where: {
+          name: '교육비',
+          subcategory: {
+            name: '직원교육',
+            category: {
+              name: '사무행정비',
+            },
+          },
+        },
+      });
+
+      expect(prisma.budgetDetailYear.findUnique).toHaveBeenCalledWith({
+        where: {
+          budgetDetailId_year: { budgetDetailId: 'bd-123', year: 2026 },
+        },
+        include: {
+          manager: {
+            select: {
+              id: true,
+              username: true,
+            },
+          },
+        },
+      });
+    });
+
+    it('should handle different years correctly', async () => {
+      vi.mocked(prisma.budgetDetail.findFirst).mockResolvedValue({ id: 'bd-1' } as any);
+      vi.mocked(prisma.budgetDetailYear.findUnique).mockResolvedValue(null);
+
+      await getManagerIdForDetail('사무행정비', '직원교육', '교육비', 2025);
+
+      expect(prisma.budgetDetailYear.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            budgetDetailId_year: { budgetDetailId: 'bd-1', year: 2025 },
+          },
+        })
+      );
     });
   });
 
