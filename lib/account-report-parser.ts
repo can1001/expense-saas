@@ -64,7 +64,7 @@ export interface ParsedAccountReport {
  * 파싱 에러
  */
 export interface ParseError {
-  type: 'INVALID_FORMAT' | 'MISSING_TABLE' | 'PARSE_ERROR';
+  type: 'INVALID_FORMAT' | 'MISSING_TABLE' | 'PARSE_ERROR' | 'VALIDATION_FAILED';
   message: string;
   details?: string;
 }
@@ -90,12 +90,21 @@ export async function parseAccountReportFile(
     const decoder = new TextDecoder('utf-8');
     htmlContent = decoder.decode(uint8Array);
 
-    // HTML 태그가 없으면 xlsx로 시도
+    // HTML 태그가 없으면 xlsx로 시도 (다중 시트 지원)
     if (!htmlContent.includes('<table')) {
       // xlsx 라이브러리로 파싱 시도
       const workbook = XLSX.read(buffer, { type: 'array' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      htmlContent = XLSX.utils.sheet_to_html(sheet);
+
+      // 모든 시트를 하나의 HTML로 결합
+      let combinedHtml = '';
+      workbook.SheetNames.forEach((sheetName) => {
+        const sheet = workbook.Sheets[sheetName];
+        // 병합 셀 정보 포함하여 HTML 변환
+        const sheetHtml = XLSX.utils.sheet_to_html(sheet, { header: '', footer: '' });
+        combinedHtml += `<!-- 시트: ${sheetName} -->\n${sheetHtml}\n`;
+      });
+
+      htmlContent = combinedHtml;
     }
 
     // 2. HTML에서 테이블 추출
@@ -120,12 +129,15 @@ export async function parseAccountReportFile(
     // 5. 지출 테이블 파싱 (테이블 6)
     const expenseItems = parseDetailTable(tables[5]);
 
+    // 6. 파싱 결과 반환 (검증은 호출측에서 경고로 처리)
+    const parsedReport = {
+      summary,
+      incomeItems,
+      expenseItems,
+    };
+
     return {
-      data: {
-        summary,
-        incomeItems,
-        expenseItems,
-      },
+      data: parsedReport,
     };
   } catch (error) {
     console.error('Account report parsing error:', error);
@@ -170,16 +182,28 @@ function extractTableRows(tableHtml: string): string[][] {
 }
 
 /**
- * 행에서 셀 추출
+ * 행에서 셀 추출 (병합 셀 처리 포함)
  */
 function extractCells(rowHtml: string): string[] {
   const cells: string[] = [];
-  const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+  const cellRegex = /<t[dh]([^>]*)>([\s\S]*?)<\/t[dh]>/gi;
 
   let cellMatch;
   while ((cellMatch = cellRegex.exec(rowHtml)) !== null) {
-    const cellText = cleanCellText(cellMatch[1]);
+    const cellAttributes = cellMatch[1];
+    const cellText = cleanCellText(cellMatch[2]);
+
+    // colspan 속성 확인
+    const colspanMatch = cellAttributes.match(/colspan\s*=\s*["\']?(\d+)["\']?/i);
+    const colspan = colspanMatch ? parseInt(colspanMatch[1], 10) : 1;
+
+    // 첫 번째 셀에 내용 추가
     cells.push(cellText);
+
+    // 병합된 셀만큼 빈 셀 추가
+    for (let i = 1; i < colspan; i++) {
+      cells.push(''); // 병합된 셀은 빈 문자열로 채움
+    }
   }
 
   return cells;
@@ -380,19 +404,55 @@ export function validateParsedReport(report: ParsedAccountReport): {
     warnings.push('요약 데이터의 수입/지출 총계가 0입니다.');
   }
 
-  // 수입 합계와 요약의 수입총계 비교
-  const incomeTotal = report.incomeItems
+  // 수입 누계 합계와 요약의 누계 수입총계 비교 (5% 초과 시 오류)
+  const incomeCumulativeTotal = report.incomeItems
     .filter((item) => item.level === 1)
     .reduce((sum, item) => sum + item.cumulativeAmount, 0);
 
-  if (incomeTotal > 0 && Math.abs(incomeTotal - summary.current.totalIncome) > 1000) {
-    warnings.push(
-      `수입 항목 합계(${incomeTotal.toLocaleString()})와 요약의 수입총계(${summary.current.totalIncome.toLocaleString()})가 다릅니다.`
-    );
+  const summaryIncomeCumulative = summary.cumulative.totalIncome;
+  if (incomeCumulativeTotal > 0 && summaryIncomeCumulative > 0) {
+    const incomeDifference = Math.abs(incomeCumulativeTotal - summaryIncomeCumulative);
+    const incomeErrorRate = (incomeDifference / summaryIncomeCumulative) * 100;
+
+    if (incomeErrorRate > 5) {
+      warnings.push(
+        `수입 항목 누계 합계 오차율이 ${incomeErrorRate.toFixed(2)}%로 5%를 초과합니다. (항목합계: ${incomeCumulativeTotal.toLocaleString()}, 요약누계: ${summaryIncomeCumulative.toLocaleString()})`
+      );
+    } else if (incomeDifference > 1000) {
+      warnings.push(
+        `수입 항목 누계 합계(${incomeCumulativeTotal.toLocaleString()})와 요약의 누계 수입총계(${summaryIncomeCumulative.toLocaleString()})가 다릅니다. (오차율: ${incomeErrorRate.toFixed(2)}%)`
+      );
+    }
   }
 
+  // 지출 누계 합계와 요약의 누계 지출총계 비교 (5% 초과 시 오류)
+  const expenseCumulativeTotal = report.expenseItems
+    .filter((item) => item.level === 1)
+    .reduce((sum, item) => sum + item.cumulativeAmount, 0);
+
+  const summaryExpenseCumulative = summary.cumulative.totalExpense;
+  if (expenseCumulativeTotal > 0 && summaryExpenseCumulative > 0) {
+    const expenseDifference = Math.abs(expenseCumulativeTotal - summaryExpenseCumulative);
+    const expenseErrorRate = (expenseDifference / summaryExpenseCumulative) * 100;
+
+    if (expenseErrorRate > 5) {
+      warnings.push(
+        `지출 항목 누계 합계 오차율이 ${expenseErrorRate.toFixed(2)}%로 5%를 초과합니다. (항목합계: ${expenseCumulativeTotal.toLocaleString()}, 요약누계: ${summaryExpenseCumulative.toLocaleString()})`
+      );
+    } else if (expenseDifference > 1000) {
+      warnings.push(
+        `지출 항목 누계 합계(${expenseCumulativeTotal.toLocaleString()})와 요약의 누계 지출총계(${summaryExpenseCumulative.toLocaleString()})가 다릅니다. (오차율: ${expenseErrorRate.toFixed(2)}%)`
+      );
+    }
+  }
+
+  // 5% 초과 오류가 있는지 확인
+  const hasHighErrorRate = warnings.some(warning =>
+    warning.includes('5%를 초과합니다')
+  );
+
   return {
-    valid: warnings.length === 0,
+    valid: warnings.length === 0 || !hasHighErrorRate,
     warnings,
   };
 }
