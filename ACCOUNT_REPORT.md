@@ -308,9 +308,23 @@ curl -X POST /api/admin/account-report/upload \
 curl "/api/admin/account-report?year=2025&quarter=1&compare=true"
 ```
 
+## 접근 권한
+
+재정보고서 기능은 다음 역할을 가진 사용자만 접근할 수 있습니다:
+
+| 역할 코드 | 역할명 | 설명 |
+|-----------|--------|------|
+| `admin` | 관리자 | 전체 시스템 관리 |
+| `finance_head` | 재정팀장 | 재정팀 총괄 |
+| `accountant` | 회계 | 회계 담당자 |
+| `finance_member` | 재정팀원 | 재정팀 소속 |
+| `admin_assistant` | 행정간사 | 행정 업무 담당 |
+
+> 권한 설정 파일: `lib/constants/menu-permissions.ts`
+
 ## 제한사항
 
-1. **인증 없음**: 현재 API는 인증 없이 접근 가능
+1. **접근 제한**: 허용된 역할(admin, finance_head, accountant, finance_member, admin_assistant)만 접근 가능
 2. **레벨 2 항목**: 대시보드에서 레벨 1(대분류)만 표시, 레벨 2(중분류)는 DB에 저장되지만 UI에서 미표시
 3. **동시 업로드**: 동시에 여러 파일 업로드 시 트랜잭션 충돌 가능
 4. **파일 크기**: 대용량 파일 처리 시 타임아웃 발생 가능
