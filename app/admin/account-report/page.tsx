@@ -309,6 +309,115 @@ export default function AccountReportPage() {
             </div>
           </div>
 
+          {/* Ⅱ. 수입 현황 */}
+          {data.currentYear.incomeItems.length > 0 && (
+            <div className={`${SECTION_CARD} mb-6`}>
+              <h3 className={SECTION_TITLE}>Ⅱ. 수입 현황</h3>
+              <p className="text-right text-sm text-gray-500 mb-2">(단위: 원)</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="px-3 py-2 text-left font-medium">항목</th>
+                      <th className="px-3 py-2 text-right font-medium">예산액</th>
+                      <th className="px-3 py-2 text-right font-medium">결산 누계</th>
+                      <th className="px-3 py-2 text-right font-medium">(결산/예산)<br/>진척률</th>
+                      <th className="px-3 py-2 text-right font-medium">수입 비중</th>
+                      {data.previousYear && (
+                        <>
+                          <th className="px-3 py-2 text-right font-medium bg-yellow-50">전년(동분기)<br/>누계</th>
+                          <th className="px-3 py-2 text-right font-medium bg-blue-50">전년 대비 당해<br/>누계 증감액</th>
+                        </>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.currentYear.incomeItems
+                      .filter((item) => item.level === 1)
+                      .map((item) => {
+                        const comparisonItem = data.comparison?.income.find(
+                          (c) => c.itemName === item.itemName
+                        );
+                        const progressRate = item.budgetAmount > 0
+                          ? (item.cumulativeAmount / item.budgetAmount * 100)
+                          : 0;
+                        const totalIncome = data.currentYear?.summary.cumulative.totalIncome || 0;
+                        const incomeRatio = totalIncome > 0
+                          ? (item.cumulativeAmount / totalIncome * 100)
+                          : 0;
+                        const diff = comparisonItem?.diff.cumulativeDiff || 0;
+
+                        return (
+                          <tr key={item.id} className="border-b hover:bg-gray-50">
+                            <td className="px-3 py-2">{item.itemName}</td>
+                            <td className="px-3 py-2 text-right">{formatAmount(item.budgetAmount)}</td>
+                            <td className="px-3 py-2 text-right">{formatAmount(item.cumulativeAmount)}</td>
+                            <td className="px-3 py-2 text-right">{progressRate.toFixed(0)}%</td>
+                            <td className="px-3 py-2 text-right">{incomeRatio.toFixed(0)}%</td>
+                            {data.previousYear && (
+                              <>
+                                <td className="px-3 py-2 text-right bg-yellow-50">
+                                  {formatAmount(comparisonItem?.previous?.cumulativeAmount || 0)}
+                                </td>
+                                <td className="px-3 py-2 text-right bg-blue-50">
+                                  <span className={diff >= 0 ? 'text-red-600' : 'text-blue-600'}>
+                                    {diff >= 0 ? '▲' : '▼'} {formatAmount(Math.abs(diff))}
+                                  </span>
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    {/* 합계 행 */}
+                    <tr className="bg-green-100 font-medium">
+                      <td className="px-3 py-2">합계</td>
+                      <td className="px-3 py-2 text-right">
+                        {formatAmount(data.currentYear?.incomeItems
+                          .filter((item) => item.level === 1)
+                          .reduce((sum, item) => sum + item.budgetAmount, 0) || 0)}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {formatAmount(data.currentYear?.summary.cumulative.totalIncome || 0)}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {(() => {
+                          const totalBudget = data.currentYear?.incomeItems
+                            .filter((item) => item.level === 1)
+                            .reduce((sum, item) => sum + item.budgetAmount, 0) || 0;
+                          const cumTotalIncome = data.currentYear?.summary.cumulative.totalIncome || 0;
+                          return totalBudget > 0
+                            ? ((cumTotalIncome / totalBudget) * 100).toFixed(0)
+                            : 0;
+                        })()}%
+                      </td>
+                      <td className="px-3 py-2 text-right">100%</td>
+                      {data.previousYear && (
+                        <>
+                          <td className="px-3 py-2 text-right bg-yellow-100">
+                            {formatAmount(data.previousYear.summary.cumulative.totalIncome)}
+                          </td>
+                          <td className="px-3 py-2 text-right bg-blue-100">
+                            {(() => {
+                              const currentIncome = data.currentYear?.summary.cumulative.totalIncome || 0;
+                              const previousIncome = data.previousYear?.summary.cumulative.totalIncome || 0;
+                              const diff = currentIncome - previousIncome;
+                              return (
+                                <span className={diff >= 0 ? 'text-red-600' : 'text-blue-600'}>
+                                  {diff >= 0 ? '▲' : '▼'} {formatAmount(Math.abs(diff))}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* 차트 영역 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* 수입 구성 */}
