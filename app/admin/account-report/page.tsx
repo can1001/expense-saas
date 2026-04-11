@@ -22,7 +22,7 @@ import {
   SELECT_BASE,
   SPINNER_MD,
 } from '@/lib/constants/styles';
-import { BarChart, PieChart, ComposedChart } from '@/components/charts';
+import { BarChart, PieChart, ComposedChart, LineChart } from '@/components/charts';
 import type { SummaryData } from '@/lib/account-report-parser';
 
 interface ReportItem {
@@ -66,6 +66,15 @@ interface ComparisonItem {
   };
 }
 
+interface TrendDataItem {
+  name: string;
+  quarter: number;
+  income: number;
+  expense: number;
+  previousIncome?: number;
+  previousExpense?: number;
+}
+
 interface ApiResponse {
   success: boolean;
   data?: {
@@ -82,6 +91,7 @@ interface ApiResponse {
       income: ComparisonItem[];
       expense: ComparisonItem[];
     };
+    trendData?: TrendDataItem[];
   };
 }
 
@@ -103,6 +113,7 @@ export default function AccountReportPage() {
         year: String(year),
         quarter: String(quarter),
         compare: String(compareMode),
+        trend: 'true',
       });
       const response = await fetch(`/api/admin/account-report?${params}`);
       const result: ApiResponse = await response.json();
@@ -337,6 +348,66 @@ export default function AccountReportPage() {
                 />
               </div>
             )}
+
+            {/* 분기별 추이 */}
+            {data.trendData && data.trendData.length > 0 && (
+              <div className={`${SECTION_CARD} lg:col-span-2`}>
+                <h3 className={SECTION_TITLE}>분기별 수입/지출 추이 ({year}년)</h3>
+                <LineChart
+                  data={data.trendData}
+                  showIncome={true}
+                  showExpense={true}
+                  showPrevious={compareMode && data.trendData.some((d) => d.previousIncome !== undefined)}
+                  height={280}
+                />
+              </div>
+            )}
+
+            {/* 예산 집행률 */}
+            {expenseChartData.length > 0 && (
+              <div className={SECTION_CARD}>
+                <h3 className={SECTION_TITLE}>지출 예산 집행률</h3>
+                <BarChart
+                  data={expenseChartData}
+                  valueKey="rate"
+                  threshold={100}
+                  thresholdColor="#ef4444"
+                  unit="%"
+                  height={280}
+                />
+              </div>
+            )}
+
+            {/* 수입/지출 카테고리 비교 */}
+            {(incomeChartData.length > 0 || expenseChartData.length > 0) && (
+              <div className={SECTION_CARD}>
+                <h3 className={SECTION_TITLE}>주요 항목 예산 vs 실적</h3>
+                <BarChart
+                  data={[
+                    ...data.currentYear.incomeItems
+                      .filter((item) => item.level === 1)
+                      .slice(0, 3)
+                      .map((item) => ({
+                        name: item.itemName.length > 5 ? item.itemName.slice(0, 5) + '..' : item.itemName,
+                        budget: item.budgetAmount,
+                        actual: item.cumulativeAmount,
+                      })),
+                    ...data.currentYear.expenseItems
+                      .filter((item) => item.level === 1)
+                      .slice(0, 3)
+                      .map((item) => ({
+                        name: item.itemName.length > 5 ? item.itemName.slice(0, 5) + '..' : item.itemName,
+                        budget: item.budgetAmount,
+                        actual: item.cumulativeAmount,
+                      })),
+                  ]}
+                  showBudget={true}
+                  showActual={true}
+                  showPrevious={false}
+                  height={280}
+                />
+              </div>
+            )}
           </div>
 
           {/* 탭 */}
@@ -371,7 +442,6 @@ export default function AccountReportPage() {
                       <th className="px-4 py-3 text-right font-medium text-gray-600">전기이월</th>
                       <th className="px-4 py-3 text-right font-medium text-gray-600">수입총계</th>
                       <th className="px-4 py-3 text-right font-medium text-gray-600">지출총계</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">차액</th>
                       <th className="px-4 py-3 text-right font-medium text-gray-600">차기이월</th>
                     </tr>
                   </thead>
@@ -387,31 +457,70 @@ export default function AccountReportPage() {
                       <td className="px-4 py-3 text-right text-red-600">
                         {formatAmount(data.currentYear.summary.current.totalExpense)}
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        {formatAmount(data.currentYear.summary.current.difference)}
-                      </td>
                       <td className="px-4 py-3 text-right font-medium text-blue-600">
                         {formatAmount(data.currentYear.summary.current.nextCarryover)}
                       </td>
                     </tr>
-                    <tr>
-                      <td className="px-4 py-3 font-medium">누계</td>
-                      <td className="px-4 py-3 text-right">
-                        {formatAmount(data.currentYear.summary.cumulative.previousCarryover)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-green-600">
-                        {formatAmount(data.currentYear.summary.cumulative.totalIncome)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-red-600">
-                        {formatAmount(data.currentYear.summary.cumulative.totalExpense)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {formatAmount(data.currentYear.summary.cumulative.difference)}
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium text-blue-600">
-                        {formatAmount(data.currentYear.summary.cumulative.nextCarryover)}
-                      </td>
-                    </tr>
+                    {data.previousYear && (
+                      <tr className="border-b bg-yellow-50">
+                        <td className="px-4 py-3 font-medium">전년(동분기)누계</td>
+                        <td className="px-4 py-3 text-right">
+                          {formatAmount(data.previousYear.summary.cumulative.previousCarryover)}
+                        </td>
+                        <td className="px-4 py-3 text-right text-green-600">
+                          {formatAmount(data.previousYear.summary.cumulative.totalIncome)}
+                        </td>
+                        <td className="px-4 py-3 text-right text-red-600">
+                          {formatAmount(data.previousYear.summary.cumulative.totalExpense)}
+                        </td>
+                        <td className="px-4 py-3 text-right font-medium text-blue-600">
+                          {formatAmount(data.previousYear.summary.cumulative.nextCarryover)}
+                        </td>
+                      </tr>
+                    )}
+                    {data.comparison && (
+                      <tr className="bg-blue-50">
+                        <td className="px-4 py-3 font-medium">전년대비증감</td>
+                        <td className="px-4 py-3 text-right">
+                          {(() => {
+                            const diff = data.currentYear.summary.current.previousCarryover -
+                              (data.previousYear?.summary.cumulative.previousCarryover || 0);
+                            return (
+                              <span className={diff >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                {diff >= 0 ? '+' : ''}{formatAmount(diff)}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className={data.comparison.summary.totalIncome.diff >= 0 ? 'text-green-600' : 'text-red-600'}>
+                            {data.comparison.summary.totalIncome.diff >= 0 ? '+' : ''}
+                            {formatAmount(data.comparison.summary.totalIncome.diff)}
+                            <span className="text-xs ml-1">
+                              ({formatPercent(data.comparison.summary.totalIncome.diffRate)})
+                            </span>
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className={data.comparison.summary.totalExpense.diff <= 0 ? 'text-green-600' : 'text-red-600'}>
+                            {data.comparison.summary.totalExpense.diff >= 0 ? '+' : ''}
+                            {formatAmount(data.comparison.summary.totalExpense.diff)}
+                            <span className="text-xs ml-1">
+                              ({formatPercent(data.comparison.summary.totalExpense.diffRate)})
+                            </span>
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className={data.comparison.summary.nextCarryover.diff >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                            {data.comparison.summary.nextCarryover.diff >= 0 ? '+' : ''}
+                            {formatAmount(data.comparison.summary.nextCarryover.diff)}
+                            <span className="text-xs ml-1">
+                              ({formatPercent(data.comparison.summary.nextCarryover.diffRate)})
+                            </span>
+                          </span>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
