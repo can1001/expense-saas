@@ -73,6 +73,7 @@ interface TrendDataItem {
   expense: number;
   previousIncome?: number;
   previousExpense?: number;
+  [key: string]: string | number | undefined;
 }
 
 interface ApiResponse {
