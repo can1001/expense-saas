@@ -448,7 +448,7 @@ export default function AccountReportPage() {
                   </thead>
                   <tbody>
                     <tr className="border-b">
-                      <td className="px-4 py-3 font-medium">당기</td>
+                      <td className="px-4 py-3 font-medium">당기누계</td>
                       <td className="px-4 py-3 text-right">
                         {formatAmount(data.currentYear.summary.current.previousCarryover)}
                       </td>
