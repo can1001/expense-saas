@@ -11,12 +11,8 @@ import {
   Upload,
   TrendingUp,
   TrendingDown,
-  Wallet,
   PiggyBank,
-  ArrowRightLeft,
   RefreshCw,
-  ChevronDown,
-  ChevronRight,
 } from 'lucide-react';
 import {
   SECTION_CARD,
@@ -26,7 +22,7 @@ import {
   SELECT_BASE,
   SPINNER_MD,
 } from '@/lib/constants/styles';
-import { BarChart, PieChart, LineChart, ComposedChart } from '@/components/charts';
+import { BarChart, PieChart, ComposedChart } from '@/components/charts';
 import type { SummaryData } from '@/lib/account-report-parser';
 
 interface ReportItem {
@@ -99,7 +95,6 @@ export default function AccountReportPage() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ApiResponse['data'] | null>(null);
   const [activeTab, setActiveTab] = useState<'summary' | 'income' | 'expense'>('summary');
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -132,18 +127,6 @@ export default function AccountReportPage() {
   const formatPercent = (value: number) => {
     const sign = value > 0 ? '+' : '';
     return `${sign}${value.toFixed(1)}%`;
-  };
-
-  const toggleExpand = (itemName: string) => {
-    setExpandedItems((prev) => {
-      const next = new Set(prev);
-      if (next.has(itemName)) {
-        next.delete(itemName);
-      } else {
-        next.add(itemName);
-      }
-      return next;
-    });
   };
 
   // 차트 데이터 준비

@@ -61,13 +61,15 @@ export function ComposedChart({
     return value.toLocaleString();
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const formatTooltip = (value: any, name: any) => {
-    const nameStr = String(name || '');
+  const formatTooltip = (
+    value: number | string | readonly (string | number)[] | undefined,
+    name: string | number | undefined
+  ) => {
+    const nameStr = String(name ?? '');
     if (nameStr.includes('률') || nameStr.includes('rate')) {
-      return typeof value === 'number' ? `${value.toFixed(1)}%` : String(value);
+      return typeof value === 'number' ? `${value.toFixed(1)}%` : String(value ?? '');
     }
-    return typeof value === 'number' ? `${value.toLocaleString()}원` : String(value);
+    return typeof value === 'number' ? `${value.toLocaleString()}원` : String(value ?? '');
   };
 
   return (

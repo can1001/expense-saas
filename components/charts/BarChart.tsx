@@ -76,12 +76,14 @@ export function BarChart({
     return value.toLocaleString();
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const formatTooltip = (value: any) => {
+  const formatTooltip = (value: number | string | readonly (string | number)[] | undefined) => {
     if (typeof value === 'number') {
       return `${value.toLocaleString()}원`;
     }
-    return String(value);
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+    return String(value ?? '');
   };
 
   // 단일 값 차트인 경우 (valueKey 사용)

@@ -42,16 +42,25 @@ export function PieChart({
   showLegend = true,
   showLabel = false,
 }: PieChartProps) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const formatTooltip = (value: any) => {
+  const formatTooltip = (value: number | string | readonly (string | number)[] | undefined) => {
     if (typeof value === 'number') {
       return `${value.toLocaleString()}원`;
     }
-    return String(value);
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+    return String(value ?? '');
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const renderCustomizedLabel = (props: any) => {
+  const renderCustomizedLabel = (props: {
+    cx?: number;
+    cy?: number;
+    midAngle?: number;
+    innerRadius?: number;
+    outerRadius?: number;
+    percent?: number;
+    name?: string;
+  }) => {
     const { cx, cy, midAngle, innerRadius, outerRadius, percent, name } = props;
     if (!cx || !cy || !midAngle || !innerRadius || !outerRadius || !percent) return null;
 
@@ -102,7 +111,7 @@ export function PieChart({
             layout="vertical"
             align="right"
             verticalAlign="middle"
-            formatter={(value, entry) => {
+            formatter={(value) => {
               const item = data.find((d) => d.name === value);
               const percent = item ? ((item.value / total) * 100).toFixed(1) : 0;
               return `${value} (${percent}%)`;

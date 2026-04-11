@@ -5,7 +5,7 @@
  * - 재정보고서 조회 (당해/전년 비교 포함)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError } from '@/lib/api/response-handler';
 import { AccountReportType } from '@prisma/client';
