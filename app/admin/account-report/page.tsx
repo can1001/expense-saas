@@ -406,17 +406,7 @@ export default function AccountReportPage() {
                   {data.comparison && (
                     <tr className="bg-blue-50">
                       <td className="px-4 py-3 font-medium">전년대비증감</td>
-                      <td className="px-4 py-3 text-right">
-                        {(() => {
-                          const diff = data.currentYear.summary.current.previousCarryover -
-                            (data.previousYear?.summary.cumulative.previousCarryover || 0);
-                          return (
-                            <span className={diff >= 0 ? 'text-green-600' : 'text-red-600'}>
-                              {diff >= 0 ? '+' : ''}{formatAmount(diff)}
-                            </span>
-                          );
-                        })()}
-                      </td>
+                      <td className="px-4 py-3 text-right text-gray-400">-</td>
                       <td className="px-4 py-3 text-right">
                         <span className={data.comparison.summary.totalIncome.diff >= 0 ? 'text-green-600' : 'text-red-600'}>
                           {data.comparison.summary.totalIncome.diff >= 0 ? '+' : ''}
@@ -447,15 +437,7 @@ export default function AccountReportPage() {
                           );
                         })()}
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className={data.comparison.summary.nextCarryover.diff >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                          {data.comparison.summary.nextCarryover.diff >= 0 ? '+' : ''}
-                          {formatAmount(data.comparison.summary.nextCarryover.diff)}
-                          <span className="text-xs ml-1">
-                            ({formatPercent(data.comparison.summary.nextCarryover.diffRate)})
-                          </span>
-                        </span>
-                      </td>
+                      <td className="px-4 py-3 text-right text-gray-400">-</td>
                     </tr>
                   )}
                 </tbody>
