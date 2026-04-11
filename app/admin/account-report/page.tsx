@@ -13,6 +13,8 @@ import {
   TrendingDown,
   PiggyBank,
   RefreshCw,
+  ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import {
   SECTION_CARD,
@@ -98,14 +100,26 @@ interface ApiResponse {
 
 export default function AccountReportPage() {
   const currentYear = new Date().getFullYear();
-  const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3);
 
   const [year, setYear] = useState(currentYear);
-  const [quarter, setQuarter] = useState(currentQuarter);
+  const [quarter, setQuarter] = useState(1);
   const [compareMode, setCompareMode] = useState(true);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ApiResponse['data'] | null>(null);
   const [activeTab, setActiveTab] = useState<'summary' | 'income' | 'expense'>('summary');
+  const [expandedIncomeItems, setExpandedIncomeItems] = useState<Set<string>>(new Set());
+
+  const toggleIncomeExpand = (itemName: string) => {
+    setExpandedIncomeItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemName)) {
+        newSet.delete(itemName);
+      } else {
+        newSet.add(itemName);
+      }
+      return newSet;
+    });
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -354,7 +368,19 @@ export default function AccountReportPage() {
 
                         const rows = [
                           <tr key={parentItem.id} className="border-b bg-gray-50 font-medium">
-                            <td className="px-3 py-2">{parentItem.itemName}</td>
+                            <td
+                              className="px-3 py-2 cursor-pointer select-none"
+                              onClick={() => childItems.length > 0 && toggleIncomeExpand(parentItem.itemName)}
+                            >
+                              <span className="inline-flex items-center gap-1">
+                                {childItems.length > 0 ? (
+                                  expandedIncomeItems.has(parentItem.itemName)
+                                    ? <ChevronDown className="w-4 h-4" />
+                                    : <ChevronRight className="w-4 h-4" />
+                                ) : <span className="w-4" />}
+                                {parentItem.itemName}
+                              </span>
+                            </td>
                             <td className="px-3 py-2 text-right">{formatAmount(parentItem.budgetAmount)}</td>
                             <td className="px-3 py-2 text-right">{formatAmount(parentItem.cumulativeAmount)}</td>
                             <td className="px-3 py-2 text-right">{parentProgressRate.toFixed(0)}%</td>
@@ -374,8 +400,9 @@ export default function AccountReportPage() {
                           </tr>
                         ];
 
-                        // 자식 항목 행들
-                        childItems.forEach((childItem) => {
+                        // 자식 항목 행들 (펼친 상태일 때만 표시)
+                        if (expandedIncomeItems.has(parentItem.itemName)) {
+                          childItems.forEach((childItem) => {
                           const childComparisonItem = data.comparison?.income.find(
                             (c) => c.itemName === childItem.itemName
                           );
@@ -408,7 +435,8 @@ export default function AccountReportPage() {
                               )}
                             </tr>
                           );
-                        });
+                          });
+                        }
 
                         return rows;
                       })}
