@@ -334,40 +334,83 @@ export default function AccountReportPage() {
                   <tbody>
                     {data.currentYear.incomeItems
                       .filter((item) => item.level === 1)
-                      .map((item) => {
-                        const comparisonItem = data.comparison?.income.find(
-                          (c) => c.itemName === item.itemName
-                        );
-                        const progressRate = item.budgetAmount > 0
-                          ? (item.cumulativeAmount / item.budgetAmount * 100)
-                          : 0;
+                      .flatMap((parentItem) => {
                         const totalIncome = data.currentYear?.summary.cumulative.totalIncome || 0;
-                        const incomeRatio = totalIncome > 0
-                          ? (item.cumulativeAmount / totalIncome * 100)
-                          : 0;
-                        const diff = comparisonItem?.diff.cumulativeDiff || 0;
+                        const childItems = data.currentYear?.incomeItems.filter(
+                          (child) => child.level === 2 && child.parentItemName === parentItem.itemName
+                        ) || [];
 
-                        return (
-                          <tr key={item.id} className="border-b hover:bg-gray-50">
-                            <td className="px-3 py-2">{item.itemName}</td>
-                            <td className="px-3 py-2 text-right">{formatAmount(item.budgetAmount)}</td>
-                            <td className="px-3 py-2 text-right">{formatAmount(item.cumulativeAmount)}</td>
-                            <td className="px-3 py-2 text-right">{progressRate.toFixed(0)}%</td>
-                            <td className="px-3 py-2 text-right">{incomeRatio.toFixed(0)}%</td>
+                        // 부모 항목 행
+                        const parentComparisonItem = data.comparison?.income.find(
+                          (c) => c.itemName === parentItem.itemName
+                        );
+                        const parentProgressRate = parentItem.budgetAmount > 0
+                          ? (parentItem.cumulativeAmount / parentItem.budgetAmount * 100)
+                          : 0;
+                        const parentIncomeRatio = totalIncome > 0
+                          ? (parentItem.cumulativeAmount / totalIncome * 100)
+                          : 0;
+                        const parentDiff = parentComparisonItem?.diff.cumulativeDiff || 0;
+
+                        const rows = [
+                          <tr key={parentItem.id} className="border-b bg-gray-50 font-medium">
+                            <td className="px-3 py-2">{parentItem.itemName}</td>
+                            <td className="px-3 py-2 text-right">{formatAmount(parentItem.budgetAmount)}</td>
+                            <td className="px-3 py-2 text-right">{formatAmount(parentItem.cumulativeAmount)}</td>
+                            <td className="px-3 py-2 text-right">{parentProgressRate.toFixed(0)}%</td>
+                            <td className="px-3 py-2 text-right">{parentIncomeRatio.toFixed(0)}%</td>
                             {data.previousYear && (
                               <>
                                 <td className="px-3 py-2 text-right bg-yellow-50">
-                                  {formatAmount(comparisonItem?.previous?.cumulativeAmount || 0)}
+                                  {formatAmount(parentComparisonItem?.previous?.cumulativeAmount || 0)}
                                 </td>
                                 <td className="px-3 py-2 text-right bg-blue-50">
-                                  <span className={diff >= 0 ? 'text-red-600' : 'text-blue-600'}>
-                                    {diff >= 0 ? '▲' : '▼'} {formatAmount(Math.abs(diff))}
+                                  <span className={parentDiff >= 0 ? 'text-red-600' : 'text-blue-600'}>
+                                    {parentDiff >= 0 ? '▲' : '▼'} {formatAmount(Math.abs(parentDiff))}
                                   </span>
                                 </td>
                               </>
                             )}
                           </tr>
-                        );
+                        ];
+
+                        // 자식 항목 행들
+                        childItems.forEach((childItem) => {
+                          const childComparisonItem = data.comparison?.income.find(
+                            (c) => c.itemName === childItem.itemName
+                          );
+                          const childProgressRate = childItem.budgetAmount > 0
+                            ? (childItem.cumulativeAmount / childItem.budgetAmount * 100)
+                            : 0;
+                          const childIncomeRatio = totalIncome > 0
+                            ? (childItem.cumulativeAmount / totalIncome * 100)
+                            : 0;
+                          const childDiff = childComparisonItem?.diff.cumulativeDiff || 0;
+
+                          rows.push(
+                            <tr key={childItem.id} className="border-b hover:bg-gray-50">
+                              <td className="px-3 py-2 pl-6 text-gray-600">ㄴ {childItem.itemName}</td>
+                              <td className="px-3 py-2 text-right text-gray-600">{formatAmount(childItem.budgetAmount)}</td>
+                              <td className="px-3 py-2 text-right text-gray-600">{formatAmount(childItem.cumulativeAmount)}</td>
+                              <td className="px-3 py-2 text-right text-gray-600">{childProgressRate.toFixed(0)}%</td>
+                              <td className="px-3 py-2 text-right text-gray-600">{childIncomeRatio.toFixed(0)}%</td>
+                              {data.previousYear && (
+                                <>
+                                  <td className="px-3 py-2 text-right bg-yellow-50 text-gray-600">
+                                    {formatAmount(childComparisonItem?.previous?.cumulativeAmount || 0)}
+                                  </td>
+                                  <td className="px-3 py-2 text-right bg-blue-50">
+                                    <span className={childDiff >= 0 ? 'text-red-600' : 'text-blue-600'}>
+                                      {childDiff >= 0 ? '▲' : '▼'} {formatAmount(Math.abs(childDiff))}
+                                    </span>
+                                  </td>
+                                </>
+                              )}
+                            </tr>
+                          );
+                        });
+
+                        return rows;
                       })}
                     {/* 합계 행 */}
                     <tr className="bg-green-100 font-medium">
