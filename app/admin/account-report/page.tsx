@@ -623,6 +623,7 @@ export default function AccountReportPage() {
                       <th className="px-4 py-3 text-right font-medium text-gray-600">전기이월</th>
                       <th className="px-4 py-3 text-right font-medium text-gray-600">수입총계</th>
                       <th className="px-4 py-3 text-right font-medium text-gray-600">지출총계</th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">차액</th>
                       <th className="px-4 py-3 text-right font-medium text-gray-600">차기이월</th>
                     </tr>
                   </thead>
@@ -637,6 +638,9 @@ export default function AccountReportPage() {
                       </td>
                       <td className="px-4 py-3 text-right text-red-600">
                         {formatAmount(data.currentYear.summary.current.totalExpense)}
+                      </td>
+                      <td className={`px-4 py-3 text-right ${data.currentYear.summary.current.difference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatAmount(data.currentYear.summary.current.difference)}
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-blue-600">
                         {formatAmount(data.currentYear.summary.current.nextCarryover)}
@@ -653,6 +657,9 @@ export default function AccountReportPage() {
                         </td>
                         <td className="px-4 py-3 text-right text-red-600">
                           {formatAmount(data.previousYear.summary.cumulative.totalExpense)}
+                        </td>
+                        <td className={`px-4 py-3 text-right ${data.previousYear.summary.cumulative.difference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatAmount(data.previousYear.summary.cumulative.difference)}
                         </td>
                         <td className="px-4 py-3 text-right font-medium text-blue-600">
                           {formatAmount(data.previousYear.summary.cumulative.nextCarryover)}
@@ -690,6 +697,18 @@ export default function AccountReportPage() {
                               ({formatPercent(data.comparison.summary.totalExpense.diffRate)})
                             </span>
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {(() => {
+                            const currentDiff = data.currentYear.summary.current.difference;
+                            const prevDiff = data.previousYear?.summary.cumulative.difference || 0;
+                            const diff = currentDiff - prevDiff;
+                            return (
+                              <span className={diff >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                {diff >= 0 ? '+' : ''}{formatAmount(diff)}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <span className={data.comparison.summary.nextCarryover.diff >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
