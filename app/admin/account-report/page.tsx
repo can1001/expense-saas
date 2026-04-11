@@ -96,6 +96,9 @@ interface ApiResponse {
   };
 }
 
+// 수입 현황에서 제외할 항목명
+const EXCLUDED_INCOME_ITEMS = ['모임회비', '교재비', '연공간이용비', '기타잡수익'];
+
 export default function AccountReportPage() {
   const currentYear = new Date().getFullYear();
 
@@ -135,7 +138,7 @@ export default function AccountReportPage() {
   // 수입 항목 전체 펼치기/접기
   const expandAllIncome = () => {
     const allParentNames = data?.currentYear?.incomeItems
-      .filter(item => item.level === 1)
+      .filter(item => item.level === 1 && !EXCLUDED_INCOME_ITEMS.includes(item.itemName))
       .map(item => item.itemName) || [];
     setExpandedIncomeItems(new Set(allParentNames));
   };
@@ -226,7 +229,7 @@ export default function AccountReportPage() {
   // 차트 데이터 준비
   const incomeChartData =
     data?.currentYear?.incomeItems
-      .filter((item) => item.level === 1)
+      .filter((item) => item.level === 1 && !EXCLUDED_INCOME_ITEMS.includes(item.itemName))
       .slice(0, 8)
       .map((item) => ({
         name: item.itemName.length > 6 ? item.itemName.slice(0, 6) + '...' : item.itemName,
@@ -497,9 +500,11 @@ export default function AccountReportPage() {
                   </thead>
                   <tbody>
                     {data.currentYear.incomeItems
-                      .filter((item) => item.level === 1)
+                      .filter((item) => item.level === 1 && !EXCLUDED_INCOME_ITEMS.includes(item.itemName))
                       .flatMap((parentItem) => {
-                        const totalIncome = data.currentYear?.summary.cumulative.totalIncome || 0;
+                        const totalIncome = data.currentYear?.incomeItems
+                          .filter((item) => item.level === 1 && !EXCLUDED_INCOME_ITEMS.includes(item.itemName))
+                          .reduce((sum, item) => sum + item.cumulativeAmount, 0) || 0;
                         const childItems = data.currentYear?.incomeItems.filter(
                           (child) => child.level === 2 && child.parentItemName === parentItem.itemName
                         ) || [];
@@ -590,49 +595,6 @@ export default function AccountReportPage() {
 
                         return rows;
                       })}
-                    {/* 합계 행 */}
-                    <tr className="bg-green-100 font-medium">
-                      <td className="px-3 py-2">합계</td>
-                      <td className="px-3 py-2 text-right">
-                        {formatAmount(data.currentYear?.incomeItems
-                          .filter((item) => item.level === 1)
-                          .reduce((sum, item) => sum + item.budgetAmount, 0) || 0)}
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        {formatAmount(data.currentYear?.summary.cumulative.totalIncome || 0)}
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        {(() => {
-                          const totalBudget = data.currentYear?.incomeItems
-                            .filter((item) => item.level === 1)
-                            .reduce((sum, item) => sum + item.budgetAmount, 0) || 0;
-                          const cumTotalIncome = data.currentYear?.summary.cumulative.totalIncome || 0;
-                          return totalBudget > 0
-                            ? ((cumTotalIncome / totalBudget) * 100).toFixed(0)
-                            : 0;
-                        })()}%
-                      </td>
-                      <td className="px-3 py-2 text-right">100%</td>
-                      {data.previousYear && (
-                        <>
-                          <td className="px-3 py-2 text-right bg-yellow-100">
-                            {formatAmount(data.previousYear.summary.cumulative.totalIncome)}
-                          </td>
-                          <td className="px-3 py-2 text-right bg-blue-100">
-                            {(() => {
-                              const currentIncome = data.currentYear?.summary.cumulative.totalIncome || 0;
-                              const previousIncome = data.previousYear?.summary.cumulative.totalIncome || 0;
-                              const diff = currentIncome - previousIncome;
-                              return (
-                                <span className={diff >= 0 ? 'text-red-600' : 'text-blue-600'}>
-                                  {diff >= 0 ? '▲' : '▼'} {formatAmount(Math.abs(diff))}
-                                </span>
-                              );
-                            })()}
-                          </td>
-                        </>
-                      )}
-                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -904,7 +866,7 @@ export default function AccountReportPage() {
                 <BarChart
                   data={[
                     ...data.currentYear.incomeItems
-                      .filter((item) => item.level === 1)
+                      .filter((item) => item.level === 1 && !EXCLUDED_INCOME_ITEMS.includes(item.itemName))
                       .slice(0, 3)
                       .map((item) => ({
                         name: item.itemName.length > 5 ? item.itemName.slice(0, 5) + '..' : item.itemName,
