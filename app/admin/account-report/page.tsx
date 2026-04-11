@@ -9,6 +9,7 @@ import Link from 'next/link';
 import {
   ArrowLeft,
   Upload,
+  Download,
   TrendingUp,
   TrendingDown,
   PiggyBank,
@@ -105,12 +106,26 @@ export default function AccountReportPage() {
   const [quarter, setQuarter] = useState(1);
   const [compareMode, setCompareMode] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [data, setData] = useState<ApiResponse['data'] | null>(null);
   const [activeTab, setActiveTab] = useState<'summary' | 'income' | 'expense'>('summary');
   const [expandedIncomeItems, setExpandedIncomeItems] = useState<Set<string>>(new Set());
+  const [expandedExpenseItems, setExpandedExpenseItems] = useState<Set<string>>(new Set());
 
   const toggleIncomeExpand = (itemName: string) => {
     setExpandedIncomeItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemName)) {
+        newSet.delete(itemName);
+      } else {
+        newSet.add(itemName);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleExpenseExpand = (itemName: string) => {
+    setExpandedExpenseItems(prev => {
       const newSet = new Set(prev);
       if (newSet.has(itemName)) {
         newSet.delete(itemName);
@@ -145,6 +160,39 @@ export default function AccountReportPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const exportExcel = async () => {
+    if (!data?.currentYear) return;
+
+    setExporting(true);
+    try {
+      const params = new URLSearchParams({
+        year: String(year),
+        quarter: String(quarter),
+      });
+      const response = await fetch(`/api/admin/account-report/export?${params}`);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || '엑셀 다운로드에 실패했습니다.');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `재정보고서_${year}년_${quarter}분기.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert(error instanceof Error ? error.message : '엑셀 다운로드에 실패했습니다.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('ko-KR').format(amount);
@@ -233,6 +281,17 @@ export default function AccountReportPage() {
           <button onClick={fetchData} className={BTN_OUTLINE} disabled={loading}>
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
+          {data?.currentYear && (
+            <button
+              onClick={exportExcel}
+              className={BTN_OUTLINE}
+              disabled={exporting}
+              title="재정보고서(표준) 엑셀 다운로드"
+            >
+              <Download className={`w-4 h-4 ${exporting ? 'animate-bounce' : ''}`} />
+              <span className="ml-2 hidden sm:inline">다운로드</span>
+            </button>
+          )}
           <Link href="/admin/account-report/upload" className={BTN_PRIMARY}>
             <Upload className="w-4 h-4 mr-2" />
             업로드
@@ -473,6 +532,178 @@ export default function AccountReportPage() {
                               const currentIncome = data.currentYear?.summary.cumulative.totalIncome || 0;
                               const previousIncome = data.previousYear?.summary.cumulative.totalIncome || 0;
                               const diff = currentIncome - previousIncome;
+                              return (
+                                <span className={diff >= 0 ? 'text-red-600' : 'text-blue-600'}>
+                                  {diff >= 0 ? '▲' : '▼'} {formatAmount(Math.abs(diff))}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Ⅲ. 지출 현황 */}
+          {data.currentYear.expenseItems.length > 0 && (
+            <div className={`${SECTION_CARD} mb-6`}>
+              <h3 className={SECTION_TITLE}>Ⅲ. 지출 현황</h3>
+              <p className="text-right text-sm text-gray-500 mb-2">(단위: 원)</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="px-3 py-2 text-left font-medium">항목</th>
+                      <th className="px-3 py-2 text-right font-medium">예산액</th>
+                      <th className="px-3 py-2 text-right font-medium">결산 누계</th>
+                      <th className="px-3 py-2 text-right font-medium">(결산/예산)<br/>진척률</th>
+                      <th className="px-3 py-2 text-right font-medium">지출 비중</th>
+                      {data.previousYear && (
+                        <>
+                          <th className="px-3 py-2 text-right font-medium bg-yellow-50">전년(동분기)<br/>누계</th>
+                          <th className="px-3 py-2 text-right font-medium bg-blue-50">전년 대비 당해<br/>누계 증감액</th>
+                        </>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.currentYear.expenseItems
+                      .filter((item) => item.level === 1)
+                      .flatMap((parentItem) => {
+                        const totalExpense = data.currentYear?.summary.cumulative.totalExpense || 0;
+                        const childItems = data.currentYear?.expenseItems.filter(
+                          (child) => child.level === 2 && child.parentItemName === parentItem.itemName
+                        ) || [];
+
+                        // 부모 항목 행
+                        const parentComparisonItem = data.comparison?.expense.find(
+                          (c) => c.itemName === parentItem.itemName
+                        );
+                        const parentProgressRate = parentItem.budgetAmount > 0
+                          ? (parentItem.cumulativeAmount / parentItem.budgetAmount * 100)
+                          : 0;
+                        const parentExpenseRatio = totalExpense > 0
+                          ? (parentItem.cumulativeAmount / totalExpense * 100)
+                          : 0;
+                        const parentDiff = parentComparisonItem?.diff.cumulativeDiff || 0;
+                        const isOverBudget = parentProgressRate > 100;
+
+                        const rows = [
+                          <tr key={parentItem.id} className="border-b bg-gray-50 font-medium">
+                            <td
+                              className="px-3 py-2 cursor-pointer select-none"
+                              onClick={() => childItems.length > 0 && toggleExpenseExpand(parentItem.itemName)}
+                            >
+                              <span className="inline-flex items-center gap-1">
+                                {childItems.length > 0 ? (
+                                  expandedExpenseItems.has(parentItem.itemName)
+                                    ? <ChevronDown className="w-4 h-4" />
+                                    : <ChevronRight className="w-4 h-4" />
+                                ) : <span className="w-4" />}
+                                {parentItem.itemName}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right">{formatAmount(parentItem.budgetAmount)}</td>
+                            <td className="px-3 py-2 text-right">{formatAmount(parentItem.cumulativeAmount)}</td>
+                            <td className={`px-3 py-2 text-right ${isOverBudget ? 'text-red-600 font-bold' : ''}`}>
+                              {parentProgressRate.toFixed(0)}%
+                            </td>
+                            <td className="px-3 py-2 text-right">{parentExpenseRatio.toFixed(0)}%</td>
+                            {data.previousYear && (
+                              <>
+                                <td className="px-3 py-2 text-right bg-yellow-50">
+                                  {formatAmount(parentComparisonItem?.previous?.cumulativeAmount || 0)}
+                                </td>
+                                <td className="px-3 py-2 text-right bg-blue-50">
+                                  <span className={parentDiff >= 0 ? 'text-red-600' : 'text-blue-600'}>
+                                    {parentDiff >= 0 ? '▲' : '▼'} {formatAmount(Math.abs(parentDiff))}
+                                  </span>
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        ];
+
+                        // 자식 항목 행들 (펼친 상태일 때만 표시)
+                        if (expandedExpenseItems.has(parentItem.itemName)) {
+                          childItems.forEach((childItem) => {
+                          const childComparisonItem = data.comparison?.expense.find(
+                            (c) => c.itemName === childItem.itemName
+                          );
+                          const childProgressRate = childItem.budgetAmount > 0
+                            ? (childItem.cumulativeAmount / childItem.budgetAmount * 100)
+                            : 0;
+                          const childExpenseRatio = totalExpense > 0
+                            ? (childItem.cumulativeAmount / totalExpense * 100)
+                            : 0;
+                          const childDiff = childComparisonItem?.diff.cumulativeDiff || 0;
+                          const childOverBudget = childProgressRate > 100;
+
+                          rows.push(
+                            <tr key={childItem.id} className="border-b hover:bg-gray-50">
+                              <td className="px-3 py-2 pl-6 text-gray-600">ㄴ {childItem.itemName}</td>
+                              <td className="px-3 py-2 text-right text-gray-600">{formatAmount(childItem.budgetAmount)}</td>
+                              <td className="px-3 py-2 text-right text-gray-600">{formatAmount(childItem.cumulativeAmount)}</td>
+                              <td className={`px-3 py-2 text-right ${childOverBudget ? 'text-red-600' : 'text-gray-600'}`}>
+                                {childProgressRate.toFixed(0)}%
+                              </td>
+                              <td className="px-3 py-2 text-right text-gray-600">{childExpenseRatio.toFixed(0)}%</td>
+                              {data.previousYear && (
+                                <>
+                                  <td className="px-3 py-2 text-right bg-yellow-50 text-gray-600">
+                                    {formatAmount(childComparisonItem?.previous?.cumulativeAmount || 0)}
+                                  </td>
+                                  <td className="px-3 py-2 text-right bg-blue-50">
+                                    <span className={childDiff >= 0 ? 'text-red-600' : 'text-blue-600'}>
+                                      {childDiff >= 0 ? '▲' : '▼'} {formatAmount(Math.abs(childDiff))}
+                                    </span>
+                                  </td>
+                                </>
+                              )}
+                            </tr>
+                          );
+                          });
+                        }
+
+                        return rows;
+                      })}
+                    {/* 합계 행 */}
+                    <tr className="bg-red-100 font-medium">
+                      <td className="px-3 py-2">합계</td>
+                      <td className="px-3 py-2 text-right">
+                        {formatAmount(data.currentYear?.expenseItems
+                          .filter((item) => item.level === 1)
+                          .reduce((sum, item) => sum + item.budgetAmount, 0) || 0)}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {formatAmount(data.currentYear?.summary.cumulative.totalExpense || 0)}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {(() => {
+                          const totalBudget = data.currentYear?.expenseItems
+                            .filter((item) => item.level === 1)
+                            .reduce((sum, item) => sum + item.budgetAmount, 0) || 0;
+                          const cumTotalExpense = data.currentYear?.summary.cumulative.totalExpense || 0;
+                          return totalBudget > 0
+                            ? ((cumTotalExpense / totalBudget) * 100).toFixed(0)
+                            : 0;
+                        })()}%
+                      </td>
+                      <td className="px-3 py-2 text-right">100%</td>
+                      {data.previousYear && (
+                        <>
+                          <td className="px-3 py-2 text-right bg-yellow-100">
+                            {formatAmount(data.previousYear.summary.cumulative.totalExpense)}
+                          </td>
+                          <td className="px-3 py-2 text-right bg-blue-100">
+                            {(() => {
+                              const currentExpense = data.currentYear?.summary.cumulative.totalExpense || 0;
+                              const previousExpense = data.previousYear?.summary.cumulative.totalExpense || 0;
+                              const diff = currentExpense - previousExpense;
                               return (
                                 <span className={diff >= 0 ? 'text-red-600' : 'text-blue-600'}>
                                   {diff >= 0 ? '▲' : '▼'} {formatAmount(Math.abs(diff))}
