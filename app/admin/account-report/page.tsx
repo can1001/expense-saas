@@ -230,14 +230,32 @@ export default function AccountReportPage() {
   };
 
   // 차트 데이터 준비
-  const incomeChartData =
-    data?.currentYear?.incomeItems
-      .filter((item) => item.level === 1 && !EXCLUDED_INCOME_ITEMS.includes(item.itemName))
-      .slice(0, 8)
-      .map((item) => ({
-        name: item.itemName.length > 6 ? item.itemName.slice(0, 6) + '...' : item.itemName,
-        value: item.cumulativeAmount,
-      })) || [];
+  const incomeChartData = (() => {
+    const filteredItems = data?.currentYear?.incomeItems
+      .filter((item) => item.level === 1 && !EXCLUDED_INCOME_ITEMS.includes(item.itemName)) || [];
+
+    const topItems = filteredItems.slice(0, 8).map((item) => ({
+      name: item.itemName.length > 6 ? item.itemName.slice(0, 6) + '...' : item.itemName,
+      value: item.cumulativeAmount,
+      budget: item.budgetAmount,
+      rate: item.budgetAmount > 0 ? (item.cumulativeAmount / item.budgetAmount * 100) : 0,
+    }));
+
+    // 8개 초과 항목은 '기타'로 합산
+    if (filteredItems.length > 8) {
+      const otherItems = filteredItems.slice(8);
+      const otherValue = otherItems.reduce((sum, item) => sum + item.cumulativeAmount, 0);
+      const otherBudget = otherItems.reduce((sum, item) => sum + item.budgetAmount, 0);
+      topItems.push({
+        name: '기타',
+        value: otherValue,
+        budget: otherBudget,
+        rate: otherBudget > 0 ? (otherValue / otherBudget * 100) : 0,
+      });
+    }
+
+    return topItems;
+  })();
 
   const expenseChartData =
     data?.currentYear?.expenseItems
@@ -781,7 +799,7 @@ export default function AccountReportPage() {
             <div className={SECTION_CARD}>
               <h3 className={SECTION_TITLE}>수입 구성</h3>
               {incomeChartData.length > 0 ? (
-                <PieChart data={incomeChartData} height={280} />
+                <PieChart data={incomeChartData} height={280} showCenterTotal={true} />
               ) : (
                 <p className="text-gray-500 text-center py-10">데이터가 없습니다.</p>
               )}
