@@ -108,7 +108,16 @@ export async function parseAccountReportFile(
     }
 
     // 2. HTML에서 테이블 추출
-    const tables = extractTables(htmlContent);
+    let tables = extractTables(htmlContent);
+
+    // 테이블이 1개뿐인 경우 (xlsx가 단일 테이블로 변환된 경우)
+    // 섹션 헤더를 기준으로 분리 시도
+    if (tables.length === 1) {
+      const splitTables = splitTableBySections(tables[0]);
+      if (splitTables) {
+        tables = splitTables;
+      }
+    }
 
     if (tables.length < 6) {
       return {
@@ -161,6 +170,87 @@ export async function parseAccountReportFile(
 function extractTables(html: string): string[] {
   const tableRegex = /<table[^>]*>[\s\S]*?<\/table>/gi;
   return html.match(tableRegex) || [];
+}
+
+/**
+ * 단일 테이블을 섹션 헤더로 분리하여 6개 테이블 형태로 반환
+ * xlsx 파일이 HTML로 변환될 때 단일 테이블로 병합되는 경우 처리
+ */
+function splitTableBySections(tableHtml: string): string[] | null {
+  const rows = extractTableRows(tableHtml);
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  // 섹션별 행 저장
+  type SectionKey = 'summary' | 'income' | 'expense';
+  let currentSection: SectionKey | 'unknown' = 'unknown';
+  const sections: Record<SectionKey, string[][]> = {
+    summary: [],
+    income: [],
+    expense: [],
+  };
+
+  // 섹션 헤더 감지 패턴
+  const sectionPatterns = {
+    summary: /수지개황/,
+    income: /수입부/,
+    expense: /지출부/,
+  };
+
+  for (const row of rows) {
+    const firstCell = row[0]?.trim() || '';
+
+    // 섹션 헤더 감지
+    if (sectionPatterns.summary.test(firstCell)) {
+      currentSection = 'summary';
+      continue; // 헤더 행은 건너뜀
+    }
+    if (sectionPatterns.income.test(firstCell)) {
+      currentSection = 'income';
+      continue;
+    }
+    if (sectionPatterns.expense.test(firstCell)) {
+      currentSection = 'expense';
+      continue;
+    }
+
+    // 현재 섹션에 행 추가
+    if (currentSection !== 'unknown') {
+      sections[currentSection].push(row);
+    }
+  }
+
+  // 섹션이 제대로 분리되었는지 확인
+  if (sections.summary.length === 0 && sections.income.length === 0 && sections.expense.length === 0) {
+    return null; // 섹션 헤더를 찾지 못함
+  }
+
+  // 행 배열을 HTML 테이블 문자열로 변환
+  const rowsToTableHtml = (sectionRows: string[][]): string => {
+    if (sectionRows.length === 0) return '<table></table>';
+
+    const htmlRows = sectionRows
+      .map((row) => {
+        const cells = row.map((cell) => `<td>${cell}</td>`).join('');
+        return `<tr>${cells}</tr>`;
+      })
+      .join('\n');
+
+    return `<table>${htmlRows}</table>`;
+  };
+
+  // 6개 테이블 형식으로 반환:
+  // [0] 수지개황 제목, [1] 요약 데이터, [2] 수입부 제목, [3] 수입 상세, [4] 지출부 제목, [5] 지출 상세
+  return [
+    '<table><tr><td>1. 수지개황</td></tr></table>', // 제목 (더미)
+    rowsToTableHtml(sections.summary),
+    '<table><tr><td>2. 수입부</td></tr></table>', // 제목 (더미)
+    rowsToTableHtml(sections.income),
+    '<table><tr><td>3. 지출부</td></tr></table>', // 제목 (더미)
+    rowsToTableHtml(sections.expense),
+  ];
 }
 
 /**
