@@ -4,7 +4,7 @@ import ExcelJS from 'exceljs';
 import { getCurrentUser } from '@/lib/auth';
 
 // 재정보고서 Excel 내보내기 접근 권한이 있는 역할
-const QUARTERLY_REPORT_EXPORT_ALLOWED_ROLES = ['finance_head', 'accountant', 'finance_member'];
+const QUARTERLY_REPORT_EXPORT_ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'finance_member'];
 
 /**
  * 분기별 날짜 범위 계산

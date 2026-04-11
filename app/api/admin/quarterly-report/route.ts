@@ -4,7 +4,7 @@ import { handleApiError } from '@/lib/api/error-handler';
 import { getCurrentUser } from '@/lib/auth';
 
 // 재정보고서 접근 권한이 있는 역할
-const QUARTERLY_REPORT_ALLOWED_ROLES = ['finance_head', 'accountant', 'finance_member'];
+const QUARTERLY_REPORT_ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'finance_member'];
 
 /**
  * 분기별 날짜 범위 계산
