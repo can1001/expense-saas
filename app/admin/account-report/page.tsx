@@ -97,7 +97,10 @@ interface ApiResponse {
 }
 
 // 수입 현황에서 제외할 항목명
-const EXCLUDED_INCOME_ITEMS = ['모임회비', '교재비', '연공간이용비', '기타잡수익'];
+const EXCLUDED_INCOME_ITEMS = ['모임회비', '교재비', '연공간이용비', '기타잡수익', '적립금_해지(원금입금)'];
+
+// 수입 현황에서 마크 표시할 항목명
+const MARKED_INCOME_ITEMS = ['주헌금', '기타헌금', '절기헌금', '기타수입', '예산외수입'];
 
 export default function AccountReportPage() {
   const currentYear = new Date().getFullYear();
@@ -275,7 +278,7 @@ export default function AccountReportPage() {
           <Link href="/admin" className={BTN_OUTLINE}>
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <h1 className="text-2xl font-bold">재정보고서</h1>
+          <h1 className="text-2xl font-bold text-gray-900">재정보고서</h1>
         </div>
         <div className="flex items-center gap-3">
           <select value={year} onChange={(e) => setYear(parseInt(e.target.value))} className={SELECT_BASE}>
@@ -292,7 +295,7 @@ export default function AccountReportPage() {
               </option>
             ))}
           </select>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-sm text-gray-900">
             <input
               type="checkbox"
               checked={compareMode}
@@ -345,20 +348,20 @@ export default function AccountReportPage() {
           {/* Ⅰ. 수입 및 지출 개요 */}
           <div className={`${SECTION_CARD} mb-6`}>
             <h3 className={SECTION_TITLE}>Ⅰ. 수입 및 지출 개요</h3>
-            <p className="text-sm text-gray-600 mb-3">
+            <p className="text-sm text-gray-800 mb-3">
               기 간 : {year}.01.01 ~ {year}.{String(quarter * 3).padStart(2, '0')}.{quarter === 1 ? '31' : quarter === 2 ? '30' : quarter === 3 ? '30' : '31'}
             </p>
-            <p className="text-right text-sm text-gray-500 mb-2">(단위: 원)</p>
+            <p className="text-right text-sm text-gray-700 mb-2">(단위: 원)</p>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm text-gray-900">
                 <thead>
                   <tr className="bg-gray-50">
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">구분</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600">전기이월</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600">수입총계</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600">지출총계</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600">차액</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600">차기이월</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-800">구분</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-800">전기이월</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-800">수입총계</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-800">지출총계</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-800">차액</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-800">차기이월</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -468,32 +471,32 @@ export default function AccountReportPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={expandAllIncome}
-                    className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 text-gray-600"
+                    className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 text-gray-700"
                   >
                     전체 펼치기
                   </button>
                   <button
                     onClick={collapseAllIncome}
-                    className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 text-gray-600"
+                    className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 text-gray-700"
                   >
                     전체 접기
                   </button>
                 </div>
               </div>
-              <p className="text-right text-sm text-gray-500 mb-2">(단위: 원)</p>
+              <p className="text-right text-sm text-gray-700 mb-2">(단위: 원)</p>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm text-gray-900">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="px-3 py-2 text-left font-medium">항목</th>
-                      <th className="px-3 py-2 text-right font-medium">예산액</th>
-                      <th className="px-3 py-2 text-right font-medium">결산 누계</th>
-                      <th className="px-3 py-2 text-right font-medium">(결산/예산)<br/>진척률</th>
-                      <th className="px-3 py-2 text-right font-medium">수입 비중</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-800">항목</th>
+                      <th className="px-3 py-2 text-right font-medium text-gray-800">예산액</th>
+                      <th className="px-3 py-2 text-right font-medium text-gray-800">결산 누계</th>
+                      <th className="px-3 py-2 text-right font-medium text-gray-800">(결산/예산)<br/>진척률</th>
+                      <th className="px-3 py-2 text-right font-medium text-gray-800">수입 비중</th>
                       {data.previousYear && (
                         <>
-                          <th className="px-3 py-2 text-right font-medium bg-yellow-50">전년(동분기)<br/>누계</th>
-                          <th className="px-3 py-2 text-right font-medium bg-blue-50">전년 대비 당해<br/>누계 증감액</th>
+                          <th className="px-3 py-2 text-right font-medium text-gray-800 bg-yellow-50">전년(동분기)<br/>누계</th>
+                          <th className="px-3 py-2 text-right font-medium text-gray-800 bg-blue-50">전년 대비 당해<br/>누계 증감액</th>
                         </>
                       )}
                     </tr>
@@ -528,6 +531,7 @@ export default function AccountReportPage() {
                               onClick={() => childItems.length > 0 && toggleIncomeExpand(parentItem.itemName)}
                             >
                               <span className="inline-flex items-center gap-1">
+                                {MARKED_INCOME_ITEMS.includes(parentItem.itemName) && <span className="text-blue-600">●</span>}
                                 {childItems.length > 0 ? (
                                   expandedIncomeItems.has(parentItem.itemName)
                                     ? <ChevronDown className="w-4 h-4" />
@@ -571,14 +575,14 @@ export default function AccountReportPage() {
 
                           rows.push(
                             <tr key={childItem.id} className="border-b hover:bg-gray-50">
-                              <td className="px-3 py-2 pl-6 text-gray-600">ㄴ {childItem.itemName}</td>
-                              <td className="px-3 py-2 text-right text-gray-600">{formatAmount(childItem.budgetAmount)}</td>
-                              <td className="px-3 py-2 text-right text-gray-600">{formatAmount(childItem.cumulativeAmount)}</td>
-                              <td className="px-3 py-2 text-right text-gray-600">{childProgressRate.toFixed(0)}%</td>
-                              <td className="px-3 py-2 text-right text-gray-600">{childIncomeRatio.toFixed(0)}%</td>
+                              <td className="px-3 py-2 pl-6 text-gray-700">ㄴ {childItem.itemName}</td>
+                              <td className="px-3 py-2 text-right text-gray-700">{formatAmount(childItem.budgetAmount)}</td>
+                              <td className="px-3 py-2 text-right text-gray-700">{formatAmount(childItem.cumulativeAmount)}</td>
+                              <td className="px-3 py-2 text-right text-gray-700">{childProgressRate.toFixed(0)}%</td>
+                              <td className="px-3 py-2 text-right text-gray-700">{childIncomeRatio.toFixed(0)}%</td>
                               {data.previousYear && (
                                 <>
-                                  <td className="px-3 py-2 text-right bg-yellow-50 text-gray-600">
+                                  <td className="px-3 py-2 text-right bg-yellow-50 text-gray-700">
                                     {formatAmount(childComparisonItem?.previous?.cumulativeAmount || 0)}
                                   </td>
                                   <td className="px-3 py-2 text-right bg-blue-50">
@@ -609,32 +613,32 @@ export default function AccountReportPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={expandAllExpense}
-                    className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 text-gray-600"
+                    className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 text-gray-700"
                   >
                     전체 펼치기
                   </button>
                   <button
                     onClick={collapseAllExpense}
-                    className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 text-gray-600"
+                    className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 text-gray-700"
                   >
                     전체 접기
                   </button>
                 </div>
               </div>
-              <p className="text-right text-sm text-gray-500 mb-2">(단위: 원)</p>
+              <p className="text-right text-sm text-gray-700 mb-2">(단위: 원)</p>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm text-gray-900">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="px-3 py-2 text-left font-medium">항목</th>
-                      <th className="px-3 py-2 text-right font-medium">예산액</th>
-                      <th className="px-3 py-2 text-right font-medium">결산 누계</th>
-                      <th className="px-3 py-2 text-right font-medium">(결산/예산)<br/>진척률</th>
-                      <th className="px-3 py-2 text-right font-medium">지출 비중</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-800">항목</th>
+                      <th className="px-3 py-2 text-right font-medium text-gray-800">예산액</th>
+                      <th className="px-3 py-2 text-right font-medium text-gray-800">결산 누계</th>
+                      <th className="px-3 py-2 text-right font-medium text-gray-800">(결산/예산)<br/>진척률</th>
+                      <th className="px-3 py-2 text-right font-medium text-gray-800">지출 비중</th>
                       {data.previousYear && (
                         <>
-                          <th className="px-3 py-2 text-right font-medium bg-yellow-50">전년(동분기)<br/>누계</th>
-                          <th className="px-3 py-2 text-right font-medium bg-blue-50">전년 대비 당해<br/>누계 증감액</th>
+                          <th className="px-3 py-2 text-right font-medium text-gray-800 bg-yellow-50">전년(동분기)<br/>누계</th>
+                          <th className="px-3 py-2 text-right font-medium text-gray-800 bg-blue-50">전년 대비 당해<br/>누계 증감액</th>
                         </>
                       )}
                     </tr>
@@ -714,16 +718,16 @@ export default function AccountReportPage() {
 
                           rows.push(
                             <tr key={childItem.id} className="border-b hover:bg-gray-50">
-                              <td className="px-3 py-2 pl-6 text-gray-600">ㄴ {childItem.itemName}</td>
-                              <td className="px-3 py-2 text-right text-gray-600">{formatAmount(childItem.budgetAmount)}</td>
-                              <td className="px-3 py-2 text-right text-gray-600">{formatAmount(childItem.cumulativeAmount)}</td>
-                              <td className={`px-3 py-2 text-right ${childOverBudget ? 'text-red-600' : 'text-gray-600'}`}>
+                              <td className="px-3 py-2 pl-6 text-gray-700">ㄴ {childItem.itemName}</td>
+                              <td className="px-3 py-2 text-right text-gray-700">{formatAmount(childItem.budgetAmount)}</td>
+                              <td className="px-3 py-2 text-right text-gray-700">{formatAmount(childItem.cumulativeAmount)}</td>
+                              <td className={`px-3 py-2 text-right ${childOverBudget ? 'text-red-600' : 'text-gray-700'}`}>
                                 {childProgressRate.toFixed(0)}%
                               </td>
-                              <td className="px-3 py-2 text-right text-gray-600">{childExpenseRatio.toFixed(0)}%</td>
+                              <td className="px-3 py-2 text-right text-gray-700">{childExpenseRatio.toFixed(0)}%</td>
                               {data.previousYear && (
                                 <>
-                                  <td className="px-3 py-2 text-right bg-yellow-50 text-gray-600">
+                                  <td className="px-3 py-2 text-right bg-yellow-50 text-gray-700">
                                     {formatAmount(childComparisonItem?.previous?.cumulativeAmount || 0)}
                                   </td>
                                   <td className="px-3 py-2 text-right bg-blue-50">
