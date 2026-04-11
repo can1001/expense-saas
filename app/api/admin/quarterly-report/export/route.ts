@@ -37,8 +37,12 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
-    const quarter = parseInt(searchParams.get('quarter') || String(Math.floor(new Date().getMonth() / 3) + 1));
+    // 이전 분기를 기본값으로 설정 (2분기에는 1분기, 3분기에는 2분기 조회)
+    const actualQuarter = Math.floor(new Date().getMonth() / 3) + 1;
+    const defaultQuarter = actualQuarter === 1 ? 4 : actualQuarter - 1;
+    const defaultYear = actualQuarter === 1 ? new Date().getFullYear() - 1 : new Date().getFullYear();
+    const year = parseInt(searchParams.get('year') || String(defaultYear));
+    const quarter = parseInt(searchParams.get('quarter') || String(defaultQuarter));
     const department = searchParams.get('department') || '';
     const category = searchParams.get('category') || '';
     const paymentStatus = searchParams.get('paymentStatus') || '';
