@@ -237,16 +237,16 @@ function generateComparison(
     },
   };
 
-  // 수입 항목 비교 (레벨 1만)
+  // 수입 항목 비교 (모든 레벨 포함)
   const incomeComparison = compareItems(
-    currentReport.incomeItems.filter((i) => i.level === 1),
-    previousReport.incomeItems.filter((i) => i.level === 1)
+    currentReport.incomeItems,
+    previousReport.incomeItems
   );
 
-  // 지출 항목 비교 (레벨 1만)
+  // 지출 항목 비교 (모든 레벨 포함)
   const expenseComparison = compareItems(
-    currentReport.expenseItems.filter((i) => i.level === 1),
-    previousReport.expenseItems.filter((i) => i.level === 1)
+    currentReport.expenseItems,
+    previousReport.expenseItems
   );
 
   return {

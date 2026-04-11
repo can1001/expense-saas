@@ -10,9 +10,6 @@ import {
   ArrowLeft,
   Upload,
   Download,
-  TrendingUp,
-  TrendingDown,
-  PiggyBank,
   RefreshCw,
   ChevronRight,
   ChevronDown,
@@ -108,7 +105,6 @@ export default function AccountReportPage() {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [data, setData] = useState<ApiResponse['data'] | null>(null);
-  const [activeTab, setActiveTab] = useState<'summary' | 'income' | 'expense'>('summary');
   const [expandedIncomeItems, setExpandedIncomeItems] = useState<Set<string>>(new Set());
   const [expandedExpenseItems, setExpandedExpenseItems] = useState<Set<string>>(new Set());
 
@@ -134,6 +130,30 @@ export default function AccountReportPage() {
       }
       return newSet;
     });
+  };
+
+  // 수입 항목 전체 펼치기/접기
+  const expandAllIncome = () => {
+    const allParentNames = data?.currentYear?.incomeItems
+      .filter(item => item.level === 1)
+      .map(item => item.itemName) || [];
+    setExpandedIncomeItems(new Set(allParentNames));
+  };
+
+  const collapseAllIncome = () => {
+    setExpandedIncomeItems(new Set());
+  };
+
+  // 지출 항목 전체 펼치기/접기
+  const expandAllExpense = () => {
+    const allParentNames = data?.currentYear?.expenseItems
+      .filter(item => item.level === 1)
+      .map(item => item.itemName) || [];
+    setExpandedExpenseItems(new Set(allParentNames));
+  };
+
+  const collapseAllExpense = () => {
+    setExpandedExpenseItems(new Set());
   };
 
   const fetchData = useCallback(async () => {
@@ -319,73 +339,144 @@ export default function AccountReportPage() {
 
       {!loading && data?.currentYear && (
         <>
-          {/* 요약 카드 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            {/* 수입 */}
-            <div className={`${SECTION_CARD} border-l-4 border-l-green-500`}>
-              <div className="flex items-center gap-2 text-green-600 mb-2">
-                <TrendingUp className="w-5 h-5" />
-                <span className="font-medium">수입 총계</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatAmount(data.currentYear.summary.current.totalIncome)}원
-              </p>
-              {data.comparison && (
-                <p
-                  className={`text-sm mt-1 ${
-                    data.comparison.summary.totalIncome.diffRate >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}
-                >
-                  전년대비 {formatPercent(data.comparison.summary.totalIncome.diffRate)}
-                </p>
-              )}
-            </div>
-
-            {/* 지출 */}
-            <div className={`${SECTION_CARD} border-l-4 border-l-red-500`}>
-              <div className="flex items-center gap-2 text-red-600 mb-2">
-                <TrendingDown className="w-5 h-5" />
-                <span className="font-medium">지출 총계</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatAmount(data.currentYear.summary.current.totalExpense)}원
-              </p>
-              {data.comparison && (
-                <p
-                  className={`text-sm mt-1 ${
-                    data.comparison.summary.totalExpense.diffRate <= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}
-                >
-                  전년대비 {formatPercent(data.comparison.summary.totalExpense.diffRate)}
-                </p>
-              )}
-            </div>
-
-            {/* 차기이월 */}
-            <div className={`${SECTION_CARD} border-l-4 border-l-blue-500`}>
-              <div className="flex items-center gap-2 text-blue-600 mb-2">
-                <PiggyBank className="w-5 h-5" />
-                <span className="font-medium">차기 이월</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatAmount(data.currentYear.summary.current.nextCarryover)}원
-              </p>
-              {data.comparison && (
-                <p
-                  className={`text-sm mt-1 ${
-                    data.comparison.summary.nextCarryover.diffRate >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}
-                >
-                  전년대비 {formatPercent(data.comparison.summary.nextCarryover.diffRate)}
-                </p>
-              )}
+          {/* Ⅰ. 수입 및 지출 개요 */}
+          <div className={`${SECTION_CARD} mb-6`}>
+            <h3 className={SECTION_TITLE}>Ⅰ. 수입 및 지출 개요</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              기 간 : {year}.01.01 ~ {year}.{String(quarter * 3).padStart(2, '0')}.{quarter === 1 ? '31' : quarter === 2 ? '30' : quarter === 3 ? '30' : '31'}
+            </p>
+            <p className="text-right text-sm text-gray-500 mb-2">(단위: 원)</p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">구분</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">전기이월</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">수입총계</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">지출총계</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">차액</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">차기이월</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b">
+                    <td className="px-4 py-3 font-medium">당기누계</td>
+                    <td className="px-4 py-3 text-right">
+                      {formatAmount(data.currentYear.summary.current.previousCarryover)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-green-600">
+                      {formatAmount(data.currentYear.summary.current.totalIncome)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-red-600">
+                      {formatAmount(data.currentYear.summary.current.totalExpense)}
+                    </td>
+                    <td className={`px-4 py-3 text-right ${data.currentYear.summary.current.difference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatAmount(data.currentYear.summary.current.difference)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium text-blue-600">
+                      {formatAmount(data.currentYear.summary.current.nextCarryover)}
+                    </td>
+                  </tr>
+                  {data.previousYear && (
+                    <tr className="border-b bg-yellow-50">
+                      <td className="px-4 py-3 font-medium">전년(동분기)누계</td>
+                      <td className="px-4 py-3 text-right">
+                        {formatAmount(data.previousYear.summary.cumulative.previousCarryover)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-green-600">
+                        {formatAmount(data.previousYear.summary.cumulative.totalIncome)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-red-600">
+                        {formatAmount(data.previousYear.summary.cumulative.totalExpense)}
+                      </td>
+                      <td className={`px-4 py-3 text-right ${data.previousYear.summary.cumulative.difference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatAmount(data.previousYear.summary.cumulative.difference)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium text-blue-600">
+                        {formatAmount(data.previousYear.summary.cumulative.nextCarryover)}
+                      </td>
+                    </tr>
+                  )}
+                  {data.comparison && (
+                    <tr className="bg-blue-50">
+                      <td className="px-4 py-3 font-medium">전년대비증감</td>
+                      <td className="px-4 py-3 text-right">
+                        {(() => {
+                          const diff = data.currentYear.summary.current.previousCarryover -
+                            (data.previousYear?.summary.cumulative.previousCarryover || 0);
+                          return (
+                            <span className={diff >= 0 ? 'text-green-600' : 'text-red-600'}>
+                              {diff >= 0 ? '+' : ''}{formatAmount(diff)}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={data.comparison.summary.totalIncome.diff >= 0 ? 'text-green-600' : 'text-red-600'}>
+                          {data.comparison.summary.totalIncome.diff >= 0 ? '+' : ''}
+                          {formatAmount(data.comparison.summary.totalIncome.diff)}
+                          <span className="text-xs ml-1">
+                            ({formatPercent(data.comparison.summary.totalIncome.diffRate)})
+                          </span>
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={data.comparison.summary.totalExpense.diff <= 0 ? 'text-green-600' : 'text-red-600'}>
+                          {data.comparison.summary.totalExpense.diff >= 0 ? '+' : ''}
+                          {formatAmount(data.comparison.summary.totalExpense.diff)}
+                          <span className="text-xs ml-1">
+                            ({formatPercent(data.comparison.summary.totalExpense.diffRate)})
+                          </span>
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {(() => {
+                          const currentDiff = data.currentYear.summary.current.difference;
+                          const prevDiff = data.previousYear?.summary.cumulative.difference || 0;
+                          const diff = currentDiff - prevDiff;
+                          return (
+                            <span className={diff >= 0 ? 'text-green-600' : 'text-red-600'}>
+                              {diff >= 0 ? '+' : ''}{formatAmount(diff)}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={data.comparison.summary.nextCarryover.diff >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                          {data.comparison.summary.nextCarryover.diff >= 0 ? '+' : ''}
+                          {formatAmount(data.comparison.summary.nextCarryover.diff)}
+                          <span className="text-xs ml-1">
+                            ({formatPercent(data.comparison.summary.nextCarryover.diffRate)})
+                          </span>
+                        </span>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
           {/* Ⅱ. 수입 현황 */}
           {data.currentYear.incomeItems.length > 0 && (
             <div className={`${SECTION_CARD} mb-6`}>
-              <h3 className={SECTION_TITLE}>Ⅱ. 수입 현황</h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className={`${SECTION_TITLE} mb-0`}>Ⅱ. 수입 현황</h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={expandAllIncome}
+                    className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 text-gray-600"
+                  >
+                    전체 펼치기
+                  </button>
+                  <button
+                    onClick={collapseAllIncome}
+                    className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 text-gray-600"
+                  >
+                    전체 접기
+                  </button>
+                </div>
+              </div>
               <p className="text-right text-sm text-gray-500 mb-2">(단위: 원)</p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -551,7 +642,23 @@ export default function AccountReportPage() {
           {/* Ⅲ. 지출 현황 */}
           {data.currentYear.expenseItems.length > 0 && (
             <div className={`${SECTION_CARD} mb-6`}>
-              <h3 className={SECTION_TITLE}>Ⅲ. 지출 현황</h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className={`${SECTION_TITLE} mb-0`}>Ⅲ. 지출 현황</h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={expandAllExpense}
+                    className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 text-gray-600"
+                  >
+                    전체 펼치기
+                  </button>
+                  <button
+                    onClick={collapseAllExpense}
+                    className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 text-gray-600"
+                  >
+                    전체 접기
+                  </button>
+                </div>
+              </div>
               <p className="text-right text-sm text-gray-500 mb-2">(단위: 원)</p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -818,239 +925,6 @@ export default function AccountReportPage() {
                   showPrevious={false}
                   height={280}
                 />
-              </div>
-            )}
-          </div>
-
-          {/* 탭 */}
-          <div className={SECTION_CARD}>
-            <div className="flex border-b mb-4">
-              {[
-                { key: 'summary', label: '수지개황' },
-                { key: 'income', label: '수입부' },
-                { key: 'expense', label: '지출부' },
-              ].map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                  className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                    activeTab === tab.key
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* 수지개황 탭 */}
-            {activeTab === 'summary' && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">구분</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">전기이월</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">수입총계</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">지출총계</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">차액</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">차기이월</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b">
-                      <td className="px-4 py-3 font-medium">당기누계</td>
-                      <td className="px-4 py-3 text-right">
-                        {formatAmount(data.currentYear.summary.current.previousCarryover)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-green-600">
-                        {formatAmount(data.currentYear.summary.current.totalIncome)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-red-600">
-                        {formatAmount(data.currentYear.summary.current.totalExpense)}
-                      </td>
-                      <td className={`px-4 py-3 text-right ${data.currentYear.summary.current.difference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {formatAmount(data.currentYear.summary.current.difference)}
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium text-blue-600">
-                        {formatAmount(data.currentYear.summary.current.nextCarryover)}
-                      </td>
-                    </tr>
-                    {data.previousYear && (
-                      <tr className="border-b bg-yellow-50">
-                        <td className="px-4 py-3 font-medium">전년(동분기)누계</td>
-                        <td className="px-4 py-3 text-right">
-                          {formatAmount(data.previousYear.summary.cumulative.previousCarryover)}
-                        </td>
-                        <td className="px-4 py-3 text-right text-green-600">
-                          {formatAmount(data.previousYear.summary.cumulative.totalIncome)}
-                        </td>
-                        <td className="px-4 py-3 text-right text-red-600">
-                          {formatAmount(data.previousYear.summary.cumulative.totalExpense)}
-                        </td>
-                        <td className={`px-4 py-3 text-right ${data.previousYear.summary.cumulative.difference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatAmount(data.previousYear.summary.cumulative.difference)}
-                        </td>
-                        <td className="px-4 py-3 text-right font-medium text-blue-600">
-                          {formatAmount(data.previousYear.summary.cumulative.nextCarryover)}
-                        </td>
-                      </tr>
-                    )}
-                    {data.comparison && (
-                      <tr className="bg-blue-50">
-                        <td className="px-4 py-3 font-medium">전년대비증감</td>
-                        <td className="px-4 py-3 text-right">
-                          {(() => {
-                            const diff = data.currentYear.summary.current.previousCarryover -
-                              (data.previousYear?.summary.cumulative.previousCarryover || 0);
-                            return (
-                              <span className={diff >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                {diff >= 0 ? '+' : ''}{formatAmount(diff)}
-                              </span>
-                            );
-                          })()}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className={data.comparison.summary.totalIncome.diff >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {data.comparison.summary.totalIncome.diff >= 0 ? '+' : ''}
-                            {formatAmount(data.comparison.summary.totalIncome.diff)}
-                            <span className="text-xs ml-1">
-                              ({formatPercent(data.comparison.summary.totalIncome.diffRate)})
-                            </span>
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className={data.comparison.summary.totalExpense.diff <= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {data.comparison.summary.totalExpense.diff >= 0 ? '+' : ''}
-                            {formatAmount(data.comparison.summary.totalExpense.diff)}
-                            <span className="text-xs ml-1">
-                              ({formatPercent(data.comparison.summary.totalExpense.diffRate)})
-                            </span>
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {(() => {
-                            const currentDiff = data.currentYear.summary.current.difference;
-                            const prevDiff = data.previousYear?.summary.cumulative.difference || 0;
-                            const diff = currentDiff - prevDiff;
-                            return (
-                              <span className={diff >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                {diff >= 0 ? '+' : ''}{formatAmount(diff)}
-                              </span>
-                            );
-                          })()}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className={data.comparison.summary.nextCarryover.diff >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                            {data.comparison.summary.nextCarryover.diff >= 0 ? '+' : ''}
-                            {formatAmount(data.comparison.summary.nextCarryover.diff)}
-                            <span className="text-xs ml-1">
-                              ({formatPercent(data.comparison.summary.nextCarryover.diffRate)})
-                            </span>
-                          </span>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* 수입부 탭 */}
-            {activeTab === 'income' && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">항목</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">예산액</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">누계</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">당기</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">집행률</th>
-                      {data.comparison && (
-                        <th className="px-4 py-3 text-right font-medium text-gray-600">전년대비</th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.currentYear.incomeItems
-                      .filter((item) => item.level === 1)
-                      .map((item) => {
-                        const comparisonItem = data.comparison?.income.find((c) => c.itemName === item.itemName);
-                        return (
-                          <tr key={item.id} className="border-b hover:bg-gray-50">
-                            <td className="px-4 py-3 font-medium">{item.itemName}</td>
-                            <td className="px-4 py-3 text-right">{formatAmount(item.budgetAmount)}</td>
-                            <td className="px-4 py-3 text-right text-green-600">
-                              {formatAmount(item.cumulativeAmount)}
-                            </td>
-                            <td className="px-4 py-3 text-right">{formatAmount(item.currentAmount)}</td>
-                            <td className="px-4 py-3 text-right">{item.executionRate.toFixed(1)}%</td>
-                            {data.comparison && comparisonItem && (
-                              <td
-                                className={`px-4 py-3 text-right ${
-                                  comparisonItem.diff.cumulativeDiffRate >= 0 ? 'text-green-600' : 'text-red-600'
-                                }`}
-                              >
-                                {formatPercent(comparisonItem.diff.cumulativeDiffRate)}
-                              </td>
-                            )}
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* 지출부 탭 */}
-            {activeTab === 'expense' && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">항목</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">예산액</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">누계</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">당기</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">집행률</th>
-                      {data.comparison && (
-                        <th className="px-4 py-3 text-right font-medium text-gray-600">전년대비</th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.currentYear.expenseItems
-                      .filter((item) => item.level === 1)
-                      .map((item) => {
-                        const comparisonItem = data.comparison?.expense.find((c) => c.itemName === item.itemName);
-                        const isOverBudget = item.executionRate > 100;
-                        return (
-                          <tr key={item.id} className="border-b hover:bg-gray-50">
-                            <td className="px-4 py-3 font-medium">{item.itemName}</td>
-                            <td className="px-4 py-3 text-right">{formatAmount(item.budgetAmount)}</td>
-                            <td className="px-4 py-3 text-right text-red-600">
-                              {formatAmount(item.cumulativeAmount)}
-                            </td>
-                            <td className="px-4 py-3 text-right">{formatAmount(item.currentAmount)}</td>
-                            <td className={`px-4 py-3 text-right ${isOverBudget ? 'text-red-600 font-medium' : ''}`}>
-                              {item.executionRate.toFixed(1)}%
-                            </td>
-                            {data.comparison && comparisonItem && (
-                              <td
-                                className={`px-4 py-3 text-right ${
-                                  comparisonItem.diff.cumulativeDiffRate <= 0 ? 'text-green-600' : 'text-red-600'
-                                }`}
-                              >
-                                {formatPercent(comparisonItem.diff.cumulativeDiffRate)}
-                              </td>
-                            )}
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
               </div>
             )}
           </div>
