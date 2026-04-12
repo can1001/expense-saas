@@ -190,8 +190,8 @@ export interface WooriBankTransferRow {
   입금은행: string;
   입금계좌번호: string;
   이체금액: number;
-  보내는분통장표시: string;
   받는분통장표시: string;
+  보내는분통장표시: string;
   CMS번호: string;
 }
 
@@ -211,8 +211,8 @@ export function expenseToWooriBankRow(expense: ExpenseForWooriBank): WooriBankTr
     입금은행: expense.bankName,
     입금계좌번호: expense.accountNumber.replace(/-/g, ''), // 하이픈 제거
     이체금액: expense.requestAmount,
-    보내는분통장표시: '청연교회',
     받는분통장표시: expense.accountHolder,
+    보내는분통장표시: '청연교회',
     CMS번호: '',
   };
 }
@@ -241,8 +241,8 @@ export function generateWooriBankWorkbook(expenses: ExpenseForWooriBank[]): XLSX
     { wch: 12 },  // 입금은행
     { wch: 18 },  // 입금계좌번호
     { wch: 12 },  // 이체금액
-    { wch: 12 },  // 보내는분통장표시
     { wch: 12 },  // 받는분통장표시
+    { wch: 12 },  // 보내는분통장표시
     { wch: 12 },  // CMS번호
   ];
 

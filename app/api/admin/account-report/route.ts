@@ -5,7 +5,7 @@
  * - 재정보고서 조회 (당해/전년 비교 포함)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError } from '@/lib/api/response-handler';
 import { AccountReportType } from '@prisma/client';
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const year = parseInt(searchParams.get('year') || '') || new Date().getFullYear();
     const quarter = parseInt(searchParams.get('quarter') || '') || 1;
     const compareWithPrevious = searchParams.get('compare') === 'true';
+    const includeTrend = searchParams.get('trend') === 'true';
 
     // 당해년도 보고서 조회
     const currentYearReport = await prisma.accountReport.findUnique({
@@ -68,6 +69,12 @@ export async function GET(request: NextRequest) {
       comparison = generateComparison(currentYearReport, previousYearReport);
     }
 
+    // 분기별 추이 데이터 조회 (trend 모드일 때)
+    let trendData = null;
+    if (includeTrend) {
+      trendData = await fetchTrendData(year, compareWithPrevious);
+    }
+
     return apiSuccess({
       year,
       quarter,
@@ -92,6 +99,7 @@ export async function GET(request: NextRequest) {
           }
         : null,
       comparison,
+      trendData,
     });
   } catch (error) {
     console.error('Account report fetch error:', error);
@@ -104,6 +112,49 @@ export async function GET(request: NextRequest) {
       }
     );
   }
+}
+
+/**
+ * 분기별 추이 데이터 조회
+ */
+async function fetchTrendData(year: number, includePrevious: boolean) {
+  // 해당 연도의 모든 분기 데이터 조회
+  const currentYearReports = await prisma.accountReport.findMany({
+    where: {
+      year,
+      reportType: AccountReportType.CURRENT_YEAR,
+    },
+    orderBy: { quarter: 'asc' },
+  });
+
+  // 전년도 데이터 조회 (비교 모드일 때)
+  let previousYearReports: typeof currentYearReports = [];
+  if (includePrevious) {
+    previousYearReports = await prisma.accountReport.findMany({
+      where: {
+        year: year - 1,
+        reportType: AccountReportType.CURRENT_YEAR,
+      },
+      orderBy: { quarter: 'asc' },
+    });
+  }
+
+  const previousMap = new Map(previousYearReports.map((r) => [r.quarter, r]));
+
+  return currentYearReports.map((report) => {
+    const summary = report.summaryData as unknown as SummaryData;
+    const prevReport = previousMap.get(report.quarter);
+    const prevSummary = prevReport?.summaryData as unknown as SummaryData | undefined;
+
+    return {
+      name: `${report.quarter}분기`,
+      quarter: report.quarter,
+      income: summary?.current?.totalIncome || 0,
+      expense: summary?.current?.totalExpense || 0,
+      previousIncome: prevSummary?.current?.totalIncome || undefined,
+      previousExpense: prevSummary?.current?.totalExpense || undefined,
+    };
+  });
 }
 
 /**
@@ -186,16 +237,16 @@ function generateComparison(
     },
   };
 
-  // 수입 항목 비교 (레벨 1만)
+  // 수입 항목 비교 (모든 레벨 포함)
   const incomeComparison = compareItems(
-    currentReport.incomeItems.filter((i) => i.level === 1),
-    previousReport.incomeItems.filter((i) => i.level === 1)
+    currentReport.incomeItems,
+    previousReport.incomeItems
   );
 
-  // 지출 항목 비교 (레벨 1만)
+  // 지출 항목 비교 (모든 레벨 포함)
   const expenseComparison = compareItems(
-    currentReport.expenseItems.filter((i) => i.level === 1),
-    previousReport.expenseItems.filter((i) => i.level === 1)
+    currentReport.expenseItems,
+    previousReport.expenseItems
   );
 
   return {

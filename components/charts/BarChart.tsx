@@ -22,6 +22,7 @@ interface BarChartData {
   actual?: number;
   previous?: number;
   value?: number;
+  rate?: number;
 }
 
 interface BarChartProps {
@@ -37,6 +38,12 @@ interface BarChartProps {
   };
   valueKey?: string;
   stacked?: boolean;
+  /** Threshold value for conditional coloring (e.g., 100 for execution rate) */
+  threshold?: number;
+  /** Color for values exceeding the threshold */
+  thresholdColor?: string;
+  /** Unit suffix for tooltip (e.g., '%' for percentages) */
+  unit?: string;
 }
 
 const defaultColors = {
@@ -65,8 +72,14 @@ export function BarChart({
   colors = defaultColors,
   valueKey,
   stacked = false,
+  threshold,
+  thresholdColor = '#ef4444',
+  unit,
 }: BarChartProps) {
   const formatYAxis = (value: number) => {
+    if (unit) {
+      return `${value}${unit}`;
+    }
     if (value >= 100000000) {
       return `${(value / 100000000).toFixed(0)}억`;
     }
@@ -76,16 +89,31 @@ export function BarChart({
     return value.toLocaleString();
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const formatTooltip = (value: any) => {
+  const formatTooltip = (value: number | string | readonly (string | number)[] | undefined) => {
     if (typeof value === 'number') {
+      if (unit) {
+        return `${value.toFixed(1)}${unit}`;
+      }
       return `${value.toLocaleString()}원`;
     }
-    return String(value);
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+    return String(value ?? '');
   };
 
   // 단일 값 차트인 경우 (valueKey 사용)
   if (valueKey) {
+    const getBarColor = (entry: BarChartData, index: number) => {
+      if (threshold !== undefined && valueKey) {
+        const value = entry[valueKey as keyof BarChartData];
+        if (typeof value === 'number' && value > threshold) {
+          return thresholdColor;
+        }
+      }
+      return CHART_COLORS[index % CHART_COLORS.length];
+    };
+
     return (
       <ResponsiveContainer width="100%" height={height}>
         <RechartsBarChart data={data} layout="vertical" margin={{ left: 20, right: 20 }}>
@@ -94,8 +122,8 @@ export function BarChart({
           <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
           <Tooltip formatter={formatTooltip} />
           <Bar dataKey={valueKey} radius={[0, 4, 4, 0]}>
-            {data.map((_, index) => (
-              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={getBarColor(entry, index)} />
             ))}
           </Bar>
         </RechartsBarChart>

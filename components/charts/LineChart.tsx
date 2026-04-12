@@ -40,11 +40,6 @@ interface LineChartProps {
   height?: number;
 }
 
-const defaultLines: LineConfig[] = [
-  { dataKey: 'income', name: '수입', color: '#10b981' },
-  { dataKey: 'expense', name: '지출', color: '#ef4444' },
-];
-
 export function LineChart({
   data,
   lines,
@@ -63,12 +58,14 @@ export function LineChart({
     return value.toLocaleString();
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const formatTooltip = (value: any) => {
+  const formatTooltip = (value: number | string | readonly (string | number)[] | undefined) => {
     if (typeof value === 'number') {
       return `${value.toLocaleString()}원`;
     }
-    return String(value);
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+    return String(value ?? '');
   };
 
   // 커스텀 라인 설정 사용

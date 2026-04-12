@@ -10,6 +10,8 @@ interface PieChartData {
   name: string;
   value: number;
   color?: string;
+  budget?: number;
+  rate?: number;
 }
 
 interface PieChartProps {
@@ -19,6 +21,7 @@ interface PieChartProps {
   outerRadius?: number;
   showLegend?: boolean;
   showLabel?: boolean;
+  showCenterTotal?: boolean;
 }
 
 const COLORS = [
@@ -41,17 +44,41 @@ export function PieChart({
   outerRadius = 100,
   showLegend = true,
   showLabel = false,
+  showCenterTotal = false,
 }: PieChartProps) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const formatTooltip = (value: any) => {
-    if (typeof value === 'number') {
-      return `${value.toLocaleString()}원`;
+  const hasBudgetInfo = data.some((d) => d.budget !== undefined);
+
+  // 커스텀 Tooltip 컴포넌트
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: { payload: PieChartData }[] }) => {
+    if (active && payload && payload.length) {
+      const item = payload[0].payload;
+      return (
+        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm">
+          <p className="font-semibold text-gray-900 mb-1">{item.name}</p>
+          {item.budget !== undefined && (
+            <p className="text-gray-600">예산: {item.budget.toLocaleString()}원</p>
+          )}
+          <p className="text-gray-900">결산: {item.value.toLocaleString()}원</p>
+          {item.rate !== undefined && (
+            <p className={`font-medium ${item.rate > 100 ? 'text-red-600' : 'text-blue-600'}`}>
+              진척률: {item.rate.toFixed(1)}%
+            </p>
+          )}
+        </div>
+      );
     }
-    return String(value);
+    return null;
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const renderCustomizedLabel = (props: any) => {
+  const renderCustomizedLabel = (props: {
+    cx?: number;
+    cy?: number;
+    midAngle?: number;
+    innerRadius?: number;
+    outerRadius?: number;
+    percent?: number;
+    name?: string;
+  }) => {
     const { cx, cy, midAngle, innerRadius, outerRadius, percent, name } = props;
     if (!cx || !cy || !midAngle || !innerRadius || !outerRadius || !percent) return null;
 
@@ -77,13 +104,45 @@ export function PieChart({
   };
 
   const total = data.reduce((sum, item) => sum + item.value, 0);
+  const totalBudget = data.reduce((sum, item) => sum + (item.budget || 0), 0);
+  const totalRate = totalBudget > 0 ? (total / totalBudget * 100) : 0;
+
+  // 커스텀 Legend
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const renderLegend = (props: any) => {
+    const { payload } = props as { payload?: { value: string; color: string }[] };
+    return (
+      <ul className="text-xs space-y-1 max-h-[200px] overflow-y-auto">
+        {payload?.map((entry, index) => {
+          const item = data.find((d) => d.name === entry.value);
+          const percent = item ? ((item.value / total) * 100).toFixed(1) : '0';
+          return (
+            <li key={`item-${index}`} className="flex items-start gap-1">
+              <span
+                className="inline-block w-3 h-3 rounded-full mt-0.5 flex-shrink-0"
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="text-gray-700">
+                {entry.value} ({percent}%)
+                {hasBudgetInfo && item?.rate !== undefined && (
+                  <span className={`ml-1 ${item.rate > 100 ? 'text-red-600' : 'text-blue-600'}`}>
+                    [{item.rate.toFixed(0)}%]
+                  </span>
+                )}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
 
   return (
     <ResponsiveContainer width="100%" height={height}>
       <RechartsPieChart>
         <Pie
           data={data}
-          cx="50%"
+          cx={showLegend ? '40%' : '50%'}
           cy="50%"
           innerRadius={innerRadius}
           outerRadius={outerRadius}
@@ -96,18 +155,70 @@ export function PieChart({
             <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
           ))}
         </Pie>
-        <Tooltip formatter={formatTooltip} />
+        <Tooltip content={<CustomTooltip />} />
         {showLegend && (
           <Legend
             layout="vertical"
             align="right"
             verticalAlign="middle"
-            formatter={(value, entry) => {
-              const item = data.find((d) => d.name === value);
-              const percent = item ? ((item.value / total) * 100).toFixed(1) : 0;
-              return `${value} (${percent}%)`;
-            }}
+            content={renderLegend}
           />
+        )}
+        {/* 중앙 합계 표시 */}
+        {showCenterTotal && (
+          <text
+            x={showLegend ? '40%' : '50%'}
+            y="45%"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="fill-gray-500 text-[10px]"
+          >
+            {hasBudgetInfo ? '예산' : '합계'}
+          </text>
+        )}
+        {showCenterTotal && hasBudgetInfo && (
+          <text
+            x={showLegend ? '40%' : '50%'}
+            y="52%"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="fill-gray-700 text-xs font-medium"
+          >
+            {(totalBudget / 100000000).toFixed(1)}억
+          </text>
+        )}
+        {showCenterTotal && (
+          <text
+            x={showLegend ? '40%' : '50%'}
+            y={hasBudgetInfo ? '62%' : '50%'}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="fill-gray-500 text-[10px]"
+          >
+            결산
+          </text>
+        )}
+        {showCenterTotal && (
+          <text
+            x={showLegend ? '40%' : '50%'}
+            y={hasBudgetInfo ? '69%' : '58%'}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="fill-gray-900 text-xs font-semibold"
+          >
+            {(total / 100000000).toFixed(1)}억
+          </text>
+        )}
+        {showCenterTotal && hasBudgetInfo && (
+          <text
+            x={showLegend ? '40%' : '50%'}
+            y="78%"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className={`text-[10px] font-medium ${totalRate > 100 ? 'fill-red-600' : 'fill-blue-600'}`}
+          >
+            ({totalRate.toFixed(1)}%)
+          </text>
         )}
       </RechartsPieChart>
     </ResponsiveContainer>

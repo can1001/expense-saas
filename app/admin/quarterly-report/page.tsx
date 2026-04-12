@@ -138,11 +138,13 @@ function formatAmount(amount: number): string {
 }
 
 export default function QuarterlyReportPage() {
-  const currentYear = new Date().getFullYear();
-  const currentQuarter = Math.floor(new Date().getMonth() / 3) + 1;
+  // 이전 분기를 기본값으로 설정 (2분기에는 1분기, 3분기에는 2분기 조회)
+  const actualQuarter = Math.floor(new Date().getMonth() / 3) + 1;
+  const defaultQuarter = actualQuarter === 1 ? 4 : actualQuarter - 1;
+  const defaultYear = actualQuarter === 1 ? new Date().getFullYear() - 1 : new Date().getFullYear();
 
-  const [year, setYear] = useState(currentYear);
-  const [quarter, setQuarter] = useState(currentQuarter);
+  const [year, setYear] = useState(defaultYear);
+  const [quarter, setQuarter] = useState(defaultQuarter);
   const [department, setDepartment] = useState('');
   const [category, setCategory] = useState('');
   const [paymentStatus, setPaymentStatus] = useState('');
@@ -378,7 +380,7 @@ export default function QuarterlyReportPage() {
     });
   };
 
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
   return (
     <div className="space-y-6">
