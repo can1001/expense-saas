@@ -37,6 +37,28 @@ const COLORS = [
   '#6366f1', // indigo
 ];
 
+// 커스텀 Tooltip 컴포넌트 (렌더링 외부에서 정의)
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: { payload: PieChartData }[] }) {
+  if (active && payload && payload.length) {
+    const item = payload[0].payload;
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm">
+        <p className="font-semibold text-gray-900 mb-1">{item.name}</p>
+        {item.budget !== undefined && (
+          <p className="text-gray-600">예산: {item.budget.toLocaleString()}원</p>
+        )}
+        <p className="text-gray-900">결산: {item.value.toLocaleString()}원</p>
+        {item.rate !== undefined && (
+          <p className={`font-medium ${item.rate > 100 ? 'text-red-600' : 'text-blue-600'}`}>
+            진척률: {item.rate.toFixed(1)}%
+          </p>
+        )}
+      </div>
+    );
+  }
+  return null;
+}
+
 export function PieChart({
   data,
   height = 300,
@@ -47,28 +69,6 @@ export function PieChart({
   showCenterTotal = false,
 }: PieChartProps) {
   const hasBudgetInfo = data.some((d) => d.budget !== undefined);
-
-  // 커스텀 Tooltip 컴포넌트
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: { payload: PieChartData }[] }) => {
-    if (active && payload && payload.length) {
-      const item = payload[0].payload;
-      return (
-        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm">
-          <p className="font-semibold text-gray-900 mb-1">{item.name}</p>
-          {item.budget !== undefined && (
-            <p className="text-gray-600">예산: {item.budget.toLocaleString()}원</p>
-          )}
-          <p className="text-gray-900">결산: {item.value.toLocaleString()}원</p>
-          {item.rate !== undefined && (
-            <p className={`font-medium ${item.rate > 100 ? 'text-red-600' : 'text-blue-600'}`}>
-              진척률: {item.rate.toFixed(1)}%
-            </p>
-          )}
-        </div>
-      );
-    }
-    return null;
-  };
 
   const renderCustomizedLabel = (props: {
     cx?: number;
@@ -108,9 +108,8 @@ export function PieChart({
   const totalRate = totalBudget > 0 ? (total / totalBudget * 100) : 0;
 
   // 커스텀 Legend
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const renderLegend = (props: any) => {
-    const { payload } = props as { payload?: { value: string; color: string }[] };
+  const renderLegend = (props: { payload?: readonly { value?: string; color?: string }[] }) => {
+    const { payload } = props;
     return (
       <ul className="text-xs space-y-1 max-h-[200px] overflow-y-auto">
         {payload?.map((entry, index) => {

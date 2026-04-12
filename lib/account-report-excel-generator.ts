@@ -5,7 +5,7 @@
  */
 
 import * as XLSX from 'xlsx';
-import type { SummaryData, ParsedReportItem } from './account-report-parser';
+import type { SummaryData } from './account-report-parser';
 
 // ========================================
 // 타입 정의
