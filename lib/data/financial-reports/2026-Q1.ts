@@ -16,6 +16,12 @@ export const report2026Q1: FinancialReportData = {
     totalExpense: 139649110,
     difference: 177320848 - 139649110,
     nextCarryover: 58048702,
+    prevYear: {
+      previousCarryover: 14690878,
+      totalIncome: 107783964,
+      totalExpense: 111005564,
+      nextCarryover: 11469278,
+    },
   },
   incomeItems: [
     // 주헌금

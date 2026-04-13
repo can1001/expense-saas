@@ -10,6 +10,13 @@ export interface SummaryData {
   totalExpense: number; // 지출총계
   difference: number; // 차액
   nextCarryover: number; // 차기이월
+  // 전년 동분기 데이터
+  prevYear?: {
+    previousCarryover: number; // 전년 전기이월
+    totalIncome: number; // 전년 수입총계
+    totalExpense: number; // 전년 지출총계
+    nextCarryover: number; // 전년 차기이월
+  };
 }
 
 // 수입/지출 항목
