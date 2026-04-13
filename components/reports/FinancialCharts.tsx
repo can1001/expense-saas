@@ -14,10 +14,25 @@ interface FinancialChartsProps {
   committeeExpenses: CommitteeExpense[];
 }
 
-// 차트 색상
-const INCOME_COLORS = ['#22c55e', '#16a34a', '#15803d', '#166534', '#14532d', '#4ade80', '#86efac', '#bbf7d0'];
-const EXPENSE_COLORS = ['#ef4444', '#dc2626', '#b91c1c', '#991b1b', '#7f1d1d', '#f87171', '#fca5a5', '#fecaca'];
-const COMMITTEE_COLORS = ['#6366f1', '#4f46e5', '#4338ca', '#3730a3', '#312e81', '#818cf8', '#a5b4fc', '#c7d2fe'];
+// 차트 색상 (다양한 색상, 모든 차트에 동일하게 적용)
+const CHART_COLORS = [
+  '#3b82f6', // blue
+  '#ef4444', // red
+  '#22c55e', // green
+  '#f59e0b', // amber
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#14b8a6', // teal
+  '#f97316', // orange
+  '#6366f1', // indigo
+  '#84cc16', // lime
+  '#06b6d4', // cyan
+  '#a855f7', // purple
+  '#10b981', // emerald
+  '#eab308', // yellow
+  '#0ea5e9', // sky
+  '#d946ef', // fuchsia
+];
 
 function CustomTooltip({ active, payload }: { active?: boolean; payload?: { name: string; value: number }[] }) {
   if (active && payload && payload.length) {
@@ -32,12 +47,14 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { name
 }
 
 export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }: FinancialChartsProps) {
-  // 수입 차트 데이터 (카테고리별 합계만)
+  // 수입 차트 데이터 (2레벨 세부 항목, 적립금_해지 제외)
   const incomeChartData = incomeItems
     .filter((item, index, arr) => {
+      // 카테고리의 첫 번째 항목(합계)은 제외하고, 세부 항목만 포함
       const firstIndex = arr.findIndex((i) => i.category === item.category);
-      return firstIndex === index;
+      return firstIndex !== index;
     })
+    .filter((item) => item.itemName !== '적립금_해지')
     .map((item) => ({
       name: item.itemName,
       value: item.cumulativeAmount,
@@ -88,7 +105,7 @@ export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }
                   labelLine={true}
                 >
                   {incomeChartData.map((_, index) => (
-                    <Cell key={`income-cell-${index}`} fill={INCOME_COLORS[index % INCOME_COLORS.length]} />
+                    <Cell key={`income-cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
@@ -119,7 +136,7 @@ export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }
                   labelLine={true}
                 >
                   {expenseChartData.map((_, index) => (
-                    <Cell key={`expense-cell-${index}`} fill={EXPENSE_COLORS[index % EXPENSE_COLORS.length]} />
+                    <Cell key={`expense-cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
@@ -150,7 +167,7 @@ export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }
                   labelLine={true}
                 >
                   {committeeChartData.map((_, index) => (
-                    <Cell key={`committee-cell-${index}`} fill={COMMITTEE_COLORS[index % COMMITTEE_COLORS.length]} />
+                    <Cell key={`committee-cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
