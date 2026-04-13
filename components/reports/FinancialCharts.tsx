@@ -47,7 +47,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { name
 }
 
 export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }: FinancialChartsProps) {
-  // 수입 차트 데이터 (2레벨 세부 항목, 적립금_해지 제외)
+  // 수입 차트 데이터 (2레벨 세부 항목, 적립금_해지 제외, 큰 순서로 정렬)
   const incomeChartData = incomeItems
     .filter((item, index, arr) => {
       // 카테고리의 첫 번째 항목(합계)은 제외하고, 세부 항목만 포함
@@ -59,10 +59,12 @@ export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }
       name: item.itemName,
       value: item.cumulativeAmount,
     }))
-    .filter((item) => item.value > 0);
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value);
 
-  // 지출 차트 데이터 (카테고리별 합계만)
-  const expenseChartData = expenseItems
+  // 지출 차트 데이터 (카테고리별 합계, 예산외지출 제외, 4% 이하는 기타로 묶음)
+  const expenseRawData = expenseItems
+    .filter((item) => item.category !== '예산외지출')
     .filter((item, index, arr) => {
       const firstIndex = arr.findIndex((i) => i.category === item.category);
       return firstIndex === index;
@@ -73,13 +75,28 @@ export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }
     }))
     .filter((item) => item.value > 0);
 
-  // 위원회별 지출 차트 데이터
+  const expenseTotal = expenseRawData.reduce((sum, item) => sum + item.value, 0);
+  const expenseThreshold = expenseTotal * 0.04; // 4%
+
+  const expenseMainItems = expenseRawData
+    .filter((item) => item.value > expenseThreshold)
+    .sort((a, b) => b.value - a.value);
+  const expenseOthersSum = expenseRawData
+    .filter((item) => item.value <= expenseThreshold)
+    .reduce((sum, item) => sum + item.value, 0);
+
+  const expenseChartData = expenseOthersSum > 0
+    ? [...expenseMainItems, { name: '기타', value: expenseOthersSum }]
+    : expenseMainItems;
+
+  // 위원회별 지출 차트 데이터 (큰 순서로 정렬)
   const committeeChartData = committeeExpenses
     .map((item) => ({
       name: item.committee,
       value: item.amount,
     }))
-    .filter((item) => item.value > 0);
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value);
 
   return (
     <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
