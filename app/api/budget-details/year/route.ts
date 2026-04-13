@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 /**
- * GET /api/budget-details/year?year=2026
+ * GET /api/budget-details/year?year=2026&includeInactive=true
  * 연도별 예산 세목 설정 조회 (담당자 + 예산금액)
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
+    const includeInactive = searchParams.get('includeInactive') === 'true';
 
     // 지급완료된 지출결의서의 세목별 사용금액 집계
     const usedAmounts = await prisma.expenseItem.groupBy({
@@ -31,8 +32,18 @@ export async function GET(request: NextRequest) {
     );
 
     // 모든 예산 세목과 연도별 설정 조회
+    const where: Record<string, unknown> = {};
+    if (!includeInactive) {
+      where.isActive = true;
+      // 상위 목/항이 비활성인 경우에도 제외
+      where.subcategory = {
+        isActive: true,
+        category: { isActive: true },
+      };
+    }
+
     const budgetDetails = await prisma.budgetDetail.findMany({
-      where: { isActive: true },
+      where,
       include: {
         subcategory: {
           include: {
@@ -83,10 +94,13 @@ export async function GET(request: NextRequest) {
         name: detail.name,
         accountCode: detail.accountCode,
         description: detail.description,
+        isActive: detail.isActive,
         category: detail.subcategory.category.name,
         categoryId: detail.subcategory.category.id,
+        categoryIsActive: detail.subcategory.category.isActive,
         subcategory: detail.subcategory.name,
         subcategoryId: detail.subcategory.id,
+        subcategoryIsActive: detail.subcategory.isActive,
         departments,
         yearSetting: yearSetting
           ? {

@@ -28,6 +28,7 @@ import {
   AlertTriangle,
   TrendingUp,
   Wallet,
+  ListTree,
   LucideIcon,
 } from 'lucide-react';
 
@@ -72,6 +73,7 @@ export const ADMIN_SIDEBAR_MENU: SidebarGroup[] = [
     items: [
       { href: '/admin/budget-wizard', label: '설정 마법사', icon: Wand2 },
       { href: '/admin/budget-upload', label: '예산 마스터 업로드', icon: FileSpreadsheet },
+      { href: '/admin/budget-items', label: '예산 항목 관리', icon: ListTree },
       { href: '/admin/budget-managers', label: '세목별 담당자', icon: UserCog },
       { href: '/admin/memo-examples', label: '적요 예제 관리', icon: FileText },
       { href: '/admin/year-setup-status', label: '설정 완료 현황', icon: CheckCircle },

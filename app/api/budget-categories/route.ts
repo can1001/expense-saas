@@ -2,15 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 // GET /api/budget-categories - 예산(항) 목록 조회
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const searchParams = request.nextUrl.searchParams;
+    const includeInactive = searchParams.get('includeInactive') === 'true';
+
+    const where: Record<string, unknown> = {};
+    if (!includeInactive) {
+      where.isActive = true;
+    }
+
     const categories = await prisma.budgetCategory.findMany({
-      where: { isActive: true },
+      where,
       orderBy: { sortOrder: 'asc' },
       select: {
         id: true,
         name: true,
         sortOrder: true,
+        isActive: true,
+        _count: {
+          select: { subcategories: true },
+        },
       },
     });
 

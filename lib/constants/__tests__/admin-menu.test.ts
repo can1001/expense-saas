@@ -30,7 +30,7 @@ describe('admin-menu', () => {
     it('should have budget planning group', () => {
       const budgetGroup = ADMIN_SIDEBAR_MENU[3];
       expect(budgetGroup.title).toBe('예산 편성');
-      expect(budgetGroup.items).toHaveLength(5);
+      expect(budgetGroup.items).toHaveLength(6);
     });
 
     it('should have settlement/performance group', () => {

@@ -6,8 +6,16 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const categoryId = searchParams.get('categoryId');
+    const includeInactive = searchParams.get('includeInactive') === 'true';
 
-    const where: Record<string, unknown> = { isActive: true };
+    const where: Record<string, unknown> = {};
+
+    if (!includeInactive) {
+      where.isActive = true;
+      // 상위 항이 비활성인 경우에도 제외
+      where.category = { isActive: true };
+    }
+
     if (categoryId) {
       where.categoryId = categoryId;
     }
@@ -20,6 +28,10 @@ export async function GET(request: NextRequest) {
         name: true,
         categoryId: true,
         sortOrder: true,
+        isActive: true,
+        _count: {
+          select: { details: true },
+        },
       },
     });
 
