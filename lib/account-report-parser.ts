@@ -52,12 +52,79 @@ export interface ParsedReportItem {
 }
 
 /**
+ * 입출금 통장 항목
+ */
+export interface ParsedBankAccount {
+  accountType: string;
+  balance: number;
+  accountNumber?: string;
+  note?: string;
+  sortOrder: number;
+}
+
+/**
+ * 적립금 항목
+ */
+export interface ParsedReserve {
+  itemName: string;
+  previousBalance: number;
+  increase: number;
+  decrease: number;
+  currentBalance: number;
+  note?: string;
+  sortOrder: number;
+}
+
+/**
+ * 기타 자산 항목
+ */
+export interface ParsedAsset {
+  assetType: string;
+  amount: number;
+  maturityDate?: string;
+  owner?: string;
+  note?: string;
+  sortOrder: number;
+}
+
+/**
+ * 기타 부채 항목
+ */
+export interface ParsedLiability {
+  itemName: string;
+  previousBalance: number;
+  increase: number;
+  decrease: number;
+  currentBalance: number;
+  maturityDate?: string;
+  debtor?: string;
+  loanStartDate?: string;
+  interestRate?: number;
+  note?: string;
+  sortOrder: number;
+}
+
+/**
+ * 위원회별 지출 항목
+ */
+export interface ParsedCommitteeExpense {
+  committee: string;
+  amount: number;
+  sortOrder: number;
+}
+
+/**
  * 파싱 결과
  */
 export interface ParsedAccountReport {
   summary: SummaryData;
   incomeItems: ParsedReportItem[];
   expenseItems: ParsedReportItem[];
+  bankAccounts: ParsedBankAccount[];
+  reserves: ParsedReserve[];
+  assets: ParsedAsset[];
+  liabilities: ParsedLiability[];
+  committeeExpenses: ParsedCommitteeExpense[];
 }
 
 /**
@@ -138,11 +205,24 @@ export async function parseAccountReportFile(
     // 5. 지출 테이블 파싱 (테이블 6)
     const expenseItems = parseDetailTable(tables[5]);
 
-    // 6. 파싱 결과 반환 (검증은 호출측에서 경고로 처리)
+    // 6. 추가 섹션 파싱 (입출금통장, 적립금, 기타자산, 기타부채, 위원회별 지출)
+    // 전체 HTML에서 추가 데이터 파싱
+    const bankAccounts = parseBankAccountSection(htmlContent);
+    const reserves = parseReserveSection(htmlContent);
+    const assets = parseAssetSection(htmlContent);
+    const liabilities = parseLiabilitySection(htmlContent);
+    const committeeExpenses = parseCommitteeExpenseSection(htmlContent, expenseItems);
+
+    // 7. 파싱 결과 반환 (검증은 호출측에서 경고로 처리)
     const parsedReport = {
       summary,
       incomeItems,
       expenseItems,
+      bankAccounts,
+      reserves,
+      assets,
+      liabilities,
+      committeeExpenses,
     };
 
     return {
@@ -466,6 +546,308 @@ function detectLevel(rawText: string): number {
 }
 
 // ========================================
+// 추가 섹션 파싱 함수들
+// ========================================
+
+/**
+ * 입출금 통장 섹션 파싱
+ * 보통예금(주거래통장): 잔액, 계좌번호, 비고
+ */
+function parseBankAccountSection(htmlContent: string): ParsedBankAccount[] {
+  const items: ParsedBankAccount[] = [];
+
+  // 모든 테이블 추출
+  const tables = extractTables(htmlContent);
+
+  for (const table of tables) {
+    const rows = extractTableRows(table);
+
+    // "입출금" 또는 "보통예금" 키워드가 있는 행 찾기
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const firstCell = row[0]?.trim() || '';
+
+      // 헤더 행 감지 (예금종류, 예금잔액, 계좌번호 등)
+      if (firstCell.includes('예금종류') || firstCell.includes('입출금')) {
+        // 다음 행들이 데이터
+        for (let j = i + 1; j < rows.length && j < i + 10; j++) {
+          const dataRow = rows[j];
+          const accountType = dataRow[0]?.trim();
+
+          // 빈 행이거나 다른 섹션 헤더면 중단
+          if (!accountType || accountType.includes('적립금') || accountType.includes('자산') || accountType.includes('부채')) {
+            break;
+          }
+
+          // 숫자가 아닌 순수 텍스트 행 (제목 등)은 건너뜀
+          const hasBalance = dataRow.some((cell, idx) => idx > 0 && parseAmount(cell) > 0);
+          if (!hasBalance) continue;
+
+          items.push({
+            accountType,
+            balance: parseAmount(dataRow[1]),
+            accountNumber: dataRow[2]?.trim() || undefined,
+            note: dataRow[3]?.trim() || undefined,
+            sortOrder: items.length,
+          });
+        }
+        break;
+      }
+
+      // 보통예금으로 시작하는 행 감지 (직접 데이터 행)
+      if (firstCell.includes('보통예금') || firstCell.includes('정기예금') || firstCell.includes('정기적금')) {
+        const hasBalance = row.some((cell, idx) => idx > 0 && parseAmount(cell) > 0);
+        if (hasBalance) {
+          items.push({
+            accountType: firstCell,
+            balance: parseAmount(row[1]),
+            accountNumber: row[2]?.trim() || undefined,
+            note: row[3]?.trim() || undefined,
+            sortOrder: items.length,
+          });
+        }
+      }
+    }
+  }
+
+  return items;
+}
+
+/**
+ * 적립금 섹션 파싱
+ * 항목명, 전기이월, 증가, 감소, 차기이월, 비고
+ */
+function parseReserveSection(htmlContent: string): ParsedReserve[] {
+  const items: ParsedReserve[] = [];
+
+  const tables = extractTables(htmlContent);
+
+  for (const table of tables) {
+    const rows = extractTableRows(table);
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const firstCell = row[0]?.trim() || '';
+
+      // 적립금 헤더 감지
+      if (firstCell.includes('적립금') && (row.some(cell => cell.includes('전기이월')) || row.some(cell => cell.includes('이월')))) {
+        // 다음 행들이 데이터
+        for (let j = i + 1; j < rows.length && j < i + 15; j++) {
+          const dataRow = rows[j];
+          const itemName = dataRow[0]?.trim();
+
+          // 빈 행이거나 다른 섹션 헤더면 중단
+          if (!itemName || itemName.includes('자산') || itemName.includes('부채') || itemName === '계' || itemName === '합계') {
+            if (itemName === '계' || itemName === '합계') continue; // 합계 행은 건너뛰고 계속
+            break;
+          }
+
+          // 적립금 관련 항목인지 확인
+          if (itemName.includes('적립금') || itemName.includes('예비비')) {
+            items.push({
+              itemName,
+              previousBalance: parseAmount(dataRow[1]),
+              increase: parseAmount(dataRow[2]),
+              decrease: parseAmount(dataRow[3]),
+              currentBalance: parseAmount(dataRow[4]),
+              note: dataRow[5]?.trim() || undefined,
+              sortOrder: items.length,
+            });
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  return items;
+}
+
+/**
+ * 기타 자산 섹션 파싱
+ * 자산종류, 금액, 만기일자, 소유자, 비고
+ */
+function parseAssetSection(htmlContent: string): ParsedAsset[] {
+  const items: ParsedAsset[] = [];
+
+  const tables = extractTables(htmlContent);
+
+  for (const table of tables) {
+    const rows = extractTableRows(table);
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const firstCell = row[0]?.trim() || '';
+
+      // 기타 자산 헤더 감지
+      if ((firstCell.includes('기타') && firstCell.includes('자산')) || firstCell.includes('자산종류')) {
+        // 다음 행들이 데이터
+        for (let j = i + 1; j < rows.length && j < i + 15; j++) {
+          const dataRow = rows[j];
+          const assetType = dataRow[0]?.trim();
+
+          // 빈 행이거나 다른 섹션 헤더면 중단
+          if (!assetType || assetType.includes('부채') || assetType === '계' || assetType === '합계') {
+            if (assetType === '계' || assetType === '합계') continue;
+            break;
+          }
+
+          // 금액이 있는 행만 추가
+          const amount = parseAmount(dataRow[1]);
+          if (amount > 0) {
+            items.push({
+              assetType,
+              amount,
+              maturityDate: parseDateString(dataRow[2]),
+              owner: dataRow[3]?.trim() || undefined,
+              note: dataRow[4]?.trim() || undefined,
+              sortOrder: items.length,
+            });
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  return items;
+}
+
+/**
+ * 기타 부채 섹션 파싱
+ * 항목명, 전기이월, 증가, 감소, 차기이월, 만기일자, 채무자, 대출실행일, 대출금리, 비고
+ */
+function parseLiabilitySection(htmlContent: string): ParsedLiability[] {
+  const items: ParsedLiability[] = [];
+
+  const tables = extractTables(htmlContent);
+
+  for (const table of tables) {
+    const rows = extractTableRows(table);
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const firstCell = row[0]?.trim() || '';
+
+      // 기타 부채 헤더 감지
+      if ((firstCell.includes('기타') && firstCell.includes('부채')) ||
+          (firstCell.includes('부채') && row.some(cell => cell.includes('전기이월')))) {
+        // 다음 행들이 데이터
+        for (let j = i + 1; j < rows.length && j < i + 15; j++) {
+          const dataRow = rows[j];
+          const itemName = dataRow[0]?.trim();
+
+          // 빈 행이거나 합계 행이면 건너뜀
+          if (!itemName || itemName === '계' || itemName === '합계') {
+            if (itemName === '계' || itemName === '합계') continue;
+            break;
+          }
+
+          // 대출, 차입금 관련 항목인지 확인
+          if (itemName.includes('대출') || itemName.includes('차입') || itemName.includes('부채')) {
+            items.push({
+              itemName,
+              previousBalance: parseAmount(dataRow[1]),
+              increase: parseAmount(dataRow[2]),
+              decrease: parseAmount(dataRow[3]),
+              currentBalance: parseAmount(dataRow[4]),
+              maturityDate: parseDateString(dataRow[5]),
+              debtor: dataRow[6]?.trim() || undefined,
+              loanStartDate: parseDateString(dataRow[7]),
+              interestRate: parsePercentage(dataRow[8]) || undefined,
+              note: dataRow[9]?.trim() || undefined,
+              sortOrder: items.length,
+            });
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  return items;
+}
+
+/**
+ * 위원회별 지출 섹션 파싱
+ * 지출 항목에서 위원회별 합계 추출
+ */
+function parseCommitteeExpenseSection(
+  htmlContent: string,
+  expenseItems: ParsedReportItem[]
+): ParsedCommitteeExpense[] {
+  const items: ParsedCommitteeExpense[] = [];
+
+  // 위원회 키워드 목록
+  const committeeKeywords = ['교육위원회', '기획위원회', '목양위원회', '예배위원회', '선교위원회', '봉사위원회'];
+  const otherKeywords = ['행정비', '인건', '복리', '사역비'];
+
+  // 지출 항목에서 위원회별 합계 찾기
+  for (const item of expenseItems) {
+    if (item.level === 1) {
+      // 위원회 관련 항목인지 확인
+      const isCommittee = committeeKeywords.some(kw => item.itemName.includes(kw));
+      const isOther = otherKeywords.some(kw => item.itemName.includes(kw));
+
+      if (isCommittee || isOther) {
+        items.push({
+          committee: item.itemName,
+          amount: item.cumulativeAmount,
+          sortOrder: items.length,
+        });
+      }
+    }
+  }
+
+  // HTML에서 직접 위원회별 지출 데이터 찾기 (테이블 형태)
+  if (items.length === 0) {
+    const tables = extractTables(htmlContent);
+
+    for (const table of tables) {
+      const rows = extractTableRows(table);
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const firstCell = row[0]?.trim() || '';
+
+        // 위원회 키워드가 있는 행
+        if (committeeKeywords.some(kw => firstCell.includes(kw))) {
+          // 해당 행에서 금액 추출
+          const amount = row.find((_, idx) => idx > 0 && parseAmount(row[idx]) > 0);
+          if (amount) {
+            items.push({
+              committee: firstCell,
+              amount: parseAmount(amount),
+              sortOrder: items.length,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return items;
+}
+
+/**
+ * 날짜 문자열 파싱
+ */
+function parseDateString(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+
+  const cleaned = value.trim();
+  if (!cleaned) return undefined;
+
+  // YYYY-MM-DD, YYYY.MM.DD, YYYY/MM/DD 형식 처리
+  const dateMatch = cleaned.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+  if (dateMatch) {
+    return `${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[3].padStart(2, '0')}`;
+  }
+
+  return undefined;
+}
+
+// ========================================
 // 유틸리티 함수
 // ========================================
 
@@ -562,6 +944,11 @@ export function summarizeParsedReport(report: ParsedAccountReport): string {
   lines.push('');
   lines.push(`[수입부] ${report.incomeItems.length}개 항목`);
   lines.push(`[지출부] ${report.expenseItems.length}개 항목`);
+  lines.push(`[입출금 통장] ${report.bankAccounts.length}개 항목`);
+  lines.push(`[적립금] ${report.reserves.length}개 항목`);
+  lines.push(`[기타 자산] ${report.assets.length}개 항목`);
+  lines.push(`[기타 부채] ${report.liabilities.length}개 항목`);
+  lines.push(`[위원회별 지출] ${report.committeeExpenses.length}개 항목`);
 
   return lines.join('\n');
 }

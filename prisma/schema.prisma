@@ -975,6 +975,11 @@ model AccountReport {
   // 상세 데이터 관계
   incomeItems      AccountReportIncome[]
   expenseItems     AccountReportExpense[]
+  bankAccounts     AccountReportBankAccount[]      // 입출금 통장 현황
+  reserves         AccountReportReserve[]          // 적립금 현황
+  assets           AccountReportAsset[]            // 기타 자산
+  liabilities      AccountReportLiability[]        // 기타 부채
+  committeeExpenses AccountReportCommitteeExpense[] // 위원회별 지출
 
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
@@ -1035,4 +1040,96 @@ model AccountReportExpense {
   @@index([reportId])
   @@index([itemName])
   @@index([level])
+}
+
+// 입출금 통장 현황 (4. 입출금 통장)
+model AccountReportBankAccount {
+  id            String        @id @default(cuid())
+  reportId      String
+  report        AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  accountType   String        // 예금 종류 (보통예금 등)
+  balance       Int           // 예금잔액
+  accountNumber String?       // 계좌번호
+  note          String?       // 비고
+  sortOrder     Int           @default(0)
+
+  createdAt     DateTime      @default(now())
+
+  @@index([reportId])
+}
+
+// 적립금 현황 (5. 적립금)
+model AccountReportReserve {
+  id              String        @id @default(cuid())
+  reportId        String
+  report          AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  itemName        String        // 항목명 (이웃사랑적립금, 은급적립금 등)
+  previousBalance Int           // 전기이월
+  increase        Int           // 증가
+  decrease        Int           // 감소
+  currentBalance  Int           // 차기이월
+  note            String?       // 비고
+  sortOrder       Int           @default(0)
+
+  createdAt       DateTime      @default(now())
+
+  @@index([reportId])
+}
+
+// 기타 자산 (6. 기타 자산)
+model AccountReportAsset {
+  id           String        @id @default(cuid())
+  reportId     String
+  report       AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  assetType    String        // 자산 종류 (전세보증금 등)
+  amount       Int           // 금액
+  maturityDate DateTime?     // 만기일자
+  owner        String?       // 소유(계약)자
+  note         String?       // 비고
+  sortOrder    Int           @default(0)
+
+  createdAt    DateTime      @default(now())
+
+  @@index([reportId])
+}
+
+// 기타 부채 (7. 기타 부채)
+model AccountReportLiability {
+  id              String        @id @default(cuid())
+  reportId        String
+  report          AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  itemName        String        // 항목명 (전세자금대출 등)
+  previousBalance Int           // 전기이월
+  increase        Int           // 증가
+  decrease        Int           // 감소
+  currentBalance  Int           // 차기이월
+  maturityDate    DateTime?     // 만기일자
+  debtor          String?       // 채무(계약)자
+  loanStartDate   DateTime?     // 대출실행일
+  interestRate    Float?        // 대출금리
+  note            String?       // 비고
+  sortOrder       Int           @default(0)
+
+  createdAt       DateTime      @default(now())
+
+  @@index([reportId])
+}
+
+// 위원회별 지출 현황 (차트용)
+model AccountReportCommitteeExpense {
+  id         String        @id @default(cuid())
+  reportId   String
+  report     AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  committee  String        // 위원회명 (교육위원회, 기획위원회 등)
+  amount     Int           // 지출 금액
+  sortOrder  Int           @default(0)
+
+  createdAt  DateTime      @default(now())
+
+  @@index([reportId])
 }
