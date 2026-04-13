@@ -465,6 +465,11 @@ describe('account-report-parser', () => {
             sortOrder: 1,
           },
         ],
+        bankAccounts: [],
+        reserves: [],
+        assets: [],
+        liabilities: [],
+        committeeExpenses: [],
       };
     });
 
@@ -606,6 +611,11 @@ describe('account-report-parser', () => {
             sortOrder: 1,
           },
         ],
+        bankAccounts: [],
+        reserves: [],
+        assets: [],
+        liabilities: [],
+        committeeExpenses: [],
       };
 
       const summary = summarizeParsedReport(report);

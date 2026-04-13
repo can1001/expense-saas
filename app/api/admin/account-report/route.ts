@@ -38,6 +38,21 @@ export async function GET(request: NextRequest) {
         expenseItems: {
           orderBy: { sortOrder: 'asc' },
         },
+        bankAccounts: {
+          orderBy: { sortOrder: 'asc' },
+        },
+        reserves: {
+          orderBy: { sortOrder: 'asc' },
+        },
+        assets: {
+          orderBy: { sortOrder: 'asc' },
+        },
+        liabilities: {
+          orderBy: { sortOrder: 'asc' },
+        },
+        committeeExpenses: {
+          orderBy: { sortOrder: 'asc' },
+        },
       },
     });
 
@@ -57,6 +72,21 @@ export async function GET(request: NextRequest) {
             orderBy: { sortOrder: 'asc' },
           },
           expenseItems: {
+            orderBy: { sortOrder: 'asc' },
+          },
+          bankAccounts: {
+            orderBy: { sortOrder: 'asc' },
+          },
+          reserves: {
+            orderBy: { sortOrder: 'asc' },
+          },
+          assets: {
+            orderBy: { sortOrder: 'asc' },
+          },
+          liabilities: {
+            orderBy: { sortOrder: 'asc' },
+          },
+          committeeExpenses: {
             orderBy: { sortOrder: 'asc' },
           },
         },
@@ -86,6 +116,11 @@ export async function GET(request: NextRequest) {
             summary: currentYearReport.summaryData as unknown as SummaryData,
             incomeItems: currentYearReport.incomeItems,
             expenseItems: currentYearReport.expenseItems,
+            bankAccounts: currentYearReport.bankAccounts,
+            reserves: currentYearReport.reserves,
+            assets: currentYearReport.assets,
+            liabilities: currentYearReport.liabilities,
+            committeeExpenses: currentYearReport.committeeExpenses,
           }
         : null,
       previousYear: previousYearReport
@@ -96,6 +131,11 @@ export async function GET(request: NextRequest) {
             summary: previousYearReport.summaryData as unknown as SummaryData,
             incomeItems: previousYearReport.incomeItems,
             expenseItems: previousYearReport.expenseItems,
+            bankAccounts: previousYearReport.bankAccounts,
+            reserves: previousYearReport.reserves,
+            assets: previousYearReport.assets,
+            liabilities: previousYearReport.liabilities,
+            committeeExpenses: previousYearReport.committeeExpenses,
           }
         : null,
       comparison,

@@ -226,6 +226,83 @@ export async function POST(request: Request) {
             })),
           });
         }
+
+        // 입출금 통장 저장
+        if (results.currentYear.data.bankAccounts.length > 0) {
+          await tx.accountReportBankAccount.createMany({
+            data: results.currentYear.data.bankAccounts.map((item) => ({
+              reportId: report.id,
+              accountType: item.accountType,
+              balance: item.balance,
+              accountNumber: item.accountNumber,
+              note: item.note,
+              sortOrder: item.sortOrder,
+            })),
+          });
+        }
+
+        // 적립금 저장
+        if (results.currentYear.data.reserves.length > 0) {
+          await tx.accountReportReserve.createMany({
+            data: results.currentYear.data.reserves.map((item) => ({
+              reportId: report.id,
+              itemName: item.itemName,
+              previousBalance: item.previousBalance,
+              increase: item.increase,
+              decrease: item.decrease,
+              currentBalance: item.currentBalance,
+              note: item.note,
+              sortOrder: item.sortOrder,
+            })),
+          });
+        }
+
+        // 기타 자산 저장
+        if (results.currentYear.data.assets.length > 0) {
+          await tx.accountReportAsset.createMany({
+            data: results.currentYear.data.assets.map((item) => ({
+              reportId: report.id,
+              assetType: item.assetType,
+              amount: item.amount,
+              maturityDate: item.maturityDate ? new Date(item.maturityDate) : null,
+              owner: item.owner,
+              note: item.note,
+              sortOrder: item.sortOrder,
+            })),
+          });
+        }
+
+        // 기타 부채 저장
+        if (results.currentYear.data.liabilities.length > 0) {
+          await tx.accountReportLiability.createMany({
+            data: results.currentYear.data.liabilities.map((item) => ({
+              reportId: report.id,
+              itemName: item.itemName,
+              previousBalance: item.previousBalance,
+              increase: item.increase,
+              decrease: item.decrease,
+              currentBalance: item.currentBalance,
+              maturityDate: item.maturityDate ? new Date(item.maturityDate) : null,
+              debtor: item.debtor,
+              loanStartDate: item.loanStartDate ? new Date(item.loanStartDate) : null,
+              interestRate: item.interestRate,
+              note: item.note,
+              sortOrder: item.sortOrder,
+            })),
+          });
+        }
+
+        // 위원회별 지출 저장
+        if (results.currentYear.data.committeeExpenses.length > 0) {
+          await tx.accountReportCommitteeExpense.createMany({
+            data: results.currentYear.data.committeeExpenses.map((item) => ({
+              reportId: report.id,
+              committee: item.committee,
+              amount: item.amount,
+              sortOrder: item.sortOrder,
+            })),
+          });
+        }
       }
 
       // 전년도 저장
@@ -279,6 +356,83 @@ export async function POST(request: Request) {
               cumulativeAmount: item.cumulativeAmount,
               currentAmount: item.currentAmount,
               executionRate: item.executionRate,
+              sortOrder: item.sortOrder,
+            })),
+          });
+        }
+
+        // 입출금 통장 저장
+        if (results.previousYear.data.bankAccounts.length > 0) {
+          await tx.accountReportBankAccount.createMany({
+            data: results.previousYear.data.bankAccounts.map((item) => ({
+              reportId: report.id,
+              accountType: item.accountType,
+              balance: item.balance,
+              accountNumber: item.accountNumber,
+              note: item.note,
+              sortOrder: item.sortOrder,
+            })),
+          });
+        }
+
+        // 적립금 저장
+        if (results.previousYear.data.reserves.length > 0) {
+          await tx.accountReportReserve.createMany({
+            data: results.previousYear.data.reserves.map((item) => ({
+              reportId: report.id,
+              itemName: item.itemName,
+              previousBalance: item.previousBalance,
+              increase: item.increase,
+              decrease: item.decrease,
+              currentBalance: item.currentBalance,
+              note: item.note,
+              sortOrder: item.sortOrder,
+            })),
+          });
+        }
+
+        // 기타 자산 저장
+        if (results.previousYear.data.assets.length > 0) {
+          await tx.accountReportAsset.createMany({
+            data: results.previousYear.data.assets.map((item) => ({
+              reportId: report.id,
+              assetType: item.assetType,
+              amount: item.amount,
+              maturityDate: item.maturityDate ? new Date(item.maturityDate) : null,
+              owner: item.owner,
+              note: item.note,
+              sortOrder: item.sortOrder,
+            })),
+          });
+        }
+
+        // 기타 부채 저장
+        if (results.previousYear.data.liabilities.length > 0) {
+          await tx.accountReportLiability.createMany({
+            data: results.previousYear.data.liabilities.map((item) => ({
+              reportId: report.id,
+              itemName: item.itemName,
+              previousBalance: item.previousBalance,
+              increase: item.increase,
+              decrease: item.decrease,
+              currentBalance: item.currentBalance,
+              maturityDate: item.maturityDate ? new Date(item.maturityDate) : null,
+              debtor: item.debtor,
+              loanStartDate: item.loanStartDate ? new Date(item.loanStartDate) : null,
+              interestRate: item.interestRate,
+              note: item.note,
+              sortOrder: item.sortOrder,
+            })),
+          });
+        }
+
+        // 위원회별 지출 저장
+        if (results.previousYear.data.committeeExpenses.length > 0) {
+          await tx.accountReportCommitteeExpense.createMany({
+            data: results.previousYear.data.committeeExpenses.map((item) => ({
+              reportId: report.id,
+              committee: item.committee,
+              amount: item.amount,
               sortOrder: item.sortOrder,
             })),
           });
