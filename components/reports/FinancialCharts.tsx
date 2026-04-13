@@ -46,7 +46,50 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { name
   return null;
 }
 
+// 차트 중앙 라벨 컴포넌트
+function CenterLabel({ budget, actual, rate, cx, cy }: {
+  budget: number;
+  actual: number;
+  rate: number;
+  cx: string | number;
+  cy: string | number;
+}) {
+  return (
+    <g>
+      <text x={cx} y={Number(cy) - 30} textAnchor="middle" fill="#374151" fontSize={12} fontWeight="bold">
+        예산 {formatAmount(budget)}
+      </text>
+      <text x={cx} y={Number(cy) - 5} textAnchor="middle" fill="#374151" fontSize={12} fontWeight="bold">
+        결산 {formatAmount(actual)}
+      </text>
+      <text x={cx} y={Number(cy) + 25} textAnchor="middle" fill="#1e40af" fontSize={16} fontWeight="bold">
+        진척률 {Math.round(rate)}%
+      </text>
+    </g>
+  );
+}
+
 export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }: FinancialChartsProps) {
+  // 수입 예산/결산 계산 (예산외수입 제외)
+  const incomeRegularItems = incomeItems.filter((item) => item.category !== '예산외수입');
+  const incomeCategoryTotals = incomeRegularItems.filter((item, index, arr) => {
+    const firstIndex = arr.findIndex((i) => i.category === item.category);
+    return firstIndex === index;
+  });
+  const incomeBudget = incomeCategoryTotals.reduce((sum, item) => sum + item.budgetAmount, 0);
+  const incomeActual = incomeCategoryTotals.reduce((sum, item) => sum + item.cumulativeAmount, 0);
+  const incomeRate = incomeBudget > 0 ? (incomeActual / incomeBudget) * 100 : 0;
+
+  // 지출 예산/결산 계산 (예산외지출 제외)
+  const expenseRegularItems = expenseItems.filter((item) => item.category !== '예산외지출');
+  const expenseCategoryTotals = expenseRegularItems.filter((item, index, arr) => {
+    const firstIndex = arr.findIndex((i) => i.category === item.category);
+    return firstIndex === index;
+  });
+  const expenseBudget = expenseCategoryTotals.reduce((sum, item) => sum + item.budgetAmount, 0);
+  const expenseActual = expenseCategoryTotals.reduce((sum, item) => sum + item.cumulativeAmount, 0);
+  const expenseRate = expenseBudget > 0 ? (expenseActual / expenseBudget) * 100 : 0;
+
   // 수입 차트 데이터 (2레벨 세부 항목, 적립금_해지 제외, 큰 순서로 정렬)
   const incomeChartData = incomeItems
     .filter((item, index, arr) => {
@@ -125,6 +168,7 @@ export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }
                     <Cell key={`income-cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
+                <CenterLabel budget={incomeBudget} actual={incomeActual} rate={incomeRate} cx="50%" cy={200} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
               </PieChart>
@@ -156,6 +200,7 @@ export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }
                     <Cell key={`expense-cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
+                <CenterLabel budget={expenseBudget} actual={expenseActual} rate={expenseRate} cx="50%" cy={200} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
               </PieChart>
@@ -187,6 +232,7 @@ export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }
                     <Cell key={`committee-cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
+                <CenterLabel budget={expenseBudget} actual={expenseActual} rate={expenseRate} cx="50%" cy={200} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
               </PieChart>
