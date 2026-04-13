@@ -68,24 +68,24 @@ export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }
     <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-6">VI. 재정 현황 차트</h2>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="flex flex-col gap-8">
         {/* 수입 구성 */}
-        <div className="bg-gray-50 rounded-lg p-4">
+        <div className="bg-gray-50 rounded-lg p-6">
           <h3 className="text-lg font-medium text-gray-800 mb-4 text-center">수입 구성</h3>
           {incomeChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={400}>
               <PieChart>
                 <Pie
                   data={incomeChartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={50}
-                  outerRadius={90}
+                  innerRadius={80}
+                  outerRadius={140}
                   paddingAngle={2}
                   dataKey="value"
                   nameKey="name"
                   label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                  labelLine={false}
+                  labelLine={true}
                 >
                   {incomeChartData.map((_, index) => (
                     <Cell key={`income-cell-${index}`} fill={INCOME_COLORS[index % INCOME_COLORS.length]} />
@@ -101,22 +101,22 @@ export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }
         </div>
 
         {/* 지출 항목별 */}
-        <div className="bg-gray-50 rounded-lg p-4">
+        <div className="bg-gray-50 rounded-lg p-6">
           <h3 className="text-lg font-medium text-gray-800 mb-4 text-center">지출 항목별</h3>
           {expenseChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={400}>
               <PieChart>
                 <Pie
                   data={expenseChartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={50}
-                  outerRadius={90}
+                  innerRadius={80}
+                  outerRadius={140}
                   paddingAngle={2}
                   dataKey="value"
                   nameKey="name"
                   label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                  labelLine={false}
+                  labelLine={true}
                 >
                   {expenseChartData.map((_, index) => (
                     <Cell key={`expense-cell-${index}`} fill={EXPENSE_COLORS[index % EXPENSE_COLORS.length]} />
@@ -132,22 +132,22 @@ export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }
         </div>
 
         {/* 지출 위원회별 */}
-        <div className="bg-gray-50 rounded-lg p-4 lg:col-span-2 xl:col-span-1">
+        <div className="bg-gray-50 rounded-lg p-6">
           <h3 className="text-lg font-medium text-gray-800 mb-4 text-center">지출 위원회별</h3>
           {committeeChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={400}>
               <PieChart>
                 <Pie
                   data={committeeChartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={50}
-                  outerRadius={90}
+                  innerRadius={80}
+                  outerRadius={140}
                   paddingAngle={2}
                   dataKey="value"
                   nameKey="name"
                   label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                  labelLine={false}
+                  labelLine={true}
                 >
                   {committeeChartData.map((_, index) => (
                     <Cell key={`committee-cell-${index}`} fill={COMMITTEE_COLORS[index % COMMITTEE_COLORS.length]} />
