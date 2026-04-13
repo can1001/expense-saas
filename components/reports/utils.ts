@@ -28,5 +28,5 @@ export function formatDiff(current: number, previous: number | undefined): {
 
 // 진척률 포맷
 export function formatRate(rate: number): string {
-  return `${rate.toFixed(1)}%`;
+  return `${rate.toFixed(2)}%`;
 }
