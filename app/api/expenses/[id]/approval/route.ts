@@ -4,6 +4,7 @@ import {
   canModifyApprovalLine,
   createApprovalSnapshot,
 } from '@/lib/approval-engine';
+import { getUsedAmountByDetail } from '@/lib/services/budget-service';
 
 /**
  * 세목별 예산 정보 조회 (결재자용)
@@ -28,6 +29,9 @@ async function getBudgetInfoForItems(
     },
   });
 
+  // 실시간 사용금액 조회 (1차 승인 이상)
+  const usedAmountMap = await getUsedAmountByDetail(budgetDetailNames, year);
+
   // 세목별 청구금액 합산
   const requestAmountByDetail: Record<string, number> = {};
   for (const item of items) {
@@ -41,7 +45,7 @@ async function getBudgetInfoForItems(
     const yearSetting = detail?.yearSettings?.[0];
 
     const budgetAmount = yearSetting?.budgetAmount ?? 0;
-    const usedAmount = yearSetting?.usedAmount ?? 0;
+    const usedAmount = usedAmountMap.get(detailName) ?? 0;
     const remainingAmount = budgetAmount - usedAmount;
     const requestAmount = requestAmountByDetail[detailName] || 0;
     const afterApproval = remainingAmount - requestAmount;

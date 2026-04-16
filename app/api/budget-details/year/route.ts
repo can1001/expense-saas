@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAllUsedAmounts } from '@/lib/services/budget-service';
 
 /**
  * GET /api/budget-details/year?year=2026&includeInactive=true
@@ -11,25 +12,8 @@ export async function GET(request: NextRequest) {
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
     const includeInactive = searchParams.get('includeInactive') === 'true';
 
-    // 지급완료된 지출결의서의 세목별 사용금액 집계
-    const usedAmounts = await prisma.expenseItem.groupBy({
-      by: ['budgetDetail'],
-      where: {
-        expense: {
-          paymentStatus: 'COMPLETED',
-          expenseDate: {
-            gte: new Date(year, 0, 1),
-            lt: new Date(year + 1, 0, 1),
-          },
-        },
-      },
-      _sum: { amount: true },
-    });
-
-    // Map으로 변환하여 빠른 조회
-    const usedAmountMap = new Map(
-      usedAmounts.map((item) => [item.budgetDetail, item._sum.amount || 0])
-    );
+    // 1차 승인 이상 지출결의서의 세목별 사용금액 집계
+    const usedAmountMap = await getAllUsedAmounts(year);
 
     // 모든 예산 세목과 연도별 설정 조회
     const where: Record<string, unknown> = {};
