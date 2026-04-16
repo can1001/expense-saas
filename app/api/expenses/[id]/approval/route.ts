@@ -120,9 +120,12 @@ export async function GET(
         (step) => step.approverName === approverName
       );
 
-    // 결재자인 경우 예산 정보 추가
+    // 신청자인지 확인
+    const isApplicant = approverName === expense.applicantName;
+
+    // 결재자 또는 신청자인 경우 예산 정보 추가
     let budgetInfo = null;
-    if (isApprover && expense.items.length > 0) {
+    if ((isApprover || isApplicant) && expense.items.length > 0) {
       const year = expense.requestDate
         ? new Date(expense.requestDate).getFullYear()
         : new Date().getFullYear();
@@ -141,7 +144,7 @@ export async function GET(
       },
       approvalLine: expense.approvalLine,
       logs,
-      budgetInfo, // 결재자인 경우에만 포함
+      budgetInfo, // 결재자 또는 신청자인 경우에만 포함
     });
   } catch (error: any) {
     console.error('Get approval error:', error);

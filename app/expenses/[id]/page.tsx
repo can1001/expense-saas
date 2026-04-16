@@ -10,6 +10,7 @@ import { PrintPreviewModal, usePDFDownload } from '@/components/print';
 import ApprovalStatusBadge from '@/components/approval/ApprovalStatusBadge';
 import ApprovalLineDisplay from '@/components/approval/ApprovalLineDisplay';
 import ApprovalActionButtons from '@/components/approval/ApprovalActionButtons';
+import { BudgetInfoPanel } from '@/components/approval/BudgetInfoPanel';
 import { PaymentStatusModal } from '@/components/PaymentStatusModal';
 import Accordion, { InfoRow, MobileItemCard } from '@/components/ui/Accordion';
 import { Expense } from '@/lib/types';
@@ -52,21 +53,26 @@ export default function ExpenseDetailPage() {
   }, []);
 
   useEffect(() => {
-    if (id) {
+    if (id && currentUser) {
       fetchData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, currentUser?.username]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
 
+      // 결재 정보 조회 시 사용자 이름 전달 (예산 현황 조회용)
+      const approvalUrl = currentUser?.username
+        ? `/api/expenses/${id}/approval?approverName=${encodeURIComponent(currentUser.username)}`
+        : `/api/expenses/${id}/approval`;
+
       // 지출결의서와 결재 정보를 함께 조회
       const [expenseRes, approvalRes] = await Promise.all([
         fetch(`/api/expenses/${id}`),
-        fetch(`/api/expenses/${id}/approval`),
+        fetch(approvalUrl),
       ]);
 
       if (!expenseRes.ok) {
@@ -490,6 +496,15 @@ export default function ExpenseDetailPage() {
               <InfoRow label="예금주" value={expense.accountHolder} />
             </div>
           </Accordion>
+
+          {/* 예산 현황 */}
+          {approvalData?.budgetInfo && approvalData.budgetInfo.length > 0 && (
+            <Accordion title="예산 현황">
+              <div className="pt-3">
+                <BudgetInfoPanel budgetInfo={approvalData.budgetInfo} />
+              </div>
+            </Accordion>
+          )}
         </div>
 
         {/* 데스크톱 섹션들 */}
@@ -679,6 +694,13 @@ export default function ExpenseDetailPage() {
                 </a>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* 예산 현황 */}
+        {approvalData?.budgetInfo && approvalData.budgetInfo.length > 0 && (
+          <div className={SECTION_CARD}>
+            <BudgetInfoPanel budgetInfo={approvalData.budgetInfo} />
           </div>
         )}
 
