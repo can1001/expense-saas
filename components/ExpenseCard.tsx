@@ -127,6 +127,9 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick, us
 
   const handleViewDetail = (e: React.MouseEvent) => {
     e.stopPropagation();
+    // 상세 페이지 이동 전 현재 URL 저장
+    const currentUrl = window.location.pathname + window.location.search;
+    sessionStorage.setItem('expenseListReturnUrl', currentUrl);
     router.push(`/expenses/${expense.id}`);
   };
 

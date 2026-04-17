@@ -33,6 +33,21 @@ export default function ExpenseDetailPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentStatusLoading, setPaymentStatusLoading] = useState(false);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [returnUrl, setReturnUrl] = useState('/expenses');
+
+  // 목록 페이지에서 저장한 URL 복원
+  useEffect(() => {
+    const storedUrl = sessionStorage.getItem('expenseListReturnUrl');
+    if (storedUrl) {
+      setReturnUrl(storedUrl);
+    }
+  }, []);
+
+  // 뒤로가기 핸들러
+  const handleBack = () => {
+    sessionStorage.removeItem('expenseListReturnUrl');
+    router.push(returnUrl);
+  };
 
   // 로그인한 사용자 정보 가져오기
   useEffect(() => {
@@ -255,7 +270,7 @@ export default function ExpenseDetailPage() {
           <h2 className="text-2xl font-bold text-gray-800 mb-2">오류 발생</h2>
           <p className="text-gray-600 mb-4">{error || '지출결의서를 찾을 수 없습니다.'}</p>
           <button
-            onClick={() => router.push('/expenses')}
+            onClick={handleBack}
             className={BTN_PRIMARY}
           >
             목록으로 돌아가기
@@ -297,7 +312,7 @@ export default function ExpenseDetailPage() {
         <div className="md:hidden sticky top-16 z-20 bg-white border-b border-gray-200 px-4 py-3">
           <div className="flex items-center justify-between">
             <button
-              onClick={() => router.push('/expenses')}
+              onClick={handleBack}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 min-h-[44px]"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -354,7 +369,7 @@ export default function ExpenseDetailPage() {
         <div className="hidden md:flex mb-8 justify-between items-start">
           <div>
             <button
-              onClick={() => router.push('/expenses')}
+              onClick={handleBack}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-2"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -803,7 +818,7 @@ export default function ExpenseDetailPage() {
         {/* 데스크톱 버튼 */}
         <div className="hidden md:flex justify-end gap-4 no-print">
           <button
-            onClick={() => router.push('/expenses')}
+            onClick={handleBack}
             className={`${BTN_OUTLINE} ${BTN_LG}`}
           >
             목록으로

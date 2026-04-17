@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, Suspense, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import Image from 'next/image';
 import Header from '@/components/Header';
@@ -27,18 +27,35 @@ interface CurrentUser {
 type SortKey = 'requestDate' | 'applicantName' | 'budgetCategory' | 'budgetSubcategory' | 'budgetDetail' | 'requestAmount' | 'committee' | 'status' | 'approvedAt' | 'paymentStatus';
 type SortDirection = 'asc' | 'desc';
 
-export default function ExpensesPage() {
+function ExpensesPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // URL 파라미터에서 초기값 읽기
+  const getInitialFilters = useCallback(() => ({
+    committee: searchParams.get('committee') || '',
+    department: searchParams.get('department') || '',
+    budgetCategory: searchParams.get('category') || '',
+    startDate: searchParams.get('startDate') || '',
+    endDate: searchParams.get('endDate') || '',
+    minAmount: searchParams.get('minAmount') || '',
+    maxAmount: searchParams.get('maxAmount') || '',
+    status: searchParams.get('status') || '',
+    paymentStatus: searchParams.get('paymentStatus') || '',
+    approvedStartDate: searchParams.get('approvedStart') || '',
+    approvedEndDate: searchParams.get('approvedEnd') || '',
+  }), [searchParams]);
+
   const [expenses, setExpenses] = useState<ExpenseListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
 
   // 정렬 상태
-  const [sortKey, setSortKey] = useState<SortKey>('requestDate');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [sortKey, setSortKey] = useState<SortKey>((searchParams.get('sort') as SortKey) || 'requestDate');
+  const [sortDirection, setSortDirection] = useState<SortDirection>((searchParams.get('dir') as SortDirection) || 'desc');
 
   // 엑셀 다운로드용 선택 상태
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -59,24 +76,41 @@ export default function ExpensesPage() {
   // 고급 필터
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    committee: '',
-    department: '',
-    budgetCategory: '',
-    startDate: '',
-    endDate: '',
-    minAmount: '',
-    maxAmount: '',
-    status: '',         // 결재상태 필터
-    paymentStatus: '',  // 지출 상태 필터
-    approvedStartDate: '',  // 최종승인일 시작
-    approvedEndDate: '',    // 최종승인일 종료
-  });
+  const [filters, setFilters] = useState(getInitialFilters);
 
   useEffect(() => {
     fetchExpenses();
     fetchCurrentUser();
   }, []);
+
+  // URL 동기화 - 필터/검색 상태가 변경되면 URL 업데이트
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (searchQuery) params.set('q', searchQuery);
+    if (sortKey !== 'requestDate') params.set('sort', sortKey);
+    if (sortDirection !== 'desc') params.set('dir', sortDirection);
+    if (currentPage > 1) params.set('page', String(currentPage));
+    if (filters.committee) params.set('committee', filters.committee);
+    if (filters.department) params.set('department', filters.department);
+    if (filters.budgetCategory) params.set('category', filters.budgetCategory);
+    if (filters.startDate) params.set('startDate', filters.startDate);
+    if (filters.endDate) params.set('endDate', filters.endDate);
+    if (filters.minAmount) params.set('minAmount', filters.minAmount);
+    if (filters.maxAmount) params.set('maxAmount', filters.maxAmount);
+    if (filters.status) params.set('status', filters.status);
+    if (filters.paymentStatus) params.set('paymentStatus', filters.paymentStatus);
+    if (filters.approvedStartDate) params.set('approvedStart', filters.approvedStartDate);
+    if (filters.approvedEndDate) params.set('approvedEnd', filters.approvedEndDate);
+
+    const queryString = params.toString();
+    const newUrl = queryString ? `/expenses?${queryString}` : '/expenses';
+
+    // 현재 URL과 다를 때만 업데이트 (무한 루프 방지)
+    if (window.location.pathname + window.location.search !== newUrl) {
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [searchQuery, sortKey, sortDirection, currentPage, filters]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -382,6 +416,9 @@ export default function ExpensesPage() {
   };
 
   const handleRowClick = (id: string) => {
+    // 상세 페이지 이동 전 현재 URL 저장
+    const currentUrl = window.location.pathname + window.location.search;
+    sessionStorage.setItem('expenseListReturnUrl', currentUrl);
     router.push(`/expenses/${id}`);
   };
 
@@ -1521,5 +1558,31 @@ export default function ExpensesPage() {
         uniqueCategories={uniqueCategories}
       />
     </div>
+  );
+}
+
+// Suspense 래퍼 컴포넌트 (useSearchParams 사용을 위해 필요)
+export default function ExpensesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-6">
+            <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2" />
+            <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
+          </div>
+          <FilterSkeleton />
+          <div className="md:hidden mt-4">
+            <ExpenseListSkeleton count={5} />
+          </div>
+          <div className="hidden md:block mt-4">
+            <TableSkeleton rows={10} columns={8} />
+          </div>
+        </div>
+      </div>
+    }>
+      <ExpensesPageContent />
+    </Suspense>
   );
 }
