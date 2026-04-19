@@ -325,9 +325,161 @@ function CurriculumCreateModal({
   );
 }
 
+// 커리큘럼 수정 모달 컴포넌트
+function CurriculumEditModal({
+  curriculum,
+  onClose,
+  onSave,
+  isSaving,
+}: {
+  curriculum: Curriculum;
+  onClose: () => void;
+  onSave: (data: any) => Promise<void>;
+  isSaving: boolean;
+}) {
+  const formatDate = (date: Date | null) => {
+    if (!date) return '';
+    return new Date(date).toISOString().split('T')[0];
+  };
+
+  const [formData, setFormData] = useState({
+    title: curriculum.title,
+    description: curriculum.description || '',
+    ageGroup: curriculum.ageGroup,
+    startDate: formatDate(curriculum.startDate),
+    endDate: formatDate(curriculum.endDate),
+    sortOrder: curriculum.sortOrder,
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSave(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-black">커리큘럼 수정</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                커리큘럼 제목 *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                대상 연령 *
+              </label>
+              <select
+                required
+                value={formData.ageGroup}
+                onChange={(e) => setFormData({ ...formData, ageGroup: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {Object.entries(AGE_GROUP_NAMES).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                설명
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                  시작일
+                </label>
+                <input
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                  종료일
+                </label>
+                <input
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                정렬 순서
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={formData.sortOrder}
+                onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="mt-1 text-sm text-gray-700">낮은 숫자가 먼저 표시됩니다</p>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-black font-semibold hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // 커리큘럼 관리 컴포넌트
 function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
-  const [editingCurriculum, setEditingCurriculum] = useState<string | null>(null);
+  const [editingCurriculum, setEditingCurriculum] = useState<Curriculum | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -354,6 +506,36 @@ function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
     } catch (error) {
       console.error('커리큘럼 생성 실패:', error);
       alert('커리큘럼 생성 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEditCurriculum = async (data: any) => {
+    if (!editingCurriculum) return;
+
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/youth-night/admin/curriculum', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          curriculumId: editingCurriculum.id,
+          ...data,
+        }),
+      });
+
+      if (response.ok) {
+        alert('커리큘럼이 수정되었습니다!');
+        setEditingCurriculum(null);
+        window.location.reload();
+      } else {
+        const errorData = await response.json();
+        alert(`수정 실패: ${errorData.error || '알 수 없는 오류'}`);
+      }
+    } catch (error) {
+      console.error('커리큘럼 수정 실패:', error);
+      alert('커리큘럼 수정 중 오류가 발생했습니다.');
     } finally {
       setIsSaving(false);
     }
@@ -455,7 +637,7 @@ function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
                     {curriculum.isActive ? '비활성화' : '활성화'}
                   </button>
                   <button
-                    onClick={() => setEditingCurriculum(curriculum.id)}
+                    onClick={() => setEditingCurriculum(curriculum)}
                     className="px-3 py-1.5 text-sm font-semibold text-blue-800 bg-blue-100 rounded hover:bg-blue-200"
                   >
                     수정
@@ -478,6 +660,16 @@ function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
         <CurriculumCreateModal
           onClose={() => setIsCreateModalOpen(false)}
           onSave={handleCreateCurriculum}
+          isSaving={isSaving}
+        />
+      )}
+
+      {/* 커리큘럼 수정 모달 */}
+      {editingCurriculum && (
+        <CurriculumEditModal
+          curriculum={editingCurriculum}
+          onClose={() => setEditingCurriculum(null)}
+          onSave={handleEditCurriculum}
           isSaving={isSaving}
         />
       )}

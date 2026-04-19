@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// 커리큘럼 수정 (활성/비활성 토글)
+// 커리큘럼 수정 (전체 필드 수정 지원)
 export async function PUT(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -76,11 +76,31 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { curriculumId, isActive } = body;
+    const {
+      curriculumId,
+      title,
+      description,
+      ageGroup,
+      startDate,
+      endDate,
+      sortOrder,
+      isActive,
+    } = body;
+
+    // 업데이트할 데이터 객체 구성
+    const updateData: Record<string, unknown> = {};
+
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description || null;
+    if (ageGroup !== undefined) updateData.ageGroup = ageGroup;
+    if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
+    if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null;
+    if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
+    if (isActive !== undefined) updateData.isActive = isActive;
 
     const updatedCurriculum = await prisma.curriculum.update({
       where: { id: curriculumId },
-      data: { isActive },
+      data: updateData,
     });
 
     return NextResponse.json(updatedCurriculum);
