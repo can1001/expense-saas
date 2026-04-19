@@ -47,7 +47,7 @@ const AGE_GROUP_NAMES = {
 };
 
 export default function YouthNightAdminClient({ user, curriculums }: Props) {
-  const [activeTab, setActiveTab] = useState<'curriculums' | 'lessons' | 'create' | 'recitations'>('curriculums');
+  const [activeTab, setActiveTab] = useState<'curriculums' | 'lessons' | 'create' | 'recitations' | 'dashboard'>('curriculums');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -110,6 +110,16 @@ export default function YouthNightAdminClient({ user, curriculums }: Props) {
               >
                 암송 승인
               </button>
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`px-4 sm:px-6 py-3 text-sm font-medium border-b-2 ${
+                  activeTab === 'dashboard'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                통계 대시보드
+              </button>
             </div>
           </div>
 
@@ -128,6 +138,10 @@ export default function YouthNightAdminClient({ user, curriculums }: Props) {
 
           {activeTab === 'recitations' && (
             <RecitationApproval />
+          )}
+
+          {activeTab === 'dashboard' && (
+            <StatsDashboard />
           )}
 
           {/* 뒤로가기 */}
@@ -945,6 +959,231 @@ function RecitationApproval() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// 통계 대시보드 컴포넌트
+function StatsDashboard() {
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState('');
+
+  useEffect(() => {
+    fetchStats();
+  }, [selectedAgeGroup]);
+
+  const fetchStats = async () => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (selectedAgeGroup) queryParams.append('ageGroup', selectedAgeGroup);
+
+      const response = await fetch(`/api/youth-night/stats?${queryParams}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setStats(data);
+      } else {
+        console.error('통계 데이터 조회 실패:', data.error);
+      }
+    } catch (error) {
+      console.error('통계 데이터 조회 오류:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow p-8">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <p className="mt-2 text-gray-500">통계 데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="bg-white rounded-lg shadow p-8">
+        <div className="text-center">
+          <p className="text-gray-500">통계 데이터를 불러올 수 없습니다.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* 헤더 및 필터 */}
+      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h2 className={`${TEXT_SECTION_TITLE} text-gray-900`}>
+            청나잇 통계 대시보드
+          </h2>
+
+          <div className="flex items-center space-x-3">
+            <label className="text-sm font-medium text-gray-700">연령별 필터:</label>
+            <select
+              value={selectedAgeGroup}
+              onChange={(e) => setSelectedAgeGroup(e.target.value)}
+              className="text-sm border border-gray-300 rounded px-3 py-1"
+            >
+              <option value="">전체 연령</option>
+              {Object.entries(AGE_GROUP_NAMES).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* 전체 현황 카드 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow p-4 text-center">
+          <div className="text-2xl sm:text-3xl font-bold text-blue-600">
+            {stats.overview?.totalUsers || 0}
+          </div>
+          <div className="text-sm text-gray-600">총 사용자 수</div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-4 text-center">
+          <div className="text-2xl sm:text-3xl font-bold text-green-600">
+            {stats.overview?.totalLessons || 0}
+          </div>
+          <div className="text-sm text-gray-600">총 레슨 수</div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-4 text-center">
+          <div className="text-2xl sm:text-3xl font-bold text-purple-600">
+            {stats.overview?.totalAttendance || 0}
+          </div>
+          <div className="text-sm text-gray-600">총 출석 수</div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-4 text-center">
+          <div className="text-2xl sm:text-3xl font-bold text-orange-600">
+            {stats.overview?.totalPoints || 0}
+          </div>
+          <div className="text-sm text-gray-600">총 포인트</div>
+        </div>
+      </div>
+
+      {/* 상세 통계 */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* 최근 활동 */}
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">최근 30일 활동</h3>
+
+          {stats.dailyActivity && stats.dailyActivity.length > 0 ? (
+            <div className="space-y-3">
+              {stats.dailyActivity.slice(0, 7).map((item: any, index: number) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                  <div>
+                    <div className="font-medium text-gray-900">
+                      {new Date(item.date).toLocaleDateString('ko-KR')}
+                    </div>
+                    <div className="text-sm text-gray-500">일별 활동</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-semibold text-blue-600">{item.activities}</div>
+                    <div className="text-sm text-gray-500">활동</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              최근 활동 데이터가 없습니다.
+            </div>
+          )}
+        </div>
+
+        {/* 전체 현황 요약 */}
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">전체 현황 요약</h3>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-blue-50 rounded">
+              <span className="font-medium text-gray-900">활성 커리큘럼</span>
+              <span className="text-lg font-semibold text-blue-600">{stats.overview?.activeCurriculums || 0}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-green-50 rounded">
+              <span className="font-medium text-gray-900">총 퀴즈 응답</span>
+              <span className="text-lg font-semibold text-green-600">{stats.overview?.totalQuizResponses || 0}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-purple-50 rounded">
+              <span className="font-medium text-gray-900">총 암송 제출</span>
+              <span className="text-lg font-semibold text-purple-600">{stats.overview?.totalRecitations || 0}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 포인트 타입별 분포 */}
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">포인트 타입별 분포</h3>
+
+          {stats.pointDistribution && stats.pointDistribution.length > 0 ? (
+            <div className="space-y-3">
+              {stats.pointDistribution.map((item: any) => (
+                <div key={item.type} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                  <div>
+                    <div className="font-medium text-gray-900">
+                      {item.type === 'ATTENDANCE' && '출석'}
+                      {item.type === 'QUIZ_PERFECT' && '퀴즈 만점'}
+                      {item.type === 'QUIZ_GOOD' && '퀴즈 우수'}
+                      {item.type === 'RECITATION' && '암송'}
+                      {item.type === 'LESSON_COMPLETE' && '레슨 완료'}
+                    </div>
+                    <div className="text-sm text-gray-500">{item.count}건</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-semibold text-purple-600">{item.totalPoints}</div>
+                    <div className="text-sm text-gray-500">포인트</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              포인트 분포 데이터가 없습니다.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 상위 학습자 랭킹 */}
+      {stats.topLearners && stats.topLearners.length > 0 && (
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">상위 학습자 랭킹</h3>
+
+          <div className="space-y-3">
+            {stats.topLearners.map((learner: any, index: number) => (
+              <div key={learner.user?.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
+                    index === 0 ? 'bg-yellow-500' :
+                    index === 1 ? 'bg-gray-400' :
+                    index === 2 ? 'bg-orange-400' :
+                    'bg-gray-300'
+                  }`}>
+                    {index + 1}
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">{learner.user?.username || '알 수 없음'}</div>
+                    <div className="text-sm text-gray-500">상위 학습자</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-semibold text-purple-600">{learner.totalPoints}</div>
+                  <div className="text-sm text-gray-500">포인트</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
