@@ -90,21 +90,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '잘못된 요청 데이터입니다' }, { status: 400 });
     }
 
-    // 포인트 타입별 규칙 검증
-    const pointRules = {
+    // 포인트 타입별 규칙 검증 (RECITATION은 동적 점수이므로 별도 처리)
+    const pointRules: Record<string, { points: number; description: string; dynamic?: boolean }> = {
       ATTENDANCE: { points: 5, description: '출석 포인트' },
       QUIZ_PERFECT: { points: 15, description: '퀴즈 만점 포인트' },
       QUIZ_GOOD: { points: 10, description: '퀴즈 우수 포인트' },
       LESSON_COMPLETE: { points: 3, description: '레슨 완료 포인트' },
+      RECITATION: { points: 0, description: '암송 포인트', dynamic: true }, // 동적 점수
     };
 
-    const rule = pointRules[pointType as keyof typeof pointRules];
+    const rule = pointRules[pointType];
     if (!rule) {
       return NextResponse.json({ error: '유효하지 않은 포인트 타입입니다' }, { status: 400 });
     }
 
-    // 중복 포인트 체크 (출석, 레슨 완료의 경우)
-    if (['ATTENDANCE', 'LESSON_COMPLETE'].includes(pointType) && lessonId) {
+    // 실제 부여할 점수 결정
+    const actualPoints = rule.dynamic ? points : rule.points;
+
+    // 중복 포인트 체크 (출석, 레슨 완료, 암송의 경우)
+    if (['ATTENDANCE', 'LESSON_COMPLETE', 'RECITATION'].includes(pointType) && lessonId) {
       const existingPoint = await prisma.studentPoints.findFirst({
         where: {
           userId: user.id,
@@ -126,7 +130,7 @@ export async function POST(request: NextRequest) {
       data: {
         userId: user.id,
         pointType,
-        points: rule.points,
+        points: actualPoints,
         description: description || rule.description,
         lessonId,
       },

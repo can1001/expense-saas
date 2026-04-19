@@ -81,15 +81,24 @@ export default function AgeGroupClient({ user, curriculums, ageGroup, urlAgeGrou
         <div className="max-w-6xl mx-auto">
           {/* 헤더 */}
           <div className={`text-center ${MARGIN_SECTION}`}>
-            <div className="flex items-center justify-center mb-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-center flex-1">
+                <Link
+                  href="/youth-night"
+                  className="text-gray-600 hover:text-gray-800 mr-2"
+                >
+                  청나잇
+                </Link>
+                <span className="text-gray-400 mx-2">/</span>
+                <span className="text-gray-900 font-medium">{ageGroupDisplayName}</span>
+              </div>
               <Link
-                href="/youth-night"
-                className="text-gray-600 hover:text-gray-800 mr-2"
+                href={`/youth-night/${urlAgeGroup}/ranking`}
+                className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center space-x-2"
               >
-                청나잇
+                <span>🏆</span>
+                <span className="hidden sm:inline">랭킹</span>
               </Link>
-              <span className="text-gray-400 mx-2">/</span>
-              <span className="text-gray-900 font-medium">{ageGroupDisplayName}</span>
             </div>
             <div className={`w-12 h-12 ${colorClass} rounded-full flex items-center justify-center mx-auto mb-4`}>
               <svg

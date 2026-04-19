@@ -585,6 +585,8 @@ model User {
   attendances        Attendance[]  @relation("StudentAttendance")  // 청나잇 출석 기록
   quizResponses      QuizResponse[]  @relation("StudentQuizResponse")  // 청나잇 퀴즈 응답
   studentPoints      StudentPoints[]  @relation("StudentPoints")  // 청나잇 포인트 기록
+  recitations        RecitationSubmission[]  @relation("StudentRecitation")  // 청나잇 암송 제출
+  approvedRecitations RecitationSubmission[]  @relation("RecitationApprover")  // 승인한 암송들
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1210,6 +1212,7 @@ model Lesson {
   questions      Question[]                  // 퀴즈 질문들
   attendances    Attendance[]                // 출석 기록들
   studentPoints  StudentPoints[]             // 포인트 기록들
+  recitations    RecitationSubmission[]      // 암송 제출들
 
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
@@ -1341,4 +1344,46 @@ model StudentPoints {
   @@index([pointType])
   @@index([earnedAt])
   @@index([lessonId])
+}
+
+// 암송 인증 시스템
+model RecitationSubmission {
+  id          String   @id @default(cuid())
+
+  // 사용자 정보
+  userId      String
+  user        User     @relation("StudentRecitation", fields: [userId], references: [id], onDelete: Cascade)
+
+  // 레슨 정보
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  // 암송 정보
+  bibleVerse  String                      // 암송할 성경 구절
+  audioUrl    String?                     // 녹음 파일 URL (Cloudinary 등)
+  videoUrl    String?                     // 영상 파일 URL (선택사항)
+  textContent String?  @db.Text          // 텍스트로 제출한 암송 내용
+
+  // 승인 정보
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedBy  String?                     // 승인한 교사 ID
+  approver    User?    @relation("RecitationApprover", fields: [approvedBy], references: [id])
+  approvedAt  DateTime?                   // 승인 일시
+  rejectionReason String?                 // 반려 사유
+
+  // 점수 (승인 시 포인트로 변환)
+  score       Int      @default(0)       // 암송 점수 (0-100)
+
+  // 시간 정보
+  submittedAt DateTime @default(now())   // 제출 시간
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, lessonId]) // 한 사용자가 동일 레슨에 대해 하나의 암송만 제출 가능
+  @@index([userId])
+  @@index([lessonId])
+  @@index([status])
+  @@index([submittedAt])
+  @@index([approvedBy])
 }

@@ -67,6 +67,9 @@ export default function YouthNightClient({ user, curriculums }: Props) {
     return acc;
   }, {} as Record<string, Curriculum[]>);
 
+  // 관리자 권한 확인
+  const isAdmin = ['admin', 'finance_head', 'accountant', 'team_leader'].includes(user.role);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -83,6 +86,31 @@ export default function YouthNightClient({ user, curriculums }: Props) {
             <p className="text-xs sm:text-sm text-gray-500 mt-2">
               {user.username}님, 청나잇에 오신 것을 환영합니다!
             </p>
+
+            {/* 관리자 메뉴 */}
+            {isAdmin && (
+              <div className="mt-4">
+                <Link
+                  href="/youth-night/admin"
+                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
+                    />
+                  </svg>
+                  관리자 페이지
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* 연령별 섹션 */}

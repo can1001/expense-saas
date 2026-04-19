@@ -22,13 +22,13 @@
   - [x] 청나잇 메인 페이지 (/youth-night)
   - [x] 연령별 페이지 (/youth-night/[ageGroup])
   - [x] 레슨 상세 페이지 (/youth-night/[ageGroup]/lessons/[lessonId])
-- [ ] Phase 2: 학생 참여 기능
-  - [ ] Attendance 모델 및 출석 체크 API
-  - [ ] QuizResponse 모델 및 퀴즈 기능
-  - [ ] 포인트 시스템 (StudentPoints)
-- [ ] Phase 3: 암송 & 랭킹
-  - [ ] RecitationSubmission 모델 및 암송 인증
-  - [ ] 랭킹 시스템 (/youth-night/[ageGroup]/ranking)
+- [x] Phase 2: 학생 참여 기능
+  - [x] Attendance 모델 및 출석 체크 API
+  - [x] QuizResponse 모델 및 퀴즈 기능
+  - [x] 포인트 시스템 (StudentPoints)
+- [x] Phase 3: 암송 & 랭킹
+  - [x] RecitationSubmission 모델 및 암송 인증
+  - [x] 랭킹 시스템 (/youth-night/[ageGroup]/ranking)
 - [ ] Phase 4: 관리자 기능
   - [ ] 교안 업로드 (관리자)
   - [ ] 암송 승인 (교사)

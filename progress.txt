@@ -115,3 +115,35 @@
 - 발견한 패턴: 동적 라우팅([ageGroup], [lessonId]) 사용, 클라이언트 컴포넌트 분리, Prisma enum 타입 as any 캐스팅 필요
 - 주의사항: AgeGroup enum 타입 이슈로 TypeScript에서 as any 캐스팅 사용, 퀴즈 기능 포함된 인터랙티브 레슨 뷰어 구현
 ---
+
+[TASK] Phase 2: 청나잇 학생 참여 기능 완료 - 19:15
+- 구현 내용: Attendance, QuizResponse, StudentPoints 모델 및 API 구현, 출석/퀴즈/포인트 시스템 완성
+- 수정/생성 파일:
+  - 수정: prisma/schema.prisma (Attendance, QuizResponse, StudentPoints 모델 추가)
+  - 생성: app/api/youth-night/attendance/route.ts (출석 체크 API)
+  - 생성: app/api/youth-night/attendance/stats/route.ts (출석 통계 API)
+  - 생성: app/api/youth-night/quiz/route.ts (퀴즈 제출/조회 API)
+  - 생성: app/api/youth-night/quiz/stats/route.ts (퀴즈 통계 API)
+  - 생성: app/api/youth-night/points/route.ts (포인트 조회/부여 API)
+  - 수정: app/youth-night/[ageGroup]/lessons/[lessonId]/LessonDetailClient.tsx (출석/퀴즈/포인트 UI 통합)
+  - 수정: PRD.md (Phase 2 체크박스 완료 처리)
+- 발견한 패턴: 트랜잭션을 이용한 원자적 데이터 처리, API 응답에 포인트 정보 포함, 실시간 상태 업데이트
+- 주의사항: 포인트 중복 부여 방지 로직, 퀴즈 재시도 시 기존 포인트 삭제 후 재계산, 출석 5점/퀴즈 만점 15점/우수 10점 규칙
+---
+
+[TASK] Phase 3: 청나잇 암송 & 랭킹 완료 - 19:30
+- 구현 내용: RecitationSubmission 모델, 암송 제출/승인 API, 랭킹 시스템 구현
+- 수정/생성 파일:
+  - 수정: prisma/schema.prisma (RecitationSubmission 모델 추가, RECITATION 포인트 타입 추가)
+  - 생성: app/api/youth-night/recitation/route.ts (암송 제출 API)
+  - 생성: app/api/youth-night/recitation/approve/route.ts (암송 승인 API)
+  - 생성: app/api/youth-night/ranking/route.ts (랭킹 조회 API)
+  - 생성: app/api/youth-night/stats/route.ts (통계 조회 API)
+  - 생성: app/youth-night/[ageGroup]/ranking/page.tsx (랭킹 페이지)
+  - 생성: app/youth-night/[ageGroup]/ranking/RankingClient.tsx (랭킹 클라이언트 컴포넌트)
+  - 수정: app/youth-night/[ageGroup]/AgeGroupClient.tsx (랭킹 버튼 추가)
+  - 수정: app/api/youth-night/points/route.ts (RECITATION 포인트 타입 및 동적 점수 지원)
+  - 수정: PRD.md (Phase 3 체크박스 완료 처리)
+- 발견한 패턴: 동적 점수 부여 시스템 (95+ 25점, 85+ 20점, 75+ 15점, 기본 10점), 역할 기반 승인 권한, 포괄적인 랭킹 통계
+- 주의사항: 교사/관리자만 암송 승인 가능, 사용자 모델 필드명 변경(name→username, email→userid), 재제출 시 상태 PENDING 리셋
+---
