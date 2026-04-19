@@ -207,7 +207,7 @@ function CurriculumCreateModal({
       <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">새 커리큘럼 추가</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-black">새 커리큘럼 추가</h2>
             <button
               onClick={onClose}
               className="text-gray-500 hover:text-gray-700"
@@ -220,7 +220,7 @@ function CurriculumCreateModal({
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                 커리큘럼 제목 *
               </label>
               <input
@@ -228,20 +228,20 @@ function CurriculumCreateModal({
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="예: 2026년 5월 초등부 교안"
               />
             </div>
 
             <div>
-              <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                 대상 연령 *
               </label>
               <select
                 required
                 value={formData.ageGroup}
                 onChange={(e) => setFormData({ ...formData, ageGroup: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 {Object.entries(AGE_GROUP_NAMES).map(([value, label]) => (
                   <option key={value} value={value}>{label}</option>
@@ -250,46 +250,46 @@ function CurriculumCreateModal({
             </div>
 
             <div>
-              <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                 설명
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="커리큘럼에 대한 간단한 설명"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+                <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                   시작일
                 </label>
                 <input
                   type="date"
                   value={formData.startDate}
                   onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+                <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                   종료일
                 </label>
                 <input
                   type="date"
                   value={formData.endDate}
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                 정렬 순서
               </label>
               <input
@@ -297,23 +297,23 @@ function CurriculumCreateModal({
                 min="0"
                 value={formData.sortOrder}
                 onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              <p className="mt-1 text-xs text-gray-500">낮은 숫자가 먼저 표시됩니다</p>
+              <p className="mt-1 text-sm text-gray-700">낮은 숫자가 먼저 표시됩니다</p>
             </div>
 
             <div className="flex justify-end space-x-3 pt-4 border-t">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-300 rounded-lg text-black font-semibold hover:bg-gray-50"
               >
                 취소
               </button>
               <button
                 type="submit"
                 disabled={isSaving}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSaving ? '생성 중...' : '커리큘럼 생성'}
               </button>
@@ -651,12 +651,220 @@ function LessonEditModal({
   );
 }
 
+// 레슨 생성 모달 컴포넌트
+function LessonCreateModal({
+  curriculums,
+  onClose,
+  onSave,
+  isSaving,
+}: {
+  curriculums: Curriculum[];
+  onClose: () => void;
+  onSave: (data: any) => Promise<void>;
+  isSaving: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    curriculumId: curriculums[0]?.id || '',
+    title: '',
+    description: '',
+    bibleVerse: '',
+    keyPoint: '',
+    content: '',
+    videoUrl: '',
+    materialUrl: '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSave(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-black">새 레슨 추가</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                커리큘럼 선택 *
+              </label>
+              <select
+                required
+                value={formData.curriculumId}
+                onChange={(e) => setFormData({ ...formData, curriculumId: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {curriculums.map((curriculum) => (
+                  <option key={curriculum.id} value={curriculum.id}>
+                    {curriculum.title} ({AGE_GROUP_NAMES[curriculum.ageGroup as keyof typeof AGE_GROUP_NAMES]})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                레슨 제목 *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="예: 하나님의 사랑"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                설명
+              </label>
+              <input
+                type="text"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="레슨에 대한 간단한 설명"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                  성경 구절
+                </label>
+                <input
+                  type="text"
+                  value={formData.bibleVerse}
+                  onChange={(e) => setFormData({ ...formData, bibleVerse: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="예: 요한복음 3:16"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                  핵심 포인트
+                </label>
+                <input
+                  type="text"
+                  value={formData.keyPoint}
+                  onChange={(e) => setFormData({ ...formData, keyPoint: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="이 레슨의 핵심 메시지"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                내용 (마크다운 지원)
+              </label>
+              <textarea
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                rows={8}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                placeholder="# 제목&#10;&#10;레슨 내용을 마크다운 형식으로 작성하세요."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                  비디오 URL
+                </label>
+                <input
+                  type="url"
+                  value={formData.videoUrl}
+                  onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                  교재 URL
+                </label>
+                <input
+                  type="url"
+                  value={formData.materialUrl}
+                  onChange={(e) => setFormData({ ...formData, materialUrl: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-black font-semibold hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? '생성 중...' : '레슨 생성'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // 레슨 관리 컴포넌트
 function LessonManagement({ curriculums }: { curriculums: Curriculum[] }) {
   const [editingLesson, setEditingLesson] = useState<LessonDetail | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleCreateLesson = async (data: any) => {
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/youth-night/admin/lesson', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        alert('레슨이 생성되었습니다!');
+        setIsCreateModalOpen(false);
+        window.location.reload();
+      } else {
+        const errorData = await response.json();
+        alert(`생성 실패: ${errorData.error || '알 수 없는 오류'}`);
+      }
+    } catch (error) {
+      console.error('레슨 생성 실패:', error);
+      alert('레슨 생성 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const allLessons = curriculums.flatMap(curriculum =>
     curriculum.lessons.map(lesson => ({
@@ -744,7 +952,23 @@ function LessonManagement({ curriculums }: { curriculums: Curriculum[] }) {
           <h2 className={`${TEXT_SECTION_TITLE} text-gray-900`}>
             전체 레슨 ({allLessons.length}개)
           </h2>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            disabled={curriculums.length === 0}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-semibold flex items-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>레슨 추가</span>
+          </button>
         </div>
+
+        {curriculums.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            레슨을 추가하려면 먼저 커리큘럼을 생성해주세요.
+          </div>
+        )}
 
         <div className="space-y-3">
           {allLessons.map((lesson) => (
@@ -811,6 +1035,16 @@ function LessonManagement({ curriculums }: { curriculums: Curriculum[] }) {
           lesson={editingLesson}
           onClose={handleCloseModal}
           onSave={handleSaveLesson}
+          isSaving={isSaving}
+        />
+      )}
+
+      {/* 레슨 생성 모달 */}
+      {isCreateModalOpen && (
+        <LessonCreateModal
+          curriculums={curriculums}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSave={handleCreateLesson}
           isSaving={isSaving}
         />
       )}

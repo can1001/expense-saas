@@ -2,6 +2,78 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+// 새 레슨 생성
+export async function POST(request: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+
+    // 관리자/교사 권한 확인
+    const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
+    if (!user || !ALLOWED_ROLES.includes(user.role)) {
+      return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const {
+      curriculumId,
+      title,
+      description,
+      bibleVerse,
+      keyPoint,
+      content,
+      videoUrl,
+      materialUrl,
+    } = body;
+
+    if (!curriculumId || !title) {
+      return NextResponse.json(
+        { error: '커리큘럼과 제목은 필수입니다' },
+        { status: 400 }
+      );
+    }
+
+    // 해당 커리큘럼의 다음 레슨 번호 계산
+    const existingLessons = await prisma.lesson.count({
+      where: { curriculumId },
+    });
+    const nextLessonNumber = existingLessons + 1;
+
+    // 레슨 생성
+    const newLesson = await prisma.lesson.create({
+      data: {
+        curriculumId,
+        title,
+        description: description || null,
+        bibleVerse: bibleVerse || null,
+        keyPoint: keyPoint || null,
+        content: content || null,
+        videoUrl: videoUrl || null,
+        materialUrl: materialUrl || null,
+        lessonNumber: nextLessonNumber,
+        isActive: true,
+        publishedAt: null, // 기본적으로 비공개
+      },
+      include: {
+        curriculum: {
+          select: {
+            id: true,
+            title: true,
+            ageGroup: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(newLesson);
+  } catch (error) {
+    console.error('레슨 생성 실패:', error);
+    return NextResponse.json(
+      { error: '레슨 생성에 실패했습니다' },
+      { status: 500 }
+    );
+  }
+}
+
 // 레슨 상세 조회
 export async function GET(request: NextRequest) {
   try {
