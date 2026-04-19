@@ -100,3 +100,18 @@
 ---
 
 완료: Tue Apr  7 23:36:13 KST 2026
+
+[TASK] Phase 1: 청나잇 기반 구축 완료 - 19:10
+- 구현 내용: Curriculum, Lesson, Question 데이터베이스 모델 추가, 청나잇 메인 페이지, 연령별 페이지, 레슨 상세 페이지 구현
+- 수정/생성 파일:
+  - 수정: prisma/schema.prisma (Curriculum, Lesson, Question 모델과 CurriculumType, AgeGroup enum 추가)
+  - 생성: app/youth-night/page.tsx (청나잇 메인 페이지)
+  - 생성: app/youth-night/YouthNightClient.tsx (청나잇 메인 클라이언트 컴포넌트)
+  - 생성: app/youth-night/[ageGroup]/page.tsx (연령별 페이지)
+  - 생성: app/youth-night/[ageGroup]/AgeGroupClient.tsx (연령별 클라이언트 컴포넌트)
+  - 생성: app/youth-night/[ageGroup]/lessons/[lessonId]/page.tsx (레슨 상세 페이지)
+  - 생성: app/youth-night/[ageGroup]/lessons/[lessonId]/LessonDetailClient.tsx (레슨 상세 클라이언트 컴포넌트)
+  - 수정: PRD.md (Phase 1 체크박스 완료 처리)
+- 발견한 패턴: 동적 라우팅([ageGroup], [lessonId]) 사용, 클라이언트 컴포넌트 분리, Prisma enum 타입 as any 캐스팅 필요
+- 주의사항: AgeGroup enum 타입 이슈로 TypeScript에서 as any 캐스팅 사용, 퀴즈 기능 포함된 인터랙티브 레슨 뷰어 구현
+---

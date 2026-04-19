@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
@@ -85,9 +85,98 @@ export default function LessonDetailClient({
   const [activeTab, setActiveTab] = useState<'lesson' | 'quiz'>('lesson');
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
+  const [isAttended, setIsAttended] = useState(false);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [quizStats, setQuizStats] = useState<any>(null);
+  const [totalPoints, setTotalPoints] = useState<number>(0);
 
   const ageGroupDisplayName = AGE_GROUP_NAMES[ageGroup as keyof typeof AGE_GROUP_NAMES];
   const colorClass = AGE_GROUP_COLORS[ageGroup as keyof typeof AGE_GROUP_COLORS];
+
+  // 출석 상태 및 퀴즈 응답 확인
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        // 출석 상태 확인
+        const attendanceResponse = await fetch(`/api/youth-night/attendance?lessonId=${lesson.id}`);
+        if (attendanceResponse.ok) {
+          const attendanceData = await attendanceResponse.json();
+          setIsAttended(!!attendanceData.attendance);
+        }
+
+        // 퀴즈 응답 확인
+        if (lesson.questions.length > 0) {
+          const quizResponse = await fetch(`/api/youth-night/quiz?lessonId=${lesson.id}`);
+          if (quizResponse.ok) {
+            const quizData = await quizResponse.json();
+            if (quizData.responses && quizData.responses.length > 0) {
+              setQuizSubmitted(true);
+              setShowResults(true);
+              setQuizStats(quizData.statistics);
+
+              // 기존 답안 복원
+              const existingAnswers: Record<string, string> = {};
+              quizData.responses.forEach((response: any) => {
+                existingAnswers[response.question.id] = response.userAnswer;
+              });
+              setQuizAnswers(existingAnswers);
+            }
+          }
+        }
+
+        // 총 포인트 조회
+        const pointsResponse = await fetch('/api/youth-night/points?limit=1');
+        if (pointsResponse.ok) {
+          const pointsData = await pointsResponse.json();
+          setTotalPoints(pointsData.totalPoints || 0);
+        }
+      } catch (error) {
+        console.error('상태 확인 오류:', error);
+      }
+    };
+
+    checkStatus();
+  }, [lesson.id, lesson.questions.length]);
+
+  // 출석 체크 처리
+  const handleAttendance = async () => {
+    if (isAttended || attendanceLoading) return;
+
+    setAttendanceLoading(true);
+    try {
+      const response = await fetch('/api/youth-night/attendance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          lessonId: lesson.id,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setIsAttended(true);
+        const pointsMessage = data.pointsEarned > 0 ? ` (+${data.pointsEarned} 포인트 획득!)` : '';
+        alert((data.message || '출석 체크가 완료되었습니다!') + pointsMessage);
+
+        // 포인트 업데이트
+        if (data.pointsEarned > 0) {
+          setTotalPoints(prev => prev + data.pointsEarned);
+        }
+      } else {
+        const error = await response.json();
+        alert(error.error || '출석 체크에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('출석 체크 오류:', error);
+      alert('출석 체크 중 오류가 발생했습니다.');
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
 
   const handleQuizAnswer = (questionId: string, answer: string) => {
     setQuizAnswers(prev => ({
@@ -96,21 +185,78 @@ export default function LessonDetailClient({
     }));
   };
 
-  const submitQuiz = () => {
-    setShowResults(true);
+  const submitQuiz = async () => {
+    if (quizLoading || quizSubmitted) return;
+
+    setQuizLoading(true);
+    try {
+      // 답안을 API 형식으로 변환
+      const answers = Object.entries(quizAnswers).map(([questionId, userAnswer]) => ({
+        questionId,
+        userAnswer,
+      }));
+
+      const response = await fetch('/api/youth-night/quiz', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          lessonId: lesson.id,
+          answers,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setShowResults(true);
+        setQuizSubmitted(true);
+        setQuizStats(data.results);
+
+        const pointsMessage = data.results.pointsEarned > 0 ? ` (+${data.results.pointsEarned} 포인트 획득!)` : '';
+        alert(`퀴즈 제출 완료! 점수: ${data.results.totalScore}/${data.results.maxScore} (${data.results.percentage}%)${pointsMessage}`);
+
+        // 포인트 업데이트
+        if (data.results.pointsEarned > 0) {
+          setTotalPoints(prev => prev + data.results.pointsEarned);
+        }
+      } else {
+        const error = await response.json();
+        alert(error.error || '퀴즈 제출에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('퀴즈 제출 오류:', error);
+      alert('퀴즈 제출 중 오류가 발생했습니다.');
+    } finally {
+      setQuizLoading(false);
+    }
   };
 
   const resetQuiz = () => {
     setQuizAnswers({});
     setShowResults(false);
+    setQuizSubmitted(false);
+    setQuizStats(null);
   };
 
   const getQuizScore = () => {
+    if (quizStats) {
+      return {
+        correct: quizStats.correctAnswers,
+        total: quizStats.totalQuestions,
+        percentage: quizStats.percentage,
+      };
+    }
+
     const totalQuestions = lesson.questions.length;
     const correctAnswers = lesson.questions.filter(q =>
       quizAnswers[q.id] === q.correctAnswer
     ).length;
-    return { correct: correctAnswers, total: totalQuestions };
+    return {
+      correct: correctAnswers,
+      total: totalQuestions,
+      percentage: totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
+    };
   };
 
   const score = getQuizScore();
@@ -155,6 +301,86 @@ export default function LessonDetailClient({
                 💡 {lesson.keyPoint}
               </p>
             )}
+
+            {/* 포인트 표시 */}
+            <div className="mt-2">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                ⭐ {totalPoints} 포인트
+              </span>
+            </div>
+
+            {/* 출석 체크 버튼 */}
+            <div className="mt-4">
+              <button
+                onClick={handleAttendance}
+                disabled={isAttended || attendanceLoading}
+                className={`inline-flex items-center px-6 py-3 rounded-lg font-medium transition-all transform ${
+                  isAttended
+                    ? 'bg-green-100 text-green-800 cursor-not-allowed'
+                    : attendanceLoading
+                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 shadow-lg hover:shadow-xl'
+                }`}
+              >
+                {attendanceLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-600"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    처리 중...
+                  </>
+                ) : isAttended ? (
+                  <>
+                    <svg
+                      className="w-5 h-5 mr-2"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    출석 완료
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-5 h-5 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    출석 체크
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* 탭 네비게이션 */}
@@ -290,16 +516,23 @@ export default function LessonDetailClient({
                         : 'bg-yellow-50 border border-yellow-200'
                     }`}>
                       <h3 className="font-semibold mb-2">
-                        퀴즈 결과: {score.correct} / {score.total}
-                        ({Math.round((score.correct / score.total) * 100)}%)
+                        퀴즈 결과: {score.correct} / {score.total} ({score.percentage}%)
+                        {quizStats && ` - 점수: ${quizStats.totalScore}/${quizStats.maxScore}`}
                       </h3>
                       <div className="flex space-x-2">
-                        <button
-                          onClick={resetQuiz}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                        >
-                          다시 풀기
-                        </button>
+                        {!quizSubmitted && (
+                          <button
+                            onClick={resetQuiz}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                          >
+                            다시 풀기
+                          </button>
+                        )}
+                        {quizSubmitted && (
+                          <span className="text-sm text-green-600 font-medium">
+                            ✓ 제출 완료
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -396,10 +629,36 @@ export default function LessonDetailClient({
                   {!showResults && (
                     <button
                       onClick={submitQuiz}
-                      disabled={Object.keys(quizAnswers).length !== lesson.questions.length}
+                      disabled={Object.keys(quizAnswers).length !== lesson.questions.length || quizLoading}
                       className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
                     >
-                      퀴즈 제출하기
+                      {quizLoading ? (
+                        <>
+                          <svg
+                            className="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            />
+                          </svg>
+                          제출 중...
+                        </>
+                      ) : (
+                        '퀴즈 제출하기'
+                      )}
                     </button>
                   )}
                 </div>

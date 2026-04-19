@@ -16,12 +16,12 @@
 
 ## 청나잇 (Youth Night) 기능
 
-- [ ] Phase 1: 기반 구축
-  - [ ] Curriculum, Lesson, Question 모델 추가 (prisma/schema.prisma)
-  - [ ] CurriculumType (FAMILY_WORSHIP, YOUTH_NIGHT), AgeGroup enum 추가
-  - [ ] 청나잇 메인 페이지 (/youth-night)
-  - [ ] 연령별 페이지 (/youth-night/[ageGroup])
-  - [ ] 레슨 상세 페이지 (/youth-night/[ageGroup]/lessons/[lessonId])
+- [x] Phase 1: 기반 구축
+  - [x] Curriculum, Lesson, Question 모델 추가 (prisma/schema.prisma)
+  - [x] CurriculumType (FAMILY_WORSHIP, YOUTH_NIGHT), AgeGroup enum 추가
+  - [x] 청나잇 메인 페이지 (/youth-night)
+  - [x] 연령별 페이지 (/youth-night/[ageGroup])
+  - [x] 레슨 상세 페이지 (/youth-night/[ageGroup]/lessons/[lessonId])
 - [ ] Phase 2: 학생 참여 기능
   - [ ] Attendance 모델 및 출석 체크 API
   - [ ] QuizResponse 모델 및 퀴즈 기능

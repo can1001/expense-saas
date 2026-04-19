@@ -582,6 +582,9 @@ model User {
   notificationPreference NotificationPreference? // 알림 설정
   pushSubscriptions  PushSubscription[]         // 웹 푸시 구독 정보
   ledCommittees      Committee[]  @relation("CommitteeLeader")  // 위원장으로 있는 위원회
+  attendances        Attendance[]  @relation("StudentAttendance")  // 청나잇 출석 기록
+  quizResponses      QuizResponse[]  @relation("StudentQuizResponse")  // 청나잇 퀴즈 응답
+  studentPoints      StudentPoints[]  @relation("StudentPoints")  // 청나잇 포인트 기록
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1205,6 +1208,8 @@ model Lesson {
 
   // 관계
   questions      Question[]                  // 퀴즈 질문들
+  attendances    Attendance[]                // 출석 기록들
+  studentPoints  StudentPoints[]             // 포인트 기록들
 
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
@@ -1239,10 +1244,101 @@ model Question {
   // 순서
   questionNumber  Int                        // 질문 번호
 
+  // 관계
+  responses       QuizResponse[]             // 퀴즈 응답들
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@unique([lessonId, questionNumber])
   @@index([lessonId])
   @@index([questionNumber])
+}
+
+// ========================================
+// 학생 참여 시스템 (Student Participation)
+// ========================================
+
+// 출석 기록
+model Attendance {
+  id        String   @id @default(cuid())
+
+  // 사용자 정보
+  userId    String
+  user      User     @relation("StudentAttendance", fields: [userId], references: [id], onDelete: Cascade)
+
+  // 레슨 정보
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  // 출석 정보
+  attendedAt DateTime @default(now()) // 출석 체크 시간
+  isPresent  Boolean  @default(true)  // 출석 여부 (기본값: true, 미출석 시 false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, lessonId]) // 한 사용자가 동일 레슨에 중복 출석 방지
+  @@index([userId])
+  @@index([lessonId])
+  @@index([attendedAt])
+}
+
+// 퀴즈 응답 기록
+model QuizResponse {
+  id         String   @id @default(cuid())
+
+  // 사용자 정보
+  userId     String
+  user       User     @relation("StudentQuizResponse", fields: [userId], references: [id], onDelete: Cascade)
+
+  // 퀴즈 정보
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  // 응답 정보
+  userAnswer String                    // 사용자가 선택한 답 (1,2,3,4 또는 텍스트)
+  isCorrect  Boolean                   // 정답 여부
+  score      Int      @default(0)      // 획득 점수 (보통 정답 시 10점)
+
+  // 제출 시간
+  submittedAt DateTime @default(now()) // 답안 제출 시간
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, questionId]) // 한 사용자가 동일 문제에 중복 응답 방지
+  @@index([userId])
+  @@index([questionId])
+  @@index([submittedAt])
+  @@index([isCorrect])
+}
+
+// 학생 포인트 시스템
+model StudentPoints {
+  id          String   @id @default(cuid())
+
+  // 사용자 정보
+  userId      String
+  user        User     @relation("StudentPoints", fields: [userId], references: [id], onDelete: Cascade)
+
+  // 포인트 정보
+  pointType   String                       // 포인트 타입: ATTENDANCE, QUIZ_PERFECT, QUIZ_GOOD, LESSON_COMPLETE
+  points      Int                          // 획득 포인트 (출석 5점, 퀴즈 완벽 15점, 퀴즈 좋음 10점, 레슨 완료 3점)
+  description String?                      // 포인트 획득 사유
+
+  // 관련 정보
+  lessonId    String?                      // 관련 레슨 ID (선택)
+  lesson      Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  // 시간 정보
+  earnedAt    DateTime @default(now())    // 포인트 획득 시간
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([pointType])
+  @@index([earnedAt])
+  @@index([lessonId])
 }
