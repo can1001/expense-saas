@@ -356,6 +356,58 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
           </div>
         </div>
 
+        {/* 청나잇 메뉴 */}
+        <div className={MARGIN_SECTION}>
+          <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-2 sm:mb-3">
+            청소년 사역
+          </h2>
+          <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+            <Link
+              href="/youth-night"
+              className={`group bg-white rounded-xl shadow-lg ${PADDING_CARD} hover:shadow-xl transition-all hover:-translate-y-1 border-2 border-purple-100`}
+            >
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                  <svg
+                    className="w-5 h-5 sm:w-6 sm:h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                    />
+                  </svg>
+                </div>
+                <svg
+                  className="w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-1 sm:mb-2`}>
+                  청나잇
+                </h2>
+                <p className="text-sm sm:text-base text-gray-600">
+                  청소년/어린이 예배 교안, 퀴즈, 암송
+                </p>
+              </div>
+            </Link>
+          </div>
+        </div>
+
         {/* 통계 (확장 메뉴 역할만) */}
         {showExtendedMenu && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">

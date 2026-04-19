@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown, Bell, History, Send, UserPlus } from 'lucide-react';
+import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown, Bell, History, Send, UserPlus, Moon } from 'lucide-react';
 import { useRoles } from '@/hooks/useRoles';
 import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount';
 import { canShowUserRegisterMenu, canAccessAdminMenuWithRoles } from '@/lib/constants/menu-permissions';
@@ -352,6 +352,12 @@ export default function Header() {
       label: '결재함',
       icon: CheckSquare,
       active: pathname.startsWith('/approvals'),
+    },
+    {
+      href: '/youth-night',
+      label: '청나잇',
+      icon: Moon,
+      active: pathname.startsWith('/youth-night'),
     },
     // admin 메뉴 (관리 권한 있는 역할만 표시, 다중 역할 지원)
     ...(user && canAccessAdminMenuWithRoles(user.roles || [user.role])
