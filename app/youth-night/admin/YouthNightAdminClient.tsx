@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
@@ -47,7 +47,7 @@ const AGE_GROUP_NAMES = {
 };
 
 export default function YouthNightAdminClient({ user, curriculums }: Props) {
-  const [activeTab, setActiveTab] = useState<'curriculums' | 'lessons' | 'create'>('curriculums');
+  const [activeTab, setActiveTab] = useState<'curriculums' | 'lessons' | 'create' | 'recitations'>('curriculums');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -100,6 +100,16 @@ export default function YouthNightAdminClient({ user, curriculums }: Props) {
               >
                 교안 업로드
               </button>
+              <button
+                onClick={() => setActiveTab('recitations')}
+                className={`px-4 sm:px-6 py-3 text-sm font-medium border-b-2 ${
+                  activeTab === 'recitations'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                암송 승인
+              </button>
             </div>
           </div>
 
@@ -114,6 +124,10 @@ export default function YouthNightAdminClient({ user, curriculums }: Props) {
 
           {activeTab === 'create' && (
             <CurriculumUpload />
+          )}
+
+          {activeTab === 'recitations' && (
+            <RecitationApproval />
           )}
 
           {/* 뒤로가기 */}
@@ -641,6 +655,296 @@ function CurriculumUpload() {
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+// 암송 승인 컴포넌트
+function RecitationApproval() {
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState({
+    status: 'PENDING',
+    ageGroup: '',
+  });
+  const [approving, setApproving] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchSubmissions();
+  }, [filter]);
+
+  const fetchSubmissions = async () => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (filter.status) queryParams.append('status', filter.status);
+      if (filter.ageGroup) queryParams.append('ageGroup', filter.ageGroup);
+
+      const response = await fetch(`/api/youth-night/recitation/approve?${queryParams}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubmissions(data.submissions || []);
+      } else {
+        console.error('암송 목록 조회 실패:', data.error);
+      }
+    } catch (error) {
+      console.error('암송 목록 조회 오류:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (submissionId: string, score: number) => {
+    if (!confirm(`${score}점으로 암송을 승인하시겠습니까?`)) return;
+
+    setApproving(submissionId);
+    try {
+      const response = await fetch('/api/youth-night/recitation/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionId,
+          action: 'approve',
+          score,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`암송이 승인되었습니다! (${data.pointsAwarded}점 획득)`);
+        fetchSubmissions();
+      } else {
+        alert(`승인 실패: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('암송 승인 오류:', error);
+      alert('암송 승인 중 오류가 발생했습니다.');
+    } finally {
+      setApproving(null);
+    }
+  };
+
+  const handleReject = async (submissionId: string) => {
+    const rejectionReason = prompt('반려 사유를 입력하세요:');
+    if (!rejectionReason) return;
+
+    setApproving(submissionId);
+    try {
+      const response = await fetch('/api/youth-night/recitation/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionId,
+          action: 'reject',
+          rejectionReason,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('암송이 반려되었습니다.');
+        fetchSubmissions();
+      } else {
+        alert(`반려 실패: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('암송 반려 오류:', error);
+      alert('암송 반려 중 오류가 발생했습니다.');
+    } finally {
+      setApproving(null);
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'PENDING': return '승인 대기';
+      case 'APPROVED': return '승인됨';
+      case 'REJECTED': return '반려됨';
+      default: return status;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'PENDING': return 'bg-yellow-100 text-yellow-800';
+      case 'APPROVED': return 'bg-green-100 text-green-800';
+      case 'REJECTED': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow">
+      <div className="p-4 sm:p-6">
+        {/* 필터 */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <h2 className={`${TEXT_SECTION_TITLE} text-gray-900`}>
+            암송 승인 관리
+          </h2>
+
+          <div className="flex items-center space-x-3">
+            <select
+              value={filter.status}
+              onChange={(e) => setFilter({ ...filter, status: e.target.value })}
+              className="text-sm border border-gray-300 rounded px-3 py-1"
+            >
+              <option value="PENDING">승인 대기</option>
+              <option value="APPROVED">승인됨</option>
+              <option value="REJECTED">반려됨</option>
+            </select>
+
+            <select
+              value={filter.ageGroup}
+              onChange={(e) => setFilter({ ...filter, ageGroup: e.target.value })}
+              className="text-sm border border-gray-300 rounded px-3 py-1"
+            >
+              <option value="">전체 연령</option>
+              {Object.entries(AGE_GROUP_NAMES).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* 암송 목록 */}
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <p className="mt-2 text-gray-500">암송 목록을 불러오는 중...</p>
+          </div>
+        ) : submissions.length === 0 ? (
+          <div className="text-center py-8">
+            <svg
+              className="w-16 h-16 text-gray-300 mx-auto mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <p className="text-gray-500">
+              {filter.status === 'PENDING' ? '승인 대기 중인' : getStatusText(filter.status)} 암송이 없습니다
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {submissions.map((submission) => (
+              <div
+                key={submission.id}
+                className="border rounded-lg p-4 hover:bg-gray-50"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h3 className="font-medium text-gray-900">
+                        {submission.lesson.curriculum.title} - 레슨 {submission.lesson.lessonNumber}
+                      </h3>
+                      <span className="text-sm text-gray-500">
+                        ({AGE_GROUP_NAMES[submission.lesson.curriculum.ageGroup as keyof typeof AGE_GROUP_NAMES]})
+                      </span>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(submission.status)}`}>
+                        {getStatusText(submission.status)}
+                      </span>
+                    </div>
+
+                    <p className="text-gray-600 mb-2">{submission.lesson.title}</p>
+                    <p className="text-sm text-gray-500 mb-2">성경 구절: {submission.bibleVerse}</p>
+
+                    <div className="flex items-center space-x-4 text-sm text-gray-500">
+                      <span>제출자: {submission.user.username}</span>
+                      <span>제출일: {new Date(submission.submittedAt).toLocaleDateString()}</span>
+                      {submission.status === 'APPROVED' && (
+                        <span className="text-green-600">점수: {submission.score}점</span>
+                      )}
+                      {submission.status === 'REJECTED' && (
+                        <span className="text-red-600">반려 사유: {submission.rejectionReason}</span>
+                      )}
+                      {submission.approver && (
+                        <span>처리자: {submission.approver.username}</span>
+                      )}
+                    </div>
+
+                    {/* 제출 내용 */}
+                    <div className="mt-3 p-3 bg-gray-50 rounded">
+                      {submission.audioUrl && (
+                        <div className="mb-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            음성 파일:
+                          </label>
+                          <audio controls className="w-full max-w-md">
+                            <source src={submission.audioUrl} type="audio/mpeg" />
+                            브라우저가 오디오를 지원하지 않습니다.
+                          </audio>
+                        </div>
+                      )}
+
+                      {submission.videoUrl && (
+                        <div className="mb-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            영상 파일:
+                          </label>
+                          <video controls className="w-full max-w-md h-32">
+                            <source src={submission.videoUrl} type="video/mp4" />
+                            브라우저가 비디오를 지원하지 않습니다.
+                          </video>
+                        </div>
+                      )}
+
+                      {submission.textContent && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            텍스트 암송:
+                          </label>
+                          <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                            {submission.textContent}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 승인/반려 버튼 */}
+                  {submission.status === 'PENDING' && (
+                    <div className="flex flex-col space-y-2 ml-4">
+                      <div className="flex space-x-2">
+                        {[95, 85, 75, 65].map((score) => (
+                          <button
+                            key={score}
+                            onClick={() => handleApprove(submission.id, score)}
+                            disabled={approving === submission.id}
+                            className={`px-2 py-1 text-xs font-medium rounded ${
+                              score >= 95 ? 'bg-green-100 text-green-800 hover:bg-green-200' :
+                              score >= 85 ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' :
+                              score >= 75 ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' :
+                              'bg-orange-100 text-orange-800 hover:bg-orange-200'
+                            } disabled:opacity-50`}
+                          >
+                            {score}점
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => handleReject(submission.id)}
+                        disabled={approving === submission.id}
+                        className="px-3 py-1 text-xs font-medium text-red-800 bg-red-100 rounded hover:bg-red-200 disabled:opacity-50"
+                      >
+                        반려
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

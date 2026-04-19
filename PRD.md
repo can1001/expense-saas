@@ -30,6 +30,6 @@
   - [x] RecitationSubmission 모델 및 암송 인증
   - [x] 랭킹 시스템 (/youth-night/[ageGroup]/ranking)
 - [ ] Phase 4: 관리자 기능
-  - [ ] 교안 업로드 (관리자)
+  - [x] 교안 업로드 (관리자)
   - [ ] 암송 승인 (교사)
   - [ ] 통계 대시보드

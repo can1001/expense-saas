@@ -147,3 +147,16 @@
 - 발견한 패턴: 동적 점수 부여 시스템 (95+ 25점, 85+ 20점, 75+ 15점, 기본 10점), 역할 기반 승인 권한, 포괄적인 랭킹 통계
 - 주의사항: 교사/관리자만 암송 승인 가능, 사용자 모델 필드명 변경(name→username, email→userid), 재제출 시 상태 PENDING 리셋
 ---
+
+[TASK] 교안 업로드 (관리자) 완료 - 19:45
+- 구현 내용: 관리자용 교안 업로드 및 커리큘럼 관리 기능 구현
+- 수정/생성 파일:
+  - 생성: app/youth-night/admin/page.tsx (관리자 페이지 서버 컴포넌트)
+  - 생성: app/youth-night/admin/YouthNightAdminClient.tsx (관리자 클라이언트 컴포넌트)
+  - 생성: app/api/youth-night/admin/curriculum/route.ts (커리큘럼 생성/수정/삭제 API)
+  - 생성: app/api/youth-night/admin/lesson/route.ts (레슨 공개/비공개 토글 API)
+  - 수정: app/youth-night/YouthNightClient.tsx (관리자 메뉴 버튼 추가)
+  - 수정: PRD.md (교안 업로드 체크박스 완료 처리)
+- 발견한 패턴: 역할 기반 권한 검증 (admin, finance_head, accountant, team_leader), 탭 기반 관리 UI, 트랜잭션을 활용한 커리큘럼-레슨 동시 생성
+- 주의사항: 관리자만 접근 가능, 새 레슨은 기본적으로 비공개 상태, 마크다운 지원 콘텐츠 에디터
+---
