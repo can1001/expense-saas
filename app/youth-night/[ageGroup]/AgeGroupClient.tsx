@@ -132,21 +132,34 @@ export default function AgeGroupClient({ user, curriculums, ageGroup, urlAgeGrou
               {curriculums.map((curriculum) => (
                 <div key={curriculum.id} className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
                   <div className="mb-4 sm:mb-6">
-                    <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-2`}>
-                      {curriculum.title}
-                    </h2>
-                    {curriculum.description && (
-                      <p className="text-sm sm:text-base text-gray-600 mb-4">
-                        {curriculum.description}
-                      </p>
-                    )}
-                    <div className="flex items-center space-x-4 text-xs sm:text-sm text-gray-500">
-                      <span>{curriculum.lessons.length}개 레슨</span>
-                      {curriculum.startDate && curriculum.endDate && (
-                        <span>
-                          {new Date(curriculum.startDate).toLocaleDateString('ko-KR')} - {new Date(curriculum.endDate).toLocaleDateString('ko-KR')}
-                        </span>
-                      )}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-2`}>
+                          {curriculum.title}
+                        </h2>
+                        {curriculum.description && (
+                          <p className="text-sm sm:text-base text-gray-600 mb-4">
+                            {curriculum.description}
+                          </p>
+                        )}
+                        <div className="flex items-center space-x-4 text-xs sm:text-sm text-gray-500">
+                          <span>{curriculum.lessons.length}개 레슨</span>
+                          {curriculum.startDate && curriculum.endDate && (
+                            <span>
+                              {new Date(curriculum.startDate).toLocaleDateString('ko-KR')} - {new Date(curriculum.endDate).toLocaleDateString('ko-KR')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <Link
+                        href={`/youth-night/curriculum/${curriculum.id}`}
+                        className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-1"
+                      >
+                        <span>상세보기</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
                     </div>
                   </div>
 
