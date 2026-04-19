@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
@@ -97,6 +97,10 @@ export default function LessonDetailClient({
   const [currentStep, setCurrentStep] = useState(0);
   const [showHint, setShowHint] = useState(false);
 
+  // Fullscreen reader mode
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenRef = useRef<HTMLDivElement>(null);
+
   // Parse lesson content into steps
   const steps = useMemo(() => {
     return parseLessonContent(lesson.content, lesson.bibleVerse, lesson.keyPoint);
@@ -153,6 +157,59 @@ export default function LessonDetailClient({
 
     checkStatus();
   }, [lesson.id, lesson.questions.length]);
+
+  // Fullscreen mode handlers
+  const enterFullscreen = useCallback(async () => {
+    try {
+      if (fullscreenRef.current) {
+        await fullscreenRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      }
+    } catch (err) {
+      // Fullscreen API not supported, use CSS fallback
+      setIsFullscreen(true);
+    }
+  }, []);
+
+  const exitFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    }
+    setIsFullscreen(false);
+  }, []);
+
+  // Listen for fullscreen change events
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setIsFullscreen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        exitFullscreen();
+      }
+      // Arrow key navigation in fullscreen
+      if (isFullscreen) {
+        if (e.key === 'ArrowRight' && !isLastStep) {
+          setCurrentStep(prev => prev + 1);
+          setShowHint(false);
+        } else if (e.key === 'ArrowLeft' && !isFirstStep) {
+          setCurrentStep(prev => prev - 1);
+          setShowHint(false);
+        }
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isFullscreen, isFirstStep, isLastStep, exitFullscreen]);
 
   // 출석 체크 처리
   const handleAttendance = async () => {
@@ -361,6 +418,19 @@ export default function LessonDetailClient({
             <div className={PADDING_CARD}>
               {activeTab === 'lesson' && (
                 <div className="space-y-6">
+                  {/* 집중 모드 버튼 */}
+                  <div className="flex justify-end">
+                    <button
+                      onClick={enterFullscreen}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                      </svg>
+                      집중 모드
+                    </button>
+                  </div>
+
                   {/* 진행 바 */}
                   {steps.length > 1 && (
                     <div className="mb-6">
@@ -779,6 +849,176 @@ export default function LessonDetailClient({
           </div>
         </div>
       </main>
+
+      {/* 풀스크린 집중 모드 */}
+      <div
+        ref={fullscreenRef}
+        className={`${
+          isFullscreen ? 'fixed inset-0 z-50 flex flex-col' : 'hidden'
+        } bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900`}
+      >
+        {/* 상단 바 */}
+        <div className="flex items-center justify-between px-6 py-4 bg-black/20">
+          <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 ${colorClass} rounded-full flex items-center justify-center`}>
+              <span className="text-white font-bold text-sm">{lesson.lessonNumber}</span>
+            </div>
+            <h2 className="text-white font-semibold text-lg">{lesson.title}</h2>
+          </div>
+          <button
+            onClick={exitFullscreen}
+            className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            title="집중 모드 종료 (ESC)"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* 진행 표시 */}
+        {steps.length > 1 && (
+          <div className="px-6 py-3">
+            <div className="flex items-center gap-2">
+              {steps.map((step, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    setCurrentStep(index);
+                    setShowHint(false);
+                  }}
+                  className={`h-1.5 flex-1 rounded-full transition-all ${
+                    index === currentStep
+                      ? 'bg-white'
+                      : index < currentStep
+                        ? 'bg-white/50'
+                        : 'bg-white/20'
+                  }`}
+                />
+              ))}
+            </div>
+            <div className="flex items-center justify-between mt-2 text-sm text-white/60">
+              <span>Step {currentStep + 1} / {steps.length}</span>
+              <span>{currentStepData?.title}</span>
+            </div>
+          </div>
+        )}
+
+        {/* 메인 콘텐츠 */}
+        <div className="flex-1 overflow-auto px-6 py-8">
+          <div className="max-w-3xl mx-auto">
+            {currentStepData && (
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="text-4xl">{getStepIcon(currentStepData.type)}</span>
+                  <h3 className="text-2xl font-bold text-white">{currentStepData.title}</h3>
+                </div>
+
+                <div className="text-white/90 text-xl leading-relaxed whitespace-pre-wrap">
+                  {currentStepData.content}
+                </div>
+
+                {/* 힌트 (질문 타입) */}
+                {currentStepData.type === 'question' && currentStepData.hint && (
+                  <div className="mt-8">
+                    <button
+                      onClick={() => setShowHint(!showHint)}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                    >
+                      <span className="mr-2">{showHint ? '🔒' : '💡'}</span>
+                      {showHint ? '힌트 숨기기' : '힌트 보기'}
+                    </button>
+
+                    {showHint && (
+                      <div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
+                        <p className="text-white/70 italic whitespace-pre-wrap">
+                          {currentStepData.hint}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 마지막 Step에서 출석 체크 버튼 */}
+                {isLastStep && (
+                  <div className="mt-8 pt-6 border-t border-white/10">
+                    <button
+                      onClick={handleAttendance}
+                      disabled={isAttended || attendanceLoading}
+                      className={`w-full inline-flex items-center justify-center px-6 py-4 rounded-xl font-medium text-lg transition-all ${
+                        isAttended
+                          ? 'bg-green-500/20 text-green-300 cursor-not-allowed'
+                          : attendanceLoading
+                          ? 'bg-white/10 text-white/50 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg'
+                      }`}
+                    >
+                      {attendanceLoading ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          처리 중...
+                        </>
+                      ) : isAttended ? (
+                        <>✓ 레슨 완료!</>
+                      ) : (
+                        <>레슨 완료하기</>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 하단 네비게이션 */}
+        <div className="px-6 py-4 bg-black/20">
+          <div className="max-w-3xl mx-auto flex items-center justify-between">
+            <button
+              onClick={() => {
+                setCurrentStep(prev => Math.max(0, prev - 1));
+                setShowHint(false);
+              }}
+              disabled={isFirstStep}
+              className={`inline-flex items-center px-5 py-3 rounded-xl font-medium transition-all ${
+                isFirstStep
+                  ? 'text-white/30 cursor-not-allowed'
+                  : 'text-white bg-white/10 hover:bg-white/20'
+              }`}
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              이전
+            </button>
+
+            <div className="text-white/50 text-sm">
+              ← → 화살표 키로 이동
+            </div>
+
+            <button
+              onClick={() => {
+                setCurrentStep(prev => Math.min(steps.length - 1, prev + 1));
+                setShowHint(false);
+              }}
+              disabled={isLastStep}
+              className={`inline-flex items-center px-5 py-3 rounded-xl font-medium transition-all ${
+                isLastStep
+                  ? 'text-white/30 cursor-not-allowed'
+                  : 'text-white bg-white/10 hover:bg-white/20'
+              }`}
+            >
+              다음
+              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
