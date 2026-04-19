@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
+import { parseLessonContent, getStepIcon, getStepColorClass, LessonStep } from '@/lib/utils/lesson-parser';
 
 interface UserInfo {
   id: string;
@@ -91,6 +92,19 @@ export default function LessonDetailClient({
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizStats, setQuizStats] = useState<any>(null);
   const [totalPoints, setTotalPoints] = useState<number>(0);
+
+  // Step-based learning state
+  const [currentStep, setCurrentStep] = useState(0);
+  const [showHint, setShowHint] = useState(false);
+
+  // Parse lesson content into steps
+  const steps = useMemo(() => {
+    return parseLessonContent(lesson.content, lesson.bibleVerse, lesson.keyPoint);
+  }, [lesson.content, lesson.bibleVerse, lesson.keyPoint]);
+
+  const currentStepData = steps[currentStep];
+  const isFirstStep = currentStep === 0;
+  const isLastStep = currentStep === steps.length - 1;
 
   const ageGroupDisplayName = AGE_GROUP_NAMES[ageGroup as keyof typeof AGE_GROUP_NAMES];
   const colorClass = AGE_GROUP_COLORS[ageGroup as keyof typeof AGE_GROUP_COLORS];
@@ -302,84 +316,16 @@ export default function LessonDetailClient({
               </p>
             )}
 
-            {/* 포인트 표시 */}
-            <div className="mt-2">
+            {/* 포인트 및 출석 상태 표시 */}
+            <div className="mt-2 flex items-center justify-center gap-3">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
                 ⭐ {totalPoints} 포인트
               </span>
-            </div>
-
-            {/* 출석 체크 버튼 */}
-            <div className="mt-4">
-              <button
-                onClick={handleAttendance}
-                disabled={isAttended || attendanceLoading}
-                className={`inline-flex items-center px-6 py-3 rounded-lg font-medium transition-all transform ${
-                  isAttended
-                    ? 'bg-green-100 text-green-800 cursor-not-allowed'
-                    : attendanceLoading
-                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 shadow-lg hover:shadow-xl'
-                }`}
-              >
-                {attendanceLoading ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-600"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    처리 중...
-                  </>
-                ) : isAttended ? (
-                  <>
-                    <svg
-                      className="w-5 h-5 mr-2"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    출석 완료
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="w-5 h-5 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    출석 체크
-                  </>
-                )}
-              </button>
+              {isAttended && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                  ✓ 출석 완료
+                </span>
+              )}
             </div>
           </div>
 
@@ -415,92 +361,210 @@ export default function LessonDetailClient({
             <div className={PADDING_CARD}>
               {activeTab === 'lesson' && (
                 <div className="space-y-6">
-                  {/* 레슨 설명 */}
-                  {lesson.description && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                        레슨 개요
-                      </h3>
-                      <p className="text-gray-700 leading-relaxed">
-                        {lesson.description}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* 비디오 */}
-                  {lesson.videoUrl && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                        📹 영상 자료
-                      </h3>
-                      <div className="bg-gray-100 rounded-lg p-4">
-                        <a
-                          href={lesson.videoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-blue-600 hover:text-blue-800"
-                        >
-                          <svg
-                            className="w-5 h-5 mr-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                            />
-                          </svg>
-                          영상 보기
-                        </a>
+                  {/* 진행 바 */}
+                  {steps.length > 1 && (
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-600">
+                          Step {currentStep + 1} / {steps.length}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          {currentStepData?.title}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {steps.map((_, index) => (
+                          <div
+                            key={index}
+                            className={`h-2 flex-1 rounded-full transition-colors cursor-pointer ${
+                              index <= currentStep ? 'bg-blue-500' : 'bg-gray-200'
+                            }`}
+                            onClick={() => {
+                              setCurrentStep(index);
+                              setShowHint(false);
+                            }}
+                          />
+                        ))}
                       </div>
                     </div>
                   )}
 
-                  {/* 교재 */}
-                  {lesson.materialUrl && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                        📄 교재 자료
+                  {/* 현재 Step 내용 */}
+                  {currentStepData && (
+                    <div className={`p-6 rounded-xl border-2 ${getStepColorClass(currentStepData.type)}`}>
+                      <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <span className="text-2xl">{getStepIcon(currentStepData.type)}</span>
+                        {currentStepData.title}
                       </h3>
-                      <div className="bg-gray-100 rounded-lg p-4">
-                        <a
-                          href={lesson.materialUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-blue-600 hover:text-blue-800"
-                        >
-                          <svg
-                            className="w-5 h-5 mr-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                            />
-                          </svg>
-                          교재 다운로드
-                        </a>
-                      </div>
-                    </div>
-                  )}
 
-                  {/* 레슨 내용 */}
-                  {lesson.content && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                        📝 상세 내용
-                      </h3>
                       <div className="prose max-w-none">
-                        <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                          {lesson.content}
+                        <div className="whitespace-pre-wrap text-gray-700 leading-relaxed text-lg">
+                          {currentStepData.content}
                         </div>
+                      </div>
+
+                      {/* 힌트 토글 (질문 타입일 때만) */}
+                      {currentStepData.type === 'question' && currentStepData.hint && (
+                        <div className="mt-6">
+                          <button
+                            onClick={() => setShowHint(!showHint)}
+                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-purple-700 bg-purple-100 rounded-lg hover:bg-purple-200 transition-colors"
+                          >
+                            <span className="mr-2">{showHint ? '🔒' : '💡'}</span>
+                            {showHint ? '힌트 숨기기' : '힌트 보기'}
+                          </button>
+
+                          {showHint && (
+                            <div className="mt-4 p-4 bg-white rounded-lg border border-purple-200 shadow-sm">
+                              <p className="text-gray-600 italic whitespace-pre-wrap">
+                                {currentStepData.hint}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 마지막 Step에서 출석 체크 버튼 */}
+                      {isLastStep && (
+                        <div className="mt-6 pt-6 border-t border-gray-200">
+                          <button
+                            onClick={handleAttendance}
+                            disabled={isAttended || attendanceLoading}
+                            className={`w-full inline-flex items-center justify-center px-6 py-4 rounded-xl font-medium text-lg transition-all transform ${
+                              isAttended
+                                ? 'bg-green-100 text-green-800 cursor-not-allowed'
+                                : attendanceLoading
+                                ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 hover:scale-[1.02] shadow-lg hover:shadow-xl'
+                            }`}
+                          >
+                            {attendanceLoading ? (
+                              <>
+                                <svg
+                                  className="animate-spin -ml-1 mr-3 h-5 w-5"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  />
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  />
+                                </svg>
+                                처리 중...
+                              </>
+                            ) : isAttended ? (
+                              <>
+                                <svg className="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                레슨 완료!
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                레슨 완료하기
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Step 네비게이션 버튼 */}
+                  {steps.length > 1 && (
+                    <div className="flex items-center justify-between pt-4">
+                      <button
+                        onClick={() => {
+                          setCurrentStep(prev => Math.max(0, prev - 1));
+                          setShowHint(false);
+                        }}
+                        disabled={isFirstStep}
+                        className={`inline-flex items-center px-5 py-3 rounded-xl font-medium transition-all ${
+                          isFirstStep
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-gray-400 shadow-sm'
+                        }`}
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        이전
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setCurrentStep(prev => Math.min(steps.length - 1, prev + 1));
+                          setShowHint(false);
+                        }}
+                        disabled={isLastStep}
+                        className={`inline-flex items-center px-5 py-3 rounded-xl font-medium transition-all ${
+                          isLastStep
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
+                        }`}
+                      >
+                        다음
+                        <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 비디오/교재 자료 링크 (접혀있는 섹션으로) */}
+                  {(lesson.videoUrl || lesson.materialUrl) && (
+                    <div className="mt-6 p-4 bg-gray-50 rounded-xl">
+                      <h4 className="text-sm font-semibold text-gray-600 mb-3">추가 자료</h4>
+                      <div className="flex flex-wrap gap-3">
+                        {lesson.videoUrl && (
+                          <a
+                            href={lesson.videoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center px-4 py-2 bg-white text-blue-600 rounded-lg border border-gray-200 hover:bg-blue-50 transition-colors text-sm"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            영상 보기
+                          </a>
+                        )}
+                        {lesson.materialUrl && (
+                          <a
+                            href={lesson.materialUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center px-4 py-2 bg-white text-blue-600 rounded-lg border border-gray-200 hover:bg-blue-50 transition-colors text-sm"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            교재 다운로드
+                          </a>
+                        )}
                       </div>
                     </div>
                   )}
