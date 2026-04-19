@@ -1150,14 +1150,14 @@ function CurriculumUpload() {
   return (
     <div className="bg-white rounded-lg shadow">
       <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
-        <h2 className={`${TEXT_SECTION_TITLE} text-gray-900 mb-6`}>
+        <h2 className={`${TEXT_SECTION_TITLE} text-black mb-6`}>
           새 교안 업로드
         </h2>
 
         {/* 커리큘럼 기본 정보 */}
         <div className="grid md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm sm:text-base font-semibold text-black mb-2">
               커리큘럼 제목 *
             </label>
             <input
@@ -1165,20 +1165,20 @@ function CurriculumUpload() {
               required
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="예: 2024년 청나잇 말씀 시리즈"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm sm:text-base font-semibold text-black mb-2">
               대상 연령 *
             </label>
             <select
               required
               value={formData.ageGroup}
               onChange={(e) => setFormData({ ...formData, ageGroup: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {Object.entries(AGE_GROUP_NAMES).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
@@ -1187,31 +1187,31 @@ function CurriculumUpload() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm sm:text-base font-semibold text-black mb-2">
               시작일
             </label>
             <input
               type="date"
               value={formData.startDate}
               onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm sm:text-base font-semibold text-black mb-2">
               종료일
             </label>
             <input
               type="date"
               value={formData.endDate}
               onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm sm:text-base font-semibold text-black mb-2">
               정렬 순서
             </label>
             <input
@@ -1219,20 +1219,20 @@ function CurriculumUpload() {
               min="0"
               value={formData.sortOrder}
               onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm sm:text-base font-semibold text-black mb-2">
             커리큘럼 설명
           </label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             rows={3}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="커리큘럼에 대한 간단한 설명을 입력해주세요"
           />
         </div>
@@ -1240,11 +1240,11 @@ function CurriculumUpload() {
         {/* 레슨들 */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900">레슨 목록</h3>
+            <h3 className="text-lg sm:text-xl font-semibold text-black">레슨 목록</h3>
             <button
               type="button"
               onClick={handleAddLesson}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-semibold"
             >
               + 레슨 추가
             </button>
@@ -1254,12 +1254,12 @@ function CurriculumUpload() {
             {lessons.map((lesson, index) => (
               <div key={index} className="border rounded-lg p-4 bg-gray-50">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium text-gray-900">레슨 {index + 1}</h4>
+                  <h4 className="font-semibold text-black text-base sm:text-lg">레슨 {index + 1}</h4>
                   {lessons.length > 1 && (
                     <button
                       type="button"
                       onClick={() => handleRemoveLesson(index)}
-                      className="text-red-600 hover:text-red-800 text-sm"
+                      className="text-red-600 hover:text-red-800 text-sm font-semibold"
                     >
                       삭제
                     </button>
@@ -1268,7 +1268,7 @@ function CurriculumUpload() {
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+                    <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                       레슨 제목 *
                     </label>
                     <input
@@ -1276,59 +1276,59 @@ function CurriculumUpload() {
                       required
                       value={lesson.title}
                       onChange={(e) => handleLessonChange(index, 'title', e.target.value)}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-black focus:ring-2 focus:ring-blue-500"
                       placeholder="예: 하나님의 사랑"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+                    <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                       성경 구절
                     </label>
                     <input
                       type="text"
                       value={lesson.bibleVerse}
                       onChange={(e) => handleLessonChange(index, 'bibleVerse', e.target.value)}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-black focus:ring-2 focus:ring-blue-500"
                       placeholder="예: 요한복음 3:16"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+                    <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                       레슨 설명
                     </label>
                     <input
                       type="text"
                       value={lesson.description}
                       onChange={(e) => handleLessonChange(index, 'description', e.target.value)}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-black focus:ring-2 focus:ring-blue-500"
                       placeholder="레슨에 대한 간단한 설명"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+                    <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                       핵심 포인트
                     </label>
                     <input
                       type="text"
                       value={lesson.keyPoint}
                       onChange={(e) => handleLessonChange(index, 'keyPoint', e.target.value)}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-black focus:ring-2 focus:ring-blue-500"
                       placeholder="이 레슨의 핵심 메시지"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+                    <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                       레슨 내용 (마크다운 지원)
                     </label>
                     <textarea
                       value={lesson.content}
                       onChange={(e) => handleLessonChange(index, 'content', e.target.value)}
                       rows={6}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 font-mono"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 font-mono"
                       placeholder="# 제목&#10;&#10;## 소제목&#10;&#10;레슨 내용을 마크다운 형식으로 작성하세요.&#10;&#10;**굵은글씨**, *기울임글씨*, `코드` 등을 사용할 수 있습니다."
                     />
                   </div>
@@ -1347,14 +1347,14 @@ function CurriculumUpload() {
                 window.location.reload();
               }
             }}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-black font-semibold hover:bg-gray-50"
           >
             취소
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? '업로드 중...' : '교안 업로드'}
           </button>
