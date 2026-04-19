@@ -196,6 +196,60 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+// 레슨 순서 변경 (드래그 앤 드랍)
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+
+    // 관리자/교사 권한 확인
+    const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
+    if (!user || !ALLOWED_ROLES.includes(user.role)) {
+      return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { curriculumId, lessonIds } = body;
+
+    if (!curriculumId || !lessonIds || !Array.isArray(lessonIds)) {
+      return NextResponse.json(
+        { error: 'curriculumId와 lessonIds 배열이 필요합니다' },
+        { status: 400 }
+      );
+    }
+
+    // 트랜잭션으로 모든 레슨의 순서를 업데이트
+    await prisma.$transaction(
+      lessonIds.map((lessonId: string, index: number) =>
+        prisma.lesson.update({
+          where: { id: lessonId },
+          data: { lessonNumber: index + 1 },
+        })
+      )
+    );
+
+    // 업데이트된 레슨 목록 반환
+    const updatedLessons = await prisma.lesson.findMany({
+      where: { curriculumId },
+      orderBy: { lessonNumber: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        lessonNumber: true,
+        isActive: true,
+        publishedAt: true,
+      },
+    });
+
+    return NextResponse.json({ success: true, lessons: updatedLessons });
+  } catch (error) {
+    console.error('레슨 순서 변경 실패:', error);
+    return NextResponse.json(
+      { error: '레슨 순서 변경에 실패했습니다' },
+      { status: 500 }
+    );
+  }
+}
+
 // 레슨 삭제
 export async function DELETE(request: NextRequest) {
   try {

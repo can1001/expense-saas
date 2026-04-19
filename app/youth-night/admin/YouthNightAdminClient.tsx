@@ -4,6 +4,23 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface UserInfo {
   id: string;
@@ -477,12 +494,138 @@ function CurriculumEditModal({
   );
 }
 
+// 드래그 가능한 레슨 아이템 컴포넌트
+function SortableLessonItem({ lesson }: { lesson: Lesson }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: lesson.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bg-white border rounded-lg p-3 flex items-center justify-between ${
+        isDragging ? 'shadow-lg ring-2 ring-blue-400' : ''
+      }`}
+    >
+      <div className="flex items-center space-x-3">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 touch-none"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+          </svg>
+        </button>
+        <span className="text-sm font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+          #{lesson.lessonNumber}
+        </span>
+        <span className="text-sm sm:text-base font-medium text-gray-900">
+          {lesson.title}
+        </span>
+      </div>
+      <div className="flex items-center space-x-2">
+        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+          lesson.isActive
+            ? 'bg-green-100 text-green-800'
+            : 'bg-gray-200 text-gray-700'
+        }`}>
+          {lesson.isActive ? '활성' : '비활성'}
+        </span>
+        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+          lesson.publishedAt
+            ? 'bg-blue-100 text-blue-800'
+            : 'bg-yellow-100 text-yellow-800'
+        }`}>
+          {lesson.publishedAt ? '공개' : '비공개'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // 커리큘럼 관리 컴포넌트
-function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
+function CurriculumManagement({ curriculums: initialCurriculums }: { curriculums: Curriculum[] }) {
+  const [curriculums, setCurriculums] = useState<Curriculum[]>(initialCurriculums);
   const [editingCurriculum, setEditingCurriculum] = useState<Curriculum | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [expandedCurriculumId, setExpandedCurriculumId] = useState<string | null>(null);
+  const [isReordering, setIsReordering] = useState(false);
+
+  // DnD 센서 설정
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // 드래그 종료 핸들러
+  const handleDragEnd = async (event: DragEndEvent, curriculumId: string) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    const curriculum = curriculums.find(c => c.id === curriculumId);
+    if (!curriculum) return;
+
+    const oldIndex = curriculum.lessons.findIndex(l => l.id === active.id);
+    const newIndex = curriculum.lessons.findIndex(l => l.id === over.id);
+
+    // 로컬 상태 먼저 업데이트 (즉시 반응)
+    const newLessons = arrayMove(curriculum.lessons, oldIndex, newIndex).map((lesson, index) => ({
+      ...lesson,
+      lessonNumber: index + 1,
+    }));
+
+    setCurriculums(prev =>
+      prev.map(c =>
+        c.id === curriculumId ? { ...c, lessons: newLessons } : c
+      )
+    );
+
+    // 서버에 저장
+    setIsReordering(true);
+    try {
+      const response = await fetch('/api/youth-night/admin/lesson', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          curriculumId,
+          lessonIds: newLessons.map(l => l.id),
+        }),
+      });
+
+      if (!response.ok) {
+        // 실패 시 원래대로 복원
+        setCurriculums(initialCurriculums);
+        alert('레슨 순서 변경에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('레슨 순서 변경 실패:', error);
+      setCurriculums(initialCurriculums);
+      alert('레슨 순서 변경 중 오류가 발생했습니다.');
+    } finally {
+      setIsReordering(false);
+    }
+  };
 
   const handleCreateCurriculum = async (data: any) => {
     setIsSaving(true);
@@ -696,43 +839,37 @@ function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
                 {/* 확장된 레슨 목록 */}
                 {isExpanded && (
                   <div className="border-t bg-gray-50 p-4">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                      레슨 목록 ({curriculum.lessons.length}개)
-                    </h4>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-semibold text-gray-700">
+                        레슨 목록 ({curriculum.lessons.length}개)
+                      </h4>
+                      {curriculum.lessons.length > 1 && (
+                        <span className="text-xs text-gray-500 flex items-center">
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                          </svg>
+                          드래그하여 순서 변경
+                          {isReordering && <span className="ml-2 text-blue-600">저장 중...</span>}
+                        </span>
+                      )}
+                    </div>
                     {curriculum.lessons.length > 0 ? (
-                      <div className="space-y-2">
-                        {curriculum.lessons.map((lesson) => (
-                          <div
-                            key={lesson.id}
-                            className="bg-white border rounded-lg p-3 flex items-center justify-between"
-                          >
-                            <div className="flex items-center space-x-3">
-                              <span className="text-sm font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                #{lesson.lessonNumber}
-                              </span>
-                              <span className="text-sm sm:text-base font-medium text-gray-900">
-                                {lesson.title}
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                                lesson.isActive
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-gray-200 text-gray-700'
-                              }`}>
-                                {lesson.isActive ? '활성' : '비활성'}
-                              </span>
-                              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                                lesson.publishedAt
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                {lesson.publishedAt ? '공개' : '비공개'}
-                              </span>
-                            </div>
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={(event) => handleDragEnd(event, curriculum.id)}
+                      >
+                        <SortableContext
+                          items={curriculum.lessons.map(l => l.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className="space-y-2">
+                            {curriculum.lessons.map((lesson) => (
+                              <SortableLessonItem key={lesson.id} lesson={lesson} />
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </SortableContext>
+                      </DndContext>
                     ) : (
                       <div className="text-center py-6 text-gray-500">
                         <svg
