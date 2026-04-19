@@ -1133,3 +1133,116 @@ model AccountReportCommitteeExpense {
 
   @@index([reportId])
 }
+
+// ========================================
+// 청나잇 (Youth Night) 시스템
+// ========================================
+
+// 커리큘럼 타입
+enum CurriculumType {
+  FAMILY_WORSHIP  // 가정예배
+  YOUTH_NIGHT     // 청나잇
+}
+
+// 연령 그룹
+enum AgeGroup {
+  KIDS        // 유아부 (3-6세)
+  ELEMENTARY  // 초등부 (7-12세)
+  MIDDLE      // 중등부 (13-15세)
+  HIGH        // 고등부 (16-18세)
+  YOUNG_ADULT // 청년부 (19-29세)
+}
+
+// 커리큘럼 (교육과정)
+model Curriculum {
+  id          String         @id @default(cuid())
+  title       String                        // 커리큘럼 제목 (예: "2024년 청나잇 말씀 시리즈")
+  description String?                       // 설명
+  type        CurriculumType                // 커리큘럼 타입
+  ageGroup    AgeGroup                      // 대상 연령 그룹
+
+  // 기간 정보
+  startDate   DateTime?                     // 시작일
+  endDate     DateTime?                     // 종료일
+
+  // 상태
+  isActive    Boolean        @default(true) // 활성 상태
+  sortOrder   Int            @default(0)    // 정렬 순서
+
+  // 관계
+  lessons     Lesson[]                      // 레슨들
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([type])
+  @@index([ageGroup])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+// 레슨 (개별 수업)
+model Lesson {
+  id             String     @id @default(cuid())
+  curriculumId   String
+  curriculum     Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+
+  // 레슨 정보
+  title          String                      // 레슨 제목
+  description    String?                     // 레슨 설명
+  bibleVerse     String?                     // 성경 구절
+  keyPoint       String?                     // 핵심 포인트
+
+  // 수업 자료
+  content        String?    @db.Text         // 레슨 내용 (마크다운)
+  videoUrl       String?                     // 영상 URL
+  materialUrl    String?                    // 교재 URL (PDF 등)
+
+  // 순서 및 상태
+  lessonNumber   Int                         // 레슨 번호 (1, 2, 3...)
+  isActive       Boolean    @default(true)   // 활성 상태
+  publishedAt    DateTime?                   // 공개 일시
+
+  // 관계
+  questions      Question[]                  // 퀴즈 질문들
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@unique([curriculumId, lessonNumber])
+  @@index([curriculumId])
+  @@index([lessonNumber])
+  @@index([isActive])
+  @@index([publishedAt])
+}
+
+// 퀴즈 질문
+model Question {
+  id              String   @id @default(cuid())
+  lessonId        String
+  lesson          Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  // 질문 정보
+  questionText    String                     // 질문 내용
+  questionType    String   @default("MULTIPLE_CHOICE") // 질문 타입: MULTIPLE_CHOICE, TRUE_FALSE, SHORT_ANSWER
+
+  // 선택지 (객관식용)
+  option1         String?                    // 선택지 1
+  option2         String?                    // 선택지 2
+  option3         String?                    // 선택지 3
+  option4         String?                    // 선택지 4
+
+  // 정답
+  correctAnswer   String                     // 정답 (1,2,3,4 또는 텍스트)
+  explanation     String?                    // 정답 설명
+
+  // 순서
+  questionNumber  Int                        // 질문 번호
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([lessonId, questionNumber])
+  @@index([lessonId])
+  @@index([questionNumber])
+}
