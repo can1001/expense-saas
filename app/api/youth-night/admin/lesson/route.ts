@@ -133,6 +133,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const {
       lessonId,
+      curriculumId,
       publishedAt,
       title,
       description,
@@ -145,6 +146,26 @@ export async function PUT(request: NextRequest) {
 
     // 업데이트할 데이터 객체 구성
     const updateData: Record<string, unknown> = {};
+
+    // 커리큘럼 변경 처리
+    if (curriculumId !== undefined) {
+      // 현재 레슨의 커리큘럼 확인
+      const currentLesson = await prisma.lesson.findUnique({
+        where: { id: lessonId },
+        select: { curriculumId: true },
+      });
+
+      if (currentLesson && currentLesson.curriculumId !== curriculumId) {
+        // 새 커리큘럼의 마지막 레슨 번호 계산
+        const existingLessonsCount = await prisma.lesson.count({
+          where: { curriculumId },
+        });
+        const newLessonNumber = existingLessonsCount + 1;
+
+        updateData.curriculumId = curriculumId;
+        updateData.lessonNumber = newLessonNumber;
+      }
+    }
 
     // publishedAt은 명시적으로 전달된 경우에만 처리
     if (publishedAt !== undefined) {

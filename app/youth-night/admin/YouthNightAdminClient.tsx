@@ -488,16 +488,19 @@ function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
 // 레슨 수정 모달 컴포넌트
 function LessonEditModal({
   lesson,
+  curriculums,
   onClose,
   onSave,
   isSaving,
 }: {
   lesson: LessonDetail;
+  curriculums: Curriculum[];
   onClose: () => void;
-  onSave: (data: Partial<LessonDetail>) => Promise<void>;
+  onSave: (data: Partial<LessonDetail> & { curriculumId?: string }) => Promise<void>;
   isSaving: boolean;
 }) {
   const [formData, setFormData] = useState({
+    curriculumId: lesson.curriculum.id,
     title: lesson.title || '',
     description: lesson.description || '',
     bibleVerse: lesson.bibleVerse || '',
@@ -506,6 +509,8 @@ function LessonEditModal({
     videoUrl: lesson.videoUrl || '',
     materialUrl: lesson.materialUrl || '',
   });
+
+  const isCurriculumChanged = formData.curriculumId !== lesson.curriculum.id;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -535,6 +540,29 @@ function LessonEditModal({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
+                커리큘럼 *
+              </label>
+              <select
+                required
+                value={formData.curriculumId}
+                onChange={(e) => setFormData({ ...formData, curriculumId: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {curriculums.map((curriculum) => (
+                  <option key={curriculum.id} value={curriculum.id}>
+                    {curriculum.title} ({AGE_GROUP_NAMES[curriculum.ageGroup as keyof typeof AGE_GROUP_NAMES]})
+                  </option>
+                ))}
+              </select>
+              {isCurriculumChanged && (
+                <p className="mt-1 text-sm text-orange-600">
+                  ⚠️ 커리큘럼 변경 시 레슨 번호가 새 커리큘럼의 마지막 번호로 재할당됩니다.
+                </p>
+              )}
+            </div>
+
             <div>
               <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                 제목 *
@@ -1033,6 +1061,7 @@ function LessonManagement({ curriculums }: { curriculums: Curriculum[] }) {
       {isModalOpen && editingLesson && (
         <LessonEditModal
           lesson={editingLesson}
+          curriculums={curriculums}
           onClose={handleCloseModal}
           onSave={handleSaveLesson}
           isSaving={isSaving}
