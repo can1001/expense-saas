@@ -97,7 +97,8 @@
       "Bash(tree:*)",
       "Bash(for file in \"account-report-excel-generator\" \"excel-export\" \"account-report-parser\")",
       "Bash(do echo \"=== $file ===\")",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "WebFetch(domain:study-index-card.onrender.com)"
     ],
     "deny": [],
     "ask": []
