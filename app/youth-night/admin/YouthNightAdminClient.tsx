@@ -78,10 +78,10 @@ export default function YouthNightAdminClient({ user, curriculums }: Props) {
             <h1 className={`${TEXT_HERO} text-gray-900 mb-2 sm:mb-4`}>
               청나잇 관리자 페이지
             </h1>
-            <p className={`${TEXT_SUBTITLE} text-gray-600`}>
+            <p className={`${TEXT_SUBTITLE} text-gray-700`}>
               교안 업로드 및 커리큘럼 관리
             </p>
-            <p className="text-xs sm:text-sm text-gray-500 mt-2">
+            <p className="text-sm sm:text-base text-gray-600 mt-2">
               {user.username}님 (관리자)
             </p>
           </div>
@@ -91,50 +91,50 @@ export default function YouthNightAdminClient({ user, curriculums }: Props) {
             <div className="flex border-b">
               <button
                 onClick={() => setActiveTab('curriculums')}
-                className={`px-4 sm:px-6 py-3 text-sm font-medium border-b-2 ${
+                className={`px-4 sm:px-6 py-3 text-sm sm:text-base font-semibold border-b-2 ${
                   activeTab === 'curriculums'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-blue-600 text-blue-700'
+                    : 'border-transparent text-gray-700 hover:text-gray-900'
                 }`}
               >
                 커리큘럼 관리
               </button>
               <button
                 onClick={() => setActiveTab('lessons')}
-                className={`px-4 sm:px-6 py-3 text-sm font-medium border-b-2 ${
+                className={`px-4 sm:px-6 py-3 text-sm sm:text-base font-semibold border-b-2 ${
                   activeTab === 'lessons'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-blue-600 text-blue-700'
+                    : 'border-transparent text-gray-700 hover:text-gray-900'
                 }`}
               >
                 레슨 관리
               </button>
               <button
                 onClick={() => setActiveTab('create')}
-                className={`px-4 sm:px-6 py-3 text-sm font-medium border-b-2 ${
+                className={`px-4 sm:px-6 py-3 text-sm sm:text-base font-semibold border-b-2 ${
                   activeTab === 'create'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-blue-600 text-blue-700'
+                    : 'border-transparent text-gray-700 hover:text-gray-900'
                 }`}
               >
                 교안 업로드
               </button>
               <button
                 onClick={() => setActiveTab('recitations')}
-                className={`px-4 sm:px-6 py-3 text-sm font-medium border-b-2 ${
+                className={`px-4 sm:px-6 py-3 text-sm sm:text-base font-semibold border-b-2 ${
                   activeTab === 'recitations'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-blue-600 text-blue-700'
+                    : 'border-transparent text-gray-700 hover:text-gray-900'
                 }`}
               >
                 암송 승인
               </button>
               <button
                 onClick={() => setActiveTab('dashboard')}
-                className={`px-4 sm:px-6 py-3 text-sm font-medium border-b-2 ${
+                className={`px-4 sm:px-6 py-3 text-sm sm:text-base font-semibold border-b-2 ${
                   activeTab === 'dashboard'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-blue-600 text-blue-700'
+                    : 'border-transparent text-gray-700 hover:text-gray-900'
                 }`}
               >
                 통계 대시보드
@@ -178,9 +178,186 @@ export default function YouthNightAdminClient({ user, curriculums }: Props) {
   );
 }
 
+// 커리큘럼 생성 모달 컴포넌트
+function CurriculumCreateModal({
+  onClose,
+  onSave,
+  isSaving,
+}: {
+  onClose: () => void;
+  onSave: (data: any) => Promise<void>;
+  isSaving: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    ageGroup: 'ELEMENTARY',
+    startDate: '',
+    endDate: '',
+    sortOrder: 0,
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSave(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">새 커리큘럼 추가</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+                커리큘럼 제목 *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="예: 2026년 5월 초등부 교안"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+                대상 연령 *
+              </label>
+              <select
+                required
+                value={formData.ageGroup}
+                onChange={(e) => setFormData({ ...formData, ageGroup: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {Object.entries(AGE_GROUP_NAMES).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+                설명
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="커리큘럼에 대한 간단한 설명"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+                  시작일
+                </label>
+                <input
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+                  종료일
+                </label>
+                <input
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
+                정렬 순서
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={formData.sortOrder}
+                onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="mt-1 text-xs text-gray-500">낮은 숫자가 먼저 표시됩니다</p>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? '생성 중...' : '커리큘럼 생성'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // 커리큘럼 관리 컴포넌트
 function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
   const [editingCurriculum, setEditingCurriculum] = useState<string | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleCreateCurriculum = async (data: any) => {
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/youth-night/admin/curriculum', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          curriculum: data,
+          lessons: [], // 빈 레슨 배열로 커리큘럼만 생성
+        }),
+      });
+
+      if (response.ok) {
+        alert('커리큘럼이 생성되었습니다!');
+        setIsCreateModalOpen(false);
+        window.location.reload();
+      } else {
+        const errorData = await response.json();
+        alert(`생성 실패: ${errorData.error || '알 수 없는 오류'}`);
+      }
+    } catch (error) {
+      console.error('커리큘럼 생성 실패:', error);
+      alert('커리큘럼 생성 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleToggleActive = async (curriculumId: string, isActive: boolean) => {
     try {
@@ -217,6 +394,15 @@ function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
           <h2 className={`${TEXT_SECTION_TITLE} text-gray-900`}>
             전체 커리큘럼 ({curriculums.length}개)
           </h2>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-semibold flex items-center space-x-1"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>커리큘럼 추가</span>
+          </button>
         </div>
 
         <div className="space-y-4">
@@ -228,26 +414,26 @@ function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="text-lg font-medium text-gray-900">
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
                       {curriculum.title}
                     </h3>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm sm:text-base text-gray-700">
                       {AGE_GROUP_NAMES[curriculum.ageGroup as keyof typeof AGE_GROUP_NAMES]}
                     </span>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    <span className={`px-2 py-1 text-sm font-semibold rounded-full ${
                       curriculum.isActive
                         ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
+                        : 'bg-gray-200 text-gray-700'
                     }`}>
                       {curriculum.isActive ? '활성' : '비활성'}
                     </span>
                   </div>
                   {curriculum.description && (
-                    <p className="text-sm text-gray-600 mb-2">
+                    <p className="text-sm sm:text-base text-gray-700 mb-2">
                       {curriculum.description}
                     </p>
                   )}
-                  <div className="flex items-center space-x-4 text-xs text-gray-500">
+                  <div className="flex items-center space-x-4 text-sm text-gray-600">
                     <span>{curriculum.lessons.length}개 레슨</span>
                     <span>순서: {curriculum.sortOrder}</span>
                     {curriculum.startDate && (
@@ -260,7 +446,7 @@ function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => handleToggleActive(curriculum.id, curriculum.isActive)}
-                    className={`px-3 py-1 text-xs font-medium rounded ${
+                    className={`px-3 py-1.5 text-sm font-semibold rounded ${
                       curriculum.isActive
                         ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
                         : 'bg-green-100 text-green-800 hover:bg-green-200'
@@ -270,13 +456,13 @@ function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
                   </button>
                   <button
                     onClick={() => setEditingCurriculum(curriculum.id)}
-                    className="px-3 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded hover:bg-blue-200"
+                    className="px-3 py-1.5 text-sm font-semibold text-blue-800 bg-blue-100 rounded hover:bg-blue-200"
                   >
                     수정
                   </button>
                   <button
                     onClick={() => handleDelete(curriculum.id)}
-                    className="px-3 py-1 text-xs font-medium text-red-800 bg-red-100 rounded hover:bg-red-200"
+                    className="px-3 py-1.5 text-sm font-semibold text-red-800 bg-red-100 rounded hover:bg-red-200"
                   >
                     삭제
                   </button>
@@ -286,6 +472,15 @@ function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
           ))}
         </div>
       </div>
+
+      {/* 커리큘럼 생성 모달 */}
+      {isCreateModalOpen && (
+        <CurriculumCreateModal
+          onClose={() => setIsCreateModalOpen(false)}
+          onSave={handleCreateCurriculum}
+          isSaving={isSaving}
+        />
+      )}
     </div>
   );
 }
@@ -323,15 +518,15 @@ function LessonEditModal({
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">레슨 수정</h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-black">레슨 수정</h2>
+              <p className="text-sm sm:text-base text-black mt-1">
                 {lesson.curriculum.title} - 레슨 {lesson.lessonNumber}
                 ({AGE_GROUP_NAMES[lesson.curriculum.ageGroup as keyof typeof AGE_GROUP_NAMES]})
               </p>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-500 hover:text-gray-700"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -341,7 +536,7 @@ function LessonEditModal({
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                 제목 *
               </label>
               <input
@@ -349,85 +544,85 @@ function LessonEditModal({
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                 설명
               </label>
               <input
                 type="text"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                   성경 구절
                 </label>
                 <input
                   type="text"
                   value={formData.bibleVerse}
                   onChange={(e) => setFormData({ ...formData, bibleVerse: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="예: 요한복음 3:16"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                   핵심 포인트
                 </label>
                 <input
                   type="text"
                   value={formData.keyPoint}
                   onChange={(e) => setFormData({ ...formData, keyPoint: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                 내용 (마크다운 지원)
               </label>
               <textarea
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 rows={8}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
                 placeholder="# 제목&#10;&#10;레슨 내용을 마크다운 형식으로 작성하세요."
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                   비디오 URL
                 </label>
                 <input
                   type="url"
                   value={formData.videoUrl}
                   onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="https://..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm sm:text-base font-semibold text-black mb-1">
                   교재 URL
                 </label>
                 <input
                   type="url"
                   value={formData.materialUrl}
                   onChange={(e) => setFormData({ ...formData, materialUrl: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="https://..."
                 />
               </div>
@@ -437,14 +632,14 @@ function LessonEditModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-300 rounded-lg text-black font-semibold hover:bg-gray-50"
               >
                 취소
               </button>
               <button
                 type="submit"
                 disabled={isSaving}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSaving ? '저장 중...' : '저장'}
               </button>
@@ -555,28 +750,28 @@ function LessonManagement({ curriculums }: { curriculums: Curriculum[] }) {
           {allLessons.map((lesson) => (
             <div
               key={lesson.id}
-              className="border rounded-lg p-3 hover:bg-gray-50 text-sm"
+              className="border rounded-lg p-4 hover:bg-gray-50"
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
-                    <span className="font-medium text-gray-900">
+                    <span className="text-base sm:text-lg font-semibold text-gray-900">
                       {lesson.curriculumTitle} - 레슨 {lesson.lessonNumber}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-sm text-gray-700">
                       ({AGE_GROUP_NAMES[lesson.curriculumAgeGroup as keyof typeof AGE_GROUP_NAMES]})
                     </span>
                   </div>
-                  <p className="text-gray-600 mb-1">{lesson.title}</p>
-                  <div className="flex items-center space-x-3 text-xs text-gray-500">
-                    <span className={`px-2 py-0.5 rounded-full ${
+                  <p className="text-sm sm:text-base text-gray-700 mb-2">{lesson.title}</p>
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-2 py-1 text-sm font-semibold rounded-full ${
                       lesson.isActive
                         ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
+                        : 'bg-gray-200 text-gray-700'
                     }`}>
                       {lesson.isActive ? '활성' : '비활성'}
                     </span>
-                    <span className={`px-2 py-0.5 rounded-full ${
+                    <span className={`px-2 py-1 text-sm font-semibold rounded-full ${
                       lesson.publishedAt
                         ? 'bg-blue-100 text-blue-800'
                         : 'bg-yellow-100 text-yellow-800'
@@ -589,13 +784,13 @@ function LessonManagement({ curriculums }: { curriculums: Curriculum[] }) {
                   <button
                     onClick={() => handleOpenEditModal(lesson.id)}
                     disabled={isLoading}
-                    className="px-3 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded hover:bg-blue-200 disabled:opacity-50"
+                    className="px-3 py-1.5 text-sm font-semibold text-blue-800 bg-blue-100 rounded hover:bg-blue-200 disabled:opacity-50"
                   >
                     {isLoading ? '...' : '수정'}
                   </button>
                   <button
                     onClick={() => handleTogglePublish(lesson.id, lesson.publishedAt)}
-                    className={`px-3 py-1 text-xs font-medium rounded ${
+                    className={`px-3 py-1.5 text-sm font-semibold rounded ${
                       lesson.publishedAt
                         ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
                         : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
@@ -839,7 +1034,7 @@ function CurriculumUpload() {
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
                       레슨 제목 *
                     </label>
                     <input
@@ -853,7 +1048,7 @@ function CurriculumUpload() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
                       성경 구절
                     </label>
                     <input
@@ -866,7 +1061,7 @@ function CurriculumUpload() {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
                       레슨 설명
                     </label>
                     <input
@@ -879,7 +1074,7 @@ function CurriculumUpload() {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
                       핵심 포인트
                     </label>
                     <input
@@ -892,7 +1087,7 @@ function CurriculumUpload() {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
                       레슨 내용 (마크다운 지원)
                     </label>
                     <textarea
@@ -1151,7 +1346,7 @@ function RecitationApproval() {
                     <div className="mt-3 p-3 bg-gray-50 rounded">
                       {submission.audioUrl && (
                         <div className="mb-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
                             음성 파일:
                           </label>
                           <audio controls className="w-full max-w-md">
@@ -1163,7 +1358,7 @@ function RecitationApproval() {
 
                       {submission.videoUrl && (
                         <div className="mb-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
                             영상 파일:
                           </label>
                           <video controls className="w-full max-w-md h-32">
@@ -1175,7 +1370,7 @@ function RecitationApproval() {
 
                       {submission.textContent && (
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm sm:text-base font-semibold text-gray-800 mb-1">
                             텍스트 암송:
                           </label>
                           <p className="text-sm text-gray-600 whitespace-pre-wrap">
