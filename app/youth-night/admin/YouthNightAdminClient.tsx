@@ -482,6 +482,7 @@ function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
   const [editingCurriculum, setEditingCurriculum] = useState<Curriculum | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [expandedCurriculumId, setExpandedCurriculumId] = useState<string | null>(null);
 
   const handleCreateCurriculum = async (data: any) => {
     setIsSaving(true);
@@ -588,70 +589,173 @@ function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
         </div>
 
         <div className="space-y-4">
-          {curriculums.map((curriculum) => (
-            <div
-              key={curriculum.id}
-              className="border rounded-lg p-4 hover:bg-gray-50"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
-                      {curriculum.title}
-                    </h3>
-                    <span className="text-sm sm:text-base text-gray-700">
-                      {AGE_GROUP_NAMES[curriculum.ageGroup as keyof typeof AGE_GROUP_NAMES]}
-                    </span>
-                    <span className={`px-2 py-1 text-sm font-semibold rounded-full ${
-                      curriculum.isActive
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-200 text-gray-700'
-                    }`}>
-                      {curriculum.isActive ? '활성' : '비활성'}
-                    </span>
+          {curriculums.map((curriculum) => {
+            const isExpanded = expandedCurriculumId === curriculum.id;
+            return (
+              <div
+                key={curriculum.id}
+                className="border rounded-lg overflow-hidden"
+              >
+                <div
+                  className="p-4 hover:bg-gray-50 cursor-pointer"
+                  onDoubleClick={() => setExpandedCurriculumId(isExpanded ? null : curriculum.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedCurriculumId(isExpanded ? null : curriculum.id);
+                          }}
+                          className="text-gray-500 hover:text-gray-700 transition-transform"
+                        >
+                          <svg
+                            className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
+                          {curriculum.title}
+                        </h3>
+                        <span className="text-sm sm:text-base text-gray-700">
+                          {AGE_GROUP_NAMES[curriculum.ageGroup as keyof typeof AGE_GROUP_NAMES]}
+                        </span>
+                        <span className={`px-2 py-1 text-sm font-semibold rounded-full ${
+                          curriculum.isActive
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-200 text-gray-700'
+                        }`}>
+                          {curriculum.isActive ? '활성' : '비활성'}
+                        </span>
+                      </div>
+                      {curriculum.description && (
+                        <p className="text-sm sm:text-base text-gray-700 mb-2 ml-8">
+                          {curriculum.description}
+                        </p>
+                      )}
+                      <div className="flex items-center space-x-4 text-sm text-gray-600 ml-8">
+                        <span>{curriculum.lessons.length}개 레슨</span>
+                        <span>순서: {curriculum.sortOrder}</span>
+                        {curriculum.startDate && (
+                          <span>
+                            시작일: {new Date(curriculum.startDate).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedCurriculumId(isExpanded ? null : curriculum.id);
+                        }}
+                        className="px-3 py-1.5 text-sm font-semibold text-purple-800 bg-purple-100 rounded hover:bg-purple-200"
+                      >
+                        {isExpanded ? '접기' : '상세'}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleActive(curriculum.id, curriculum.isActive);
+                        }}
+                        className={`px-3 py-1.5 text-sm font-semibold rounded ${
+                          curriculum.isActive
+                            ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                            : 'bg-green-100 text-green-800 hover:bg-green-200'
+                        }`}
+                      >
+                        {curriculum.isActive ? '비활성화' : '활성화'}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingCurriculum(curriculum);
+                        }}
+                        className="px-3 py-1.5 text-sm font-semibold text-blue-800 bg-blue-100 rounded hover:bg-blue-200"
+                      >
+                        수정
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(curriculum.id);
+                        }}
+                        className="px-3 py-1.5 text-sm font-semibold text-red-800 bg-red-100 rounded hover:bg-red-200"
+                      >
+                        삭제
+                      </button>
+                    </div>
                   </div>
-                  {curriculum.description && (
-                    <p className="text-sm sm:text-base text-gray-700 mb-2">
-                      {curriculum.description}
-                    </p>
-                  )}
-                  <div className="flex items-center space-x-4 text-sm text-gray-600">
-                    <span>{curriculum.lessons.length}개 레슨</span>
-                    <span>순서: {curriculum.sortOrder}</span>
-                    {curriculum.startDate && (
-                      <span>
-                        시작일: {new Date(curriculum.startDate).toLocaleDateString()}
-                      </span>
+                </div>
+
+                {/* 확장된 레슨 목록 */}
+                {isExpanded && (
+                  <div className="border-t bg-gray-50 p-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                      레슨 목록 ({curriculum.lessons.length}개)
+                    </h4>
+                    {curriculum.lessons.length > 0 ? (
+                      <div className="space-y-2">
+                        {curriculum.lessons.map((lesson) => (
+                          <div
+                            key={lesson.id}
+                            className="bg-white border rounded-lg p-3 flex items-center justify-between"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <span className="text-sm font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                #{lesson.lessonNumber}
+                              </span>
+                              <span className="text-sm sm:text-base font-medium text-gray-900">
+                                {lesson.title}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                lesson.isActive
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-gray-200 text-gray-700'
+                              }`}>
+                                {lesson.isActive ? '활성' : '비활성'}
+                              </span>
+                              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                lesson.publishedAt
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {lesson.publishedAt ? '공개' : '비공개'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-gray-500">
+                        <svg
+                          className="w-10 h-10 text-gray-300 mx-auto mb-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                          />
+                        </svg>
+                        <p className="text-sm">아직 등록된 레슨이 없습니다</p>
+                      </div>
                     )}
                   </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handleToggleActive(curriculum.id, curriculum.isActive)}
-                    className={`px-3 py-1.5 text-sm font-semibold rounded ${
-                      curriculum.isActive
-                        ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                        : 'bg-green-100 text-green-800 hover:bg-green-200'
-                    }`}
-                  >
-                    {curriculum.isActive ? '비활성화' : '활성화'}
-                  </button>
-                  <button
-                    onClick={() => setEditingCurriculum(curriculum)}
-                    className="px-3 py-1.5 text-sm font-semibold text-blue-800 bg-blue-100 rounded hover:bg-blue-200"
-                  >
-                    수정
-                  </button>
-                  <button
-                    onClick={() => handleDelete(curriculum.id)}
-                    className="px-3 py-1.5 text-sm font-semibold text-red-800 bg-red-100 rounded hover:bg-red-200"
-                  >
-                    삭제
-                  </button>
-                </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
