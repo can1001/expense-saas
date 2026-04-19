@@ -217,15 +217,23 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // 트랜잭션으로 모든 레슨의 순서를 업데이트
-    await prisma.$transaction(
-      lessonIds.map((lessonId: string, index: number) =>
-        prisma.lesson.update({
-          where: { id: lessonId },
-          data: { lessonNumber: index + 1 },
-        })
-      )
-    );
+    console.log('레슨 순서 변경 요청:', { curriculumId, lessonIds });
+
+    // 유니크 제약 충돌 방지를 위해 임시 음수 번호로 먼저 설정
+    for (let i = 0; i < lessonIds.length; i++) {
+      await prisma.lesson.update({
+        where: { id: lessonIds[i] },
+        data: { lessonNumber: -(i + 1) },
+      });
+    }
+
+    // 그 다음 실제 번호로 업데이트
+    for (let i = 0; i < lessonIds.length; i++) {
+      await prisma.lesson.update({
+        where: { id: lessonIds[i] },
+        data: { lessonNumber: i + 1 },
+      });
+    }
 
     // 업데이트된 레슨 목록 반환
     const updatedLessons = await prisma.lesson.findMany({
@@ -243,8 +251,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true, lessons: updatedLessons });
   } catch (error) {
     console.error('레슨 순서 변경 실패:', error);
+    const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
     return NextResponse.json(
-      { error: '레슨 순서 변경에 실패했습니다' },
+      { error: '레슨 순서 변경에 실패했습니다', details: errorMessage },
       { status: 500 }
     );
   }
