@@ -21,6 +21,25 @@ interface Lesson {
   publishedAt: Date | null;
 }
 
+interface LessonDetail {
+  id: string;
+  title: string;
+  description: string | null;
+  bibleVerse: string | null;
+  keyPoint: string | null;
+  content: string | null;
+  videoUrl: string | null;
+  materialUrl: string | null;
+  lessonNumber: number;
+  isActive: boolean;
+  publishedAt: Date | null;
+  curriculum: {
+    id: string;
+    title: string;
+    ageGroup: string;
+  };
+}
+
 interface Curriculum {
   id: string;
   title: string;
@@ -271,8 +290,179 @@ function CurriculumManagement({ curriculums }: { curriculums: Curriculum[] }) {
   );
 }
 
+// 레슨 수정 모달 컴포넌트
+function LessonEditModal({
+  lesson,
+  onClose,
+  onSave,
+  isSaving,
+}: {
+  lesson: LessonDetail;
+  onClose: () => void;
+  onSave: (data: Partial<LessonDetail>) => Promise<void>;
+  isSaving: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    title: lesson.title || '',
+    description: lesson.description || '',
+    bibleVerse: lesson.bibleVerse || '',
+    keyPoint: lesson.keyPoint || '',
+    content: lesson.content || '',
+    videoUrl: lesson.videoUrl || '',
+    materialUrl: lesson.materialUrl || '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSave(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">레슨 수정</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {lesson.curriculum.title} - 레슨 {lesson.lessonNumber}
+                ({AGE_GROUP_NAMES[lesson.curriculum.ageGroup as keyof typeof AGE_GROUP_NAMES]})
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                제목 *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                설명
+              </label>
+              <input
+                type="text"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  성경 구절
+                </label>
+                <input
+                  type="text"
+                  value={formData.bibleVerse}
+                  onChange={(e) => setFormData({ ...formData, bibleVerse: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="예: 요한복음 3:16"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  핵심 포인트
+                </label>
+                <input
+                  type="text"
+                  value={formData.keyPoint}
+                  onChange={(e) => setFormData({ ...formData, keyPoint: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                내용 (마크다운 지원)
+              </label>
+              <textarea
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                rows={8}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                placeholder="# 제목&#10;&#10;레슨 내용을 마크다운 형식으로 작성하세요."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  비디오 URL
+                </label>
+                <input
+                  type="url"
+                  value={formData.videoUrl}
+                  onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  교재 URL
+                </label>
+                <input
+                  type="url"
+                  value={formData.materialUrl}
+                  onChange={(e) => setFormData({ ...formData, materialUrl: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // 레슨 관리 컴포넌트
 function LessonManagement({ curriculums }: { curriculums: Curriculum[] }) {
+  const [editingLesson, setEditingLesson] = useState<LessonDetail | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   const allLessons = curriculums.flatMap(curriculum =>
     curriculum.lessons.map(lesson => ({
       ...lesson,
@@ -295,6 +485,61 @@ function LessonManagement({ curriculums }: { curriculums: Curriculum[] }) {
     } catch (error) {
       console.error('레슨 공개 상태 변경 실패:', error);
     }
+  };
+
+  const handleOpenEditModal = async (lessonId: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/youth-night/admin/lesson?lessonId=${lessonId}`);
+      if (response.ok) {
+        const lessonData = await response.json();
+        setEditingLesson(lessonData);
+        setIsModalOpen(true);
+      } else {
+        alert('레슨 정보를 불러오는데 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('레슨 조회 실패:', error);
+      alert('레슨 정보를 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveLesson = async (data: Partial<LessonDetail>) => {
+    if (!editingLesson) return;
+
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/youth-night/admin/lesson', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lessonId: editingLesson.id,
+          ...data,
+        }),
+      });
+
+      if (response.ok) {
+        alert('레슨이 수정되었습니다.');
+        setIsModalOpen(false);
+        setEditingLesson(null);
+        window.location.reload();
+      } else {
+        const errorData = await response.json();
+        alert(`수정 실패: ${errorData.error || '알 수 없는 오류'}`);
+      }
+    } catch (error) {
+      console.error('레슨 수정 실패:', error);
+      alert('레슨 수정 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingLesson(null);
   };
 
   return (
@@ -342,6 +587,13 @@ function LessonManagement({ curriculums }: { curriculums: Curriculum[] }) {
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
+                    onClick={() => handleOpenEditModal(lesson.id)}
+                    disabled={isLoading}
+                    className="px-3 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded hover:bg-blue-200 disabled:opacity-50"
+                  >
+                    {isLoading ? '...' : '수정'}
+                  </button>
+                  <button
                     onClick={() => handleTogglePublish(lesson.id, lesson.publishedAt)}
                     className={`px-3 py-1 text-xs font-medium rounded ${
                       lesson.publishedAt
@@ -357,6 +609,16 @@ function LessonManagement({ curriculums }: { curriculums: Curriculum[] }) {
           ))}
         </div>
       </div>
+
+      {/* 레슨 수정 모달 */}
+      {isModalOpen && editingLesson && (
+        <LessonEditModal
+          lesson={editingLesson}
+          onClose={handleCloseModal}
+          onSave={handleSaveLesson}
+          isSaving={isSaving}
+        />
+      )}
     </div>
   );
 }
