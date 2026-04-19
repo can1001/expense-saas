@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import Header from '@/components/Header';
-import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
 
 interface UserInfo {
   id: string;
@@ -33,28 +32,52 @@ interface Props {
   curriculums: Curriculum[];
 }
 
-const AGE_GROUP_NAMES = {
-  KIDS: '유아부 (3-6세)',
-  ELEMENTARY: '초등부 (7-12세)',
-  MIDDLE: '중등부 (13-15세)',
-  HIGH: '고등부 (16-18세)',
-  YOUNG_ADULT: '청년부 (19-29세)',
-};
-
-const AGE_GROUP_COLORS = {
-  KIDS: 'bg-pink-500',
-  ELEMENTARY: 'bg-blue-500',
-  MIDDLE: 'bg-green-500',
-  HIGH: 'bg-purple-500',
-  YOUNG_ADULT: 'bg-orange-500',
-};
-
-const AGE_GROUP_BORDER_COLORS = {
-  KIDS: 'border-pink-100',
-  ELEMENTARY: 'border-blue-100',
-  MIDDLE: 'border-green-100',
-  HIGH: 'border-purple-100',
-  YOUNG_ADULT: 'border-orange-100',
+const AGE_GROUP_CONFIG = {
+  KIDS: {
+    name: '유아부',
+    age: '3-6세',
+    emoji: '🧒',
+    gradient: 'from-pink-400 to-rose-500',
+    bgLight: 'bg-pink-50',
+    textColor: 'text-pink-600',
+    borderColor: 'border-pink-200',
+  },
+  ELEMENTARY: {
+    name: '초등부',
+    age: '7-12세',
+    emoji: '📚',
+    gradient: 'from-blue-400 to-indigo-500',
+    bgLight: 'bg-blue-50',
+    textColor: 'text-blue-600',
+    borderColor: 'border-blue-200',
+  },
+  MIDDLE: {
+    name: '중등부',
+    age: '13-15세',
+    emoji: '🎯',
+    gradient: 'from-emerald-400 to-teal-500',
+    bgLight: 'bg-emerald-50',
+    textColor: 'text-emerald-600',
+    borderColor: 'border-emerald-200',
+  },
+  HIGH: {
+    name: '고등부',
+    age: '16-18세',
+    emoji: '🚀',
+    gradient: 'from-violet-400 to-purple-500',
+    bgLight: 'bg-violet-50',
+    textColor: 'text-violet-600',
+    borderColor: 'border-violet-200',
+  },
+  YOUNG_ADULT: {
+    name: '청년부',
+    age: '19-29세',
+    emoji: '💪',
+    gradient: 'from-amber-400 to-orange-500',
+    bgLight: 'bg-amber-50',
+    textColor: 'text-amber-600',
+    borderColor: 'border-amber-200',
+  },
 };
 
 export default function YouthNightClient({ user, curriculums }: Props) {
@@ -70,179 +93,202 @@ export default function YouthNightClient({ user, curriculums }: Props) {
   // 관리자 권한 확인
   const isAdmin = ['admin', 'finance_head', 'accountant', 'team_leader'].includes(user.role);
 
+  const totalLessons = curriculums.reduce((sum, c) => sum + c.lessons.length, 0);
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       <Header />
-      <main className={`${PADDING_PAGE} bg-gradient-to-br from-purple-50 to-pink-100`}>
-        <div className="max-w-6xl mx-auto">
-          {/* 헤더 */}
-          <div className={`text-center ${MARGIN_SECTION}`}>
-            <h1 className={`${TEXT_HERO} text-gray-900 mb-2 sm:mb-4`}>
-              청나잇 (Youth Night)
+
+      {/* Hero Section */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500">
+        {/* Decorative circles */}
+        <div className="absolute top-0 left-0 w-40 h-40 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute top-20 right-0 w-32 h-32 bg-white/10 rounded-full translate-x-1/2" />
+        <div className="absolute bottom-0 left-1/3 w-24 h-24 bg-white/10 rounded-full translate-y-1/2" />
+
+        <div className="relative px-4 pt-8 pb-12 sm:px-6 sm:pt-12 sm:pb-16">
+          <div className="max-w-lg mx-auto text-center">
+            {/* Logo */}
+            <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/20 backdrop-blur-sm rounded-2xl mb-4 sm:mb-6">
+              <span className="text-3xl sm:text-4xl">🌙</span>
+            </div>
+
+            <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2 sm:mb-3">
+              청나잇
             </h1>
-            <p className={`${TEXT_SUBTITLE} text-gray-600`}>
-              연령별 말씀 교육과 퀴즈로 함께 성장해요
+            <p className="text-base sm:text-lg text-white/90 font-medium mb-1">
+              Youth Night
             </p>
-            <p className="text-xs sm:text-sm text-gray-500 mt-2">
-              {user.username}님, 청나잇에 오신 것을 환영합니다!
+            <p className="text-sm sm:text-base text-white/70">
+              말씀과 함께 성장하는 시간
             </p>
 
-            {/* 관리자 메뉴 */}
+            {/* Welcome message */}
+            <div className="mt-4 sm:mt-6 inline-flex items-center px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full">
+              <span className="text-sm text-white">
+                👋 {user.username}님, 환영해요!
+              </span>
+            </div>
+
+            {/* Admin button */}
             {isAdmin && (
               <div className="mt-4">
                 <Link
                   href="/youth-night/admin"
-                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-white/20 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-white/30 transition-colors"
                 >
-                  <svg
-                    className="w-4 h-4 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
-                    />
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  관리자 페이지
+                  관리자
                 </Link>
               </div>
             )}
           </div>
+        </div>
 
-          {/* 연령별 섹션 */}
-          <div className="space-y-6 sm:space-y-8">
-            {Object.entries(AGE_GROUP_NAMES).map(([ageGroup, displayName]) => {
+        {/* Wave decoration */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+            <path d="M0 60V30C240 10 480 0 720 10C960 20 1200 50 1440 30V60H0Z" fill="#f8fafc"/>
+          </svg>
+        </div>
+      </div>
+
+      <main className="px-4 pb-8 sm:px-6 sm:pb-12 -mt-4">
+        <div className="max-w-lg mx-auto">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-3 gap-3 mb-6 sm:mb-8">
+            <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
+              <p className="text-2xl sm:text-3xl font-bold text-indigo-600">{curriculums.length}</p>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">커리큘럼</p>
+            </div>
+            <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
+              <p className="text-2xl sm:text-3xl font-bold text-purple-600">{totalLessons}</p>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">레슨</p>
+            </div>
+            <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
+              <p className="text-2xl sm:text-3xl font-bold text-pink-600">5</p>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">연령그룹</p>
+            </div>
+          </div>
+
+          {/* Age Group Cards */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-gray-900 px-1">
+              내 연령 그룹 선택하기
+            </h2>
+
+            {Object.entries(AGE_GROUP_CONFIG).map(([ageGroup, config]) => {
               const groupCurriculums = curriculumsByAge[ageGroup] || [];
+              const lessonCount = groupCurriculums.reduce((sum, c) => sum + c.lessons.length, 0);
 
               return (
-                <div key={ageGroup} className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-                  <div className="flex items-center justify-between mb-4 sm:mb-6">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-8 h-8 sm:w-10 sm:h-10 ${AGE_GROUP_COLORS[ageGroup as keyof typeof AGE_GROUP_COLORS]} rounded-lg flex items-center justify-center`}>
-                        <svg
-                          className="w-4 h-4 sm:w-5 sm:h-5 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                          />
+                <Link
+                  key={ageGroup}
+                  href={`/youth-night/${ageGroup.toLowerCase()}`}
+                  className="block group"
+                >
+                  <div className={`relative overflow-hidden bg-white rounded-2xl shadow-sm border ${config.borderColor} transition-all duration-300 active:scale-[0.98] hover:shadow-md`}>
+                    {/* Gradient accent */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${config.gradient}`} />
+
+                    <div className="flex items-center p-4 pl-5">
+                      {/* Emoji */}
+                      <div className={`flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 ${config.bgLight} rounded-2xl flex items-center justify-center`}>
+                        <span className="text-3xl sm:text-4xl">{config.emoji}</span>
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 ml-4 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg font-bold text-gray-900">
+                            {config.name}
+                          </h3>
+                          <span className={`text-xs font-medium ${config.textColor} ${config.bgLight} px-2 py-0.5 rounded-full`}>
+                            {config.age}
+                          </span>
+                        </div>
+
+                        {groupCurriculums.length > 0 ? (
+                          <div className="flex items-center gap-3 text-sm text-gray-500">
+                            <span>{groupCurriculums.length}개 커리큘럼</span>
+                            <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                            <span>{lessonCount}개 레슨</span>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-400">준비 중...</p>
+                        )}
+                      </div>
+
+                      {/* Arrow */}
+                      <div className={`flex-shrink-0 w-10 h-10 ${config.bgLight} rounded-full flex items-center justify-center transition-transform group-hover:translate-x-1`}>
+                        <svg className={`w-5 h-5 ${config.textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </div>
-                      <h2 className={`${TEXT_SECTION_TITLE} text-gray-900`}>
-                        {displayName}
-                      </h2>
                     </div>
-                    <Link
-                      href={`/youth-night/${ageGroup.toLowerCase()}`}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
-                    >
-                      전체 보기 →
-                    </Link>
-                  </div>
 
-                  {groupCurriculums.length > 0 ? (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {groupCurriculums.slice(0, 3).map((curriculum) => (
-                        <Link
-                          key={curriculum.id}
-                          href={`/youth-night/${ageGroup.toLowerCase()}`}
-                          className={`group bg-gray-50 rounded-xl ${PADDING_CARD} hover:shadow-md transition-all hover:-translate-y-1 border-2 ${AGE_GROUP_BORDER_COLORS[ageGroup as keyof typeof AGE_GROUP_BORDER_COLORS]}`}
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2">
-                              {curriculum.title}
-                            </h3>
-                            <svg
-                              className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors flex-shrink-0"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 5l7 7-7 7"
-                              />
-                            </svg>
-                          </div>
-                          {curriculum.description && (
-                            <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2">
-                              {curriculum.description}
-                            </p>
-                          )}
-                          <div className="flex items-center justify-between text-xs text-gray-500">
-                            <span>{curriculum.lessons.length}개 레슨</span>
-                            {curriculum.startDate && (
-                              <span>
-                                {new Date(curriculum.startDate).getFullYear()}년
-                              </span>
-                            )}
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 sm:py-12">
-                      <svg
-                        className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                        />
-                      </svg>
-                      <p className="text-gray-500 text-sm sm:text-base">
-                        아직 {displayName} 커리큘럼이 없습니다
-                      </p>
-                    </div>
-                  )}
-                </div>
+                    {/* Progress bar (if has content) */}
+                    {lessonCount > 0 && (
+                      <div className="px-5 pb-4">
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full bg-gradient-to-r ${config.gradient} rounded-full`}
+                            style={{ width: `${Math.min((lessonCount / 10) * 100, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Link>
               );
             })}
           </div>
 
-          {/* 전체 통계 */}
-          <div className="mt-6 sm:mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
-              <p className="text-2xl sm:text-3xl font-bold text-purple-600">
-                {curriculums.length}
-              </p>
-              <p className="text-xs sm:text-sm text-gray-600">활성 커리큘럼</p>
+          {/* Featured Section */}
+          {curriculums.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-lg font-bold text-gray-900 px-1 mb-4">
+                🔥 최신 커리큘럼
+              </h2>
+              <div className="space-y-3">
+                {curriculums.slice(0, 2).map((curriculum) => {
+                  const config = AGE_GROUP_CONFIG[curriculum.ageGroup as keyof typeof AGE_GROUP_CONFIG];
+                  return (
+                    <Link
+                      key={curriculum.id}
+                      href={`/youth-night/${curriculum.ageGroup.toLowerCase()}`}
+                      className="block bg-white rounded-2xl p-4 shadow-sm border border-gray-100 active:scale-[0.98] transition-transform"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`flex-shrink-0 w-10 h-10 bg-gradient-to-br ${config.gradient} rounded-xl flex items-center justify-center`}>
+                          <span className="text-lg">{config.emoji}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-medium ${config.textColor} mb-1`}>
+                            {config.name}
+                          </p>
+                          <h3 className="font-semibold text-gray-900 text-sm line-clamp-1">
+                            {curriculum.title}
+                          </h3>
+                          {curriculum.description && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                              {curriculum.description}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-400 mt-2">
+                            {curriculum.lessons.length}개 레슨
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-            <div className="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
-              <p className="text-2xl sm:text-3xl font-bold text-blue-600">
-                {curriculums.reduce((sum, c) => sum + c.lessons.length, 0)}
-              </p>
-              <p className="text-xs sm:text-sm text-gray-600">총 레슨 수</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
-              <p className="text-2xl sm:text-3xl font-bold text-green-600">
-                {Object.keys(curriculumsByAge).length}
-              </p>
-              <p className="text-xs sm:text-sm text-gray-600">연령 그룹</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
-              <p className="text-2xl sm:text-3xl font-bold text-orange-600">
-                100%
-              </p>
-              <p className="text-xs sm:text-sm text-gray-600">진행률</p>
-            </div>
-          </div>
+          )}
         </div>
       </main>
     </div>
