@@ -100,3 +100,102 @@
 ---
 
 완료: Tue Apr  7 23:36:13 KST 2026
+
+[TASK] Phase 1: 청나잇 기반 구축 완료 - 19:10
+- 구현 내용: Curriculum, Lesson, Question 데이터베이스 모델 추가, 청나잇 메인 페이지, 연령별 페이지, 레슨 상세 페이지 구현
+- 수정/생성 파일:
+  - 수정: prisma/schema.prisma (Curriculum, Lesson, Question 모델과 CurriculumType, AgeGroup enum 추가)
+  - 생성: app/youth-night/page.tsx (청나잇 메인 페이지)
+  - 생성: app/youth-night/YouthNightClient.tsx (청나잇 메인 클라이언트 컴포넌트)
+  - 생성: app/youth-night/[ageGroup]/page.tsx (연령별 페이지)
+  - 생성: app/youth-night/[ageGroup]/AgeGroupClient.tsx (연령별 클라이언트 컴포넌트)
+  - 생성: app/youth-night/[ageGroup]/lessons/[lessonId]/page.tsx (레슨 상세 페이지)
+  - 생성: app/youth-night/[ageGroup]/lessons/[lessonId]/LessonDetailClient.tsx (레슨 상세 클라이언트 컴포넌트)
+  - 수정: PRD.md (Phase 1 체크박스 완료 처리)
+- 발견한 패턴: 동적 라우팅([ageGroup], [lessonId]) 사용, 클라이언트 컴포넌트 분리, Prisma enum 타입 as any 캐스팅 필요
+- 주의사항: AgeGroup enum 타입 이슈로 TypeScript에서 as any 캐스팅 사용, 퀴즈 기능 포함된 인터랙티브 레슨 뷰어 구현
+---
+
+[TASK] Phase 2: 청나잇 학생 참여 기능 완료 - 19:15
+- 구현 내용: Attendance, QuizResponse, StudentPoints 모델 및 API 구현, 출석/퀴즈/포인트 시스템 완성
+- 수정/생성 파일:
+  - 수정: prisma/schema.prisma (Attendance, QuizResponse, StudentPoints 모델 추가)
+  - 생성: app/api/youth-night/attendance/route.ts (출석 체크 API)
+  - 생성: app/api/youth-night/attendance/stats/route.ts (출석 통계 API)
+  - 생성: app/api/youth-night/quiz/route.ts (퀴즈 제출/조회 API)
+  - 생성: app/api/youth-night/quiz/stats/route.ts (퀴즈 통계 API)
+  - 생성: app/api/youth-night/points/route.ts (포인트 조회/부여 API)
+  - 수정: app/youth-night/[ageGroup]/lessons/[lessonId]/LessonDetailClient.tsx (출석/퀴즈/포인트 UI 통합)
+  - 수정: PRD.md (Phase 2 체크박스 완료 처리)
+- 발견한 패턴: 트랜잭션을 이용한 원자적 데이터 처리, API 응답에 포인트 정보 포함, 실시간 상태 업데이트
+- 주의사항: 포인트 중복 부여 방지 로직, 퀴즈 재시도 시 기존 포인트 삭제 후 재계산, 출석 5점/퀴즈 만점 15점/우수 10점 규칙
+---
+
+[TASK] Phase 3: 청나잇 암송 & 랭킹 완료 - 19:30
+- 구현 내용: RecitationSubmission 모델, 암송 제출/승인 API, 랭킹 시스템 구현
+- 수정/생성 파일:
+  - 수정: prisma/schema.prisma (RecitationSubmission 모델 추가, RECITATION 포인트 타입 추가)
+  - 생성: app/api/youth-night/recitation/route.ts (암송 제출 API)
+  - 생성: app/api/youth-night/recitation/approve/route.ts (암송 승인 API)
+  - 생성: app/api/youth-night/ranking/route.ts (랭킹 조회 API)
+  - 생성: app/api/youth-night/stats/route.ts (통계 조회 API)
+  - 생성: app/youth-night/[ageGroup]/ranking/page.tsx (랭킹 페이지)
+  - 생성: app/youth-night/[ageGroup]/ranking/RankingClient.tsx (랭킹 클라이언트 컴포넌트)
+  - 수정: app/youth-night/[ageGroup]/AgeGroupClient.tsx (랭킹 버튼 추가)
+  - 수정: app/api/youth-night/points/route.ts (RECITATION 포인트 타입 및 동적 점수 지원)
+  - 수정: PRD.md (Phase 3 체크박스 완료 처리)
+- 발견한 패턴: 동적 점수 부여 시스템 (95+ 25점, 85+ 20점, 75+ 15점, 기본 10점), 역할 기반 승인 권한, 포괄적인 랭킹 통계
+- 주의사항: 교사/관리자만 암송 승인 가능, 사용자 모델 필드명 변경(name→username, email→userid), 재제출 시 상태 PENDING 리셋
+---
+
+[TASK] 교안 업로드 (관리자) 완료 - 19:45
+- 구현 내용: 관리자용 교안 업로드 및 커리큘럼 관리 기능 구현
+- 수정/생성 파일:
+  - 생성: app/youth-night/admin/page.tsx (관리자 페이지 서버 컴포넌트)
+  - 생성: app/youth-night/admin/YouthNightAdminClient.tsx (관리자 클라이언트 컴포넌트)
+  - 생성: app/api/youth-night/admin/curriculum/route.ts (커리큘럼 생성/수정/삭제 API)
+  - 생성: app/api/youth-night/admin/lesson/route.ts (레슨 공개/비공개 토글 API)
+  - 수정: app/youth-night/YouthNightClient.tsx (관리자 메뉴 버튼 추가)
+  - 수정: PRD.md (교안 업로드 체크박스 완료 처리)
+- 발견한 패턴: 역할 기반 권한 검증 (admin, finance_head, accountant, team_leader), 탭 기반 관리 UI, 트랜잭션을 활용한 커리큘럼-레슨 동시 생성
+- 주의사항: 관리자만 접근 가능, 새 레슨은 기본적으로 비공개 상태, 마크다운 지원 콘텐츠 에디터
+---
+
+[TASK] 암송 승인 (교사) 완료 - 19:55
+- 구현 내용: 관리자 페이지에 암송 승인 기능 추가 구현
+- 수정/생성 파일:
+  - 수정: app/youth-night/admin/YouthNightAdminClient.tsx (암송 승인 탭 및 RecitationApproval 컴포넌트 추가)
+  - 수정: PRD.md (암송 승인 체크박스 완료 처리)
+- 발견한 패턴: 기존 암송 승인 API 재활용, 상태별/연령별 필터링, 미디어 파일 재생 UI, 단계별 점수 승인 버튼
+- 주의사항: 95/85/75/65점 단계별 승인, 음성/영상/텍스트 제출 내용 모두 지원, 반려 시 사유 입력 필수
+---
+
+[TASK] 통계 대시보드 완료 - 20:05
+- 구현 내용: 관리자 페이지에 청나잇 통계 대시보드 추가 구현
+- 수정/생성 파일:
+  - 수정: app/youth-night/admin/YouthNightAdminClient.tsx (통계 대시보드 탭 및 StatsDashboard 컴포넌트 추가)
+  - 수정: PRD.md (통계 대시보드 및 Phase 4 전체 체크박스 완료 처리)
+- 발견한 패턴: 기존 통계 API 재활용, 카드 기반 현황 표시, 연령별 필터링, 순위별 색상 구분
+- 주의사항: 기존 API 응답 구조에 맞춰 컴포넌트 조정, 최근 30일 활동 및 포인트 타입별 분포 표시, 상위 학습자 랭킹 제공
+---
+
+### 🎉 Ralph Loop 최종 완료 - 2026년 4월 19일 20:05
+
+모든 PRD TASK가 완료되었습니다!
+
+✅ 완료된 청나잇 Phase 4 관리자 기능:
+1. 교안 업로드 (관리자) - 새 커리큘럼과 레슨 생성, 관리자 권한 검증
+2. 암송 승인 (교사) - 단계별 점수 승인 UI, 미디어 파일 재생, 반려 처리
+3. 통계 대시보드 - 전체 현황, 최근 활동, 포인트 분포, 학습자 랭킹
+
+🔧 구현된 주요 기능:
+- 관리자 페이지 (/youth-night/admin) 탭 기반 UI
+- 커리큘럼/레슨 생성 및 관리 API
+- 암송 승인/반려 워크플로우
+- 통계 대시보드 데이터 시각화
+- 역할 기반 권한 시스템 (admin, finance_head, accountant, team_leader)
+
+완료: 2026년 4월 19일 20:05
+---
+
+완료: Sun Apr 19 19:42:47 KST 2026

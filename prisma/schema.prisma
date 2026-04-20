@@ -582,6 +582,11 @@ model User {
   notificationPreference NotificationPreference? // 알림 설정
   pushSubscriptions  PushSubscription[]         // 웹 푸시 구독 정보
   ledCommittees      Committee[]  @relation("CommitteeLeader")  // 위원장으로 있는 위원회
+  attendances        Attendance[]  @relation("StudentAttendance")  // 청나잇 출석 기록
+  quizResponses      QuizResponse[]  @relation("StudentQuizResponse")  // 청나잇 퀴즈 응답
+  studentPoints      StudentPoints[]  @relation("StudentPoints")  // 청나잇 포인트 기록
+  recitations        RecitationSubmission[]  @relation("StudentRecitation")  // 청나잇 암송 제출
+  approvedRecitations RecitationSubmission[]  @relation("RecitationApprover")  // 승인한 암송들
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1132,4 +1137,253 @@ model AccountReportCommitteeExpense {
   createdAt  DateTime      @default(now())
 
   @@index([reportId])
+}
+
+// ========================================
+// 청나잇 (Youth Night) 시스템
+// ========================================
+
+// 커리큘럼 타입
+enum CurriculumType {
+  FAMILY_WORSHIP  // 가정예배
+  YOUTH_NIGHT     // 청나잇
+}
+
+// 연령 그룹
+enum AgeGroup {
+  KIDS        // 유아부 (3-6세)
+  ELEMENTARY  // 초등부 (7-12세)
+  MIDDLE      // 중등부 (13-15세)
+  HIGH        // 고등부 (16-18세)
+  YOUNG_ADULT // 청년부 (19-29세)
+}
+
+// 커리큘럼 (교육과정)
+model Curriculum {
+  id          String         @id @default(cuid())
+  title       String                        // 커리큘럼 제목 (예: "2024년 청나잇 말씀 시리즈")
+  description String?                       // 설명
+  type        CurriculumType                // 커리큘럼 타입
+  ageGroup    AgeGroup                      // 대상 연령 그룹
+
+  // 기간 정보
+  startDate   DateTime?                     // 시작일
+  endDate     DateTime?                     // 종료일
+
+  // 상태
+  isActive    Boolean        @default(true) // 활성 상태
+  sortOrder   Int            @default(0)    // 정렬 순서
+
+  // 관계
+  lessons     Lesson[]                      // 레슨들
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([type])
+  @@index([ageGroup])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+// 레슨 (개별 수업)
+model Lesson {
+  id             String     @id @default(cuid())
+  curriculumId   String
+  curriculum     Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+
+  // 레슨 정보
+  title          String                      // 레슨 제목
+  description    String?                     // 레슨 설명
+  bibleVerse     String?                     // 성경 구절
+  keyPoint       String?                     // 핵심 포인트
+
+  // 수업 자료
+  content        String?    @db.Text         // 레슨 내용 (마크다운)
+  videoUrl       String?                     // 영상 URL
+  materialUrl    String?                    // 교재 URL (PDF 등)
+
+  // 순서 및 상태
+  lessonNumber   Int                         // 레슨 번호 (1, 2, 3...)
+  isActive       Boolean    @default(true)   // 활성 상태
+  publishedAt    DateTime?                   // 공개 일시
+
+  // 관계
+  questions      Question[]                  // 퀴즈 질문들
+  attendances    Attendance[]                // 출석 기록들
+  studentPoints  StudentPoints[]             // 포인트 기록들
+  recitations    RecitationSubmission[]      // 암송 제출들
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@unique([curriculumId, lessonNumber])
+  @@index([curriculumId])
+  @@index([lessonNumber])
+  @@index([isActive])
+  @@index([publishedAt])
+}
+
+// 퀴즈 질문
+model Question {
+  id              String   @id @default(cuid())
+  lessonId        String
+  lesson          Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  // 질문 정보
+  questionText    String                     // 질문 내용
+  questionType    String   @default("MULTIPLE_CHOICE") // 질문 타입: MULTIPLE_CHOICE, TRUE_FALSE, SHORT_ANSWER
+
+  // 선택지 (객관식용)
+  option1         String?                    // 선택지 1
+  option2         String?                    // 선택지 2
+  option3         String?                    // 선택지 3
+  option4         String?                    // 선택지 4
+
+  // 정답
+  correctAnswer   String                     // 정답 (1,2,3,4 또는 텍스트)
+  explanation     String?                    // 정답 설명
+
+  // 순서
+  questionNumber  Int                        // 질문 번호
+
+  // 관계
+  responses       QuizResponse[]             // 퀴즈 응답들
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([lessonId, questionNumber])
+  @@index([lessonId])
+  @@index([questionNumber])
+}
+
+// ========================================
+// 학생 참여 시스템 (Student Participation)
+// ========================================
+
+// 출석 기록
+model Attendance {
+  id        String   @id @default(cuid())
+
+  // 사용자 정보
+  userId    String
+  user      User     @relation("StudentAttendance", fields: [userId], references: [id], onDelete: Cascade)
+
+  // 레슨 정보
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  // 출석 정보
+  attendedAt DateTime @default(now()) // 출석 체크 시간
+  isPresent  Boolean  @default(true)  // 출석 여부 (기본값: true, 미출석 시 false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, lessonId]) // 한 사용자가 동일 레슨에 중복 출석 방지
+  @@index([userId])
+  @@index([lessonId])
+  @@index([attendedAt])
+}
+
+// 퀴즈 응답 기록
+model QuizResponse {
+  id         String   @id @default(cuid())
+
+  // 사용자 정보
+  userId     String
+  user       User     @relation("StudentQuizResponse", fields: [userId], references: [id], onDelete: Cascade)
+
+  // 퀴즈 정보
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  // 응답 정보
+  userAnswer String                    // 사용자가 선택한 답 (1,2,3,4 또는 텍스트)
+  isCorrect  Boolean                   // 정답 여부
+  score      Int      @default(0)      // 획득 점수 (보통 정답 시 10점)
+
+  // 제출 시간
+  submittedAt DateTime @default(now()) // 답안 제출 시간
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, questionId]) // 한 사용자가 동일 문제에 중복 응답 방지
+  @@index([userId])
+  @@index([questionId])
+  @@index([submittedAt])
+  @@index([isCorrect])
+}
+
+// 학생 포인트 시스템
+model StudentPoints {
+  id          String   @id @default(cuid())
+
+  // 사용자 정보
+  userId      String
+  user        User     @relation("StudentPoints", fields: [userId], references: [id], onDelete: Cascade)
+
+  // 포인트 정보
+  pointType   String                       // 포인트 타입: ATTENDANCE, QUIZ_PERFECT, QUIZ_GOOD, LESSON_COMPLETE
+  points      Int                          // 획득 포인트 (출석 5점, 퀴즈 완벽 15점, 퀴즈 좋음 10점, 레슨 완료 3점)
+  description String?                      // 포인트 획득 사유
+
+  // 관련 정보
+  lessonId    String?                      // 관련 레슨 ID (선택)
+  lesson      Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  // 시간 정보
+  earnedAt    DateTime @default(now())    // 포인트 획득 시간
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([pointType])
+  @@index([earnedAt])
+  @@index([lessonId])
+}
+
+// 암송 인증 시스템
+model RecitationSubmission {
+  id          String   @id @default(cuid())
+
+  // 사용자 정보
+  userId      String
+  user        User     @relation("StudentRecitation", fields: [userId], references: [id], onDelete: Cascade)
+
+  // 레슨 정보
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  // 암송 정보
+  bibleVerse  String                      // 암송할 성경 구절
+  audioUrl    String?                     // 녹음 파일 URL (Cloudinary 등)
+  videoUrl    String?                     // 영상 파일 URL (선택사항)
+  textContent String?  @db.Text          // 텍스트로 제출한 암송 내용
+
+  // 승인 정보
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedBy  String?                     // 승인한 교사 ID
+  approver    User?    @relation("RecitationApprover", fields: [approvedBy], references: [id])
+  approvedAt  DateTime?                   // 승인 일시
+  rejectionReason String?                 // 반려 사유
+
+  // 점수 (승인 시 포인트로 변환)
+  score       Int      @default(0)       // 암송 점수 (0-100)
+
+  // 시간 정보
+  submittedAt DateTime @default(now())   // 제출 시간
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, lessonId]) // 한 사용자가 동일 레슨에 대해 하나의 암송만 제출 가능
+  @@index([userId])
+  @@index([lessonId])
+  @@index([status])
+  @@index([submittedAt])
+  @@index([approvedBy])
 }
