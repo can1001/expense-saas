@@ -21,6 +21,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import QuizManager from '@/components/admin/QuizManager';
 
 interface UserInfo {
   id: string;
@@ -1301,6 +1302,7 @@ function LessonManagement({ curriculums }: { curriculums: Curriculum[] }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [quizManagingLesson, setQuizManagingLesson] = useState<{ id: string; title: string } | null>(null);
 
   const handleCreateLesson = async (data: any) => {
     setIsSaving(true);
@@ -1467,6 +1469,12 @@ function LessonManagement({ curriculums }: { curriculums: Curriculum[] }) {
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
+                    onClick={() => setQuizManagingLesson({ id: lesson.id, title: lesson.title })}
+                    className="px-3 py-1.5 text-sm font-semibold text-purple-800 bg-purple-100 rounded hover:bg-purple-200"
+                  >
+                    퀴즈
+                  </button>
+                  <button
                     onClick={() => handleOpenEditModal(lesson.id)}
                     disabled={isLoading}
                     className="px-3 py-1.5 text-sm font-semibold text-blue-800 bg-blue-100 rounded hover:bg-blue-200 disabled:opacity-50"
@@ -1510,6 +1518,14 @@ function LessonManagement({ curriculums }: { curriculums: Curriculum[] }) {
           isSaving={isSaving}
         />
       )}
+
+      {/* 퀴즈 관리 패널 */}
+      <QuizManager
+        lessonId={quizManagingLesson?.id || ''}
+        lessonTitle={quizManagingLesson?.title || ''}
+        isOpen={!!quizManagingLesson}
+        onClose={() => setQuizManagingLesson(null)}
+      />
     </div>
   );
 }

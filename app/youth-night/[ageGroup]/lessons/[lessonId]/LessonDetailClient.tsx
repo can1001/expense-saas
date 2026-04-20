@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
 import { parseLessonContent, getStepIcon, getStepColorClass, LessonStep } from '@/lib/utils/lesson-parser';
+import { FlashcardStudy, FlashcardItem } from '@/components/flashcard';
 
 interface UserInfo {
   id: string;
@@ -76,6 +77,39 @@ const AGE_GROUP_COLORS = {
   YOUNG_ADULT: 'bg-orange-500',
 };
 
+const AGE_GROUP_FLASHCARD_THEMES = {
+  KIDS: {
+    gradient: 'from-pink-400 via-rose-400 to-pink-500',
+    gradientBg: 'from-pink-500 via-rose-500 to-pink-600',
+    bgLight: 'bg-pink-50',
+    textColor: 'text-pink-600',
+  },
+  ELEMENTARY: {
+    gradient: 'from-blue-400 via-indigo-400 to-blue-500',
+    gradientBg: 'from-blue-500 via-indigo-500 to-blue-600',
+    bgLight: 'bg-blue-50',
+    textColor: 'text-blue-600',
+  },
+  MIDDLE: {
+    gradient: 'from-emerald-400 via-teal-400 to-emerald-500',
+    gradientBg: 'from-emerald-500 via-teal-500 to-emerald-600',
+    bgLight: 'bg-emerald-50',
+    textColor: 'text-emerald-600',
+  },
+  HIGH: {
+    gradient: 'from-violet-400 via-purple-400 to-violet-500',
+    gradientBg: 'from-violet-500 via-purple-500 to-violet-600',
+    bgLight: 'bg-violet-50',
+    textColor: 'text-violet-600',
+  },
+  YOUNG_ADULT: {
+    gradient: 'from-amber-400 via-orange-400 to-amber-500',
+    gradientBg: 'from-amber-500 via-orange-500 to-amber-600',
+    bgLight: 'bg-amber-50',
+    textColor: 'text-amber-600',
+  },
+};
+
 export default function LessonDetailClient({
   user,
   lesson,
@@ -101,6 +135,9 @@ export default function LessonDetailClient({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const fullscreenRef = useRef<HTMLDivElement>(null);
 
+  // Flashcard study mode
+  const [isFlashcardMode, setIsFlashcardMode] = useState(false);
+
   // Parse lesson content into steps
   const steps = useMemo(() => {
     return parseLessonContent(lesson.content, lesson.bibleVerse, lesson.keyPoint);
@@ -112,6 +149,24 @@ export default function LessonDetailClient({
 
   const ageGroupDisplayName = AGE_GROUP_NAMES[ageGroup as keyof typeof AGE_GROUP_NAMES];
   const colorClass = AGE_GROUP_COLORS[ageGroup as keyof typeof AGE_GROUP_COLORS];
+  const flashcardTheme = AGE_GROUP_FLASHCARD_THEMES[ageGroup as keyof typeof AGE_GROUP_FLASHCARD_THEMES];
+
+  // Convert questions to flashcard format
+  const flashcards: FlashcardItem[] = useMemo(() => {
+    return lesson.questions.map((q) => {
+      // Get the correct answer text
+      const options = [q.option1, q.option2, q.option3, q.option4].filter(Boolean);
+      const correctAnswerIndex = parseInt(q.correctAnswer) - 1;
+      const correctAnswerText = options[correctAnswerIndex] || q.correctAnswer;
+
+      return {
+        id: q.id,
+        question: q.questionText,
+        answer: correctAnswerText,
+        explanation: q.explanation || undefined,
+      };
+    });
+  }, [lesson.questions]);
 
   // 출석 상태 및 퀴즈 응답 확인
   useEffect(() => {
@@ -429,6 +484,15 @@ export default function LessonDetailClient({
                       </svg>
                       집중 모드
                     </button>
+                    {flashcards.length > 0 && (
+                      <button
+                        onClick={() => setIsFlashcardMode(true)}
+                        className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r ${flashcardTheme.gradient} rounded-lg hover:opacity-90 transition-all shadow-sm`}
+                      >
+                        <span>🃏</span>
+                        플래시카드
+                      </button>
+                    )}
                   </div>
 
                   {/* 진행 바 */}
@@ -643,6 +707,26 @@ export default function LessonDetailClient({
 
               {activeTab === 'quiz' && lesson.questions.length > 0 && (
                 <div className="space-y-6">
+                  {/* Flashcard Study Button */}
+                  <div className="flex justify-center">
+                    <button
+                      onClick={() => setIsFlashcardMode(true)}
+                      className={`inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r ${flashcardTheme.gradient} text-white font-semibold rounded-2xl shadow-lg hover:opacity-90 transition-all active:scale-[0.98]`}
+                    >
+                      <span className="text-xl">🃏</span>
+                      <span>플래시카드로 학습하기</span>
+                    </button>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-200" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="px-3 bg-white text-sm text-gray-500">또는 퀴즈 풀기</span>
+                    </div>
+                  </div>
+
                   {showResults && (
                     <div className={`p-4 rounded-lg mb-6 ${
                       score.correct === score.total
@@ -1019,6 +1103,19 @@ export default function LessonDetailClient({
           </div>
         </div>
       </div>
+
+      {/* Flashcard Study Mode */}
+      {isFlashcardMode && flashcards.length > 0 && (
+        <FlashcardStudy
+          cards={flashcards}
+          title={`${lesson.title} - 플래시카드`}
+          colorTheme={flashcardTheme}
+          onClose={() => setIsFlashcardMode(false)}
+          onComplete={(results) => {
+            console.log('Flashcard study complete:', results);
+          }}
+        />
+      )}
     </div>
   );
 }
