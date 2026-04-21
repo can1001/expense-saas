@@ -353,12 +353,13 @@ export default function Header() {
       icon: CheckSquare,
       active: pathname.startsWith('/approvals'),
     },
-    {
-      href: '/youth-night',
-      label: '청나잇',
-      icon: Moon,
-      active: pathname.startsWith('/youth-night'),
-    },
+    // 청나잇 메뉴 (임시 숨김)
+    // {
+    //   href: '/youth-night',
+    //   label: '청나잇',
+    //   icon: Moon,
+    //   active: pathname.startsWith('/youth-night'),
+    // },
     // admin 메뉴 (관리 권한 있는 역할만 표시, 다중 역할 지원)
     ...(user && canAccessAdminMenuWithRoles(user.roles || [user.role])
       ? [

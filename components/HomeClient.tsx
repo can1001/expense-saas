@@ -356,8 +356,8 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
           </div>
         </div>
 
-        {/* 청나잇 메뉴 */}
-        <div className={MARGIN_SECTION}>
+        {/* 청나잇 메뉴 (임시 숨김) */}
+        <div className={`${MARGIN_SECTION} hidden`}>
           <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-2 sm:mb-3">
             청소년 사역
           </h2>
