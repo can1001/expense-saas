@@ -89,7 +89,7 @@ async function main() {
   });
 
   // 3. 파일 저장
-  const outputPath = 'prisma/seeds/budget-seed.ts';
+  const outputPath = 'prisma/seeds/2026-budget-seed.ts';
   fs.writeFileSync(outputPath, output);
   console.log(`\n[3] ✅ ${outputPath} 업데이트 완료!`);
 
