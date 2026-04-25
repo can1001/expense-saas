@@ -26,7 +26,10 @@ export default async function Home() {
     prisma.budgetDetail.count({ where: { isActive: true } }),
     prisma.committee.count({ where: { isActive: true } }),
     prisma.department.count({ where: { isActive: true } }),
-    prisma.user.count({ where: { role: 'team_leader', isActive: true } }),
+    prisma.userYearRole.groupBy({
+      by: ['userId'],
+      where: { role: 'team_leader', year: currentYear },
+    }).then(result => result.length),
   ]);
 
   const isBudgetManager = budgetManagerCount > 0;
