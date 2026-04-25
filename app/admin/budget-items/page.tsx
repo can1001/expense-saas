@@ -282,7 +282,7 @@ export default function BudgetItemsPage() {
                     </button>
                     <span
                       className={`flex-1 font-medium ${
-                        !category.isActive ? 'text-gray-400 line-through' : ''
+                        !category.isActive ? 'text-gray-400 line-through' : 'text-gray-900'
                       }`}
                     >
                       {category.name}
@@ -347,7 +347,7 @@ export default function BudgetItemsPage() {
                               className={`flex-1 ${
                                 !subcategory.isActive || isParentInactive
                                   ? 'text-gray-400 line-through'
-                                  : ''
+                                  : 'text-gray-900'
                               }`}
                             >
                               {subcategory.name}
@@ -406,7 +406,7 @@ export default function BudgetItemsPage() {
                                     className={`flex-1 text-sm ${
                                       !detail.isActive || isAncestorInactive
                                         ? 'text-gray-400 line-through'
-                                        : ''
+                                        : 'text-gray-900'
                                     }`}
                                   >
                                     {detail.name}
