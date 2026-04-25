@@ -1417,11 +1417,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwyt83003tcam9oxl633re",
+    "id": "cmncwyufc0046cam9t647nnbr",
     "name": "(예산외세목)",
-    "subcategoryId": "cmk888lyt000c2dg9uxhhaeb1",
+    "subcategoryId": "cmk888ne400b42dg97g6c1kwa",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
   },
   {
     "id": "cmk888nda00ax2dg9djvyuzpr",
@@ -1522,11 +1522,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwyufc0046cam9t647nnbr",
+    "id": "cmncwywh0004vcam99f92xlm3",
     "name": "(예산외세목)",
-    "subcategoryId": "cmk888ne400b42dg97g6c1kwa",
+    "subcategoryId": "cmk888m09000m2dg90obssenw",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
   },
   {
     "id": "cmk888nqf00dr2dg9jiflgip2",
@@ -1564,11 +1564,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwywh0004vcam99f92xlm3",
+    "id": "cmncwyxu10058cam9uaqo8ssd",
     "name": "(예산외세목)",
-    "subcategoryId": "cmk888m09000m2dg90obssenw",
+    "subcategoryId": "cmk888m2i00122dg9w9pveqrs",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
   },
   {
     "id": "cmk888nh500bt2dg9tqefyek0",
@@ -1576,6 +1576,13 @@ const budgetDetails = [
     "subcategoryId": "cmk888ng100bj2dg92kx6gia4",
     "sortOrder": 0,
     "isActive": true
+  },
+  {
+    "id": "cmncwyt83003tcam9oxl633re",
+    "name": "(예산외세목)",
+    "subcategoryId": "cmk888lyt000c2dg9uxhhaeb1",
+    "sortOrder": 0,
+    "isActive": false
   },
   {
     "id": "cmncx035j00iicam9lq0npj25",
@@ -1592,11 +1599,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwyxu10058cam9uaqo8ssd",
+    "id": "cmncwyryy003bcam94dkhunc6",
     "name": "(예산외세목)",
-    "subcategoryId": "cmk888m2i00122dg9w9pveqrs",
+    "subcategoryId": "cmncwyr6g0031cam99sr8p84a",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
   },
   {
     "id": "cmk888nf600bc2dg9agwvp3tq",
@@ -1774,18 +1781,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwyryy003bcam94dkhunc6",
+    "id": "cmncwzacl009ccam9wzizi9qz",
     "name": "(예산외세목)",
-    "subcategoryId": "cmncwyr6g0031cam99sr8p84a",
+    "subcategoryId": "cmk888mgh003r2dg9iuzo5cv1",
     "sortOrder": 0,
-    "isActive": true
-  },
-  {
-    "id": "cmncwz8h2008rcam9cte3xep6",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888mfd003k2dg9vv6hzmzl",
-    "sortOrder": 0,
-    "isActive": true
+    "isActive": false
   },
   {
     "id": "cmncwzn9v00dscam9409q8k2d",
@@ -1837,11 +1837,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwzacl009ccam9wzizi9qz",
+    "id": "cmncwz3fd0074cam9j0xttko6",
     "name": "(예산외세목)",
-    "subcategoryId": "cmk888mgh003r2dg9iuzo5cv1",
+    "subcategoryId": "cmk888maq002p2dg9x65tglhu",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
   },
   {
     "id": "cmncwzbjj009ncam9laq0fg0d",
@@ -1851,18 +1851,18 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwz3fd0074cam9j0xttko6",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888maq002p2dg9x65tglhu",
-    "sortOrder": 0,
-    "isActive": true
-  },
-  {
     "id": "cmncwz7eb008dcam95idy75eq",
     "name": "(예산외세목)",
     "subcategoryId": "cmk888me3003b2dg9utdpdtv5",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
+  },
+  {
+    "id": "cmncwzloo00dacam9kyd7taoh",
+    "name": "(예산외세목)",
+    "subcategoryId": "cmk888mxk007i2dg9z0lnepbq",
+    "sortOrder": 0,
+    "isActive": false
   },
   {
     "id": "cmncwzc8d009zcam98wi5pcqo",
@@ -1872,11 +1872,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwzloo00dacam9kyd7taoh",
+    "id": "cmncwzdsm00arcam93j8y2zdw",
     "name": "(예산외세목)",
-    "subcategoryId": "cmk888mxk007i2dg9z0lnepbq",
+    "subcategoryId": "cmk888mii00472dg9c8oaghjo",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
   },
   {
     "id": "cmncwzceh00a3cam94xr5i3mc",
@@ -1893,11 +1893,18 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwzdsm00arcam93j8y2zdw",
+    "id": "cmncwyzfc005ucam9dikn1txf",
     "name": "(예산외세목)",
-    "subcategoryId": "cmk888mii00472dg9c8oaghjo",
+    "subcategoryId": "cmk888m3v001b2dg9l7gpessx",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
+  },
+  {
+    "id": "cmncwz8h2008rcam9cte3xep6",
+    "name": "(예산외세목)",
+    "subcategoryId": "cmk888mfd003k2dg9vv6hzmzl",
+    "sortOrder": 0,
+    "isActive": false
   },
   {
     "id": "cmncwzskj00ficam96fyoz3tt",
@@ -1935,11 +1942,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwyzfc005ucam9dikn1txf",
+    "id": "cmncwzp1c00eecam9qq2e48t9",
     "name": "(예산외세목)",
-    "subcategoryId": "cmk888m3v001b2dg9l7gpessx",
+    "subcategoryId": "cmk888n2f008n2dg9u2zz21c5",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
   },
   {
     "id": "cmncwzsef00fecam9izcxeg4z",
@@ -1970,18 +1977,18 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwzp1c00eecam9qq2e48t9",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888n2f008n2dg9u2zz21c5",
-    "sortOrder": 0,
-    "isActive": true
-  },
-  {
     "id": "cmncwzqav00escam9t14bxjip",
     "name": "(예산외세목)",
     "subcategoryId": "cmk888n4a00922dg9i7gtqnfs",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
+  },
+  {
+    "id": "cmncwz5r5007zcam91svf3brn",
+    "name": "(예산외세목)",
+    "subcategoryId": "cmncwz52h007pcam9yodov2g0",
+    "sortOrder": 0,
+    "isActive": false
   },
   {
     "id": "cmncwzvgx00gecam9mi4djqhb",
@@ -1991,18 +1998,18 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwz5r5007zcam91svf3brn",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmncwz52h007pcam9yodov2g0",
-    "sortOrder": 0,
-    "isActive": true
-  },
-  {
     "id": "cmncwz19i006ccam99zrhb1s9",
     "name": "(예산외세목)",
     "subcategoryId": "cmk888m7r00242dg9lqov0vq3",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
+  },
+  {
+    "id": "cmncwzg0w00becam9hywsergz",
+    "name": "(예산외세목)",
+    "subcategoryId": "cmk888mol005o2dg9wwqk80wm",
+    "sortOrder": 0,
+    "isActive": false
   },
   {
     "id": "cmncwz5em007rcam9il9ogot5",
@@ -2012,11 +2019,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwzg0w00becam9hywsergz",
+    "id": "cmncwznm600dycam94jzrrz9k",
     "name": "(예산외세목)",
-    "subcategoryId": "cmk888mol005o2dg9wwqk80wm",
+    "subcategoryId": "cmk888n0400832dg9ytb693dh",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
   },
   {
     "id": "cmk888msq006n2dg9kzfpq45g",
@@ -2026,11 +2033,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwznm600dycam94jzrrz9k",
+    "id": "cmncwzjqz00cmcam9xjbxckez",
     "name": "(예산외세목)",
-    "subcategoryId": "cmk888n0400832dg9ytb693dh",
+    "subcategoryId": "cmk888mur006x2dg9ja99nhxq",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
   },
   {
     "id": "cmncwzlce00d4cam9h43j4rtk",
@@ -2047,11 +2054,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwzjqz00cmcam9xjbxckez",
+    "id": "cmncwz2ik006ucam9wu4ltxuq",
     "name": "(예산외세목)",
-    "subcategoryId": "cmk888mur006x2dg9ja99nhxq",
+    "subcategoryId": "cmk888m9a002g2dg9qnox5bwg",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
   },
   {
     "id": "cmncwz1zz006kcam9m35nstjr",
@@ -2061,18 +2068,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwz2ik006ucam9wu4ltxuq",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888m9a002g2dg9qnox5bwg",
-    "sortOrder": 0,
-    "isActive": true
-  },
-  {
     "id": "cmncwzhz000c2cam9u6ijddx7",
     "name": "(예산외세목)",
     "subcategoryId": "cmk888mrd006c2dg9j7cx8kpp",
     "sortOrder": 0,
-    "isActive": true
+    "isActive": false
   },
   {
     "id": "cmncwzdg700alcam9vk8c2ter",
@@ -2124,18 +2124,18 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmnvffjas004vgs1qs0uw2kui",
-    "name": "아웃팅비_기도팀",
-    "subcategoryId": "cmk888mii00472dg9c8oaghjo",
-    "sortOrder": 1,
-    "isActive": true
-  },
-  {
     "id": "cmoefkkk9004tln28o6f0hujf",
     "name": "적립금_사용(410호)",
     "subcategoryId": "cmk888nrf00dz2dg9iqtlnt13",
     "sortOrder": 1,
     "isActive": true
+  },
+  {
+    "id": "cmnmzmosk0001ca5ms7co09hd",
+    "name": "(예산외세목)_안내팀",
+    "subcategoryId": "cmk888maq002p2dg9x65tglhu",
+    "sortOrder": 1,
+    "isActive": false
   },
   {
     "id": "cmnmzrz080001cab2x5pzvtb5",
@@ -2145,9 +2145,9 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmnmzmosk0001ca5ms7co09hd",
-    "name": "(예산외세목)_안내팀",
-    "subcategoryId": "cmk888maq002p2dg9x65tglhu",
+    "id": "cmnvffjas004vgs1qs0uw2kui",
+    "name": "아웃팅비_기도팀",
+    "subcategoryId": "cmk888mii00472dg9c8oaghjo",
     "sortOrder": 1,
     "isActive": true
   }
