@@ -14,12 +14,20 @@ interface UserInfo {
   department?: string | null;
 }
 
+interface HomeStats {
+  budgetCount: number;
+  committeeCount: number;
+  departmentCount: number;
+  approverCount: number;
+}
+
 interface Props {
   user: UserInfo;
   isBudgetManager?: boolean;  // 세목 담당자 여부
+  stats?: HomeStats;  // 홈 화면 통계
 }
 
-export default function HomeClient({ user, isBudgetManager = false }: Props) {
+export default function HomeClient({ user, isBudgetManager = false, stats }: Props) {
   const showExtendedMenu = canAccessExtendedMenu(user.role);
   // 세목 담당자도 결재함 접근 가능
   const showApprovalMenu = canAccessApprovalMenu(user.role) || isBudgetManager;
@@ -409,22 +417,22 @@ export default function HomeClient({ user, isBudgetManager = false }: Props) {
         </div>
 
         {/* 통계 (확장 메뉴 역할만) */}
-        {showExtendedMenu && (
+        {showExtendedMenu && stats && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <div className="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
-              <p className={`${TEXT_STAT} text-blue-600`}>204</p>
+              <p className={`${TEXT_STAT} text-blue-600`}>{stats.budgetCount}</p>
               <p className="text-xs sm:text-sm text-gray-600">예산 항목</p>
             </div>
             <div className="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
-              <p className={`${TEXT_STAT} text-green-600`}>7</p>
+              <p className={`${TEXT_STAT} text-green-600`}>{stats.committeeCount}</p>
               <p className="text-xs sm:text-sm text-gray-600">위원회</p>
             </div>
             <div className="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
-              <p className={`${TEXT_STAT} text-purple-600`}>31</p>
+              <p className={`${TEXT_STAT} text-purple-600`}>{stats.departmentCount}</p>
               <p className="text-xs sm:text-sm text-gray-600">부서/팀</p>
             </div>
             <div className="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
-              <p className={`${TEXT_STAT} text-orange-600`}>21</p>
+              <p className={`${TEXT_STAT} text-orange-600`}>{stats.approverCount}</p>
               <p className="text-xs sm:text-sm text-gray-600">승인권자</p>
             </div>
           </div>

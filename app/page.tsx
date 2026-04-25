@@ -13,14 +13,29 @@ export default async function Home() {
 
   // 현재 연도의 세목 담당자인지 확인
   const currentYear = new Date().getFullYear();
-  const budgetManagerCount = await prisma.budgetDetailYear.count({
-    where: {
-      managerId: user.id,
-      year: currentYear,
-      isActive: true,
-    },
-  });
+
+  // 병렬로 모든 카운트 조회
+  const [budgetManagerCount, budgetCount, committeeCount, departmentCount, approverCount] = await Promise.all([
+    prisma.budgetDetailYear.count({
+      where: {
+        managerId: user.id,
+        year: currentYear,
+        isActive: true,
+      },
+    }),
+    prisma.budgetDetail.count({ where: { isActive: true } }),
+    prisma.committee.count({ where: { isActive: true } }),
+    prisma.department.count({ where: { isActive: true } }),
+    prisma.user.count({ where: { role: 'team_leader', isActive: true } }),
+  ]);
+
   const isBudgetManager = budgetManagerCount > 0;
 
-  return <HomeClient user={user} isBudgetManager={isBudgetManager} />;
+  return (
+    <HomeClient
+      user={user}
+      isBudgetManager={isBudgetManager}
+      stats={{ budgetCount, committeeCount, departmentCount, approverCount }}
+    />
+  );
 }
