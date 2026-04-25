@@ -45,7 +45,10 @@ export async function GET(request: NextRequest) {
           orderBy: { sortOrder: 'asc' },
           include: {
             budgetDetails: {
-              where: { isActive: true },
+              where: {
+                isActive: true,
+                budgetDetail: { isActive: true },  // BudgetDetail 활성화 필터
+              },
               include: {
                 budgetDetail: {
                   include: {
@@ -55,7 +58,10 @@ export async function GET(request: NextRequest) {
                       },
                     },
                     yearSettings: {
-                      where: { year },
+                      where: {
+                        year,
+                        isActive: true,  // BudgetDetailYear 활성화 필터
+                      },
                       include: {
                         manager: {
                           select: {
