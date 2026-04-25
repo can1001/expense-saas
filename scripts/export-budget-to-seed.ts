@@ -25,42 +25,52 @@ async function main() {
   console.log('\n[1] 데이터 조회 중...');
 
   const committees = await prisma.committee.findMany({
+    where: { isActive: true },
     select: { id: true, name: true, sortOrder: true, isActive: true },
     orderBy: { sortOrder: 'asc' },
   });
   console.log(`   - Committee: ${committees.length}개`);
 
   const departments = await prisma.department.findMany({
+    where: { isActive: true },
     select: { id: true, name: true, committeeId: true, sortOrder: true, isActive: true },
     orderBy: { sortOrder: 'asc' },
   });
   console.log(`   - Department: ${departments.length}개`);
 
   const budgetCategories = await prisma.budgetCategory.findMany({
+    where: { isActive: true },
     select: { id: true, name: true, sortOrder: true, isActive: true },
     orderBy: { sortOrder: 'asc' },
   });
   console.log(`   - BudgetCategory: ${budgetCategories.length}개`);
 
   const budgetSubcategories = await prisma.budgetSubcategory.findMany({
+    where: { isActive: true },
     select: { id: true, name: true, categoryId: true, sortOrder: true, isActive: true },
     orderBy: { sortOrder: 'asc' },
   });
   console.log(`   - BudgetSubcategory: ${budgetSubcategories.length}개`);
 
   const budgetDetails = await prisma.budgetDetail.findMany({
+    where: { isActive: true },
     select: { id: true, name: true, subcategoryId: true, sortOrder: true, isActive: true },
     orderBy: { sortOrder: 'asc' },
   });
   console.log(`   - BudgetDetail: ${budgetDetails.length}개`);
 
   const departmentBudgetDetails = await prisma.departmentBudgetDetail.findMany({
+    where: {
+      department: { isActive: true },
+      budgetDetail: { isActive: true },
+    },
     select: { id: true, departmentId: true, budgetDetailId: true },
   });
   console.log(`   - DepartmentBudgetDetail: ${departmentBudgetDetails.length}개`);
 
   const budgetDetailYears = await prisma.budgetDetailYear.findMany({
-    select: { id: true, budgetDetailId: true, year: true, budgetAmount: true, managerId: true },
+    where: { isActive: true },
+    select: { id: true, budgetDetailId: true, year: true, budgetAmount: true, managerId: true, isActive: true },
     orderBy: { year: 'asc' },
   });
   console.log(`   - BudgetDetailYear: ${budgetDetailYears.length}개`);
@@ -144,6 +154,7 @@ interface BudgetData {
     year: number;
     budgetAmount: number;
     managerId: string | null;
+    isActive: boolean;
   }>;
 }
 

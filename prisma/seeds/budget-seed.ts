@@ -47,7 +47,7 @@ const committees = [
   }
 ];
 
-// Department (26개)
+// Department (25개)
 const departments = [
   {
     "id": "cmk888nkm00cj2dg98lssqchr",
@@ -76,13 +76,6 @@ const departments = [
     "committeeId": "cmk888lwt00032dg95cwcr7l1",
     "sortOrder": 0,
     "isActive": true
-  },
-  {
-    "id": "cmncwyqlp002ycam9howty56z",
-    "name": "기획팀",
-    "committeeId": "cmk888lwt00032dg95cwcr7l1",
-    "sortOrder": 0,
-    "isActive": false
   },
   {
     "id": "cmk888lzu000k2dg9mccj9rkf",
@@ -784,7 +777,7 @@ const budgetSubcategories = [
   }
 ];
 
-// BudgetDetail (195개)
+// BudgetDetail (169개)
 const budgetDetails = [
   {
     "id": "cmncx05tc00j5cam926txncu4",
@@ -1417,13 +1410,6 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwyufc0046cam9t647nnbr",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888ne400b42dg97g6c1kwa",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
     "id": "cmk888nda00ax2dg9djvyuzpr",
     "name": "사무_통신비",
     "subcategoryId": "cmk888nd300aw2dg9fvjxzw2b",
@@ -1522,13 +1508,6 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwywh0004vcam99f92xlm3",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888m09000m2dg90obssenw",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
     "id": "cmk888nqf00dr2dg9jiflgip2",
     "name": "사무간사식대",
     "subcategoryId": "cmk888nq700dq2dg9y4qbsop1",
@@ -1564,25 +1543,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwyxu10058cam9uaqo8ssd",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888m2i00122dg9w9pveqrs",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
     "id": "cmk888nh500bt2dg9tqefyek0",
     "name": "소프트웨어",
     "subcategoryId": "cmk888ng100bj2dg92kx6gia4",
     "sortOrder": 0,
     "isActive": true
-  },
-  {
-    "id": "cmncwyt83003tcam9oxl633re",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888lyt000c2dg9uxhhaeb1",
-    "sortOrder": 0,
-    "isActive": false
   },
   {
     "id": "cmncx035j00iicam9lq0npj25",
@@ -1597,13 +1562,6 @@ const budgetDetails = [
     "subcategoryId": "cmk888ne400b42dg97g6c1kwa",
     "sortOrder": 0,
     "isActive": true
-  },
-  {
-    "id": "cmncwyryy003bcam94dkhunc6",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmncwyr6g0031cam99sr8p84a",
-    "sortOrder": 0,
-    "isActive": false
   },
   {
     "id": "cmk888nf600bc2dg9agwvp3tq",
@@ -1630,13 +1588,6 @@ const budgetDetails = [
     "id": "cmk888nje00ca2dg9ho2h0qw6",
     "name": "예비비",
     "subcategoryId": "cmk888nj600c92dg9ky208e38",
-    "sortOrder": 0,
-    "isActive": true
-  },
-  {
-    "id": "cmncx09qi00k6cam9qc5nj5ba",
-    "name": "사택관리비",
-    "subcategoryId": "cmk888noi00dd2dg9wzt8g0wj",
     "sortOrder": 0,
     "isActive": true
   },
@@ -1781,13 +1732,6 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwzacl009ccam9wzizi9qz",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888mgh003r2dg9iuzo5cv1",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
     "id": "cmncwzn9v00dscam9409q8k2d",
     "name": "소모품비",
     "subcategoryId": "cmk888n0400832dg9ytb693dh",
@@ -1837,13 +1781,6 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwz3fd0074cam9j0xttko6",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888maq002p2dg9x65tglhu",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
     "id": "cmncwzbjj009ncam9laq0fg0d",
     "name": "교육비(교재제작비)",
     "subcategoryId": "cmk888mii00472dg9c8oaghjo",
@@ -1851,32 +1788,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwz7eb008dcam95idy75eq",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888me3003b2dg9utdpdtv5",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
-    "id": "cmncwzloo00dacam9kyd7taoh",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888mxk007i2dg9z0lnepbq",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
     "id": "cmncwzc8d009zcam98wi5pcqo",
     "name": "행사비(전도학교)",
     "subcategoryId": "cmk888mii00472dg9c8oaghjo",
     "sortOrder": 0,
     "isActive": true
-  },
-  {
-    "id": "cmncwzdsm00arcam93j8y2zdw",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888mii00472dg9c8oaghjo",
-    "sortOrder": 0,
-    "isActive": false
   },
   {
     "id": "cmncwzceh00a3cam94xr5i3mc",
@@ -1889,27 +1805,6 @@ const budgetDetails = [
     "id": "cmncwzckn00a7cam9608io9lb",
     "name": "행사비(목자교육)",
     "subcategoryId": "cmk888mii00472dg9c8oaghjo",
-    "sortOrder": 0,
-    "isActive": true
-  },
-  {
-    "id": "cmncwyzfc005ucam9dikn1txf",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888m3v001b2dg9l7gpessx",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
-    "id": "cmncwz8h2008rcam9cte3xep6",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888mfd003k2dg9vv6hzmzl",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
-    "id": "cmncwzskj00ficam96fyoz3tt",
-    "name": "담임목사 이사비용",
-    "subcategoryId": "cmk888noi00dd2dg9wzt8g0wj",
     "sortOrder": 0,
     "isActive": true
   },
@@ -1935,27 +1830,6 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwzsqu00fmcam90seh92ai",
-    "name": "전임사역자 사택관리비",
-    "subcategoryId": "cmk888noi00dd2dg9wzt8g0wj",
-    "sortOrder": 0,
-    "isActive": true
-  },
-  {
-    "id": "cmncwzp1c00eecam9qq2e48t9",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888n2f008n2dg9u2zz21c5",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
-    "id": "cmncwzsef00fecam9izcxeg4z",
-    "name": "담임목사 전세자금대출이자",
-    "subcategoryId": "cmk888noi00dd2dg9wzt8g0wj",
-    "sortOrder": 0,
-    "isActive": true
-  },
-  {
     "id": "cmncwz265006ocam95fl6jein",
     "name": "비품비",
     "subcategoryId": "cmk888m9a002g2dg9qnox5bwg",
@@ -1977,39 +1851,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwzqav00escam9t14bxjip",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888n4a00922dg9i7gtqnfs",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
-    "id": "cmncwz5r5007zcam91svf3brn",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmncwz52h007pcam9yodov2g0",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
     "id": "cmncwzvgx00gecam9mi4djqhb",
     "name": "고장 전자제품 교체",
     "subcategoryId": "cmk888n84009v2dg9087icy85",
     "sortOrder": 0,
     "isActive": true
-  },
-  {
-    "id": "cmncwz19i006ccam99zrhb1s9",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888m7r00242dg9lqov0vq3",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
-    "id": "cmncwzg0w00becam9hywsergz",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888mol005o2dg9wwqk80wm",
-    "sortOrder": 0,
-    "isActive": false
   },
   {
     "id": "cmncwz5em007rcam9il9ogot5",
@@ -2019,25 +1865,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwznm600dycam94jzrrz9k",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888n0400832dg9ytb693dh",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
     "id": "cmk888msq006n2dg9kzfpq45g",
     "name": "행사비(선물)",
     "subcategoryId": "cmk888mrd006c2dg9j7cx8kpp",
     "sortOrder": 0,
     "isActive": true
-  },
-  {
-    "id": "cmncwzjqz00cmcam9xjbxckez",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888mur006x2dg9ja99nhxq",
-    "sortOrder": 0,
-    "isActive": false
   },
   {
     "id": "cmncwzlce00d4cam9h43j4rtk",
@@ -2054,25 +1886,11 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmncwz2ik006ucam9wu4ltxuq",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888m9a002g2dg9qnox5bwg",
-    "sortOrder": 0,
-    "isActive": false
-  },
-  {
     "id": "cmncwz1zz006kcam9m35nstjr",
     "name": "소모품비",
     "subcategoryId": "cmk888m9a002g2dg9qnox5bwg",
     "sortOrder": 0,
     "isActive": true
-  },
-  {
-    "id": "cmncwzhz000c2cam9u6ijddx7",
-    "name": "(예산외세목)",
-    "subcategoryId": "cmk888mrd006c2dg9j7cx8kpp",
-    "sortOrder": 0,
-    "isActive": false
   },
   {
     "id": "cmncwzdg700alcam9vk8c2ter",
@@ -2131,13 +1949,6 @@ const budgetDetails = [
     "isActive": true
   },
   {
-    "id": "cmnmzmosk0001ca5ms7co09hd",
-    "name": "(예산외세목)_안내팀",
-    "subcategoryId": "cmk888maq002p2dg9x65tglhu",
-    "sortOrder": 1,
-    "isActive": false
-  },
-  {
     "id": "cmnmzrz080001cab2x5pzvtb5",
     "name": "차량관리비_인사위",
     "subcategoryId": "cmk888ncf00ar2dg9dzle78mi",
@@ -2153,7 +1964,7 @@ const budgetDetails = [
   }
 ];
 
-// DepartmentBudgetDetail (195개)
+// DepartmentBudgetDetail (167개)
 const departmentBudgetDetails = [
   {
     "id": "cmk888m51001k2dg9y49yayia",
@@ -2661,16 +2472,6 @@ const departmentBudgetDetails = [
     "budgetDetailId": "cmk888nrm00e02dg9gai2yn93"
   },
   {
-    "id": "cmncwyrut0039cam9i0vhp7zb",
-    "departmentId": "cmncwyqlp002ycam9howty56z",
-    "budgetDetailId": "cmncwyrsr0037cam96hm05si2"
-  },
-  {
-    "id": "cmncwys10003dcam97p9a0xnt",
-    "departmentId": "cmncwyqlp002ycam9howty56z",
-    "budgetDetailId": "cmncwyryy003bcam94dkhunc6"
-  },
-  {
     "id": "cmncwysxt003pcam9bjbky0e8",
     "departmentId": "cmk888lyl000b2dg9chruks28",
     "budgetDetailId": "cmncwysvq003ncam94n1ts460"
@@ -2679,11 +2480,6 @@ const departmentBudgetDetails = [
     "id": "cmk888nqh00ds2dg9axktq2cy",
     "departmentId": "cmk888nkm00cj2dg98lssqchr",
     "budgetDetailId": "cmk888nqf00dr2dg9jiflgip2"
-  },
-  {
-    "id": "cmncwyta6003vcam9l6nzn62y",
-    "departmentId": "cmk888lyl000b2dg9chruks28",
-    "budgetDetailId": "cmncwyt83003tcam9oxl633re"
   },
   {
     "id": "cmncwysrk003lcam9aig1q1ef",
@@ -2704,16 +2500,6 @@ const departmentBudgetDetails = [
     "id": "cmk888n1n008h2dg999egkqvn",
     "departmentId": "cmk888mzw00822dg9eaj0qsuj",
     "budgetDetailId": "cmk888n1k008g2dg904ysvlkt"
-  },
-  {
-    "id": "cmncwyuhf0048cam9fanas7gw",
-    "departmentId": "cmk9cl0bj000z2fif5j2fn1v1",
-    "budgetDetailId": "cmncwyufc0046cam9t647nnbr"
-  },
-  {
-    "id": "cmncwyro30035cam963edy17c",
-    "departmentId": "cmncwyqlp002ycam9howty56z",
-    "budgetDetailId": "cmncwyrlo0033cam9quwirzjl"
   },
   {
     "id": "cmncwyvo9004jcam9q21nauu5",
@@ -2816,29 +2602,9 @@ const departmentBudgetDetails = [
     "budgetDetailId": "cmncwz1zz006kcam9m35nstjr"
   },
   {
-    "id": "cmnmzmosk0003ca5m8twiinmo",
-    "departmentId": "cmk888mbt002x2dg9j50n1rdl",
-    "budgetDetailId": "cmnmzmosk0001ca5ms7co09hd"
-  },
-  {
-    "id": "cmncwz4g7007kcam9opvubdup",
-    "departmentId": "cmk888mai002o2dg9em4twbaj",
-    "budgetDetailId": "cmncwz3fd0074cam9j0xttko6"
-  },
-  {
     "id": "cmncwzcz100afcam9q6uq2p1u",
     "departmentId": "cmk888mi400452dg9tihbe4ap",
     "budgetDetailId": "cmncwzcwz00adcam93frf3132"
-  },
-  {
-    "id": "cmncwz2ko006wcam9hconr7sy",
-    "departmentId": "cmk888m93002f2dg9zdvl63ts",
-    "budgetDetailId": "cmncwz2ik006ucam9wu4ltxuq"
-  },
-  {
-    "id": "cmncwz1bl006ecam9scr1b7i7",
-    "departmentId": "cmk888m7d00222dg9odzebl67",
-    "budgetDetailId": "cmncwz19i006ccam99zrhb1s9"
   },
   {
     "id": "cmncwz43v007gcam904jfuz85",
@@ -2861,16 +2627,6 @@ const departmentBudgetDetails = [
     "budgetDetailId": "cmncwz5kv007vcam9ol13vl44"
   },
   {
-    "id": "cmncwzaen009ecam9f4degzmt",
-    "departmentId": "cmk888mg3003p2dg9kx89walb",
-    "budgetDetailId": "cmncwzacl009ccam9wzizi9qz"
-  },
-  {
-    "id": "cmncwz7ge008fcam9dwares3a",
-    "departmentId": "cmk888mdp00392dg9wpj2212f",
-    "budgetDetailId": "cmncwz7eb008dcam95idy75eq"
-  },
-  {
     "id": "cmncwza2f0098cam9iuk66bqv",
     "departmentId": "cmk888mg3003p2dg9kx89walb",
     "budgetDetailId": "cmncwza0a0096cam9hc6on4gm"
@@ -2881,16 +2637,6 @@ const departmentBudgetDetails = [
     "budgetDetailId": "cmk888mc0002y2dg9epgzr8kh"
   },
   {
-    "id": "cmncwz8j4008tcam9ssrr4oin",
-    "departmentId": "cmk888mf6003j2dg9iqa8sfcq",
-    "budgetDetailId": "cmncwz8h2008rcam9cte3xep6"
-  },
-  {
-    "id": "cmncwz5t70081cam99mmlqxdd",
-    "departmentId": "cmk888mcj00322dg9mvmdl57l",
-    "budgetDetailId": "cmncwz5r5007zcam91svf3brn"
-  },
-  {
     "id": "cmncwzblm009pcam920iiu1im",
     "departmentId": "cmk888mi400452dg9tihbe4ap",
     "budgetDetailId": "cmncwzbjj009ncam9laq0fg0d"
@@ -2899,11 +2645,6 @@ const departmentBudgetDetails = [
     "id": "cmncwzc48009xcam9myqb5g9x",
     "departmentId": "cmk888mi400452dg9tihbe4ap",
     "budgetDetailId": "cmncwzc24009vcam9dj0o14ca"
-  },
-  {
-    "id": "cmncwzlqr00dccam989hcyx90",
-    "departmentId": "cmk888mxd007h2dg96zjfkrxa",
-    "budgetDetailId": "cmncwzloo00dacam9kyd7taoh"
   },
   {
     "id": "cmncwzcgj00a5cam95mvl717t",
@@ -2926,19 +2667,9 @@ const departmentBudgetDetails = [
     "budgetDetailId": "cmncwzdg700alcam9vk8c2ter"
   },
   {
-    "id": "cmncwzjt100cocam9nlh2rzrz",
-    "departmentId": "cmk888muk006w2dg9ypf5tvfp",
-    "budgetDetailId": "cmncwzjqz00cmcam9xjbxckez"
-  },
-  {
     "id": "cmk888mv2006z2dg9gt7qi7cu",
     "departmentId": "cmk888muk006w2dg9ypf5tvfp",
     "budgetDetailId": "cmk888muz006y2dg9esntgf8j"
-  },
-  {
-    "id": "cmncwzdun00atcam960sjhw9m",
-    "departmentId": "cmk888mi400452dg9tihbe4ap",
-    "budgetDetailId": "cmncwzdsm00arcam93j8y2zdw"
   },
   {
     "id": "cmk888mz0007u2dg98hqynjl6",
@@ -2956,36 +2687,6 @@ const departmentBudgetDetails = [
     "budgetDetailId": "cmncwzlce00d4cam9h43j4rtk"
   },
   {
-    "id": "cmncwzi1300c4cam9hln0pogj",
-    "departmentId": "cmk888mr5006b2dg96a76pxew",
-    "budgetDetailId": "cmncwzhz000c2cam9u6ijddx7"
-  },
-  {
-    "id": "cmncwzg2x00bgcam9r3whsoa8",
-    "departmentId": "cmk888moe005n2dg9ic9j42rw",
-    "budgetDetailId": "cmncwzg0w00becam9hywsergz"
-  },
-  {
-    "id": "cmncwzqd000eucam9byp1vzf6",
-    "departmentId": "cmk888n4300912dg9peipojq8",
-    "budgetDetailId": "cmncwzqav00escam9t14bxjip"
-  },
-  {
-    "id": "cmncwzsmm00fkcam9jl0i5kwh",
-    "departmentId": "cmk888n5o009d2dg9crryo6c6",
-    "budgetDetailId": "cmncwzskj00ficam96fyoz3tt"
-  },
-  {
-    "id": "cmncwzno800e0cam99n0in1my",
-    "departmentId": "cmk888mzw00822dg9eaj0qsuj",
-    "budgetDetailId": "cmncwznm600dycam94jzrrz9k"
-  },
-  {
-    "id": "cmncwzp3d00egcam9vrmfkbvy",
-    "departmentId": "cmk888n27008m2dg9f0o1pbsy",
-    "budgetDetailId": "cmncwzp1c00eecam9qq2e48t9"
-  },
-  {
     "id": "cmk888n4m00942dg90yuijxnw",
     "departmentId": "cmk888n4300912dg9peipojq8",
     "budgetDetailId": "cmk888n4i00932dg915bq6c4u"
@@ -2994,11 +2695,6 @@ const departmentBudgetDetails = [
     "id": "cmnmhbef000accax4hb8go77s",
     "departmentId": "cmk888m7d00222dg9odzebl67",
     "budgetDetailId": "cmnmhbecs00aacax4nnloli36"
-  },
-  {
-    "id": "cmncwzsgh00fgcam94ur6k099",
-    "departmentId": "cmk888n5o009d2dg9crryo6c6",
-    "budgetDetailId": "cmncwzsef00fecam9izcxeg4z"
   },
   {
     "id": "cmncwyw0l004pcam9glodzwgr",
@@ -3031,11 +2727,6 @@ const departmentBudgetDetails = [
     "budgetDetailId": "cmncwzzqj00hjcam9ffj1izqt"
   },
   {
-    "id": "cmncwywj3004xcam9wvkx5j7e",
-    "departmentId": "cmk888lzu000k2dg9mccj9rkf",
-    "budgetDetailId": "cmncwywh0004vcam99f92xlm3"
-  },
-  {
     "id": "cmncwzxt300h1cam9bas0sf7u",
     "departmentId": "cmk888n5o009d2dg9crryo6c6",
     "budgetDetailId": "cmncwzxr100gzcam9aqrozss2"
@@ -3054,11 +2745,6 @@ const departmentBudgetDetails = [
     "id": "cmncx07d000jkcam9qmvkyrqa",
     "departmentId": "cmk888nkm00cj2dg98lssqchr",
     "budgetDetailId": "cmncx07ax00jicam94gwcy95u"
-  },
-  {
-    "id": "cmncwyxw2005acam9ciemsixm",
-    "departmentId": "cmk888m2200102dg980vk9fmy",
-    "budgetDetailId": "cmncwyxu10058cam9uaqo8ssd"
   },
   {
     "id": "cmncx054m00j0cam9avsnh9tz",
@@ -3081,11 +2767,6 @@ const departmentBudgetDetails = [
     "budgetDetailId": "cmk888nn600d22dg9nc484j0e"
   },
   {
-    "id": "cmncwzssy00focam9jovu3z81",
-    "departmentId": "cmk888n5o009d2dg9crryo6c6",
-    "budgetDetailId": "cmncwzsqu00fmcam90seh92ai"
-  },
-  {
     "id": "cmncwyz52005qcam9f06lod7y",
     "departmentId": "cmk888m3n001a2dg976fi0d9z",
     "budgetDetailId": "cmncwyz30005ocam9i4uz6kya"
@@ -3096,19 +2777,9 @@ const departmentBudgetDetails = [
     "budgetDetailId": "cmncwz0qv0064cam9pz5h1z0d"
   },
   {
-    "id": "cmncwyzhe005wcam9z874iafy",
-    "departmentId": "cmk888m3n001a2dg976fi0d9z",
-    "budgetDetailId": "cmncwyzfc005ucam9dikn1txf"
-  },
-  {
     "id": "cmncwz288006qcam9k5hqkwd1",
     "departmentId": "cmk888m93002f2dg9zdvl63ts",
     "budgetDetailId": "cmncwz265006ocam95fl6jein"
-  },
-  {
-    "id": "cmncx09sk00k8cam94qxjq70q",
-    "departmentId": "cmk888nkm00cj2dg98lssqchr",
-    "budgetDetailId": "cmncx09qi00k6cam9qc5nj5ba"
   },
   {
     "id": "cmncwz5gq007tcam9xrb3y20h",
@@ -3132,2506 +2803,2519 @@ const departmentBudgetDetails = [
   }
 ];
 
-// BudgetDetailYear (357개)
+// BudgetDetailYear (314개)
 const budgetDetailYears = [
-  {
-    "id": "cmnmhcdpn00qicax4rle34xrw",
-    "budgetDetailId": "cmk888n4i00932dg915bq6c4u",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888m8900272dg98915y8ih"
-  },
-  {
-    "id": "cmnmhb3rl005zcax48yh5uupp",
-    "budgetDetailId": "cmk888lz0000d2dg9zh63l9tg",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888lzb000f2dg9oea0rnyt"
-  },
-  {
-    "id": "cmnmhb36r005ncax4jp331jfv",
-    "budgetDetailId": "cmncwyspg003jcam9swxpgilz",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888lzb000f2dg9oea0rnyt"
-  },
-  {
-    "id": "cmnmhb8dk007xcax4y85ukfp8",
-    "budgetDetailId": "cmncwywh0004vcam99f92xlm3",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888m0t000p2dg93paineyi"
-  },
-  {
-    "id": "cmnmhb3h7005tcax4v94jphzz",
-    "budgetDetailId": "cmncwysvq003ncam94n1ts460",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888lzb000f2dg9oea0rnyt"
-  },
-  {
-    "id": "cmnmhba66008kcax4us9lhfko",
-    "budgetDetailId": "cmncwyxu10058cam9uaqo8ssd",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmncwypyv002pcam9sidr6edt"
-  },
-  {
-    "id": "cmnmhb4240065cax4yn13gp5i",
-    "budgetDetailId": "cmncwyt83003tcam9oxl633re",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888lzb000f2dg9oea0rnyt"
-  },
-  {
-    "id": "cmnmhb1ql0051cax4pwjp6dqi",
-    "budgetDetailId": "cmncwyrlo0033cam9quwirzjl",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmnmhb2180057cax4vy61vwfd",
-    "budgetDetailId": "cmncwyrsr0037cam96hm05si2",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmnmhb57c006gcax4qdbhq4wd",
-    "budgetDetailId": "cmncwyu940042cam9bio453rp",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
-  },
-  {
-    "id": "cmnmhb2bp005dcax4745jzfzy",
-    "budgetDetailId": "cmncwyryy003bcam94dkhunc6",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmnmhbhpw00bscax452795hcv",
-    "budgetDetailId": "cmncwz3fd0074cam9j0xttko6",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmncwyp9k0021cam9n352iaya"
-  },
-  {
-    "id": "cmnmhbn0q00dtcax4pgll9ll2",
-    "budgetDetailId": "cmncwz7eb008dcam95idy75eq",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888mel003e2dg94g6z3pr1"
-  },
-  {
-    "id": "cmnmhb7id007fcax46jbric0i",
-    "budgetDetailId": "cmncwyvyj004ncam9qw4c5wdn",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888m0t000p2dg93paineyi"
-  },
-  {
-    "id": "cmnmhbfx500b0cax486r7pfz1",
-    "budgetDetailId": "cmncwz265006ocam95fl6jein",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888m9z002j2dg9p6dzka1z"
-  },
-  {
-    "id": "cmnmhb7st007lcax4ln38fcta",
-    "budgetDetailId": "cmk888m13000r2dg9p328rjxu",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
-  },
-  {
-    "id": "cmnmhb9le0088cax4wudloai4",
-    "budgetDetailId": "cmk888m2r00132dg9axvcstrr",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmncwypyv002pcam9sidr6edt"
-  },
-  {
-    "id": "cmnmhb837007rcax4cz3biqh1",
-    "budgetDetailId": "cmk888m1h000u2dg9b7k8vvsn",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888m0t000p2dg93paineyi"
-  },
-  {
-    "id": "cmnmhb77x0079cax4ljxltdlm",
-    "budgetDetailId": "cmk888m1s000x2dg9bm0ge5qb",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888m0t000p2dg93paineyi"
-  },
-  {
-    "id": "cmnmhb9vp008ecax46hz3im9v",
-    "budgetDetailId": "cmk888m3b00172dg934kbomnj",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmncwypyv002pcam9sidr6edt"
-  },
-  {
-    "id": "cmnmhbb0u008ucax4th2v65rh",
-    "budgetDetailId": "cmk888m43001c2dg9rkiszwqd",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888m4e001e2dg93e7c8elb"
-  },
-  {
-    "id": "cmnmhbbb90090cax4qcrlitmd",
-    "budgetDetailId": "cmk888m4n001g2dg9d2jnw4qk",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888m4e001e2dg93e7c8elb"
-  },
-  {
-    "id": "cmnmhbc6d009icax49ccxmftq",
-    "budgetDetailId": "cmk888m4y001j2dg9e42lne81",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888m4e001e2dg93e7c8elb"
-  },
-  {
-    "id": "cmnmhbeha00aecax4hxj434lf",
-    "budgetDetailId": "cmnmhbecs00aacax4nnloli36",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmncwyox3001pcam9k8lupzn3"
-  },
-  {
-    "id": "cmnmhbe6k00a6cax4y2cljasv",
-    "budgetDetailId": "cmk888m7z00252dg9u3331aky",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmncwyox3001pcam9k8lupzn3"
-  },
-  {
-    "id": "cmnmhbg7m00b6cax41zb76697",
-    "budgetDetailId": "cmk888ma7002l2dg9j9qhsbbn",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888m9z002j2dg9p6dzka1z"
-  },
-  {
-    "id": "cmnmhbkma00czcax441vf1v7v",
-    "budgetDetailId": "cmncwz5kv007vcam9ol13vl44",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888mda00362dg9v2xppd75"
-  },
-  {
-    "id": "cmnmhb6mp006xcax462zx44k2",
-    "budgetDetailId": "cmk888m0h000n2dg9jmqish1v",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888m0t000p2dg93paineyi"
-  },
-  {
-    "id": "cmnmhbivs00cccax44hoxjumk",
-    "budgetDetailId": "cmk888mbh002u2dg967s1nsmf",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmncwyp9k0021cam9n352iaya"
-  },
-  {
-    "id": "cmnmhbhfl00bmcax473jic1s3",
-    "budgetDetailId": "cmk888mc0002y2dg9epgzr8kh",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmlc0ufc7000728h0wn2kbu8h"
-  },
-  {
-    "id": "cmnmhbmff00dhcax429n8fxow",
-    "budgetDetailId": "cmk888meb003c2dg9eqjy9c3y",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888mel003e2dg94g6z3pr1"
-  },
-  {
-    "id": "cmnmhbmpy00dncax4fee82hcp",
-    "budgetDetailId": "cmk888meu003g2dg9lwzgn2l3",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888mel003e2dg94g6z3pr1"
-  },
-  {
-    "id": "cmnmhbkbw00ctcax49zp2at75",
-    "budgetDetailId": "cmncwz5em007rcam9il9ogot5",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888mda00362dg9v2xppd75"
-  },
   {
     "id": "cmnmhb6xm0073cax4iylkuo74",
     "budgetDetailId": "cmncwyvm8004hcam9rv6qaq8b",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888m0t000p2dg93paineyi"
+    "managerId": "cmk888m0t000p2dg93paineyi",
+    "isActive": true
   },
   {
     "id": "cmnmhbbls0096cax4jkzzg3ub",
     "budgetDetailId": "cmncwyywr005kcam9fjivu81t",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888m4e001e2dg93e7c8elb"
+    "managerId": "cmk888m4e001e2dg93e7c8elb",
+    "isActive": true
   },
   {
     "id": "cmnmhbbw2009ccax4dnx10y87",
     "budgetDetailId": "cmncwyz30005ocam9i4uz6kya",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhbdw700a0cax4v64ys4g3",
     "budgetDetailId": "cmncwz0qv0064cam9pz5h1z0d",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmncwyox3001pcam9k8lupzn3"
+    "managerId": "cmncwyox3001pcam9k8lupzn3",
+    "isActive": true
   },
   {
     "id": "cmnmhbfmq00aucax4vh0ve7k3",
     "budgetDetailId": "cmncwz1zz006kcam9m35nstjr",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888m9z002j2dg9p6dzka1z"
+    "managerId": "cmk888m9z002j2dg9p6dzka1z",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb9le0088cax4wudloai4",
+    "budgetDetailId": "cmk888m2r00132dg9axvcstrr",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmncwypyv002pcam9sidr6edt",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb3rl005zcax48yh5uupp",
+    "budgetDetailId": "cmk888lz0000d2dg9zh63l9tg",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888lzb000f2dg9oea0rnyt",
+    "isActive": true
   },
   {
     "id": "cmnmhbiam00c0cax4bq3skwe0",
     "budgetDetailId": "cmncwz3vl007acam945yzua70",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmncwyp9k0021cam9n352iaya"
+    "managerId": "cmncwyp9k0021cam9n352iaya",
+    "isActive": true
   },
   {
     "id": "cmnmhbil800c6cax4z2mj0wyx",
     "budgetDetailId": "cmncwz41s007ecam9egvsxnq8",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmncwyp9k0021cam9n352iaya"
-  },
-  {
-    "id": "cmnmhb5hs006mcax4dasvwqfp",
-    "budgetDetailId": "cmncwyufc0046cam9t647nnbr",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
-  },
-  {
-    "id": "cmnmhbr7d00fkcax4wf7wj7eu",
-    "budgetDetailId": "cmncwzacl009ccam9wzizi9qz",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmncwyp9k0021cam9n352iaya",
+    "isActive": true
   },
   {
     "id": "cmnmhbqlv00f8cax45chx9pb7",
     "budgetDetailId": "cmncwza0a0096cam9hc6on4gm",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhbso700g1cax4cm40h1i4",
     "budgetDetailId": "cmncwzbjj009ncam9laq0fg0d",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhbtjh00gjcax4cgqjhsq0",
     "budgetDetailId": "cmncwzc24009vcam9dj0o14ca",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhbpqc00eqcax489688rcb",
     "budgetDetailId": "cmk888mgo003s2dg97po0utag",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb837007rcax4cz3biqh1",
+    "budgetDetailId": "cmk888m1h000u2dg9b7k8vvsn",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888m0t000p2dg93paineyi",
+    "isActive": true
   },
   {
     "id": "cmnmhbttv00gpcax4sscoh06h",
     "budgetDetailId": "cmncwzc8d009zcam98wi5pcqo",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhbu4j00gvcax4bgc100yy",
     "budgetDetailId": "cmncwzceh00a3cam94xr5i3mc",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhbq0r00ewcax49hra6649",
     "budgetDetailId": "cmk888mh7003w2dg9sykl0r4b",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhbqbc00f2cax4i6u7wwg3",
     "budgetDetailId": "cmk888mhi003z2dg9ljdpfi92",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhbqwt00fecax4xsdcwy5r",
     "budgetDetailId": "cmk888mht00422dg92xk0iz5o",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhbvl000hpcax4qe9bivmt",
     "budgetDetailId": "cmk888mki004o2dg98hrsvyk5",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhbuex00h1cax496txp9z7",
     "budgetDetailId": "cmncwzckn00a7cam9608io9lb",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhbupf00h7cax4ou3ur69n",
     "budgetDetailId": "cmk888mn9005d2dg9ruh24tga",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb77x0079cax4ljxltdlm",
+    "budgetDetailId": "cmk888m1s000x2dg9bm0ge5qb",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888m0t000p2dg93paineyi",
+    "isActive": true
   },
   {
     "id": "cmnmhbv0300hdcax4y7ik5e1w",
     "budgetDetailId": "cmncwzcwz00adcam93frf3132",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhbw5t00i1cax4m6r3zn1o",
     "budgetDetailId": "cmk888mlg004x2dg9ljusnvsq",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhbxld00iicax4nw4z6lqt",
     "budgetDetailId": "cmk888mot005p2dg90xpaab8k",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
+    "managerId": "cmk888mp3005r2dg90t8kip94",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb9vp008ecax46hz3im9v",
+    "budgetDetailId": "cmk888m3b00172dg934kbomnj",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmncwypyv002pcam9sidr6edt",
+    "isActive": true
   },
   {
     "id": "cmnmhbvvg00hvcax4poiobhqa",
     "budgetDetailId": "cmncwzdg700alcam9vk8c2ter",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbb0u008ucax4th2v65rh",
+    "budgetDetailId": "cmk888m43001c2dg9rkiszwqd",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888m4e001e2dg93e7c8elb",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbbb90090cax4qcrlitmd",
+    "budgetDetailId": "cmk888m4n001g2dg9d2jnw4qk",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888m4e001e2dg93e7c8elb",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbc6d009icax49ccxmftq",
+    "budgetDetailId": "cmk888m4y001j2dg9e42lne81",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888m4e001e2dg93e7c8elb",
+    "isActive": true
   },
   {
     "id": "cmnmhbt9000gdcax4kmktw35f",
     "budgetDetailId": "cmk888mnx005j2dg91ifbmzuw",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb57c006gcax4qdbhq4wd",
+    "budgetDetailId": "cmncwyu940042cam9bio453rp",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhbsdr00fvcax40vcr5zlo",
     "budgetDetailId": "cmk888mm300532dg9fwdot7dx",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhbsyo00g7cax4ytnz4skn",
     "budgetDetailId": "cmk888ml5004u2dg9czmzxfr0",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbeha00aecax4hxj434lf",
+    "budgetDetailId": "cmnmhbecs00aacax4nnloli36",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmncwyox3001pcam9k8lupzn3",
+    "isActive": true
   },
   {
     "id": "cmnmhbvak00hjcax48z1712bo",
     "budgetDetailId": "cmk888mlr00502dg9ltfd0w1v",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhbo9z00e9cax4rqf72zy7",
     "budgetDetailId": "cmncwz8ax008ncam99odrncyw",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mfu003n2dg9th2dsx83"
+    "managerId": "cmk888mfu003n2dg9th2dsx83",
+    "isActive": true
   },
   {
     "id": "cmnmhbygo00j0cax4j5wlpe1k",
     "budgetDetailId": "cmk888mpx005z2dg9c06q3zxo",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
+    "managerId": "cmk888mp3005r2dg90t8kip94",
+    "isActive": true
   },
   {
     "id": "cmnmhbyr100j6cax421elebl2",
     "budgetDetailId": "cmk888mq800622dg9fydpkz9o",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
+    "managerId": "cmk888mp3005r2dg90t8kip94",
+    "isActive": true
   },
   {
     "id": "cmnmhbz1d00jccax4zf51rcun",
     "budgetDetailId": "cmk888mqj00652dg956a12jig",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
+    "managerId": "cmk888mp3005r2dg90t8kip94",
+    "isActive": true
   },
   {
     "id": "cmnmhbzbp00jicax47hlvrs8k",
     "budgetDetailId": "cmk888mqv00682dg9wekhsk9n",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
+    "managerId": "cmk888mp3005r2dg90t8kip94",
+    "isActive": true
   },
   {
     "id": "cmnmhc0rb00k4cax4910t2weo",
     "budgetDetailId": "cmk888ms3006h2dg9s13xzvlv",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
+    "managerId": "cmk888mrv006f2dg9s93dfw6y",
+    "isActive": true
   },
   {
     "id": "cmnmhc1xl00kscax4qff2rghv",
     "budgetDetailId": "cmncwzhmn00bwcam9m1fgpqkq",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
+    "managerId": "cmk888mrv006f2dg9s93dfw6y",
+    "isActive": true
   },
   {
     "id": "cmnmhc11q00kacax4sp1tbp2c",
     "budgetDetailId": "cmk888mse006k2dg952bdujb6",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
+    "managerId": "cmk888mrv006f2dg9s93dfw6y",
+    "isActive": true
   },
   {
     "id": "cmnmhc1c400kgcax4dr84b6go",
     "budgetDetailId": "cmk888msq006n2dg9kzfpq45g",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
+    "managerId": "cmk888mrv006f2dg9s93dfw6y",
+    "isActive": true
   },
   {
     "id": "cmnmhc1n100kmcax4mp04tjm1",
     "budgetDetailId": "cmk888mtb006q2dg9d21s2pji",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
+    "managerId": "cmk888mrv006f2dg9s93dfw6y",
+    "isActive": true
   },
   {
     "id": "cmnmhc28000kycax4yui76uga",
     "budgetDetailId": "cmk888mu7006t2dg9i5s4pn4t",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
+    "managerId": "cmk888mrv006f2dg9s93dfw6y",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb3h7005tcax4v94jphzz",
+    "budgetDetailId": "cmncwysvq003ncam94n1ts460",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888lzb000f2dg9oea0rnyt",
+    "isActive": true
   },
   {
     "id": "cmnmhc3d200lecax4c2k41oti",
     "budgetDetailId": "cmk888muz006y2dg9esntgf8j",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mvb00702dg9ftvxu2cw"
+    "managerId": "cmk888mvb00702dg9ftvxu2cw",
+    "isActive": true
   },
   {
     "id": "cmnmhbnzd00e3cax45vo4qdes",
     "budgetDetailId": "cmk888mfk003l2dg9bp82hgyn",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mfu003n2dg9th2dsx83"
+    "managerId": "cmk888mfu003n2dg9th2dsx83",
+    "isActive": true
   },
   {
     "id": "cmnmhbxvs00iocax4agrledlx",
     "budgetDetailId": "cmk888mpb005t2dg9u24m5eep",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
+    "managerId": "cmk888mp3005r2dg90t8kip94",
+    "isActive": true
   },
   {
     "id": "cmnmhby6500iucax4skr5k7pn",
     "budgetDetailId": "cmk888mpm005w2dg9ldo81v9q",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
+    "managerId": "cmk888mp3005r2dg90t8kip94",
+    "isActive": true
   },
   {
     "id": "cmnmhca9s00oycax4kdl5p7bc",
     "budgetDetailId": "cmncwzn9v00dscam9409q8k2d",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
   },
   {
     "id": "cmnmhc3ne00lkcax4tediz8zw",
     "budgetDetailId": "cmk888mvk00722dg9zvea9wp0",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mvb00702dg9ftvxu2cw"
+    "managerId": "cmk888mvb00702dg9ftvxu2cw",
+    "isActive": true
   },
   {
     "id": "cmnmhc3xq00lqcax44lrm7skq",
     "budgetDetailId": "cmk888mvv00752dg9x2f3rt5e",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mvb00702dg9ftvxu2cw"
+    "managerId": "cmk888mvb00702dg9ftvxu2cw",
+    "isActive": true
   },
   {
     "id": "cmnmhc48300lwcax4os4h1y41",
     "budgetDetailId": "cmk888mw600782dg905ejteey",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mvb00702dg9ftvxu2cw"
+    "managerId": "cmk888mvb00702dg9ftvxu2cw",
+    "isActive": true
   },
   {
     "id": "cmnmhc4ii00m2cax4n0tps2fg",
     "budgetDetailId": "cmk888mwo007b2dg9mw12jbs3",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mvb00702dg9ftvxu2cw"
+    "managerId": "cmk888mvb00702dg9ftvxu2cw",
+    "isActive": true
   },
   {
     "id": "cmnmhc4t000m8cax4tkoqkq8n",
     "budgetDetailId": "cmk888mx1007e2dg9o34outfe",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mvb00702dg9ftvxu2cw"
+    "managerId": "cmk888mvb00702dg9ftvxu2cw",
+    "isActive": true
   },
   {
     "id": "cmnmhc5y400mocax4gek95waa",
     "budgetDetailId": "cmk888mxr007j2dg9f25b6nt2",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
+    "managerId": "cmk888my2007l2dg9ioyduwjm",
+    "isActive": true
   },
   {
     "id": "cmnmhc68i00mucax4uvwcc7n5",
     "budgetDetailId": "cmk888myb007n2dg9brlqj34c",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
+    "managerId": "cmk888my2007l2dg9ioyduwjm",
+    "isActive": true
   },
   {
     "id": "cmnmhc6iy00n0cax4ymy6mnjp",
     "budgetDetailId": "cmk888mym007q2dg9id5c66nj",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
+    "managerId": "cmk888my2007l2dg9ioyduwjm",
+    "isActive": true
   },
   {
     "id": "cmnmhc6ta00n6cax453vdgard",
     "budgetDetailId": "cmk888myy007t2dg91i3j2koy",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
+    "managerId": "cmk888my2007l2dg9ioyduwjm",
+    "isActive": true
   },
   {
     "id": "cmnmhc73q00nccax4z27hlvbg",
     "budgetDetailId": "cmk888mz9007w2dg96zncztn4",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
+    "managerId": "cmk888my2007l2dg9ioyduwjm",
+    "isActive": true
   },
   {
     "id": "cmnmhc7oj00nocax4qbpabji0",
     "budgetDetailId": "cmk888mzl007z2dg9n7t8iy20",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
+    "managerId": "cmk888my2007l2dg9ioyduwjm",
+    "isActive": true
   },
   {
     "id": "cmnmhc8tq00o4cax433zwjxaw",
     "budgetDetailId": "cmk888n0b00842dg9jpqc2lv6",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbe6k00a6cax4y2cljasv",
+    "budgetDetailId": "cmk888m7z00252dg9u3331aky",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmncwyox3001pcam9k8lupzn3",
+    "isActive": true
   },
   {
     "id": "cmnmhc94100oacax4bjcqai6b",
     "budgetDetailId": "cmk888n0m00872dg9o55bgb12",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
   },
   {
     "id": "cmnmhc9ef00ogcax4t96pxnk6",
     "budgetDetailId": "cmk888n0y008a2dg9l0dqo9gr",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
   },
   {
     "id": "cmnmhc9oq00omcax45dci1o7l",
     "budgetDetailId": "cmk888n19008d2dg9vv68ss50",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
   },
   {
     "id": "cmnmhc9z500oscax4kfwxy0ob",
     "budgetDetailId": "cmk888n1k008g2dg904ysvlkt",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
   },
   {
     "id": "cmnmhcak500p4cax4iout3yso",
     "budgetDetailId": "cmk888n1w008j2dg95hw7e48u",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb1ql0051cax4pwjp6dqi",
+    "budgetDetailId": "cmncwyrlo0033cam9quwirzjl",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
   },
   {
     "id": "cmnmhcbp900pkcax47hvvynlh",
     "budgetDetailId": "cmk888n2m008o2dg9dw774qza",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmncwynv8000pcam9808qf4js"
+    "managerId": "cmncwynv8000pcam9808qf4js",
+    "isActive": true
   },
   {
     "id": "cmnmhcbzm00pqcax43yisdvop",
     "budgetDetailId": "cmk888n35008s2dg99ko3niof",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmncwynv8000pcam9808qf4js"
+    "managerId": "cmncwynv8000pcam9808qf4js",
+    "isActive": true
   },
   {
     "id": "cmnmhcc9z00pwcax4aqcjpq4n",
     "budgetDetailId": "cmk888n3g008v2dg90vdjd1gg",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmncwynv8000pcam9808qf4js"
+    "managerId": "cmncwynv8000pcam9808qf4js",
+    "isActive": true
   },
   {
     "id": "cmnmhcckf00q2cax4cmqmrysx",
     "budgetDetailId": "cmk888n3r008y2dg94gd87ymb",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmncwynv8000pcam9808qf4js"
+    "managerId": "cmncwynv8000pcam9808qf4js",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhcdpn00qicax4rle34xrw",
+    "budgetDetailId": "cmk888n4i00932dg915bq6c4u",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888m8900272dg98915y8ih",
+    "isActive": true
   },
   {
     "id": "cmnmhce0300qocax4xpm8gf3b",
     "budgetDetailId": "cmk888n4v00962dg94jyhwq87",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888m8900272dg98915y8ih"
+    "managerId": "cmk888m8900272dg98915y8ih",
+    "isActive": true
   },
   {
     "id": "cmnmhceb000qucax4598vh308",
     "budgetDetailId": "cmk888n5600992dg9bpwwtghh",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888m8900272dg98915y8ih"
+    "managerId": "cmk888m8900272dg98915y8ih",
+    "isActive": true
   },
   {
     "id": "cmnmhcibo00sgcax4vmwbu9m4",
     "budgetDetailId": "cmk888n63009f2dg9fttezph3",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhcjgr00swcax4ajf6cdd2",
     "budgetDetailId": "cmk888n6t009k2dg97lmphlci",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhck1m00t4cax4x45qibgx",
     "budgetDetailId": "cmk888n7b009o2dg98i1f9q46",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhckm800tccax4mgejovq4",
     "budgetDetailId": "cmk888n7t009s2dg9k10cocjb",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhclrh00tscax4fwto928o",
     "budgetDetailId": "cmk888n8t00a02dg9pvdtk3hu",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhcm2300tycax43ks0ikvi",
     "budgetDetailId": "cmk888n9300a32dg907yg0gq5",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbg7m00b6cax41zb76697",
+    "budgetDetailId": "cmk888ma7002l2dg9j9qhsbbn",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888m9z002j2dg9p6dzka1z",
+    "isActive": true
   },
   {
     "id": "cmnmhch6a00rwcax43xomhlgx",
     "budgetDetailId": "cmncwzsef00fecam9izcxeg4z",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb36r005ncax4jp331jfv",
+    "budgetDetailId": "cmncwyspg003jcam9swxpgilz",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888lzb000f2dg9oea0rnyt",
+    "isActive": true
   },
   {
     "id": "cmnmhciw500socax45y2t6olr",
     "budgetDetailId": "cmncwztnf00fwcam95qtwx974",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhchgp00s2cax40ot7mpi7",
     "budgetDetailId": "cmncwzskj00ficam96fyoz3tt",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhcl6t00tkcax41spmlcud",
     "budgetDetailId": "cmncwzvgx00gecam9mi4djqhb",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhchr600s8cax4j5ilxkjs",
     "budgetDetailId": "cmncwzsqu00fmcam90seh92ai",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
-    "id": "cmnmhc7yx00nucax44sa9br0r",
-    "budgetDetailId": "cmncwzloo00dacam9kyd7taoh",
+    "id": "cmnmhbkma00czcax441vf1v7v",
+    "budgetDetailId": "cmncwz5kv007vcam9ol13vl44",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
-  },
-  {
-    "id": "cmnmhbcgt009ocax4x50ix80b",
-    "budgetDetailId": "cmncwyzfc005ucam9dikn1txf",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888m4e001e2dg93e7c8elb"
+    "managerId": "cmk888mda00362dg9v2xppd75",
+    "isActive": true
   },
   {
     "id": "cmnmhcmmr00u6cax443mj7aq7",
     "budgetDetailId": "cmk888n9l00a72dg9kcezf0qo",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhc0h000jycax4hb76kjq3",
     "budgetDetailId": "cmk888mrk006d2dg91xg32jzj",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
+    "managerId": "cmk888mrv006f2dg9s93dfw6y",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb7id007fcax46jbric0i",
+    "budgetDetailId": "cmncwyvyj004ncam9qw4c5wdn",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888m0t000p2dg93paineyi",
+    "isActive": true
   },
   {
     "id": "cmnmhcp8i00v3cax4pldbxhux",
     "budgetDetailId": "cmk888ncm00as2dg99ip3n05g",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhcru800w5cax4v3fxx5ef",
     "budgetDetailId": "cmk888nfq00bg2dg92zvtcla3",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhcnhr00ufcax47fcby7d0",
     "budgetDetailId": "cmk888naa00ac2dg9ye9o5hyi",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhcseu00wdcax4z8iov7vg",
     "budgetDetailId": "cmk888ng800bk2dg9kkzrt575",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhct9y00wvcax4l107i40c",
     "budgetDetailId": "cmk888nh500bt2dg9tqefyek0",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhc7e400nicax4otf2oull",
     "budgetDetailId": "cmncwzlce00d4cam9h43j4rtk",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
+    "managerId": "cmk888my2007l2dg9ioyduwjm",
+    "isActive": true
   },
   {
     "id": "cmnmhcu4z00x9cax4vgnjln3j",
     "budgetDetailId": "cmk888nhn00bx2dg9lfnxtyna",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhcuzv00xicax4sfboykr6",
     "budgetDetailId": "cmk888nid00c22dg9qpbxml7c",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhcw5500xxcax423x8lxan",
     "budgetDetailId": "cmk888nje00ca2dg9ho2h0qw6",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb6mp006xcax462zx44k2",
+    "budgetDetailId": "cmk888m0h000n2dg9jmqish1v",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888m0t000p2dg93paineyi",
+    "isActive": true
   },
   {
     "id": "cmnmhcwzw00y6cax4tw2yqirp",
     "budgetDetailId": "cmk888nk300cf2dg9hlvzg88r",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhczk600yycax446b4c8g9",
     "budgetDetailId": "cmk888nl700cm2dg9rld6xis9",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhcxki00yecax4sv776zwc",
     "budgetDetailId": "cmncx052j00iycam9z4nrgvjo",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhcond00uvcax4hj72sit4",
     "budgetDetailId": "cmk888nc400ao2dg93hmdv8di",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
     "id": "cmnmhcpt300vbcax4kg6shkfe",
     "budgetDetailId": "cmk888nda00ax2dg9djvyuzpr",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhd1a600zmcax4z8s2kcgg",
     "budgetDetailId": "cmk888nm700cu2dg9ofrm2q1w",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhd1uu00zucax4d0furleb",
     "budgetDetailId": "cmk888nmp00cy2dg98n6r3h3o",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhd04r00z6cax4ghvuadqk",
     "budgetDetailId": "cmncx07ax00jicam94gwcy95u",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhd2fh0102cax4ri1azy45",
     "budgetDetailId": "cmk888nn600d22dg9nc484j0e",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
-  },
-  {
-    "id": "cmnmhbwg900i7cax42nm312o9",
-    "budgetDetailId": "cmncwzdsm00arcam93j8y2zdw",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmncwyooh001hcam9ragwy4tn"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhcqdn00vjcax49qlz4104",
     "budgetDetailId": "cmk888ndt00b12dg9q0q9xnqm",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhd304010acax401095662",
     "budgetDetailId": "cmk888nno00d62dg9tkox85og",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhd3v2010ocax4zauhhn1m",
     "budgetDetailId": "cmk888no700da2dg9whylry9k",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhd4px010xcax4r5eub8zh",
     "budgetDetailId": "cmk888npf00dj2dg98rlvh4u2",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhd5ar0115cax4j2kay737",
     "budgetDetailId": "cmk888npx00dn2dg9ixmnoy3b",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhd5vl011dcax4ni8ph8jp",
     "budgetDetailId": "cmk888nqf00dr2dg9jiflgip2",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
-  },
-  {
-    "id": "cmnmhbokk00efcax44uy9g2qh",
-    "budgetDetailId": "cmncwz8h2008rcam9cte3xep6",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888mfu003n2dg9th2dsx83"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhd6qp011rcax48rexl8e4",
     "budgetDetailId": "cmk888nqw00dv2dg906gaa8z7",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbfx500b0cax486r7pfz1",
+    "budgetDetailId": "cmncwz265006ocam95fl6jein",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888m9z002j2dg9p6dzka1z",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbivs00cccax44hoxjumk",
+    "budgetDetailId": "cmk888mbh002u2dg967s1nsmf",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmncwyp9k0021cam9n352iaya",
+    "isActive": true
   },
   {
     "id": "cmnmhcsp900wjcax4qcqlgrpt",
     "budgetDetailId": "cmk888ngj00bn2dg9g5r3arkh",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbhfl00bmcax473jic1s3",
+    "budgetDetailId": "cmk888mc0002y2dg9epgzr8kh",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmlc0ufc7000728h0wn2kbu8h",
+    "isActive": true
   },
   {
     "id": "cmnmhcr9600vxcax4zgl1wjdg",
     "budgetDetailId": "cmk888nf600bc2dg9agwvp3tq",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhcvac00xocax4ughlq688",
     "budgetDetailId": "cmncx035j00iicam9lq0npj25",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhcszk00wpcax4liukvu04",
     "budgetDetailId": "cmk888ngv00bq2dg9j9lpqx0y",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhd0pd00zecax4trp0yoeq",
     "budgetDetailId": "cmk888nlp00cq2dg9gv8x6nl0",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhcqo900vpcax4crulfrl9",
     "budgetDetailId": "cmncwzzqj00hjcam9ffj1izqt",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhco2i00uncax4atn8lp4j",
     "budgetDetailId": "cmncwzxr100gzcam9aqrozss2",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbmff00dhcax429n8fxow",
+    "budgetDetailId": "cmk888meb003c2dg9eqjy9c3y",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888mel003e2dg94g6z3pr1",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbmpy00dncax4fee82hcp",
+    "budgetDetailId": "cmk888meu003g2dg9lwzgn2l3",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888mel003e2dg94g6z3pr1",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb7st007lcax4ln38fcta",
+    "budgetDetailId": "cmk888m13000r2dg9p328rjxu",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhctkc00x1cax4isxkzw8m",
     "budgetDetailId": "cmncx01si00i5cam9tp9153yi",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbkbw00ctcax49zp2at75",
+    "budgetDetailId": "cmncwz5em007rcam9il9ogot5",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888mda00362dg9v2xppd75",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb2180057cax4vy61vwfd",
+    "budgetDetailId": "cmncwyrsr0037cam96hm05si2",
+    "year": 2025,
+    "budgetAmount": 0,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
   },
   {
     "id": "cmnmhcyf700yncax4q0qb5p1i",
     "budgetDetailId": "cmncx05tc00j5cam926txncu4",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhd3af010gcax4np92fmcf",
     "budgetDetailId": "cmncx09qi00k6cam9qc5nj5ba",
     "year": 2025,
     "budgetAmount": 0,
-    "managerId": "cmk878q240008eg3m7shfiopv"
-  },
-  {
-    "id": "cmnmhccuw00q8cax4oz96oam4",
-    "budgetDetailId": "cmncwzp1c00eecam9qq2e48t9",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmncwynv8000pcam9808qf4js"
-  },
-  {
-    "id": "cmnmhcelj00r0cax411jbiq42",
-    "budgetDetailId": "cmncwzqav00escam9t14bxjip",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888m8900272dg98915y8ih"
-  },
-  {
-    "id": "cmnmhbkwn00d5cax4qvjcalpe",
-    "budgetDetailId": "cmncwz5r5007zcam91svf3brn",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888mda00362dg9v2xppd75"
-  },
-  {
-    "id": "cmnmhberm00akcax4vnfnka1i",
-    "budgetDetailId": "cmncwz19i006ccam99zrhb1s9",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmncwyox3001pcam9k8lupzn3"
-  },
-  {
-    "id": "cmnmhbzm000jocax48qp6r2o6",
-    "budgetDetailId": "cmncwzg0w00becam9hywsergz",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
-  },
-  {
-    "id": "cmnmhcauj00pacax4fw9udjwt",
-    "budgetDetailId": "cmncwznm600dycam94jzrrz9k",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmnmhc53a00mecax461l2w2tl",
-    "budgetDetailId": "cmncwzjqz00cmcam9xjbxckez",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888mvb00702dg9ftvxu2cw"
-  },
-  {
-    "id": "cmnmhbgjv00bccax4kn6wbncb",
-    "budgetDetailId": "cmncwz2ik006ucam9wu4ltxuq",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888m9z002j2dg9p6dzka1z"
-  },
-  {
-    "id": "cmnmhc2ib00l4cax4qcjwit59",
-    "budgetDetailId": "cmncwzhz000c2cam9u6ijddx7",
-    "year": 2025,
-    "budgetAmount": 0,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
-  },
-  {
-    "id": "cmnmhb6zp0075cax4z2v2y99v",
-    "budgetDetailId": "cmncwyvm8004hcam9rv6qaq8b",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888m0t000p2dg93paineyi"
-  },
-  {
-    "id": "cmnmhcvcf00xqcax4elakihyt",
-    "budgetDetailId": "cmncx035j00iicam9lq0npj25",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhb7kg007hcax432zi1k9f",
-    "budgetDetailId": "cmncwyvyj004ncam9qw4c5wdn",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888m0t000p2dg93paineyi"
-  },
-  {
-    "id": "cmnmhcxml00ygcax42pxoi35g",
-    "budgetDetailId": "cmncx052j00iycam9z4nrgvjo",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhbsqb00g3cax45ojdaj9e",
-    "budgetDetailId": "cmncwzbjj009ncam9laq0fg0d",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmnmhch8e00rycax4bqz6ti5j",
-    "budgetDetailId": "cmncwzsef00fecam9izcxeg4z",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhctmf00x3cax4qqo4dx55",
-    "budgetDetailId": "cmncx01si00i5cam9tp9153yi",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhchis00s4cax43wbhpzlz",
-    "budgetDetailId": "cmncwzskj00ficam96fyoz3tt",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhbtll00glcax47oz4lq07",
-    "budgetDetailId": "cmncwzc24009vcam9dj0o14ca",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmnmhbbnu0098cax4cx6q0sqg",
-    "budgetDetailId": "cmncwyywr005kcam9fjivu81t",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmnmhbett00amcax4j5jf564v",
-    "budgetDetailId": "cmncwz19i006ccam99zrhb1s9",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888m8900272dg98915y8ih"
-  },
-  {
-    "id": "cmnmhbby3009ecax4uc72vflp",
-    "budgetDetailId": "cmncwyz30005ocam9i4uz6kya",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmnmhbtw200grcax4r0mxtfgf",
-    "budgetDetailId": "cmncwzc8d009zcam98wi5pcqo",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk878q240008eg3m7shfiopv",
+    "isActive": true
   },
   {
     "id": "cmnmhbdya00a2cax4eldr2h08",
     "budgetDetailId": "cmncwz0qv0064cam9pz5h1z0d",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk888m8900272dg98915y8ih"
-  },
-  {
-    "id": "cmnmhbu6m00gxcax4nwmvhqtn",
-    "budgetDetailId": "cmncwzceh00a3cam94xr5i3mc",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888m8900272dg98915y8ih",
+    "isActive": true
   },
   {
     "id": "cmnmhbejd00agcax4vy52xwpo",
     "budgetDetailId": "cmnmhbecs00aacax4nnloli36",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk888m8900272dg98915y8ih"
-  },
-  {
-    "id": "cmnmhbuh400h3cax40ysmytmz",
-    "budgetDetailId": "cmncwzckn00a7cam9608io9lb",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888m8900272dg98915y8ih",
+    "isActive": true
   },
   {
     "id": "cmnmhbfov00awcax4cyzz7k7d",
     "budgetDetailId": "cmncwz1zz006kcam9m35nstjr",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk888m9z002j2dg9p6dzka1z"
-  },
-  {
-    "id": "cmnmhbind00c8cax482zhpi00",
-    "budgetDetailId": "cmncwz41s007ecam9egvsxnq8",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mb9002s2dg9ksfruoa3"
+    "managerId": "cmk888m9z002j2dg9p6dzka1z",
+    "isActive": true
   },
   {
     "id": "cmnmhbfz800b2cax4nq9tvtcs",
     "budgetDetailId": "cmncwz265006ocam95fl6jein",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk888m9z002j2dg9p6dzka1z"
-  },
-  {
-    "id": "cmnmhbv2600hfcax4pgwovxco",
-    "budgetDetailId": "cmncwzcwz00adcam93frf3132",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmnmhbqny00facax4od0zypoa",
-    "budgetDetailId": "cmncwza0a0096cam9hc6on4gm",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmnmhc55c00mgcax44s9yh76u",
-    "budgetDetailId": "cmncwzjqz00cmcam9xjbxckez",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mvb00702dg9ftvxu2cw"
-  },
-  {
-    "id": "cmnmhbvxk00hxcax47mzg8lx6",
-    "budgetDetailId": "cmncwzdg700alcam9vk8c2ter",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888m9z002j2dg9p6dzka1z",
+    "isActive": true
   },
   {
     "id": "cmnmhb59f006icax4112sp8aq",
     "budgetDetailId": "cmncwyu940042cam9bio453rp",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhcl8x00tmcax4rtif5aut",
-    "budgetDetailId": "cmncwzvgx00gecam9mi4djqhb",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
   },
   {
     "id": "cmnmhbkod00d1cax4rzt8is8g",
     "budgetDetailId": "cmncwz5kv007vcam9ol13vl44",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk888mda00362dg9v2xppd75"
-  },
-  {
-    "id": "cmnmhc7g700nkcax4oyr9xagm",
-    "budgetDetailId": "cmncwzlce00d4cam9h43j4rtk",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
-  },
-  {
-    "id": "cmnmhcht800sacax4u1v4n727",
-    "budgetDetailId": "cmncwzsqu00fmcam90seh92ai",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhc81000nwcax4h5wkznh4",
-    "budgetDetailId": "cmncwzloo00dacam9kyd7taoh",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
-  },
-  {
-    "id": "cmnmhbwic00i9cax4twcr91r6",
-    "budgetDetailId": "cmncwzdsm00arcam93j8y2zdw",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmnmhbomo00ehcax4fv3qdhh2",
-    "budgetDetailId": "cmncwz8h2008rcam9cte3xep6",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mfu003n2dg9th2dsx83"
+    "managerId": "cmk888mda00362dg9v2xppd75",
+    "isActive": true
   },
   {
     "id": "cmnmhbicp00c2cax4zs404c91",
     "budgetDetailId": "cmncwz3vl007acam945yzua70",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk888mb9002s2dg9ksfruoa3"
+    "managerId": "cmk888mb9002s2dg9ksfruoa3",
+    "isActive": true
   },
   {
     "id": "cmnmhbkdz00cvcax41hw81zv0",
     "budgetDetailId": "cmncwz5em007rcam9il9ogot5",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk888mda00362dg9v2xppd75"
-  },
-  {
-    "id": "cmk888m3500162dg9xzpjynfk",
-    "budgetDetailId": "cmk888m2r00132dg9axvcstrr",
-    "year": 2026,
-    "budgetAmount": 2500000,
-    "managerId": "cmk888m3200152dg9q760jzth"
-  },
-  {
-    "id": "cmk888m1x000z2dg94s606ka9",
-    "budgetDetailId": "cmk888m1s000x2dg9bm0ge5qb",
-    "year": 2026,
-    "budgetAmount": 150000,
-    "managerId": "cmk888m0t000p2dg93paineyi"
-  },
-  {
-    "id": "cmk888mbc002t2dg9qpb7f1ia",
-    "budgetDetailId": "cmk888may002q2dg9kb6gmfn0",
-    "year": 2026,
-    "budgetAmount": 1360000,
-    "managerId": "cmk888mb9002s2dg9ksfruoa3"
-  },
-  {
-    "id": "cmk888mf0003i2dg9z8zty25i",
-    "budgetDetailId": "cmk888meu003g2dg9lwzgn2l3",
-    "year": 2026,
-    "budgetAmount": 230000,
-    "managerId": "cmk888mel003e2dg94g6z3pr1"
-  },
-  {
-    "id": "cmk888mfy003o2dg9d9bxjjtn",
-    "budgetDetailId": "cmk888mfk003l2dg9bp82hgyn",
-    "year": 2026,
-    "budgetAmount": 1500000,
-    "managerId": "cmk888mfu003n2dg9th2dsx83"
-  },
-  {
-    "id": "cmk888mh2003v2dg9a392t2gl",
-    "budgetDetailId": "cmk888mgo003s2dg97po0utag",
-    "year": 2026,
-    "budgetAmount": 460000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888mry006g2dg9c9vtvti6",
-    "budgetDetailId": "cmk888mrk006d2dg91xg32jzj",
-    "year": 2026,
-    "budgetAmount": 950000,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
-  },
-  {
-    "id": "cmk888mhd003y2dg9lj9fkpqq",
-    "budgetDetailId": "cmk888mh7003w2dg9sykl0r4b",
-    "year": 2026,
-    "budgetAmount": 6400000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888m0w000q2dg9lv1lrbjl",
-    "budgetDetailId": "cmk888m0h000n2dg9jmqish1v",
-    "year": 2026,
-    "budgetAmount": 1780000,
-    "managerId": "cmk888m0t000p2dg93paineyi"
-  },
-  {
-    "id": "cmk888mho00412dg98voejgm0",
-    "budgetDetailId": "cmk888mhi003z2dg9ljdpfi92",
-    "year": 2026,
-    "budgetAmount": 200000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888mhz00442dg9hfrjse6q",
-    "budgetDetailId": "cmk888mht00422dg92xk0iz5o",
-    "year": 2026,
-    "budgetAmount": 180000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888mj3004b2dg9y5dqolxt",
-    "budgetDetailId": "cmk888mip00482dg96svglb17",
-    "year": 2026,
-    "budgetAmount": 180000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888mml00582dg904zqbood",
-    "budgetDetailId": "cmk888mmf00562dg95ws97esu",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888mll004z2dg9rfnnpp1d",
-    "budgetDetailId": "cmk888mlg004x2dg9ljusnvsq",
-    "year": 2026,
-    "budgetAmount": 416000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888mp6005s2dg9mco77l6e",
-    "budgetDetailId": "cmk888mot005p2dg90xpaab8k",
-    "year": 2026,
-    "budgetAmount": 38000,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
-  },
-  {
-    "id": "cmk888mns005i2dg9y2jh8lh3",
-    "budgetDetailId": "cmk888mnm005g2dg96oqf2kk2",
-    "year": 2026,
-    "budgetAmount": 50000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888mm900552dg92u3yxsfq",
-    "budgetDetailId": "cmk888mm300532dg9fwdot7dx",
-    "year": 2026,
-    "budgetAmount": 1800000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888m7100202dg9kloun1ty",
-    "budgetDetailId": "cmk888m6v001y2dg9jau9d9xm",
-    "year": 2026,
-    "budgetAmount": 120000,
-    "managerId": "cmk888m6c001t2dg9o7nzc0t4"
-  },
-  {
-    "id": "cmk888m8n002b2dg95ohmw73k",
-    "budgetDetailId": "cmk888m8h00292dg92j19ymqo",
-    "year": 2026,
-    "budgetAmount": 60000,
-    "managerId": "cmk888m8900272dg98915y8ih"
-  },
-  {
-    "id": "cmk888m6q001x2dg9nhc46vag",
-    "budgetDetailId": "cmk888m6k001v2dg9jyqwo3so",
-    "year": 2026,
-    "budgetAmount": 900000,
-    "managerId": "cmk888m6c001t2dg9o7nzc0t4"
-  },
-  {
-    "id": "cmk888m8y002e2dg9lhplc43q",
-    "budgetDetailId": "cmk888m8s002c2dg9cp7bacuw",
-    "year": 2026,
-    "budgetAmount": 760000,
-    "managerId": "cmk888m8900272dg98915y8ih"
-  },
-  {
-    "id": "cmk888ma2002k2dg970hcm8un",
-    "budgetDetailId": "cmk888m9o002h2dg9keoula27",
-    "year": 2026,
-    "budgetAmount": 200000,
-    "managerId": "cmk888m9z002j2dg9p6dzka1z"
-  },
-  {
-    "id": "cmk888mad002n2dg9bd895adn",
-    "budgetDetailId": "cmk888ma7002l2dg9j9qhsbbn",
-    "year": 2026,
-    "budgetAmount": 110000,
-    "managerId": "cmk888m9z002j2dg9p6dzka1z"
-  },
-  {
-    "id": "cmk888mlx00522dg91t7ottz9",
-    "budgetDetailId": "cmk888mlr00502dg9ltfd0w1v",
-    "year": 2026,
-    "budgetAmount": 240000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888mbn002w2dg9t8mgnjcl",
-    "budgetDetailId": "cmk888mbh002u2dg967s1nsmf",
-    "year": 2026,
-    "budgetAmount": 60000,
-    "managerId": "cmk888mb9002s2dg9ksfruoa3"
-  },
-  {
-    "id": "cmk888mph005v2dg98s8r54nv",
-    "budgetDetailId": "cmk888mpb005t2dg9u24m5eep",
-    "year": 2026,
-    "budgetAmount": 360000,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
-  },
-  {
-    "id": "cmk888mps005y2dg9qyhj9qki",
-    "budgetDetailId": "cmk888mpm005w2dg9ldo81v9q",
-    "year": 2026,
-    "budgetAmount": 600000,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
-  },
-  {
-    "id": "cmk888ms9006j2dg9sj7hy8xq",
-    "budgetDetailId": "cmk888ms3006h2dg9s13xzvlv",
-    "year": 2026,
-    "budgetAmount": 260000,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
-  },
-  {
-    "id": "cmk888msk006m2dg976r582c8",
-    "budgetDetailId": "cmk888mse006k2dg952bdujb6",
-    "year": 2026,
-    "budgetAmount": 1000000,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
-  },
-  {
-    "id": "cmk888lzo000j2dg921loj6n2",
-    "budgetDetailId": "cmk888lzj000h2dg96o1spyng",
-    "year": 2026,
-    "budgetAmount": 450000,
-    "managerId": "cmk888lzb000f2dg9oea0rnyt"
-  },
-  {
-    "id": "cmk888mq300612dg96ea2rs11",
-    "budgetDetailId": "cmk888mpx005z2dg9c06q3zxo",
-    "year": 2026,
-    "budgetAmount": 270000,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
-  },
-  {
-    "id": "cmk888mqe00642dg98v2uwa9z",
-    "budgetDetailId": "cmk888mq800622dg9fydpkz9o",
-    "year": 2026,
-    "budgetAmount": 950000,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
-  },
-  {
-    "id": "cmk888mqp00672dg982fyn2qc",
-    "budgetDetailId": "cmk888mqj00652dg956a12jig",
-    "year": 2026,
-    "budgetAmount": 50000,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
-  },
-  {
-    "id": "cmk888mr0006a2dg9a9nxzat8",
-    "budgetDetailId": "cmk888mqv00682dg9wekhsk9n",
-    "year": 2026,
-    "budgetAmount": 660000,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
-  },
-  {
-    "id": "cmk888mje004e2dg90dv07meu",
-    "budgetDetailId": "cmk888mj8004c2dg9di8znom0",
-    "year": 2026,
-    "budgetAmount": 245000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888mk2004k2dg9ncl1wvmf",
-    "budgetDetailId": "cmk888mjx004i2dg9tmk42szu",
-    "year": 2026,
-    "budgetAmount": 150000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888mkd004n2dg9oddbvyaf",
-    "budgetDetailId": "cmk888mk7004l2dg94d646uv4",
-    "year": 2026,
-    "budgetAmount": 450000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888ml0004t2dg9w2nfj5vq",
-    "budgetDetailId": "cmk888mku004r2dg92b5077r7",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888mlb004w2dg9wia00ig3",
-    "budgetDetailId": "cmk888ml5004u2dg9czmzxfr0",
-    "year": 2026,
-    "budgetAmount": 480000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888lya000a2dg97cyixf1h",
-    "budgetDetailId": "cmk888lxv00072dg9maye7e9a",
-    "year": 2026,
-    "budgetAmount": 2250000,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmk888lzd000g2dg9afm5goyi",
-    "budgetDetailId": "cmk888lz0000d2dg9zh63l9tg",
-    "year": 2026,
-    "budgetAmount": 84000,
-    "managerId": "cmk888lzb000f2dg9oea0rnyt"
-  },
-  {
-    "id": "cmk888m1n000w2dg9dxpq9gpa",
-    "budgetDetailId": "cmk888m1h000u2dg9b7k8vvsn",
-    "year": 2026,
-    "budgetAmount": 72000,
-    "managerId": "cmk888m0t000p2dg93paineyi"
-  },
-  {
-    "id": "cmk888mn4005c2dg9gc6pmkxk",
-    "budgetDetailId": "cmk888mmy005a2dg9fiftow4h",
-    "year": 2026,
-    "budgetAmount": 1200000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888m3i00192dg9felbf4ui",
-    "budgetDetailId": "cmk888m3b00172dg934kbomnj",
-    "year": 2026,
-    "budgetAmount": 96000,
-    "managerId": "cmk888m3200152dg9q760jzth"
-  },
-  {
-    "id": "cmk888mo2005l2dg915q0d4sj",
-    "budgetDetailId": "cmk888mnx005j2dg91ifbmzuw",
-    "year": 2026,
-    "budgetAmount": 720000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888m4t001i2dg90ugmc13f",
-    "budgetDetailId": "cmk888m4n001g2dg9d2jnw4qk",
-    "year": 2026,
-    "budgetAmount": 12110000,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmk888m54001l2dg9pb5goqfu",
-    "budgetDetailId": "cmk888m4y001j2dg9e42lne81",
-    "year": 2026,
-    "budgetAmount": 3600000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888m5f001o2dg9cietug06",
-    "budgetDetailId": "cmk888m59001m2dg97hfk671q",
-    "year": 2026,
-    "budgetAmount": 800000,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmk888m6e001u2dg9pi0xac1r",
-    "budgetDetailId": "cmk888m61001r2dg92z3px1ko",
-    "year": 2026,
-    "budgetAmount": 300000,
-    "managerId": "cmk888m6c001t2dg9o7nzc0t4"
-  },
-  {
-    "id": "cmk888mng005f2dg9j89gxsjn",
-    "budgetDetailId": "cmk888mn9005d2dg9ruh24tga",
-    "year": 2026,
-    "budgetAmount": 100000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888mcd00312dg96b5sphc0",
-    "budgetDetailId": "cmk888mc0002y2dg9epgzr8kh",
-    "year": 2026,
-    "budgetAmount": 120000,
-    "managerId": "cmk888mcb00302dg99h11phub"
-  },
-  {
-    "id": "cmk888mjr004h2dg9jtu9nq4o",
-    "budgetDetailId": "cmk888mjl004f2dg9xhfw3aix",
-    "year": 2026,
-    "budgetAmount": 450000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888meo003f2dg9t61cp1zk",
-    "budgetDetailId": "cmk888meb003c2dg9eqjy9c3y",
-    "year": 2026,
-    "budgetAmount": 1800000,
-    "managerId": "cmk888mel003e2dg94g6z3pr1"
-  },
-  {
-    "id": "cmnmzmp990005ca5mkqu0ftd1",
-    "budgetDetailId": "cmnmzmosk0001ca5ms7co09hd",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mcb00302dg99h11phub"
-  },
-  {
-    "id": "cmk888mue006v2dg95alxa2zt",
-    "budgetDetailId": "cmk888mu7006t2dg9i5s4pn4t",
-    "year": 2026,
-    "budgetAmount": 60000,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
-  },
-  {
-    "id": "cmk888mvf00712dg9kvdcm28s",
-    "budgetDetailId": "cmk888muz006y2dg9esntgf8j",
-    "year": 2026,
-    "budgetAmount": 460000,
-    "managerId": "cmk888mvb00702dg9ftvxu2cw"
-  },
-  {
-    "id": "cmk888mvq00742dg9p4siap7q",
-    "budgetDetailId": "cmk888mvk00722dg9zvea9wp0",
-    "year": 2026,
-    "budgetAmount": 234000,
-    "managerId": "cmk888mvb00702dg9ftvxu2cw"
-  },
-  {
-    "id": "cmk888mw100772dg9gxdwcuqm",
-    "budgetDetailId": "cmk888mvv00752dg9x2f3rt5e",
-    "year": 2026,
-    "budgetAmount": 687000,
-    "managerId": "cmk888mvb00702dg9ftvxu2cw"
-  },
-  {
-    "id": "cmk888mwd007a2dg96mp36hkp",
-    "budgetDetailId": "cmk888mw600782dg905ejteey",
-    "year": 2026,
-    "budgetAmount": 140000,
-    "managerId": "cmk888mvb00702dg9ftvxu2cw"
-  },
-  {
-    "id": "cmk888mwv007d2dg99yfjrens",
-    "budgetDetailId": "cmk888mwo007b2dg9mw12jbs3",
-    "year": 2026,
-    "budgetAmount": 1330000,
-    "managerId": "cmk888mvb00702dg9ftvxu2cw"
-  },
-  {
-    "id": "cmk888my5007m2dg9prwtqmho",
-    "budgetDetailId": "cmk888mxr007j2dg9f25b6nt2",
-    "year": 2026,
-    "budgetAmount": 332000,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
-  },
-  {
-    "id": "cmk888myh007p2dg9u8pbt3yh",
-    "budgetDetailId": "cmk888myb007n2dg9brlqj34c",
-    "year": 2026,
-    "budgetAmount": 474000,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
-  },
-  {
-    "id": "cmk888mys007s2dg9wd9ppqyq",
-    "budgetDetailId": "cmk888mym007q2dg9id5c66nj",
-    "year": 2026,
-    "budgetAmount": 1200000,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
-  },
-  {
-    "id": "cmk888mz4007v2dg99xteq2xh",
-    "budgetDetailId": "cmk888myy007t2dg91i3j2koy",
-    "year": 2026,
-    "budgetAmount": 190000,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
-  },
-  {
-    "id": "cmk888mzg007y2dg9le7bghea",
-    "budgetDetailId": "cmk888mz9007w2dg96zncztn4",
-    "year": 2026,
-    "budgetAmount": 1550000,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
-  },
-  {
-    "id": "cmk888mzr00812dg9yqq1lvsh",
-    "budgetDetailId": "cmk888mzl007z2dg9n7t8iy20",
-    "year": 2026,
-    "budgetAmount": 48000,
-    "managerId": "cmk888my2007l2dg9ioyduwjm"
-  },
-  {
-    "id": "cmk888n0h00862dg9e6dg61zj",
-    "budgetDetailId": "cmk888n0b00842dg9jpqc2lv6",
-    "year": 2026,
-    "budgetAmount": 21000,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmk888n0s00892dg99j9sauco",
-    "budgetDetailId": "cmk888n0m00872dg9o55bgb12",
-    "year": 2026,
-    "budgetAmount": 599000,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmk888n13008c2dg9ehrp7clr",
-    "budgetDetailId": "cmk888n0y008a2dg9l0dqo9gr",
-    "year": 2026,
-    "budgetAmount": 3600000,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmk888n1f008f2dg9zk1qv2gb",
-    "budgetDetailId": "cmk888n19008d2dg9vv68ss50",
-    "year": 2026,
-    "budgetAmount": 240000,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmk888n1r008i2dg9zl5qkheq",
-    "budgetDetailId": "cmk888n1k008g2dg904ysvlkt",
-    "year": 2026,
-    "budgetAmount": 1234000,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmk888n22008l2dg9tur34psr",
-    "budgetDetailId": "cmk888n1w008j2dg95hw7e48u",
-    "year": 2026,
-    "budgetAmount": 72000,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmk888n30008r2dg97cav9uog",
-    "budgetDetailId": "cmk888n2m008o2dg9dw774qza",
-    "year": 2026,
-    "budgetAmount": 100000,
-    "managerId": "cmk888n2x008q2dg9jehsp6ka"
-  },
-  {
-    "id": "cmk888mty006s2dg9q0bcrvv6",
-    "budgetDetailId": "cmk888mtb006q2dg9d21s2pji",
-    "year": 2026,
-    "budgetAmount": 1100000,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
-  },
-  {
-    "id": "cmk888msy006p2dg9hytula2u",
-    "budgetDetailId": "cmk888msq006n2dg9kzfpq45g",
-    "year": 2026,
-    "budgetAmount": 130000,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
-  },
-  {
-    "id": "cmk888n3b008u2dg9oui6wji5",
-    "budgetDetailId": "cmk888n35008s2dg99ko3niof",
-    "year": 2026,
-    "budgetAmount": 200000,
-    "managerId": "cmk888n2x008q2dg9jehsp6ka"
-  },
-  {
-    "id": "cmk888n3m008x2dg9l3qvv4cp",
-    "budgetDetailId": "cmk888n3g008v2dg90vdjd1gg",
-    "year": 2026,
-    "budgetAmount": 1650000,
-    "managerId": "cmk888n2x008q2dg9jehsp6ka"
-  },
-  {
-    "id": "cmk888n3x00902dg95i09rmuz",
-    "budgetDetailId": "cmk888n3r008y2dg94gd87ymb",
-    "year": 2026,
-    "budgetAmount": 120000,
-    "managerId": "cmk888n2x008q2dg9jehsp6ka"
-  },
-  {
-    "id": "cmk888n4p00952dg99tohmth5",
-    "budgetDetailId": "cmk888n4i00932dg915bq6c4u",
-    "year": 2026,
-    "budgetAmount": 300000,
-    "managerId": "cmkmp8uj600002eknmyzv4lb0"
-  },
-  {
-    "id": "cmk888n5100982dg91ykreqe4",
-    "budgetDetailId": "cmk888n4v00962dg94jyhwq87",
-    "year": 2026,
-    "budgetAmount": 680000,
-    "managerId": "cmkmp8uj600002eknmyzv4lb0"
-  },
-  {
-    "id": "cmk888n5c009b2dg9lf62o25s",
-    "budgetDetailId": "cmk888n5600992dg9bpwwtghh",
-    "year": 2026,
-    "budgetAmount": 84000,
-    "managerId": "cmkmp8uj600002eknmyzv4lb0"
-  },
-  {
-    "id": "cmk888n69009h2dg9en3qj18p",
-    "budgetDetailId": "cmk888n63009f2dg9fttezph3",
-    "year": 2026,
-    "budgetAmount": 1500000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nbr00am2dg9bkzwfhoq",
-    "budgetDetailId": "cmk888nbl00ak2dg9kne99m0j",
-    "year": 2026,
-    "budgetAmount": 600000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nca00aq2dg9duzuk7dj",
-    "budgetDetailId": "cmk888nc400ao2dg93hmdv8di",
-    "year": 2026,
-    "budgetAmount": 300000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888n6z009m2dg9zdog7uy9",
-    "budgetDetailId": "cmk888n6t009k2dg97lmphlci",
-    "year": 2026,
-    "budgetAmount": 3000000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888n7h009q2dg9z16jyusb",
-    "budgetDetailId": "cmk888n7b009o2dg98i1f9q46",
-    "year": 2026,
-    "budgetAmount": 35000000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888n7z009u2dg9mshypuqy",
-    "budgetDetailId": "cmk888n7t009s2dg9k10cocjb",
-    "year": 2026,
-    "budgetAmount": 3000000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nfd00be2dg9v3dd1j55",
-    "budgetDetailId": "cmk888nf600bc2dg9agwvp3tq",
-    "year": 2026,
-    "budgetAmount": 250000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888n8h009y2dg9few93tu3",
-    "budgetDetailId": "cmk888n8b009w2dg9ponj4dq0",
-    "year": 2026,
-    "budgetAmount": 1000000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888n8y00a22dg9z67yxu5o",
-    "budgetDetailId": "cmk888n8t00a02dg9pvdtk3hu",
-    "year": 2026,
-    "budgetAmount": 30440000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888n9800a52dg9f8q1ip7e",
-    "budgetDetailId": "cmk888n9300a32dg907yg0gq5",
-    "year": 2026,
-    "budgetAmount": 2561400,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888n9r00a92dg959lexg1m",
-    "budgetDetailId": "cmk888n9l00a72dg9kcezf0qo",
-    "year": 2026,
-    "budgetAmount": 48465000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888naq00ae2dg9lqq47e81",
-    "budgetDetailId": "cmk888naa00ac2dg9ye9o5hyi",
-    "year": 2026,
-    "budgetAmount": 960000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nb800ai2dg9ko2qlno2",
-    "budgetDetailId": "cmk888nb300ag2dg9xt7bij80",
-    "year": 2026,
-    "budgetAmount": 600000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888njk00cc2dg9ffoy891t",
-    "budgetDetailId": "cmk888nje00ca2dg9ho2h0qw6",
-    "year": 2026,
-    "budgetAmount": 15000000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888ncr00au2dg9u46l8i6e",
-    "budgetDetailId": "cmk888ncm00as2dg99ip3n05g",
-    "year": 2026,
-    "budgetAmount": 4400000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888ndg00az2dg9m1s2jtuz",
-    "budgetDetailId": "cmk888nda00ax2dg9djvyuzpr",
-    "year": 2026,
-    "budgetAmount": 1557500,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888ndy00b32dg9xxi9xd6e",
-    "budgetDetailId": "cmk888ndt00b12dg9q0q9xnqm",
-    "year": 2026,
-    "budgetAmount": 3000000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888neh00b72dg95ysrlsw6",
-    "budgetDetailId": "cmk888neb00b52dg93lviztow",
-    "year": 2026,
-    "budgetAmount": 120000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nge00bm2dg9zgs1pyvr",
-    "budgetDetailId": "cmk888ng800bk2dg9kkzrt575",
-    "year": 2026,
-    "budgetAmount": 1320000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888ngq00bp2dg9ahtd7lfb",
-    "budgetDetailId": "cmk888ngj00bn2dg9g5r3arkh",
-    "year": 2026,
-    "budgetAmount": 500000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nhb00bv2dg9pldnv2wm",
-    "budgetDetailId": "cmk888nh500bt2dg9tqefyek0",
-    "year": 2026,
-    "budgetAmount": 1781949,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nht00bz2dg99w41h4ct",
-    "budgetDetailId": "cmk888nhn00bx2dg9lfnxtyna",
-    "year": 2026,
-    "budgetAmount": 440000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nii00c42dg9h5fifzza",
-    "budgetDetailId": "cmk888nid00c22dg9qpbxml7c",
-    "year": 2026,
-    "budgetAmount": 5500000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888niu00c72dg9vif8jlkv",
-    "budgetDetailId": "cmk888nio00c52dg9sta2rirv",
-    "year": 2026,
-    "budgetAmount": 800000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nk900ch2dg9p2y7q657",
-    "budgetDetailId": "cmk888nk300cf2dg9hlvzg88r",
-    "year": 2026,
-    "budgetAmount": 12200000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nld00co2dg90spd7ixd",
-    "budgetDetailId": "cmk888nl700cm2dg9rld6xis9",
-    "year": 2026,
-    "budgetAmount": 69538000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmzrzge0005cab2y6vhvbkr",
-    "budgetDetailId": "cmnmzrz080001cab2x5pzvtb5",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhbkyp00d7cax413x460k7",
-    "budgetDetailId": "cmncwz5r5007zcam91svf3brn",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mda00362dg9v2xppd75"
-  },
-  {
-    "id": "cmk888nnc00d42dg94lbkaw7l",
-    "budgetDetailId": "cmk888nn600d22dg9nc484j0e",
-    "year": 2026,
-    "budgetAmount": 7000000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nnv00d82dg9b24zr2dp",
-    "budgetDetailId": "cmk888nno00d62dg9tkox85og",
-    "year": 2026,
-    "budgetAmount": 4000000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nod00dc2dg9o2bgb56u",
-    "budgetDetailId": "cmk888no700da2dg9whylry9k",
-    "year": 2026,
-    "budgetAmount": 9040000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nov00dg2dg98zen5eux",
-    "budgetDetailId": "cmk888nop00de2dg9cscal610",
-    "year": 2026,
-    "budgetAmount": 7500000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888npl00dl2dg99rbmueyf",
-    "budgetDetailId": "cmk888npf00dj2dg98rlvh4u2",
-    "year": 2026,
-    "budgetAmount": 30100000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhbcix009qcax4n9yptcdu",
-    "budgetDetailId": "cmncwyzfc005ucam9dikn1txf",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmnmhb23c0059cax4yhf8cown",
-    "budgetDetailId": "cmncwyrsr0037cam96hm05si2",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmk888m4h001f2dg9m1jcmha1",
-    "budgetDetailId": "cmk888m43001c2dg9rkiszwqd",
-    "year": 2026,
-    "budgetAmount": 19400000,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmk888nq200dp2dg92bh7flng",
-    "budgetDetailId": "cmk888npx00dn2dg9ixmnoy3b",
-    "year": 2026,
-    "budgetAmount": 3549000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nqk00dt2dg92bledjjo",
-    "budgetDetailId": "cmk888nqf00dr2dg9jiflgip2",
-    "year": 2026,
-    "budgetAmount": 2400000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nr200dx2dg999emg3w6",
-    "budgetDetailId": "cmk888nqw00dv2dg906gaa8z7",
-    "year": 2026,
-    "budgetAmount": 22406000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhcabv00p0cax45yaqkmwn",
-    "budgetDetailId": "cmncwzn9v00dscam9409q8k2d",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmnvffjb3004xgs1qswqeh017",
-    "budgetDetailId": "cmnvffjas004vgs1qs0uw2kui",
-    "year": 2026,
-    "budgetAmount": 720000,
-    "managerId": "cmk888mda00362dg9v2xppd75"
-  },
-  {
-    "id": "cmoefkkkj004vln28mdfba6y0",
-    "budgetDetailId": "cmoefkkk9004tln28o6f0hujf",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhb5jw006ocax4zd19w6x4",
-    "budgetDetailId": "cmncwyufc0046cam9t647nnbr",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhbzo300jqcax41jklbp1s",
-    "budgetDetailId": "cmncwzg0w00becam9hywsergz",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mp3005r2dg90t8kip94"
-  },
-  {
-    "id": "cmk888m8c00282dg9djyu82fk",
-    "budgetDetailId": "cmk888m7z00252dg9u3331aky",
-    "year": 2026,
-    "budgetAmount": 300000,
-    "managerId": "cmk888m8900272dg98915y8ih"
-  },
-  {
-    "id": "cmk888mko004q2dg91m03ki85",
-    "budgetDetailId": "cmk888mki004o2dg98hrsvyk5",
-    "year": 2026,
-    "budgetAmount": 1050000,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
-  },
-  {
-    "id": "cmk888mx7007g2dg96npgazi8",
-    "budgetDetailId": "cmk888mx1007e2dg9o34outfe",
-    "year": 2026,
-    "budgetAmount": 48000,
-    "managerId": "cmk888mvb00702dg9ftvxu2cw"
-  },
-  {
-    "id": "cmk888net00ba2dg95qmokrti",
-    "budgetDetailId": "cmk888nen00b82dg9fptibgaz",
-    "year": 2026,
-    "budgetAmount": 72000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nfw00bi2dg97vzsb1cm",
-    "budgetDetailId": "cmk888nfq00bg2dg92zvtcla3",
-    "year": 2026,
-    "budgetAmount": 250000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nlu00cs2dg9cmtbmowl",
-    "budgetDetailId": "cmk888nlp00cq2dg9gv8x6nl0",
-    "year": 2026,
-    "budgetAmount": 58476000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nmc00cw2dg9mbkezyr9",
-    "budgetDetailId": "cmk888nm700cu2dg9ofrm2q1w",
-    "year": 2026,
-    "budgetAmount": 14526000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhb38w005pcax4617dchi4",
-    "budgetDetailId": "cmncwyspg003jcam9swxpgilz",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888lzb000f2dg9oea0rnyt"
-  },
-  {
-    "id": "cmk888nmu00d02dg91ati9ap2",
-    "budgetDetailId": "cmk888nmp00cy2dg98n6r3h3o",
-    "year": 2026,
-    "budgetAmount": 16277000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhccwz00qacax4l5lzfpep",
-    "budgetDetailId": "cmncwzp1c00eecam9qq2e48t9",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888n2x008q2dg9jehsp6ka"
-  },
-  {
-    "id": "cmk888nrs00e22dg9vbqk0325",
-    "budgetDetailId": "cmk888nrm00e02dg9gai2yn93",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhb8fn007zcax4oq9n2xq3",
-    "budgetDetailId": "cmncwywh0004vcam99f92xlm3",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888m0t000p2dg93paineyi"
-  },
-  {
-    "id": "cmk888ns200e52dg94ohqvarb",
-    "budgetDetailId": "cmk888nrx00e32dg933bfrfr3",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmk888nh000bs2dg9dsqlck46",
-    "budgetDetailId": "cmk888ngv00bq2dg9j9lpqx0y",
-    "year": 2026,
-    "budgetAmount": 234000,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmldfn2v7001i27fx1qt6gi2z",
-    "budgetDetailId": "cmldfn2v0001h27fxlw0ewh3m",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhba88008mcax4jeb9jh5w",
-    "budgetDetailId": "cmncwyxu10058cam9uaqo8ssd",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888m3200152dg9q760jzth"
-  },
-  {
-    "id": "cmnmhc2kd00l6cax4zsp6qvk6",
-    "budgetDetailId": "cmncwzhz000c2cam9u6ijddx7",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
-  },
-  {
-    "id": "cmnmhc1zo00kucax4kb9hirbq",
-    "budgetDetailId": "cmncwzhmn00bwcam9m1fgpqkq",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mrv006f2dg9s93dfw6y"
-  },
-  {
-    "id": "cmnmhb4480067cax4zoe0uvus",
-    "budgetDetailId": "cmncwyt83003tcam9oxl633re",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888lzb000f2dg9oea0rnyt"
-  },
-  {
-    "id": "cmnmhb1sw0053cax417y3h9ka",
-    "budgetDetailId": "cmncwyrlo0033cam9quwirzjl",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
-  },
-  {
-    "id": "cmk888m1b000t2dg9txi034ni",
-    "budgetDetailId": "cmk888m13000r2dg9p328rjxu",
-    "year": 2026,
-    "budgetAmount": 5797440,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhb3ja005vcax4mr5ekhr5",
-    "budgetDetailId": "cmncwysvq003ncam94n1ts460",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888lzb000f2dg9oea0rnyt"
+    "managerId": "cmk888mda00362dg9v2xppd75",
+    "isActive": true
   },
   {
     "id": "cmnmhboc200ebcax46ba5zr72",
     "budgetDetailId": "cmncwz8ax008ncam99odrncyw",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk888mfu003n2dg9th2dsx83"
+    "managerId": "cmk888mfu003n2dg9th2dsx83",
+    "isActive": true
   },
   {
-    "id": "cmnluca8f005iiv28pgvuc5st",
-    "budgetDetailId": "cmncwztnf00fwcam95qtwx974",
+    "id": "cmnmhbsqb00g3cax45ojdaj9e",
+    "budgetDetailId": "cmncwzbjj009ncam9laq0fg0d",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
-    "id": "cmnluczsv005kiv28vk33zydf",
-    "budgetDetailId": "cmncx05tc00j5cam926txncu4",
+    "id": "cmnmhbtll00glcax47oz4lq07",
+    "budgetDetailId": "cmncwzc24009vcam9dj0o14ca",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
-    "id": "cmnlu0l4d0054iv28wvr8jb2m",
-    "budgetDetailId": "cmncx09qi00k6cam9qc5nj5ba",
+    "id": "cmnmhbtw200grcax4r0mxtfgf",
+    "budgetDetailId": "cmncwzc8d009zcam98wi5pcqo",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
-    "id": "cmnmhceno00r2cax41jnrqk8i",
-    "budgetDetailId": "cmncwzqav00escam9t14bxjip",
+    "id": "cmnmhbu6m00gxcax4nwmvhqtn",
+    "budgetDetailId": "cmncwzceh00a3cam94xr5i3mc",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmkmp8uj600002eknmyzv4lb0"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
-    "id": "cmnmhb2ds005fcax40j0v4hhc",
-    "budgetDetailId": "cmncwyryy003bcam94dkhunc6",
+    "id": "cmnmhbuh400h3cax40ysmytmz",
+    "budgetDetailId": "cmncwzckn00a7cam9608io9lb",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
-    "id": "cmnmhbr9i00fmcax43md9pp3r",
-    "budgetDetailId": "cmncwzacl009ccam9wzizi9qz",
+    "id": "cmnmhbv2600hfcax4pgwovxco",
+    "budgetDetailId": "cmncwzcwz00adcam93frf3132",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk888mj0004a2dg909o9xcpd"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
-    "id": "cmnmhbhs100bucax4pxomoypt",
-    "budgetDetailId": "cmncwz3fd0074cam9j0xttko6",
+    "id": "cmnmhbvxk00hxcax47mzg8lx6",
+    "budgetDetailId": "cmncwzdg700alcam9vk8c2ter",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk888mb9002s2dg9ksfruoa3"
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
   },
   {
-    "id": "cmnmhcawm00pccax4q1mj9ebg",
-    "budgetDetailId": "cmncwznm600dycam94jzrrz9k",
+    "id": "cmnmhc1zo00kucax4kb9hirbq",
+    "budgetDetailId": "cmncwzhmn00bwcam9m1fgpqkq",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk888ly700092dg9phxe7mv4"
+    "managerId": "cmk888mrv006f2dg9s93dfw6y",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhc7g700nkcax4oyr9xagm",
+    "budgetDetailId": "cmncwzlce00d4cam9h43j4rtk",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk888my2007l2dg9ioyduwjm",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhcabv00p0cax45yaqkmwn",
+    "budgetDetailId": "cmncwzn9v00dscam9409q8k2d",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhch8e00rycax4bqz6ti5j",
+    "budgetDetailId": "cmncwzsef00fecam9izcxeg4z",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhchis00s4cax43wbhpzlz",
+    "budgetDetailId": "cmncwzskj00ficam96fyoz3tt",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhcl8x00tmcax4rtif5aut",
+    "budgetDetailId": "cmncwzvgx00gecam9mi4djqhb",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nh000bs2dg9dsqlck46",
+    "budgetDetailId": "cmk888ngv00bq2dg9j9lpqx0y",
+    "year": 2026,
+    "budgetAmount": 234000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhctmf00x3cax4qqo4dx55",
+    "budgetDetailId": "cmncx01si00i5cam9tp9153yi",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbind00c8cax482zhpi00",
+    "budgetDetailId": "cmncwz41s007ecam9egvsxnq8",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk888mb9002s2dg9ksfruoa3",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbqny00facax4od0zypoa",
+    "budgetDetailId": "cmncwza0a0096cam9hc6on4gm",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhcht800sacax4u1v4n727",
+    "budgetDetailId": "cmncwzsqu00fmcam90seh92ai",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
   },
   {
     "id": "cmnmhcqqo00vrcax4bl9exuve",
     "budgetDetailId": "cmncwzzqj00hjcam9ffj1izqt",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
-  },
-  {
-    "id": "cmnmhbn2u00dvcax4mcowqsxe",
-    "budgetDetailId": "cmncwz7eb008dcam95idy75eq",
-    "year": 2026,
-    "budgetAmount": 0,
-    "managerId": "cmk888mel003e2dg94g6z3pr1"
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
   },
   {
     "id": "cmnmhco4l00upcax4s0k160p3",
     "budgetDetailId": "cmncwzxr100gzcam9aqrozss2",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
   },
   {
     "id": "cmnmhd06t00z8cax4s88mssl8",
     "budgetDetailId": "cmncx07ax00jicam94gwcy95u",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk878q79000aeg3mqlt9wl3t"
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
   },
   {
-    "id": "cmnmhbgmf00becax4xiavdpra",
-    "budgetDetailId": "cmncwz2ik006ucam9wu4ltxuq",
+    "id": "cmnmhcvcf00xqcax4elakihyt",
+    "budgetDetailId": "cmncx035j00iicam9lq0npj25",
     "year": 2026,
     "budgetAmount": 0,
-    "managerId": "cmk888m9z002j2dg9p6dzka1z"
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhcxml00ygcax42pxoi35g",
+    "budgetDetailId": "cmncx052j00iycam9z4nrgvjo",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbby3009ecax4uc72vflp",
+    "budgetDetailId": "cmncwyz30005ocam9i4uz6kya",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m3500162dg9xzpjynfk",
+    "budgetDetailId": "cmk888m2r00132dg9axvcstrr",
+    "year": 2026,
+    "budgetAmount": 2500000,
+    "managerId": "cmk888m3200152dg9q760jzth",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m1x000z2dg94s606ka9",
+    "budgetDetailId": "cmk888m1s000x2dg9bm0ge5qb",
+    "year": 2026,
+    "budgetAmount": 150000,
+    "managerId": "cmk888m0t000p2dg93paineyi",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mbc002t2dg9qpb7f1ia",
+    "budgetDetailId": "cmk888may002q2dg9kb6gmfn0",
+    "year": 2026,
+    "budgetAmount": 1360000,
+    "managerId": "cmk888mb9002s2dg9ksfruoa3",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mf0003i2dg9z8zty25i",
+    "budgetDetailId": "cmk888meu003g2dg9lwzgn2l3",
+    "year": 2026,
+    "budgetAmount": 230000,
+    "managerId": "cmk888mel003e2dg94g6z3pr1",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mfy003o2dg9d9bxjjtn",
+    "budgetDetailId": "cmk888mfk003l2dg9bp82hgyn",
+    "year": 2026,
+    "budgetAmount": 1500000,
+    "managerId": "cmk888mfu003n2dg9th2dsx83",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mh2003v2dg9a392t2gl",
+    "budgetDetailId": "cmk888mgo003s2dg97po0utag",
+    "year": 2026,
+    "budgetAmount": 460000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mry006g2dg9c9vtvti6",
+    "budgetDetailId": "cmk888mrk006d2dg91xg32jzj",
+    "year": 2026,
+    "budgetAmount": 950000,
+    "managerId": "cmk888mrv006f2dg9s93dfw6y",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mhd003y2dg9lj9fkpqq",
+    "budgetDetailId": "cmk888mh7003w2dg9sykl0r4b",
+    "year": 2026,
+    "budgetAmount": 6400000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m0w000q2dg9lv1lrbjl",
+    "budgetDetailId": "cmk888m0h000n2dg9jmqish1v",
+    "year": 2026,
+    "budgetAmount": 1780000,
+    "managerId": "cmk888m0t000p2dg93paineyi",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mho00412dg98voejgm0",
+    "budgetDetailId": "cmk888mhi003z2dg9ljdpfi92",
+    "year": 2026,
+    "budgetAmount": 200000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mhz00442dg9hfrjse6q",
+    "budgetDetailId": "cmk888mht00422dg92xk0iz5o",
+    "year": 2026,
+    "budgetAmount": 180000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mj3004b2dg9y5dqolxt",
+    "budgetDetailId": "cmk888mip00482dg96svglb17",
+    "year": 2026,
+    "budgetAmount": 180000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mml00582dg904zqbood",
+    "budgetDetailId": "cmk888mmf00562dg95ws97esu",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mll004z2dg9rfnnpp1d",
+    "budgetDetailId": "cmk888mlg004x2dg9ljusnvsq",
+    "year": 2026,
+    "budgetAmount": 416000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mp6005s2dg9mco77l6e",
+    "budgetDetailId": "cmk888mot005p2dg90xpaab8k",
+    "year": 2026,
+    "budgetAmount": 38000,
+    "managerId": "cmk888mp3005r2dg90t8kip94",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mns005i2dg9y2jh8lh3",
+    "budgetDetailId": "cmk888mnm005g2dg96oqf2kk2",
+    "year": 2026,
+    "budgetAmount": 50000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mm900552dg92u3yxsfq",
+    "budgetDetailId": "cmk888mm300532dg9fwdot7dx",
+    "year": 2026,
+    "budgetAmount": 1800000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m7100202dg9kloun1ty",
+    "budgetDetailId": "cmk888m6v001y2dg9jau9d9xm",
+    "year": 2026,
+    "budgetAmount": 120000,
+    "managerId": "cmk888m6c001t2dg9o7nzc0t4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m8n002b2dg95ohmw73k",
+    "budgetDetailId": "cmk888m8h00292dg92j19ymqo",
+    "year": 2026,
+    "budgetAmount": 60000,
+    "managerId": "cmk888m8900272dg98915y8ih",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m6q001x2dg9nhc46vag",
+    "budgetDetailId": "cmk888m6k001v2dg9jyqwo3so",
+    "year": 2026,
+    "budgetAmount": 900000,
+    "managerId": "cmk888m6c001t2dg9o7nzc0t4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m8y002e2dg9lhplc43q",
+    "budgetDetailId": "cmk888m8s002c2dg9cp7bacuw",
+    "year": 2026,
+    "budgetAmount": 760000,
+    "managerId": "cmk888m8900272dg98915y8ih",
+    "isActive": true
+  },
+  {
+    "id": "cmk888ma2002k2dg970hcm8un",
+    "budgetDetailId": "cmk888m9o002h2dg9keoula27",
+    "year": 2026,
+    "budgetAmount": 200000,
+    "managerId": "cmk888m9z002j2dg9p6dzka1z",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mad002n2dg9bd895adn",
+    "budgetDetailId": "cmk888ma7002l2dg9j9qhsbbn",
+    "year": 2026,
+    "budgetAmount": 110000,
+    "managerId": "cmk888m9z002j2dg9p6dzka1z",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mlx00522dg91t7ottz9",
+    "budgetDetailId": "cmk888mlr00502dg9ltfd0w1v",
+    "year": 2026,
+    "budgetAmount": 240000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mbn002w2dg9t8mgnjcl",
+    "budgetDetailId": "cmk888mbh002u2dg967s1nsmf",
+    "year": 2026,
+    "budgetAmount": 60000,
+    "managerId": "cmk888mb9002s2dg9ksfruoa3",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mph005v2dg98s8r54nv",
+    "budgetDetailId": "cmk888mpb005t2dg9u24m5eep",
+    "year": 2026,
+    "budgetAmount": 360000,
+    "managerId": "cmk888mp3005r2dg90t8kip94",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mps005y2dg9qyhj9qki",
+    "budgetDetailId": "cmk888mpm005w2dg9ldo81v9q",
+    "year": 2026,
+    "budgetAmount": 600000,
+    "managerId": "cmk888mp3005r2dg90t8kip94",
+    "isActive": true
+  },
+  {
+    "id": "cmk888ms9006j2dg9sj7hy8xq",
+    "budgetDetailId": "cmk888ms3006h2dg9s13xzvlv",
+    "year": 2026,
+    "budgetAmount": 260000,
+    "managerId": "cmk888mrv006f2dg9s93dfw6y",
+    "isActive": true
+  },
+  {
+    "id": "cmk888msk006m2dg976r582c8",
+    "budgetDetailId": "cmk888mse006k2dg952bdujb6",
+    "year": 2026,
+    "budgetAmount": 1000000,
+    "managerId": "cmk888mrv006f2dg9s93dfw6y",
+    "isActive": true
+  },
+  {
+    "id": "cmk888lzo000j2dg921loj6n2",
+    "budgetDetailId": "cmk888lzj000h2dg96o1spyng",
+    "year": 2026,
+    "budgetAmount": 450000,
+    "managerId": "cmk888lzb000f2dg9oea0rnyt",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mq300612dg96ea2rs11",
+    "budgetDetailId": "cmk888mpx005z2dg9c06q3zxo",
+    "year": 2026,
+    "budgetAmount": 270000,
+    "managerId": "cmk888mp3005r2dg90t8kip94",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mqe00642dg98v2uwa9z",
+    "budgetDetailId": "cmk888mq800622dg9fydpkz9o",
+    "year": 2026,
+    "budgetAmount": 950000,
+    "managerId": "cmk888mp3005r2dg90t8kip94",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mqp00672dg982fyn2qc",
+    "budgetDetailId": "cmk888mqj00652dg956a12jig",
+    "year": 2026,
+    "budgetAmount": 50000,
+    "managerId": "cmk888mp3005r2dg90t8kip94",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mr0006a2dg9a9nxzat8",
+    "budgetDetailId": "cmk888mqv00682dg9wekhsk9n",
+    "year": 2026,
+    "budgetAmount": 660000,
+    "managerId": "cmk888mp3005r2dg90t8kip94",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mje004e2dg90dv07meu",
+    "budgetDetailId": "cmk888mj8004c2dg9di8znom0",
+    "year": 2026,
+    "budgetAmount": 245000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mk2004k2dg9ncl1wvmf",
+    "budgetDetailId": "cmk888mjx004i2dg9tmk42szu",
+    "year": 2026,
+    "budgetAmount": 150000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mkd004n2dg9oddbvyaf",
+    "budgetDetailId": "cmk888mk7004l2dg94d646uv4",
+    "year": 2026,
+    "budgetAmount": 450000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888ml0004t2dg9w2nfj5vq",
+    "budgetDetailId": "cmk888mku004r2dg92b5077r7",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mlb004w2dg9wia00ig3",
+    "budgetDetailId": "cmk888ml5004u2dg9czmzxfr0",
+    "year": 2026,
+    "budgetAmount": 480000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888lya000a2dg97cyixf1h",
+    "budgetDetailId": "cmk888lxv00072dg9maye7e9a",
+    "year": 2026,
+    "budgetAmount": 2250000,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888lzd000g2dg9afm5goyi",
+    "budgetDetailId": "cmk888lz0000d2dg9zh63l9tg",
+    "year": 2026,
+    "budgetAmount": 84000,
+    "managerId": "cmk888lzb000f2dg9oea0rnyt",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m1n000w2dg9dxpq9gpa",
+    "budgetDetailId": "cmk888m1h000u2dg9b7k8vvsn",
+    "year": 2026,
+    "budgetAmount": 72000,
+    "managerId": "cmk888m0t000p2dg93paineyi",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mn4005c2dg9gc6pmkxk",
+    "budgetDetailId": "cmk888mmy005a2dg9fiftow4h",
+    "year": 2026,
+    "budgetAmount": 1200000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m3i00192dg9felbf4ui",
+    "budgetDetailId": "cmk888m3b00172dg934kbomnj",
+    "year": 2026,
+    "budgetAmount": 96000,
+    "managerId": "cmk888m3200152dg9q760jzth",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mo2005l2dg915q0d4sj",
+    "budgetDetailId": "cmk888mnx005j2dg91ifbmzuw",
+    "year": 2026,
+    "budgetAmount": 720000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m4t001i2dg90ugmc13f",
+    "budgetDetailId": "cmk888m4n001g2dg9d2jnw4qk",
+    "year": 2026,
+    "budgetAmount": 12110000,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m54001l2dg9pb5goqfu",
+    "budgetDetailId": "cmk888m4y001j2dg9e42lne81",
+    "year": 2026,
+    "budgetAmount": 3600000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m5f001o2dg9cietug06",
+    "budgetDetailId": "cmk888m59001m2dg97hfk671q",
+    "year": 2026,
+    "budgetAmount": 800000,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m6e001u2dg9pi0xac1r",
+    "budgetDetailId": "cmk888m61001r2dg92z3px1ko",
+    "year": 2026,
+    "budgetAmount": 300000,
+    "managerId": "cmk888m6c001t2dg9o7nzc0t4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mng005f2dg9j89gxsjn",
+    "budgetDetailId": "cmk888mn9005d2dg9ruh24tga",
+    "year": 2026,
+    "budgetAmount": 100000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mcd00312dg96b5sphc0",
+    "budgetDetailId": "cmk888mc0002y2dg9epgzr8kh",
+    "year": 2026,
+    "budgetAmount": 120000,
+    "managerId": "cmk888mcb00302dg99h11phub",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mjr004h2dg9jtu9nq4o",
+    "budgetDetailId": "cmk888mjl004f2dg9xhfw3aix",
+    "year": 2026,
+    "budgetAmount": 450000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888meo003f2dg9t61cp1zk",
+    "budgetDetailId": "cmk888meb003c2dg9eqjy9c3y",
+    "year": 2026,
+    "budgetAmount": 1800000,
+    "managerId": "cmk888mel003e2dg94g6z3pr1",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mue006v2dg95alxa2zt",
+    "budgetDetailId": "cmk888mu7006t2dg9i5s4pn4t",
+    "year": 2026,
+    "budgetAmount": 60000,
+    "managerId": "cmk888mrv006f2dg9s93dfw6y",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mvf00712dg9kvdcm28s",
+    "budgetDetailId": "cmk888muz006y2dg9esntgf8j",
+    "year": 2026,
+    "budgetAmount": 460000,
+    "managerId": "cmk888mvb00702dg9ftvxu2cw",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mvq00742dg9p4siap7q",
+    "budgetDetailId": "cmk888mvk00722dg9zvea9wp0",
+    "year": 2026,
+    "budgetAmount": 234000,
+    "managerId": "cmk888mvb00702dg9ftvxu2cw",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mw100772dg9gxdwcuqm",
+    "budgetDetailId": "cmk888mvv00752dg9x2f3rt5e",
+    "year": 2026,
+    "budgetAmount": 687000,
+    "managerId": "cmk888mvb00702dg9ftvxu2cw",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mwd007a2dg96mp36hkp",
+    "budgetDetailId": "cmk888mw600782dg905ejteey",
+    "year": 2026,
+    "budgetAmount": 140000,
+    "managerId": "cmk888mvb00702dg9ftvxu2cw",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mwv007d2dg99yfjrens",
+    "budgetDetailId": "cmk888mwo007b2dg9mw12jbs3",
+    "year": 2026,
+    "budgetAmount": 1330000,
+    "managerId": "cmk888mvb00702dg9ftvxu2cw",
+    "isActive": true
+  },
+  {
+    "id": "cmk888my5007m2dg9prwtqmho",
+    "budgetDetailId": "cmk888mxr007j2dg9f25b6nt2",
+    "year": 2026,
+    "budgetAmount": 332000,
+    "managerId": "cmk888my2007l2dg9ioyduwjm",
+    "isActive": true
+  },
+  {
+    "id": "cmk888myh007p2dg9u8pbt3yh",
+    "budgetDetailId": "cmk888myb007n2dg9brlqj34c",
+    "year": 2026,
+    "budgetAmount": 474000,
+    "managerId": "cmk888my2007l2dg9ioyduwjm",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mys007s2dg9wd9ppqyq",
+    "budgetDetailId": "cmk888mym007q2dg9id5c66nj",
+    "year": 2026,
+    "budgetAmount": 1200000,
+    "managerId": "cmk888my2007l2dg9ioyduwjm",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mz4007v2dg99xteq2xh",
+    "budgetDetailId": "cmk888myy007t2dg91i3j2koy",
+    "year": 2026,
+    "budgetAmount": 190000,
+    "managerId": "cmk888my2007l2dg9ioyduwjm",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mzg007y2dg9le7bghea",
+    "budgetDetailId": "cmk888mz9007w2dg96zncztn4",
+    "year": 2026,
+    "budgetAmount": 1550000,
+    "managerId": "cmk888my2007l2dg9ioyduwjm",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mzr00812dg9yqq1lvsh",
+    "budgetDetailId": "cmk888mzl007z2dg9n7t8iy20",
+    "year": 2026,
+    "budgetAmount": 48000,
+    "managerId": "cmk888my2007l2dg9ioyduwjm",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n0h00862dg9e6dg61zj",
+    "budgetDetailId": "cmk888n0b00842dg9jpqc2lv6",
+    "year": 2026,
+    "budgetAmount": 21000,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n0s00892dg99j9sauco",
+    "budgetDetailId": "cmk888n0m00872dg9o55bgb12",
+    "year": 2026,
+    "budgetAmount": 599000,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n13008c2dg9ehrp7clr",
+    "budgetDetailId": "cmk888n0y008a2dg9l0dqo9gr",
+    "year": 2026,
+    "budgetAmount": 3600000,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n1f008f2dg9zk1qv2gb",
+    "budgetDetailId": "cmk888n19008d2dg9vv68ss50",
+    "year": 2026,
+    "budgetAmount": 240000,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n1r008i2dg9zl5qkheq",
+    "budgetDetailId": "cmk888n1k008g2dg904ysvlkt",
+    "year": 2026,
+    "budgetAmount": 1234000,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n22008l2dg9tur34psr",
+    "budgetDetailId": "cmk888n1w008j2dg95hw7e48u",
+    "year": 2026,
+    "budgetAmount": 72000,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n30008r2dg97cav9uog",
+    "budgetDetailId": "cmk888n2m008o2dg9dw774qza",
+    "year": 2026,
+    "budgetAmount": 100000,
+    "managerId": "cmk888n2x008q2dg9jehsp6ka",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mty006s2dg9q0bcrvv6",
+    "budgetDetailId": "cmk888mtb006q2dg9d21s2pji",
+    "year": 2026,
+    "budgetAmount": 1100000,
+    "managerId": "cmk888mrv006f2dg9s93dfw6y",
+    "isActive": true
+  },
+  {
+    "id": "cmk888msy006p2dg9hytula2u",
+    "budgetDetailId": "cmk888msq006n2dg9kzfpq45g",
+    "year": 2026,
+    "budgetAmount": 130000,
+    "managerId": "cmk888mrv006f2dg9s93dfw6y",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n3b008u2dg9oui6wji5",
+    "budgetDetailId": "cmk888n35008s2dg99ko3niof",
+    "year": 2026,
+    "budgetAmount": 200000,
+    "managerId": "cmk888n2x008q2dg9jehsp6ka",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n3m008x2dg9l3qvv4cp",
+    "budgetDetailId": "cmk888n3g008v2dg90vdjd1gg",
+    "year": 2026,
+    "budgetAmount": 1650000,
+    "managerId": "cmk888n2x008q2dg9jehsp6ka",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n3x00902dg95i09rmuz",
+    "budgetDetailId": "cmk888n3r008y2dg94gd87ymb",
+    "year": 2026,
+    "budgetAmount": 120000,
+    "managerId": "cmk888n2x008q2dg9jehsp6ka",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n4p00952dg99tohmth5",
+    "budgetDetailId": "cmk888n4i00932dg915bq6c4u",
+    "year": 2026,
+    "budgetAmount": 300000,
+    "managerId": "cmkmp8uj600002eknmyzv4lb0",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n5100982dg91ykreqe4",
+    "budgetDetailId": "cmk888n4v00962dg94jyhwq87",
+    "year": 2026,
+    "budgetAmount": 680000,
+    "managerId": "cmkmp8uj600002eknmyzv4lb0",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n5c009b2dg9lf62o25s",
+    "budgetDetailId": "cmk888n5600992dg9bpwwtghh",
+    "year": 2026,
+    "budgetAmount": 84000,
+    "managerId": "cmkmp8uj600002eknmyzv4lb0",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n69009h2dg9en3qj18p",
+    "budgetDetailId": "cmk888n63009f2dg9fttezph3",
+    "year": 2026,
+    "budgetAmount": 1500000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nbr00am2dg9bkzwfhoq",
+    "budgetDetailId": "cmk888nbl00ak2dg9kne99m0j",
+    "year": 2026,
+    "budgetAmount": 600000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nca00aq2dg9duzuk7dj",
+    "budgetDetailId": "cmk888nc400ao2dg93hmdv8di",
+    "year": 2026,
+    "budgetAmount": 300000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n6z009m2dg9zdog7uy9",
+    "budgetDetailId": "cmk888n6t009k2dg97lmphlci",
+    "year": 2026,
+    "budgetAmount": 3000000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n7h009q2dg9z16jyusb",
+    "budgetDetailId": "cmk888n7b009o2dg98i1f9q46",
+    "year": 2026,
+    "budgetAmount": 35000000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n7z009u2dg9mshypuqy",
+    "budgetDetailId": "cmk888n7t009s2dg9k10cocjb",
+    "year": 2026,
+    "budgetAmount": 3000000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nfd00be2dg9v3dd1j55",
+    "budgetDetailId": "cmk888nf600bc2dg9agwvp3tq",
+    "year": 2026,
+    "budgetAmount": 250000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n8h009y2dg9few93tu3",
+    "budgetDetailId": "cmk888n8b009w2dg9ponj4dq0",
+    "year": 2026,
+    "budgetAmount": 1000000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n8y00a22dg9z67yxu5o",
+    "budgetDetailId": "cmk888n8t00a02dg9pvdtk3hu",
+    "year": 2026,
+    "budgetAmount": 30440000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n9800a52dg9f8q1ip7e",
+    "budgetDetailId": "cmk888n9300a32dg907yg0gq5",
+    "year": 2026,
+    "budgetAmount": 2561400,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888n9r00a92dg959lexg1m",
+    "budgetDetailId": "cmk888n9l00a72dg9kcezf0qo",
+    "year": 2026,
+    "budgetAmount": 48465000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888naq00ae2dg9lqq47e81",
+    "budgetDetailId": "cmk888naa00ac2dg9ye9o5hyi",
+    "year": 2026,
+    "budgetAmount": 960000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nb800ai2dg9ko2qlno2",
+    "budgetDetailId": "cmk888nb300ag2dg9xt7bij80",
+    "year": 2026,
+    "budgetAmount": 600000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888njk00cc2dg9ffoy891t",
+    "budgetDetailId": "cmk888nje00ca2dg9ho2h0qw6",
+    "year": 2026,
+    "budgetAmount": 15000000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888ncr00au2dg9u46l8i6e",
+    "budgetDetailId": "cmk888ncm00as2dg99ip3n05g",
+    "year": 2026,
+    "budgetAmount": 4400000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888ndg00az2dg9m1s2jtuz",
+    "budgetDetailId": "cmk888nda00ax2dg9djvyuzpr",
+    "year": 2026,
+    "budgetAmount": 1557500,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888ndy00b32dg9xxi9xd6e",
+    "budgetDetailId": "cmk888ndt00b12dg9q0q9xnqm",
+    "year": 2026,
+    "budgetAmount": 3000000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888neh00b72dg95ysrlsw6",
+    "budgetDetailId": "cmk888neb00b52dg93lviztow",
+    "year": 2026,
+    "budgetAmount": 120000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nge00bm2dg9zgs1pyvr",
+    "budgetDetailId": "cmk888ng800bk2dg9kkzrt575",
+    "year": 2026,
+    "budgetAmount": 1320000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888ngq00bp2dg9ahtd7lfb",
+    "budgetDetailId": "cmk888ngj00bn2dg9g5r3arkh",
+    "year": 2026,
+    "budgetAmount": 500000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nhb00bv2dg9pldnv2wm",
+    "budgetDetailId": "cmk888nh500bt2dg9tqefyek0",
+    "year": 2026,
+    "budgetAmount": 1781949,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nht00bz2dg99w41h4ct",
+    "budgetDetailId": "cmk888nhn00bx2dg9lfnxtyna",
+    "year": 2026,
+    "budgetAmount": 440000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nii00c42dg9h5fifzza",
+    "budgetDetailId": "cmk888nid00c22dg9qpbxml7c",
+    "year": 2026,
+    "budgetAmount": 5500000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888niu00c72dg9vif8jlkv",
+    "budgetDetailId": "cmk888nio00c52dg9sta2rirv",
+    "year": 2026,
+    "budgetAmount": 800000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nk900ch2dg9p2y7q657",
+    "budgetDetailId": "cmk888nk300cf2dg9hlvzg88r",
+    "year": 2026,
+    "budgetAmount": 12200000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nld00co2dg90spd7ixd",
+    "budgetDetailId": "cmk888nl700cm2dg9rld6xis9",
+    "year": 2026,
+    "budgetAmount": 69538000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmnmzrzge0005cab2y6vhvbkr",
+    "budgetDetailId": "cmnmzrz080001cab2x5pzvtb5",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nnc00d42dg94lbkaw7l",
+    "budgetDetailId": "cmk888nn600d22dg9nc484j0e",
+    "year": 2026,
+    "budgetAmount": 7000000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nnv00d82dg9b24zr2dp",
+    "budgetDetailId": "cmk888nno00d62dg9tkox85og",
+    "year": 2026,
+    "budgetAmount": 4000000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nod00dc2dg9o2bgb56u",
+    "budgetDetailId": "cmk888no700da2dg9whylry9k",
+    "year": 2026,
+    "budgetAmount": 9040000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nov00dg2dg98zen5eux",
+    "budgetDetailId": "cmk888nop00de2dg9cscal610",
+    "year": 2026,
+    "budgetAmount": 7500000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888npl00dl2dg99rbmueyf",
+    "budgetDetailId": "cmk888npf00dj2dg98rlvh4u2",
+    "year": 2026,
+    "budgetAmount": 30100000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb23c0059cax4yhf8cown",
+    "budgetDetailId": "cmncwyrsr0037cam96hm05si2",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m4h001f2dg9m1jcmha1",
+    "budgetDetailId": "cmk888m43001c2dg9rkiszwqd",
+    "year": 2026,
+    "budgetAmount": 19400000,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nq200dp2dg92bh7flng",
+    "budgetDetailId": "cmk888npx00dn2dg9ixmnoy3b",
+    "year": 2026,
+    "budgetAmount": 3549000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nqk00dt2dg92bledjjo",
+    "budgetDetailId": "cmk888nqf00dr2dg9jiflgip2",
+    "year": 2026,
+    "budgetAmount": 2400000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nr200dx2dg999emg3w6",
+    "budgetDetailId": "cmk888nqw00dv2dg906gaa8z7",
+    "year": 2026,
+    "budgetAmount": 22406000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmnvffjb3004xgs1qswqeh017",
+    "budgetDetailId": "cmnvffjas004vgs1qs0uw2kui",
+    "year": 2026,
+    "budgetAmount": 720000,
+    "managerId": "cmk888mda00362dg9v2xppd75",
+    "isActive": true
+  },
+  {
+    "id": "cmoefkkkj004vln28mdfba6y0",
+    "budgetDetailId": "cmoefkkk9004tln28o6f0hujf",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m8c00282dg9djyu82fk",
+    "budgetDetailId": "cmk888m7z00252dg9u3331aky",
+    "year": 2026,
+    "budgetAmount": 300000,
+    "managerId": "cmk888m8900272dg98915y8ih",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mko004q2dg91m03ki85",
+    "budgetDetailId": "cmk888mki004o2dg98hrsvyk5",
+    "year": 2026,
+    "budgetAmount": 1050000,
+    "managerId": "cmk888mj0004a2dg909o9xcpd",
+    "isActive": true
+  },
+  {
+    "id": "cmk888mx7007g2dg96npgazi8",
+    "budgetDetailId": "cmk888mx1007e2dg9o34outfe",
+    "year": 2026,
+    "budgetAmount": 48000,
+    "managerId": "cmk888mvb00702dg9ftvxu2cw",
+    "isActive": true
+  },
+  {
+    "id": "cmk888net00ba2dg95qmokrti",
+    "budgetDetailId": "cmk888nen00b82dg9fptibgaz",
+    "year": 2026,
+    "budgetAmount": 72000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nfw00bi2dg97vzsb1cm",
+    "budgetDetailId": "cmk888nfq00bg2dg92zvtcla3",
+    "year": 2026,
+    "budgetAmount": 250000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nlu00cs2dg9cmtbmowl",
+    "budgetDetailId": "cmk888nlp00cq2dg9gv8x6nl0",
+    "year": 2026,
+    "budgetAmount": 58476000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nmc00cw2dg9mbkezyr9",
+    "budgetDetailId": "cmk888nm700cu2dg9ofrm2q1w",
+    "year": 2026,
+    "budgetAmount": 14526000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb38w005pcax4617dchi4",
+    "budgetDetailId": "cmncwyspg003jcam9swxpgilz",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk888lzb000f2dg9oea0rnyt",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nmu00d02dg91ati9ap2",
+    "budgetDetailId": "cmk888nmp00cy2dg98n6r3h3o",
+    "year": 2026,
+    "budgetAmount": 16277000,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888nrs00e22dg9vbqk0325",
+    "budgetDetailId": "cmk888nrm00e02dg9gai2yn93",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmk888ns200e52dg94ohqvarb",
+    "budgetDetailId": "cmk888nrx00e32dg933bfrfr3",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmldfn2v7001i27fx1qt6gi2z",
+    "budgetDetailId": "cmldfn2v0001h27fxlw0ewh3m",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb1sw0053cax417y3h9ka",
+    "budgetDetailId": "cmncwyrlo0033cam9quwirzjl",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb3ja005vcax4mr5ekhr5",
+    "budgetDetailId": "cmncwysvq003ncam94n1ts460",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk888lzb000f2dg9oea0rnyt",
+    "isActive": true
+  },
+  {
+    "id": "cmnluca8f005iiv28pgvuc5st",
+    "budgetDetailId": "cmncwztnf00fwcam95qtwx974",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmnluczsv005kiv28vk33zydf",
+    "budgetDetailId": "cmncx05tc00j5cam926txncu4",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmnlu0l4d0054iv28wvr8jb2m",
+    "budgetDetailId": "cmncx09qi00k6cam9qc5nj5ba",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb6zp0075cax4z2v2y99v",
+    "budgetDetailId": "cmncwyvm8004hcam9rv6qaq8b",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk888m0t000p2dg93paineyi",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhb7kg007hcax432zi1k9f",
+    "budgetDetailId": "cmncwyvyj004ncam9qw4c5wdn",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk888m0t000p2dg93paineyi",
+    "isActive": true
+  },
+  {
+    "id": "cmnmhbbnu0098cax4cx6q0sqg",
+    "budgetDetailId": "cmncwyywr005kcam9fjivu81t",
+    "year": 2026,
+    "budgetAmount": 0,
+    "managerId": "cmk888ly700092dg9phxe7mv4",
+    "isActive": true
+  },
+  {
+    "id": "cmk888m1b000t2dg9txi034ni",
+    "budgetDetailId": "cmk888m13000r2dg9p328rjxu",
+    "year": 2026,
+    "budgetAmount": 5797440,
+    "managerId": "cmk878q79000aeg3mqlt9wl3t",
+    "isActive": true
   }
 ];
 
