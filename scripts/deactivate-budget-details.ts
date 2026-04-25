@@ -106,11 +106,27 @@ async function main() {
     }
   }
 
-  // 3. 결과 요약
+  // 3. BudgetDetailYear 연쇄 비활성화
+  console.log('\n[3] BudgetDetailYear 연쇄 비활성화 중...');
+  const budgetDetailYearResult = await prisma.budgetDetailYear.updateMany({
+    where: {
+      budgetDetail: {
+        isActive: false
+      },
+      isActive: true
+    },
+    data: {
+      isActive: false
+    }
+  });
+  console.log(`   ✅ BudgetDetailYear ${budgetDetailYearResult.count}개 비활성화됨`);
+
+  // 4. 결과 요약
   console.log('\n' + '='.repeat(60));
   console.log('결과 요약');
   console.log('='.repeat(60));
-  console.log(`- 비활성화됨: ${totalDeactivated}개`);
+  console.log(`- BudgetDetail 비활성화됨: ${totalDeactivated}개`);
+  console.log(`- BudgetDetailYear 비활성화됨: ${budgetDetailYearResult.count}개`);
   if (totalNotFound > 0) {
     console.log(`- 찾을 수 없음: ${totalNotFound}개`);
   }
@@ -118,16 +134,24 @@ async function main() {
     console.log(`- 이미 비활성: ${totalAlreadyInactive}개`);
   }
 
-  // 4. 현재 비활성화된 전체 세목 수 조회
+  // 5. 현재 비활성화된 전체 세목 수 조회
   const inactiveCount = await prisma.budgetDetail.count({
     where: { isActive: false }
   });
   const activeCount = await prisma.budgetDetail.count({
     where: { isActive: true }
   });
+  const inactiveYearCount = await prisma.budgetDetailYear.count({
+    where: { isActive: false }
+  });
+  const activeYearCount = await prisma.budgetDetailYear.count({
+    where: { isActive: true }
+  });
   console.log(`\n현재 상태:`);
-  console.log(`- 활성 세목: ${activeCount}개`);
-  console.log(`- 비활성 세목: ${inactiveCount}개`);
+  console.log(`- 활성 BudgetDetail: ${activeCount}개`);
+  console.log(`- 비활성 BudgetDetail: ${inactiveCount}개`);
+  console.log(`- 활성 BudgetDetailYear: ${activeYearCount}개`);
+  console.log(`- 비활성 BudgetDetailYear: ${inactiveYearCount}개`);
 
   await prisma.$disconnect();
   await pool.end();
