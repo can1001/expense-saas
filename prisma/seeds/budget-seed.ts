@@ -1104,7 +1104,7 @@ const budgetDetails = [
   {
     "id": "cmk888m9o002h2dg9keoula27",
     "subcategoryId": "cmk888m9a002g2dg9qnox5bwg",
-    "name": "유지관리비",
+    "name": "유지관리비_방송팀",
     "accountCode": "210",
     "description": "음향 영상장비 보수(마이크,헤드폰,아이패드등)",
     "sortOrder": 0,
@@ -1554,7 +1554,7 @@ const budgetDetails = [
   {
     "id": "cmk888mpb005t2dg9u24m5eep",
     "subcategoryId": "cmk888mol005o2dg9wwqk80wm",
-    "name": "심방 교제비",
+    "name": "심방교제비",
     "accountCode": "402.0",
     "description": "심방비",
     "sortOrder": 0,
