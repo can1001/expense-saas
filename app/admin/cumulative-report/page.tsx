@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { TrendingUp, RefreshCw, Download, ChevronDown, ChevronRight } from 'lucide-react';
 import { SECTION_CARD, BTN_PRIMARY, BTN_OUTLINE, BTN_SM, SELECT_BASE } from '@/lib/constants/styles';
+import { DepartmentExpenseModal, DepartmentExpenseData } from '@/components/admin/DepartmentExpenseModal';
 
 interface CumulativeReportData {
   year: number;
@@ -91,6 +92,13 @@ export default function CumulativeReportPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedCommittees, setExpandedCommittees] = useState<Set<string>>(new Set());
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [expenseModalLoading, setExpenseModalLoading] = useState(false);
+  const [expenseModalData, setExpenseModalData] = useState<DepartmentExpenseData | null>(null);
+  const [selectedDepartmentInfo, setSelectedDepartmentInfo] = useState<{
+    committee: string;
+    department: string;
+  } | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -127,6 +135,34 @@ export default function CumulativeReportPage() {
       return next;
     });
   };
+
+  const handleDepartmentDoubleClick = useCallback(
+    async (committee: string, department: string) => {
+      setSelectedDepartmentInfo({ committee, department });
+      setIsExpenseModalOpen(true);
+      setExpenseModalLoading(true);
+      setExpenseModalData(null);
+
+      try {
+        const params = new URLSearchParams({
+          year: year.toString(),
+          toQuarter: toQuarter.toString(),
+          committee,
+          department,
+        });
+
+        const response = await fetch(`/api/admin/cumulative-report/expenses?${params}`);
+        if (!response.ok) throw new Error('데이터를 불러오는데 실패했습니다.');
+        const result = await response.json();
+        setExpenseModalData(result);
+      } catch (err) {
+        console.error('Department expense fetch error:', err);
+      } finally {
+        setExpenseModalLoading(false);
+      }
+    },
+    [year, toQuarter]
+  );
 
   // 위원회별로 그룹화
   const groupedByCommittee = data?.byDepartment.reduce(
@@ -360,7 +396,13 @@ export default function CumulativeReportPage() {
                                 <td className="py-3 text-right text-gray-600">
                                   {formatCurrency(dept.budget)}원
                                 </td>
-                                <td className="py-3 text-right text-gray-600">
+                                <td
+                                  className="py-3 text-right text-gray-600 cursor-pointer hover:bg-blue-50 hover:text-blue-600"
+                                  onDoubleClick={() =>
+                                    handleDepartmentDoubleClick(committee, dept.department)
+                                  }
+                                  title="더블클릭하여 세목별 상세 내역 보기"
+                                >
                                   {formatCurrency(dept.cumulativeSpent)}원
                                 </td>
                                 <td className="py-3 text-right text-gray-600">
@@ -390,6 +432,18 @@ export default function CumulativeReportPage() {
           </div>
         </>
       )}
+
+      {/* 부서별 세목 상세 모달 */}
+      <DepartmentExpenseModal
+        isOpen={isExpenseModalOpen}
+        onClose={() => {
+          setIsExpenseModalOpen(false);
+          setExpenseModalData(null);
+        }}
+        loading={expenseModalLoading}
+        data={expenseModalData}
+        departmentInfo={selectedDepartmentInfo}
+      />
     </div>
   );
 }
