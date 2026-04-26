@@ -3,6 +3,10 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { Camera, X, RotateCcw, Check, Loader2 } from 'lucide-react';
 
+// 이미지 리사이징 설정 (home-care-service와 동일)
+const MAX_IMAGE_SIZE = 800; // 가로 또는 세로 중 긴 쪽 기준 최대 크기
+const IMAGE_QUALITY = 0.3; // 30% 품질
+
 interface CameraCaptureProps {
   onCapture: (file: File) => void;
   onClose: () => void;
@@ -75,13 +79,28 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // 이미지 리사이징 계산 (긴 쪽이 MAX_IMAGE_SIZE를 초과하면 비율 유지하며 축소)
+    let width = video.videoWidth;
+    let height = video.videoHeight;
+
+    if (width > MAX_IMAGE_SIZE || height > MAX_IMAGE_SIZE) {
+      if (width > height) {
+        height = Math.round((height * MAX_IMAGE_SIZE) / width);
+        width = MAX_IMAGE_SIZE;
+      } else {
+        width = Math.round((width * MAX_IMAGE_SIZE) / height);
+        height = MAX_IMAGE_SIZE;
+      }
+    }
+
+    canvas.width = width;
+    canvas.height = height;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.drawImage(video, 0, 0);
+    // 리사이징하여 그리기
+    ctx.drawImage(video, 0, 0, width, height);
 
     // iOS Safari 호환: toBlob() 사용하여 Blob 직접 저장
     canvas.toBlob(
@@ -91,12 +110,15 @@ export default function CameraCapture({ onCapture, onClose }: CameraCaptureProps
           setCapturedImage(url);
           setCapturedBlob(blob);
           stopCamera();
+          console.log(
+            `이미지 최적화: ${video.videoWidth}x${video.videoHeight} → ${width}x${height}, 크기: ${(blob.size / 1024).toFixed(1)}KB`
+          );
         } else {
           setError('이미지 캡처에 실패했습니다. 다시 시도해주세요.');
         }
       },
       'image/jpeg',
-      0.8
+      IMAGE_QUALITY
     );
   };
 
