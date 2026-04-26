@@ -9,7 +9,6 @@ import {
   MODAL_HEADER,
   MODAL_BODY,
   MODAL_FOOTER,
-  MODAL_LG,
   BTN_OUTLINE,
   TABLE_BASE,
   TABLE_HEADER,
@@ -134,7 +133,7 @@ export function ExpenseDetailModal({
 
   return (
     <div className={MODAL_OVERLAY} onClick={handleBackdropClick}>
-      <div className={`${MODAL_CONTAINER} ${MODAL_LG} max-h-[85vh] flex flex-col`}>
+      <div className={`${MODAL_CONTAINER} w-full max-w-5xl max-h-[85vh] flex flex-col`}>
         {/* 헤더 */}
         <div className={MODAL_HEADER}>
           <div className="flex-1">
