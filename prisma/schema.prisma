@@ -449,6 +449,7 @@ model ApprovalLine {
 
   @@index([expenseId])
   @@index([currentStep])
+  @@index([createdAt])
 }
 
 // 결재 단계 (결재선당 여러 개)
@@ -492,6 +493,7 @@ model ApprovalStep {
   @@index([stepNumber])
   @@index([approverName])
   @@index([status])
+  @@index([approverName, status])
 }
 
 // 결재 단계 상태
