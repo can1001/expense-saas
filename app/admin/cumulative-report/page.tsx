@@ -290,7 +290,7 @@ export default function CumulativeReportPage() {
 
           {/* 부서별 현황 */}
           <div className={SECTION_CARD}>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">부서별 누적 집행 현황</h2>
+            <h2 className="text-lg font-bold text-black mb-4">부서별 누적 집행 현황</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
