@@ -6,7 +6,14 @@ import { format } from 'date-fns';
 import Header from '@/components/Header';
 import ApprovalStatusBadge from '@/components/approval/ApprovalStatusBadge';
 import { formatCurrency } from '@/lib/utils';
-import { Clock, CheckCircle, FileText, User, Building2, Calendar } from 'lucide-react';
+import { Clock, CheckCircle, FileText, User, Building2, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
 
 interface UserInfo {
   id: string;
@@ -61,6 +68,9 @@ export default function ApprovalsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'pending' | 'completed' | 'all'>('pending');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const limit = 10;
 
   // 로그인 사용자 정보 가져오기
   useEffect(() => {
@@ -84,13 +94,18 @@ export default function ApprovalsPage() {
     fetchUser();
   }, [router]);
 
+  // 상태 필터 변경 시 페이지 리셋
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
+
   // 사용자 정보가 있을 때 결재 목록 가져오기
   useEffect(() => {
     if (user) {
       fetchApprovals();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, statusFilter]);
+  }, [user, statusFilter, page]);
 
   const fetchApprovals = async () => {
     if (!user) return;
@@ -99,7 +114,7 @@ export default function ApprovalsPage() {
       setLoading(true);
       setError(null);
       const response = await fetch(
-        `/api/approvals?approverName=${encodeURIComponent(user.username)}&status=${statusFilter}`
+        `/api/approvals?approverName=${encodeURIComponent(user.username)}&status=${statusFilter}&page=${page}&limit=${limit}`
       );
 
       if (!response.ok) {
@@ -108,6 +123,7 @@ export default function ApprovalsPage() {
 
       const data = await response.json();
       setApprovals(data.approvals || []);
+      setPagination(data.pagination || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
     } finally {
@@ -218,120 +234,172 @@ export default function ApprovalsPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {approvals.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => router.push(`/approvals/${item.id}`)}
-                className={`bg-white rounded-lg shadow-sm border-2 p-6 cursor-pointer transition-all hover:shadow-md ${
-                  item.isMyTurn
-                    ? 'border-blue-500 hover:border-blue-600'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                  {/* 기본 정보 */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      {item.isMyTurn && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-                          결재 대기
-                        </span>
-                      )}
-                      {item.approvalLine.isUrgent && (
-                        <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
-                          긴급
-                        </span>
-                      )}
-                      <ApprovalStatusBadge status={item.expense.status} size="sm" />
-                    </div>
+          <>
+            <div className="space-y-4">
+              {approvals.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => router.push(`/approvals/${item.id}`)}
+                  className={`bg-white rounded-lg shadow-sm border-2 p-6 cursor-pointer transition-all hover:shadow-md ${
+                    item.isMyTurn
+                      ? 'border-blue-500 hover:border-blue-600'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    {/* 기본 정보 */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        {item.isMyTurn && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+                            결재 대기
+                          </span>
+                        )}
+                        {item.approvalLine.isUrgent && (
+                          <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
+                            긴급
+                          </span>
+                        )}
+                        <ApprovalStatusBadge status={item.expense.status} size="sm" />
+                      </div>
 
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      {item.expense.budgetCategory} - {item.expense.budgetSubcategory}
-                    </h3>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        {item.expense.budgetCategory} - {item.expense.budgetSubcategory}
+                      </h3>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-500">
-                          <Building2 className="w-4 h-4 inline mr-1" />
-                          위원회/부서
-                        </span>
-                        <p className="font-medium text-gray-900">
-                          {item.expense.committee} / {item.expense.department}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">
-                          <User className="w-4 h-4 inline mr-1" />
-                          신청자
-                        </span>
-                        <p className="font-medium text-gray-900">{item.expense.applicantName}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">
-                          <Calendar className="w-4 h-4 inline mr-1" />
-                          제출일
-                        </span>
-                        <p className="font-medium text-gray-900">
-                          {formatDate(item.expense.submittedAt)}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">청구금액</span>
-                        <p className="font-semibold text-blue-600">
-                          {formatCurrency(item.expense.requestAmount)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 결재 진행 상태 */}
-                  <div className="lg:w-64 bg-gray-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-500 mb-2">
-                      결재 진행 ({item.approvalLine.currentStep}/{item.approvalLine.totalSteps})
-                    </p>
-                    <div className="flex items-center gap-2">
-                      {item.approvalLine.steps.map((step, index) => (
-                        <div key={index} className="flex items-center">
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
-                              step.status === 'APPROVED'
-                                ? 'bg-green-100 text-green-700'
-                                : step.status === 'REJECTED'
-                                ? 'bg-red-100 text-red-700'
-                                : step.stepNumber === item.approvalLine.currentStep
-                                ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500'
-                                : 'bg-gray-100 text-gray-500'
-                            }`}
-                            title={`${step.stepName}: ${step.approverName}`}
-                          >
-                            {step.stepNumber}
-                          </div>
-                          {index < item.approvalLine.steps.length - 1 && (
-                            <div
-                              className={`w-4 h-0.5 ${
-                                step.status === 'APPROVED' ? 'bg-green-300' : 'bg-gray-300'
-                              }`}
-                            />
-                          )}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500">
+                            <Building2 className="w-4 h-4 inline mr-1" />
+                            위원회/부서
+                          </span>
+                          <p className="font-medium text-gray-900">
+                            {item.expense.committee} / {item.expense.department}
+                          </p>
                         </div>
-                      ))}
+                        <div>
+                          <span className="text-gray-500">
+                            <User className="w-4 h-4 inline mr-1" />
+                            신청자
+                          </span>
+                          <p className="font-medium text-gray-900">{item.expense.applicantName}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">
+                            <Calendar className="w-4 h-4 inline mr-1" />
+                            제출일
+                          </span>
+                          <p className="font-medium text-gray-900">
+                            {formatDate(item.expense.submittedAt)}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">청구금액</span>
+                          <p className="font-semibold text-blue-600">
+                            {formatCurrency(item.expense.requestAmount)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    {item.myStep && (
-                      <p className={`text-xs mt-2 ${getStepStatusColor(item.myStep.status)}`}>
-                        내 결재: {item.myStep.stepNumber}차 ({item.myStep.stepName}) -{' '}
-                        {item.myStep.status === 'APPROVED'
-                          ? '승인함'
-                          : item.myStep.status === 'REJECTED'
-                          ? '반려함'
-                          : '대기중'}
+
+                    {/* 결재 진행 상태 */}
+                    <div className="lg:w-64 bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-500 mb-2">
+                        결재 진행 ({item.approvalLine.currentStep}/{item.approvalLine.totalSteps})
                       </p>
-                    )}
+                      <div className="flex items-center gap-2">
+                        {item.approvalLine.steps.map((step, index) => (
+                          <div key={index} className="flex items-center">
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
+                                step.status === 'APPROVED'
+                                  ? 'bg-green-100 text-green-700'
+                                  : step.status === 'REJECTED'
+                                  ? 'bg-red-100 text-red-700'
+                                  : step.stepNumber === item.approvalLine.currentStep
+                                  ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500'
+                                  : 'bg-gray-100 text-gray-500'
+                              }`}
+                              title={`${step.stepName}: ${step.approverName}`}
+                            >
+                              {step.stepNumber}
+                            </div>
+                            {index < item.approvalLine.steps.length - 1 && (
+                              <div
+                                className={`w-4 h-0.5 ${
+                                  step.status === 'APPROVED' ? 'bg-green-300' : 'bg-gray-300'
+                                }`}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {item.myStep && (
+                        <p className={`text-xs mt-2 ${getStepStatusColor(item.myStep.status)}`}>
+                          내 결재: {item.myStep.stepNumber}차 ({item.myStep.stepName}) -{' '}
+                          {item.myStep.status === 'APPROVED'
+                            ? '승인함'
+                            : item.myStep.status === 'REJECTED'
+                            ? '반려함'
+                            : '대기중'}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+
+            {/* 페이지네이션 */}
+            {pagination && pagination.totalPages > 1 && (
+              <div className="mt-6 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                    .filter((p) => {
+                      // 현재 페이지 주변 2개씩, 처음과 끝 페이지 표시
+                      return p === 1 || p === pagination.totalPages || Math.abs(p - page) <= 2;
+                    })
+                    .map((p, idx, arr) => (
+                      <span key={p} className="flex items-center">
+                        {idx > 0 && arr[idx - 1] !== p - 1 && (
+                          <span className="px-2 text-gray-400">...</span>
+                        )}
+                        <button
+                          onClick={() => setPage(p)}
+                          className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                            page === p
+                              ? 'bg-blue-600 text-white'
+                              : 'hover:bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      </span>
+                    ))}
+                </div>
+
+                <button
+                  onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                  disabled={page === pagination.totalPages}
+                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+
+                <span className="ml-4 text-sm text-gray-500">
+                  총 {pagination.total}건
+                </span>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </main>
     </div>
