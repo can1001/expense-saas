@@ -315,10 +315,10 @@ export default function CumulativeReportPage() {
                         <React.Fragment key={committee}>
                           {/* 위원회 행 */}
                           <tr
-                            className="border-b bg-indigo-50 cursor-pointer hover:bg-indigo-100"
+                            className="border-b bg-indigo-50 cursor-pointer hover:bg-indigo-100 text-gray-900"
                             onClick={() => toggleCommittee(committee)}
                           >
-                            <td className="py-3 font-medium">
+                            <td className="py-3 font-bold">
                               <div className="flex items-center gap-2">
                                 {isExpanded ? (
                                   <ChevronDown className="w-4 h-4" />
@@ -328,13 +328,13 @@ export default function CumulativeReportPage() {
                                 {committee}
                               </div>
                             </td>
-                            <td className="py-3 text-right font-medium">
+                            <td className="py-3 text-right font-bold">
                               {formatCurrency(group.totalBudget)}원
                             </td>
-                            <td className="py-3 text-right font-medium">
+                            <td className="py-3 text-right font-bold">
                               {formatCurrency(group.totalSpent)}원
                             </td>
-                            <td className="py-3 text-right font-medium">
+                            <td className="py-3 text-right font-bold">
                               {formatCurrency(group.totalBudget - group.totalSpent)}원
                             </td>
                             <td className="py-3 text-right">
