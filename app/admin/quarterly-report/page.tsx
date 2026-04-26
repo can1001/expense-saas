@@ -26,6 +26,7 @@ import {
   TABLE_CELL_RIGHT,
   SPINNER_MD,
 } from '@/lib/constants/styles';
+import { ExpenseDetailModal } from '@/components/admin/ExpenseDetailModal';
 
 interface QuarterlyReportData {
   year: number;
@@ -133,6 +134,46 @@ interface QuarterlyReportData {
   };
 }
 
+// 세목 상세 팝업용 타입
+interface DetailModalData {
+  expenses: Array<{
+    id: string;
+    requestDate: string;
+    applicantName: string;
+    committee: string;
+    department: string;
+    paymentStatus: string;
+    items: Array<{
+      description: string;
+      amount: number;
+      budgetDetail: string;
+      unitPrice: number;
+      quantity: number;
+    }>;
+  }>;
+  summary: {
+    totalCount: number;
+    totalAmount: number;
+  };
+  filterInfo: {
+    year: number;
+    quarter: number;
+    budgetCategory: string;
+    budgetSubcategory: string;
+    budgetDetail: string;
+    committee: string | null;
+    department: string | null;
+  };
+}
+
+interface SelectedDetailInfo {
+  budgetCategory: string;
+  budgetSubcategory: string;
+  budgetDetail: string;
+  committee?: string;
+  department?: string;
+}
+
 function formatAmount(amount: number): string {
   return new Intl.NumberFormat('ko-KR').format(amount) + '원';
 }
@@ -160,6 +201,12 @@ export default function QuarterlyReportPage() {
   const [expandedDeptSubcategories, setExpandedDeptSubcategories] = useState<Set<string>>(new Set());
   // 연간 컬럼 표시 여부
   const [showYearlyColumns, setShowYearlyColumns] = useState(false);
+
+  // 세목 상세 팝업 상태
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailModalLoading, setDetailModalLoading] = useState(false);
+  const [detailModalData, setDetailModalData] = useState<DetailModalData | null>(null);
+  const [selectedDetailInfo, setSelectedDetailInfo] = useState<SelectedDetailInfo | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -343,6 +390,51 @@ export default function QuarterlyReportPage() {
     setExpandedDeptCategories(new Set());
     setExpandedDeptSubcategories(new Set());
   };
+
+  // 세목 상세 더블클릭 핸들러
+  const handleDetailDoubleClick = useCallback(
+    async (
+      budgetCategory: string,
+      budgetSubcategory: string,
+      budgetDetail: string,
+      committee?: string,
+      departmentName?: string
+    ) => {
+      setSelectedDetailInfo({
+        budgetCategory,
+        budgetSubcategory,
+        budgetDetail,
+        committee,
+        department: departmentName,
+      });
+      setIsDetailModalOpen(true);
+      setDetailModalLoading(true);
+
+      try {
+        const params = new URLSearchParams({
+          year: year.toString(),
+          quarter: quarter.toString(),
+          budgetCategory,
+          budgetSubcategory,
+          budgetDetail,
+          ...(committee && { committee }),
+          ...(departmentName && { department: departmentName }),
+          ...(paymentStatus && { paymentStatus }),
+        });
+
+        const response = await fetch(`/api/admin/quarterly-report/expenses?${params}`);
+        if (!response.ok) throw new Error('Failed to fetch data');
+        const result = await response.json();
+        setDetailModalData(result);
+      } catch (error) {
+        console.error('Error fetching expense details:', error);
+        setDetailModalData(null);
+      } finally {
+        setDetailModalLoading(false);
+      }
+    },
+    [year, quarter, paymentStatus]
+  );
 
   // 부서 내 항 토글
   const toggleDeptCategory = (deptKey: string, category: string) => {
@@ -849,7 +941,13 @@ export default function QuarterlyReportPage() {
                                                         </div>
                                                       </td>
                                                       <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>{detail.count}건</td>
-                                                      <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>{formatAmount(detail.amount)}</td>
+                                                      <td
+                                                        className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm cursor-pointer hover:bg-green-100 hover:text-blue-600`}
+                                                        onDoubleClick={() => handleDetailDoubleClick(cat.category, sub.subcategory, detail.detail, comm.committee, dept.department)}
+                                                        title="더블클릭하여 상세 내역 보기"
+                                                      >
+                                                        {formatAmount(detail.amount)}
+                                                      </td>
                                                       <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>{detail.ratio}%</td>
                                                     </tr>
                                                   ))}
@@ -1105,7 +1203,11 @@ export default function QuarterlyReportPage() {
                                       </div>
                                     </td>
                                     <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>-</td>
-                                    <td className={`${TABLE_CELL_RIGHT} text-gray-500 text-sm`}>
+                                    <td
+                                      className={`${TABLE_CELL_RIGHT} text-gray-500 text-sm cursor-pointer hover:bg-blue-100 hover:text-blue-600`}
+                                      onDoubleClick={() => handleDetailDoubleClick(cat.category, sub.subcategory, detail.detail)}
+                                      title="더블클릭하여 상세 내역 보기"
+                                    >
                                       {formatAmount(detail.spentAmount)}
                                     </td>
                                     <td className={`${TABLE_CELL_RIGHT} text-gray-400 text-sm`}>-</td>
@@ -1145,6 +1247,18 @@ export default function QuarterlyReportPage() {
           </div>
         </>
       )}
+
+      {/* 세목 상세 팝업 */}
+      <ExpenseDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setDetailModalData(null);
+        }}
+        loading={detailModalLoading}
+        data={detailModalData}
+        detailInfo={selectedDetailInfo}
+      />
     </div>
   );
 }
