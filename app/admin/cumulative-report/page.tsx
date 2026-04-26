@@ -294,12 +294,12 @@ export default function CumulativeReportPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left text-gray-500">
-                    <th className="pb-3 font-medium">위원회 / 부서</th>
-                    <th className="pb-3 font-medium text-right">예산</th>
-                    <th className="pb-3 font-medium text-right">누적지출</th>
-                    <th className="pb-3 font-medium text-right">잔액</th>
-                    <th className="pb-3 font-medium text-right">집행률</th>
+                  <tr className="border-b text-left text-gray-900">
+                    <th className="pb-3 font-bold">위원회 / 부서</th>
+                    <th className="pb-3 font-bold text-right">예산</th>
+                    <th className="pb-3 font-bold text-right">누적지출</th>
+                    <th className="pb-3 font-bold text-right">잔액</th>
+                    <th className="pb-3 font-bold text-right">집행률</th>
                   </tr>
                 </thead>
                 <tbody>
