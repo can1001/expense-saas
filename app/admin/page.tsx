@@ -52,28 +52,28 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 
 const quickLinks = [
   {
-    href: '/admin/budget-wizard',
+    href: '/admin/budget/wizard',
     title: '연도별 설정 마법사',
     description: '새 연도 예산 초기 설정',
     icon: Wand2,
     color: 'bg-violet-500',
   },
   {
-    href: '/approvals',
+    href: '/admin/expense/pending',
     title: '결재 대기함',
     description: '결재 대기 목록 확인',
     icon: Clock,
     color: 'bg-orange-500',
   },
   {
-    href: '/admin/quarterly-report',
+    href: '/admin/settlement/quarterly-report',
     title: '분기별 회계보고',
     description: '재직회 보고용 리포트',
     icon: FileBarChart,
     color: 'bg-blue-500',
   },
   {
-    href: '/admin/manager-exceptions',
+    href: '/admin/settings/manager-exceptions',
     title: '담당자 예외 현황',
     description: '팀장과 다른 담당자 목록',
     icon: AlertTriangle,

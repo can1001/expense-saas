@@ -931,6 +931,56 @@ model SystemSetting {
 }
 
 // ========================================
+// 결산 관리 (Settlement Management)
+// ========================================
+
+// 결산 타입
+enum SettlementType {
+  MONTHLY    // 월별 결산
+  QUARTERLY  // 분기별 결산
+  ANNUAL     // 연간 결산
+}
+
+// 결산 상태
+enum SettlementStatus {
+  OPEN    // 진행 중
+  CLOSED  // 마감
+}
+
+// 결산 기록
+model Settlement {
+  id          String           @id @default(cuid())
+
+  year        Int              // 연도
+  period      Int              // 월(1~12) 또는 분기(1~4) 또는 연도(0)
+  type        SettlementType   // 결산 타입
+
+  // 금액 정보 (스냅샷)
+  income      Int              @default(0)  // 수입 합계
+  expense     Int              @default(0)  // 지출 합계
+  balance     Int              @default(0)  // 차액
+
+  // 상태
+  status      SettlementStatus @default(OPEN)
+
+  // 마감 정보
+  closedAt    DateTime?        // 마감 일시
+  closedBy    String?          // 마감 처리자 ID
+  closedByName String?         // 마감 처리자 이름
+
+  // 메모
+  note        String?
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([year, period, type])
+  @@index([year])
+  @@index([type])
+  @@index([status])
+}
+
+// ========================================
 // 어드민 알림 발송 (Admin Notifications)
 // ========================================
 

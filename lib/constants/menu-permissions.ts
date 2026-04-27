@@ -43,60 +43,82 @@ export const ADMIN_MENU_ROLES: UserRole[] = [
   'admin_assistant',
 ];
 
-// 역할별 접근 가능한 관리자 메뉴 경로 정의
+// 역할별 접근 가능한 관리자 메뉴 경로 정의 (새 IA 구조)
 export const ROLE_ADMIN_MENU_PATHS: Record<string, string[] | 'all'> = {
   admin: 'all', // 모든 메뉴 접근
   accountant: [
-    '/admin',                      // 대시보드 홈
-    '/admin/committees',           // 위원회 관리
-    '/admin/departments',          // 사역팀(부) 관리
-    '/admin/budget-managers',      // 세목별 담당자
-    '/admin/budget-view',          // 예산 현황 조회
-    '/admin/budget-execution',     // 사역비 집행 현황
-    '/admin/hr-admin-execution',   // 인사/행정비 현황
-    '/admin/quarterly-report',     // 분기별 회계보고
-    '/admin/cumulative-report',    // 분기별 누적 현황
-    '/admin/account-report',       // 재정보고서
-    '/admin/offerings',            // 헌금 관리
+    '/admin',                              // 대시보드 홈
+    '/admin/org/committees',               // 위원회 관리
+    '/admin/org/departments',              // 사역팀(부) 관리
+    '/admin/budget/managers',              // 세목별 담당자
+    '/admin/budget/view',                  // 예산 현황 조회
+    '/admin/income/offerings',             // 헌금 관리
+    '/admin/income/status',                // 수입 현황
+    '/admin/expense/list',                 // 지출결의서 목록
+    '/admin/expense/pending',              // 결재 대기
+    '/admin/expense/payment',              // 지급 처리
+    '/admin/expense/status',               // 지출 현황
+    '/admin/expense/execution',            // 사역비 집행 현황
+    '/admin/expense/hr-admin',             // 인사/행정비 현황
+    '/admin/settlement/monthly',           // 월별 결산
+    '/admin/settlement/quarterly',         // 분기별 결산
+    '/admin/settlement/annual',            // 연간 결산
+    '/admin/settlement/quarterly-report',  // 분기별 회계보고
+    '/admin/settlement/cumulative',        // 분기별 누적 현황
+    '/admin/settlement/report',            // 재정보고서
   ],
   admin_assistant: [
     '/admin',
-    '/admin/committees',
-    '/admin/departments',
-    '/admin/budget-managers',
-    '/admin/budget-view',
-    '/admin/budget-execution',
-    '/admin/hr-admin-execution',
-    '/admin/quarterly-report',
-    '/admin/cumulative-report',
-    '/admin/account-report',       // 재정보고서
-    '/admin/offerings',
+    '/admin/org/committees',
+    '/admin/org/departments',
+    '/admin/budget/managers',
+    '/admin/budget/view',
+    '/admin/income/offerings',
+    '/admin/income/status',
+    '/admin/expense/list',
+    '/admin/expense/status',
+    '/admin/expense/execution',
+    '/admin/expense/hr-admin',
+    '/admin/settlement/quarterly-report',
+    '/admin/settlement/cumulative',
+    '/admin/settlement/report',
   ],
   finance_head: [
     '/admin',
-    '/admin/committees',
-    '/admin/departments',
-    '/admin/budget-managers',
-    '/admin/budget-view',
-    '/admin/budget-execution',
-    '/admin/hr-admin-execution',
-    '/admin/quarterly-report',
-    '/admin/cumulative-report',
-    '/admin/account-report',       // 재정보고서
-    '/admin/offerings',
+    '/admin/org/committees',
+    '/admin/org/departments',
+    '/admin/budget/managers',
+    '/admin/budget/view',
+    '/admin/income/offerings',
+    '/admin/income/status',
+    '/admin/expense/list',
+    '/admin/expense/pending',
+    '/admin/expense/payment',
+    '/admin/expense/status',
+    '/admin/expense/execution',
+    '/admin/expense/hr-admin',
+    '/admin/settlement/monthly',
+    '/admin/settlement/quarterly',
+    '/admin/settlement/annual',
+    '/admin/settlement/quarterly-report',
+    '/admin/settlement/cumulative',
+    '/admin/settlement/report',
   ],
   finance_member: [
     '/admin',
-    '/admin/committees',
-    '/admin/departments',
-    '/admin/budget-managers',
-    '/admin/budget-view',
-    '/admin/budget-execution',
-    '/admin/hr-admin-execution',
-    '/admin/quarterly-report',
-    '/admin/cumulative-report',
-    '/admin/account-report',       // 재정보고서
-    '/admin/offerings',
+    '/admin/org/committees',
+    '/admin/org/departments',
+    '/admin/budget/managers',
+    '/admin/budget/view',
+    '/admin/income/offerings',
+    '/admin/income/status',
+    '/admin/expense/list',
+    '/admin/expense/status',
+    '/admin/expense/execution',
+    '/admin/expense/hr-admin',
+    '/admin/settlement/quarterly-report',
+    '/admin/settlement/cumulative',
+    '/admin/settlement/report',
   ],
 };
 
