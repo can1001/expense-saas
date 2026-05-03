@@ -28,6 +28,14 @@ export interface RateLimitResult {
 // In-memory store (프로덕션에서는 Redis 사용 권장)
 const loginAttempts = new Map<string, LoginAttempt>();
 
+// 프로덕션 환경에서 in-memory rate limiting 경고
+if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
+  console.warn(
+    '[Rate Limit] 경고: In-memory rate limiting 사용 중. ' +
+    '멀티 인스턴스 환경에서는 REDIS_URL 설정 후 Redis 기반 rate limiting으로 전환하세요.'
+  );
+}
+
 // 테스트용 리셋 함수
 export function resetRateLimitStore(): void {
   loginAttempts.clear();
