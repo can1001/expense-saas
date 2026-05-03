@@ -2,6 +2,7 @@
  * PUT /api/expenses/[id] API 테스트
  *
  * 테스트 대상:
+ * - 인증 및 소유권 검증
  * - 기본 수정 기능 (DRAFT, REJECTED, WITHDRAWN 상태)
  * - 최종승인 상태 수정 권한 제한
  * - 감사 로그 기록
@@ -56,13 +57,16 @@ vi.mock('@/lib/domain/request-team', () => ({
 // Import after mocking
 import { PUT } from '../[id]/route';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, getSessionUserId } from '@/lib/auth';
 import { getEffectiveRole } from '@/lib/services/user-service';
 
 describe('PUT /api/expenses/[id]', () => {
   const mockPrisma = prisma as any;
   const mockGetCurrentUser = getCurrentUser as ReturnType<typeof vi.fn>;
+  const mockGetSessionUserId = getSessionUserId as ReturnType<typeof vi.fn>;
   const mockGetEffectiveRole = getEffectiveRole as ReturnType<typeof vi.fn>;
+
+  const OWNER_USER_ID = 'owner-user-id';
 
   const createMockExpense = (overrides = {}) => ({
     id: 'test-expense-id',
@@ -73,6 +77,7 @@ describe('PUT /api/expenses/[id]', () => {
     applicantName: '홍길동',
     requestTeam: '선교위원회 청년부',
     requestAmount: 100000,
+    userId: OWNER_USER_ID,
     items: [
       {
         id: 'item-1',
@@ -110,10 +115,102 @@ describe('PUT /api/expenses/[id]', () => {
     vi.clearAllMocks();
     mockPrisma.expenseItem.deleteMany.mockResolvedValue({ count: 1 });
     mockPrisma.approvalLog.create.mockResolvedValue({});
+    // 기본적으로 소유자로 로그인된 상태
+    mockGetSessionUserId.mockResolvedValue(OWNER_USER_ID);
   });
 
   afterEach(() => {
     vi.resetAllMocks();
+  });
+
+  describe('인증 테스트', () => {
+    it('비로그인 사용자 수정 시도 시 401 에러', async () => {
+      mockGetSessionUserId.mockResolvedValue(null);
+
+      const request = createPutRequest({
+        committee: '선교위원회',
+        department: '청년부',
+      });
+
+      const response = await PUT(request, { params: createParams() });
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('로그인이 필요합니다.');
+    });
+  });
+
+  describe('소유권 검증 테스트', () => {
+    it('타인의 지출결의서 수정 시도 시 403 에러', async () => {
+      mockGetSessionUserId.mockResolvedValue('other-user-id');
+      const mockExpense = createMockExpense({ status: 'DRAFT', userId: OWNER_USER_ID });
+      mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
+
+      const request = createPutRequest({
+        committee: '선교위원회',
+        department: '청년부',
+        items: mockExpense.items,
+      });
+
+      const response = await PUT(request, { params: createParams() });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('수정 권한이 없습니다.');
+    });
+
+    it('본인 지출결의서는 수정 가능', async () => {
+      mockGetSessionUserId.mockResolvedValue(OWNER_USER_ID);
+      const mockExpense = createMockExpense({ status: 'DRAFT', userId: OWNER_USER_ID });
+      mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
+      mockPrisma.expense.update.mockResolvedValue(mockExpense);
+
+      const request = createPutRequest({
+        committee: '선교위원회',
+        department: '청년부',
+        items: mockExpense.items,
+      });
+
+      const response = await PUT(request, { params: createParams() });
+
+      expect(response.status).toBe(200);
+    });
+
+    it('REJECTED 상태에서 타인 수정 시도 시 403 에러', async () => {
+      mockGetSessionUserId.mockResolvedValue('other-user-id');
+      const mockExpense = createMockExpense({ status: 'REJECTED', userId: OWNER_USER_ID });
+      mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
+
+      const request = createPutRequest({
+        committee: '선교위원회',
+        department: '청년부',
+        items: mockExpense.items,
+      });
+
+      const response = await PUT(request, { params: createParams() });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('수정 권한이 없습니다.');
+    });
+
+    it('WITHDRAWN 상태에서 타인 수정 시도 시 403 에러', async () => {
+      mockGetSessionUserId.mockResolvedValue('other-user-id');
+      const mockExpense = createMockExpense({ status: 'WITHDRAWN', userId: OWNER_USER_ID });
+      mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
+
+      const request = createPutRequest({
+        committee: '선교위원회',
+        department: '청년부',
+        items: mockExpense.items,
+      });
+
+      const response = await PUT(request, { params: createParams() });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('수정 권한이 없습니다.');
+    });
   });
 
   describe('기본 수정 성공 케이스', () => {

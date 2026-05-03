@@ -76,10 +76,16 @@ export async function PUT(
     // 유효성 검증
     const validatedData = updateExpenseSchema.parse(body);
 
+    // 현재 사용자 확인
+    const currentUserId = await getSessionUserId();
+    if (!currentUserId) {
+      throw new ApiError('로그인이 필요합니다.', 401);
+    }
+
     // 현재 데이터 조회 (상태 확인 및 청구팀 자동 생성/검증을 위해)
     const existing = await prisma.expense.findUnique({
       where: { id },
-      select: { status: true, paymentStatus: true, committee: true, department: true, applicantName: true },
+      select: { status: true, paymentStatus: true, committee: true, department: true, applicantName: true, userId: true },
     });
     if (!existing) {
       throw new ApiError('지출결의서를 찾을 수 없습니다.', 404);
@@ -91,6 +97,9 @@ export async function PUT(
     const isApprovedPending = existing.status === 'APPROVED_FINAL' &&
                               existing.paymentStatus === 'PENDING';
 
+    // 소유권 검증 (기본 수정 가능 상태에서는 소유자만 수정 가능)
+    const isOwner = existing.userId === currentUserId;
+
     // 최종승인 + 지급대기 상태에서는 역할 체크 필요 (연도별 유효 역할 기준)
     let canEditApprovedPending = false;
     if (isApprovedPending) {
@@ -101,6 +110,12 @@ export async function PUT(
       }
     }
 
+    // 기본 수정 가능 상태: 소유자만 수정 가능
+    if (isBasicEditable && !isOwner) {
+      throw new ApiError('수정 권한이 없습니다.', 403);
+    }
+
+    // 최종승인 상태: 특정 역할만 수정 가능 (소유권 무관)
     if (!isBasicEditable && !canEditApprovedPending) {
       throw new ApiError('이 상태에서는 수정할 수 없습니다.', 403);
     }
