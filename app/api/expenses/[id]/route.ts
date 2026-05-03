@@ -7,6 +7,7 @@ import { deriveRequestTeam } from '@/lib/domain/request-team';
 import { getSessionUserId, getCurrentUser } from '@/lib/auth';
 import { maskAccountNumber } from '@/lib/utils';
 import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
+import { APPROVED_EDIT_ROLES } from '@/lib/constants/menu-permissions';
 
 // GET /api/expenses/[id] - 지출결의서 상세 조회
 export async function GET(
@@ -90,16 +91,13 @@ export async function PUT(
     const isApprovedPending = existing.status === 'APPROVED_FINAL' &&
                               existing.paymentStatus === 'PENDING';
 
-    // 최종승인 상태 수정 가능 역할
-    const APPROVED_EDIT_ROLES = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
-
     // 최종승인 + 지급대기 상태에서는 역할 체크 필요 (연도별 유효 역할 기준)
     let canEditApprovedPending = false;
     if (isApprovedPending) {
       const currentUser = await getCurrentUser();
       if (currentUser) {
         const { role: effectiveRole } = await getEffectiveRole(currentUser.id, CURRENT_YEAR);
-        canEditApprovedPending = APPROVED_EDIT_ROLES.includes(effectiveRole);
+        canEditApprovedPending = APPROVED_EDIT_ROLES.includes(effectiveRole as any);
       }
     }
 

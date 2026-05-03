@@ -35,6 +35,14 @@ export function maskAccountNumber(accountNumber: string | null | undefined): str
   return `****${lastFour}`;
 }
 
+// 지출결의서 편집 페이지 경로 반환
+// 간편 지출결의서(v4.1.4)는 /expenses/simple/[id]/edit, 그 외는 /expenses/[id]/edit
+export function getExpenseEditPath(id: string, version?: string | null): string {
+  return version === '4.1.4'
+    ? `/expenses/simple/${id}/edit`
+    : `/expenses/${id}/edit`;
+}
+
 // 타임스탬프를 상대 시간으로 포맷 ("방금", "5분 전" 등)
 export function formatRelativeTime(timestamp: number): string {
   const now = Date.now();

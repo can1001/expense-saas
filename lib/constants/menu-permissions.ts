@@ -43,6 +43,14 @@ export const ADMIN_MENU_ROLES: UserRole[] = [
   'admin_assistant',
 ];
 
+// 최종승인 + 지급대기 상태 지출결의서 수정 가능 역할
+export const APPROVED_EDIT_ROLES: UserRole[] = [
+  'admin',
+  'finance_head',
+  'accountant',
+  'admin_assistant',
+];
+
 // 역할별 접근 가능한 관리자 메뉴 경로 정의
 export const ROLE_ADMIN_MENU_PATHS: Record<string, string[] | 'all'> = {
   admin: 'all', // 모든 메뉴 접근

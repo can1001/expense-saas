@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import ExpenseForm from '@/components/ExpenseForm';
 import Header from '@/components/Header';
 import { SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
+import { APPROVED_EDIT_ROLES } from '@/lib/constants/menu-permissions';
 
 export default function EditExpensePage() {
   const params = useParams();
@@ -35,9 +36,8 @@ export default function EditExpensePage() {
         const isBasicEditable = basicEditable.includes(data.status);
 
         // 최종승인 + 지급대기 상태에서는 특정 역할만 수정 가능
-        const approvedEditRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
         const isApprovedPending = data.status === 'APPROVED_FINAL' && data.paymentStatus === 'PENDING';
-        const canEditApprovedPending = isApprovedPending && userRole && approvedEditRoles.includes(userRole);
+        const canEditApprovedPending = isApprovedPending && userRole && APPROVED_EDIT_ROLES.includes(userRole);
 
         const isEditable = isBasicEditable || canEditApprovedPending;
 

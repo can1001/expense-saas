@@ -14,8 +14,9 @@ import { BudgetInfoPanel } from '@/components/approval/BudgetInfoPanel';
 import { PaymentStatusModal } from '@/components/PaymentStatusModal';
 import Accordion, { InfoRow, MobileItemCard } from '@/components/ui/Accordion';
 import { Expense } from '@/lib/types';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getExpenseEditPath } from '@/lib/utils';
 import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_SECONDARY, BTN_DANGER, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
+import { APPROVED_EDIT_ROLES } from '@/lib/constants/menu-permissions';
 import { ArrowLeft, Printer, FileSpreadsheet, Edit2, Trash2, Copy } from 'lucide-react';
 
 export default function ExpenseDetailPage() {
@@ -157,13 +158,7 @@ export default function ExpenseDetailPage() {
       }
 
       alert('지출결의서가 복제되었습니다.');
-      // 복제된 지출결의서의 편집 페이지로 이동
-      const newId = data.expense.id;
-      if (expense?.version === '4.1.4') {
-        router.push(`/expenses/simple/${newId}/edit`);
-      } else {
-        router.push(`/expenses/${newId}/edit`);
-      }
+      router.push(getExpenseEditPath(data.expense.id, expense?.version));
     } catch (err) {
       alert(err instanceof Error ? err.message : '복제 중 오류가 발생했습니다.');
     } finally {
@@ -314,9 +309,7 @@ export default function ExpenseDetailPage() {
   // 추가: APPROVED_FINAL이면서 paymentStatus가 PENDING인 경우 (특정 역할만 수정 가능)
   const basicEditable = ['DRAFT', 'REJECTED', 'WITHDRAWN'].includes(expense.status || '');
   const approvedPending = expense.status === 'APPROVED_FINAL' && expense.paymentStatus === 'PENDING';
-  // 최종승인 상태 수정 가능 역할: admin, finance_head, accountant, admin_assistant
-  const approvedEditRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
-  const canEditApprovedPending = approvedPending && currentUser && approvedEditRoles.includes(currentUser.role);
+  const canEditApprovedPending = approvedPending && currentUser && APPROVED_EDIT_ROLES.includes(currentUser.role as any);
   const canEdit = basicEditable || canEditApprovedPending;
   // 삭제는 최종승인 전에만 가능 (APPROVED_FINAL이면 삭제 불가)
   const canDelete = basicEditable;
@@ -461,11 +454,7 @@ export default function ExpenseDetailPage() {
             )}
             {canEdit && (
               <button
-                onClick={() => router.push(
-                  expense.version === '4.1.4'
-                    ? `/expenses/simple/${id}/edit`
-                    : `/expenses/${id}/edit`
-                )}
+                onClick={() => router.push(getExpenseEditPath(id, expense.version))}
                 disabled={deleteLoading}
                 className={BTN_SECONDARY}
               >
@@ -894,11 +883,7 @@ export default function ExpenseDetailPage() {
         )}
         {canEdit && (
           <button
-            onClick={() => router.push(
-              expense.version === '4.1.4'
-                ? `/expenses/simple/${id}/edit`
-                : `/expenses/${id}/edit`
-            )}
+            onClick={() => router.push(getExpenseEditPath(id, expense.version))}
             disabled={deleteLoading}
             className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors min-h-[48px]"
           >

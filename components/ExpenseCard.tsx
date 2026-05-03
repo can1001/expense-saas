@@ -6,8 +6,9 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import { useSwipeable } from 'react-swipeable';
 import { ExpenseListItem } from '@/lib/types';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getExpenseEditPath } from '@/lib/utils';
 import { Eye, Edit, ChevronLeft, Copy } from 'lucide-react';
+import { APPROVED_EDIT_ROLES } from '@/lib/constants/menu-permissions';
 
 interface ExpenseCardProps {
   expense: ExpenseListItem;
@@ -136,12 +137,7 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick, on
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // 간편 지출결의서(4.1.4)는 simple 수정 경로로 이동
-    if (expense.version === '4.1.4') {
-      router.push(`/expenses/simple/${expense.id}/edit`);
-    } else {
-      router.push(`/expenses/${expense.id}/edit`);
-    }
+    router.push(getExpenseEditPath(expense.id, expense.version));
   };
 
   const handleDuplicate = (e: React.MouseEvent) => {
@@ -152,13 +148,9 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick, on
   };
 
   // 수정 가능 여부 체크
-  // 기본: 임시저장, 반려, 회수 상태
-  // 추가: 최종승인 + 지급대기 상태 (특정 역할만)
   const basicEditable = ['DRAFT', 'REJECTED', 'WITHDRAWN'].includes(expense.status || '');
   const approvedPending = expense.status === 'APPROVED_FINAL' && expense.paymentStatus === 'PENDING';
-  // 최종승인 상태 수정 가능 역할: admin, finance_head, accountant, admin_assistant
-  const approvedEditRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
-  const canEditApprovedPending = approvedPending && userRole && approvedEditRoles.includes(userRole);
+  const canEditApprovedPending = approvedPending && userRole && APPROVED_EDIT_ROLES.includes(userRole as any);
   const canEdit = basicEditable || canEditApprovedPending;
 
   return (

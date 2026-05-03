@@ -15,7 +15,7 @@ import { ExpenseListSkeleton, FilterSkeleton, TableSkeleton } from '@/components
 import { LoadMoreIndicator } from '@/components/ui/LoadingIndicator';
 import { ExpenseListItem, ExpenseListResponse, UserRole } from '@/lib/types';
 import { BTN_PRIMARY, BTN_LG, BTN_PAGINATION, BTN_PAGE_ACTIVE, BTN_PAGE_INACTIVE, FLEX_CENTER } from '@/lib/constants/styles';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getExpenseEditPath } from '@/lib/utils';
 
 interface CurrentUser {
   id: string;
@@ -436,14 +436,8 @@ function ExpensesPageContent() {
       }
 
       alert('지출결의서가 복제되었습니다.');
-      // 복제된 지출결의서의 편집 페이지로 이동
-      const newId = data.expense.id;
       const expense = expenses.find(e => e.id === id);
-      if (expense?.version === '4.1.4') {
-        router.push(`/expenses/simple/${newId}/edit`);
-      } else {
-        router.push(`/expenses/${newId}/edit`);
-      }
+      router.push(getExpenseEditPath(data.expense.id, expense?.version));
     } catch (err) {
       alert(err instanceof Error ? err.message : '복제 중 오류가 발생했습니다.');
     }
