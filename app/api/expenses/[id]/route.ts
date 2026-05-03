@@ -234,14 +234,25 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // 상태 확인
+    // 현재 사용자 확인
+    const currentUserId = await getSessionUserId();
+    if (!currentUserId) {
+      throw new ApiError('로그인이 필요합니다.', 401);
+    }
+
+    // 상태 및 소유자 확인
     const expense = await prisma.expense.findUnique({
       where: { id },
-      select: { status: true },
+      select: { status: true, userId: true },
     });
 
     if (!expense) {
       throw new ApiError('지출결의서를 찾을 수 없습니다.', 404);
+    }
+
+    // 소유권 검증
+    if (expense.userId !== currentUserId) {
+      throw new ApiError('삭제 권한이 없습니다.', 403);
     }
 
     if (!EDITABLE_STATUSES.includes(expense.status)) {
