@@ -58,3 +58,5 @@ next-env.d.ts
 **/public/worker-*.js.map
 **/public/fallback-*.js
 **/public/fallback-*.js.map
+**/worker/worker-*.js
+**/worker/worker-*.js.map
