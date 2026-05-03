@@ -6,9 +6,17 @@ import { prisma } from './prisma';
 const SESSION_COOKIE = 'session';
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7일
 
-// 세션 서명용 비밀키 (환경변수 또는 기본값)
+// 세션 서명용 비밀키
 function getSessionSecret(): Uint8Array {
-  const secret = process.env.SESSION_SECRET || 'default-session-secret-change-in-production';
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SESSION_SECRET 환경변수가 프로덕션에서 필수입니다.');
+    }
+    // 개발 환경에서만 기본값 사용
+    console.warn('경고: 기본 세션 시크릿 사용 중. 프로덕션에서는 SESSION_SECRET 설정 필요.');
+    return new TextEncoder().encode('dev-only-secret-do-not-use-in-production');
+  }
   return new TextEncoder().encode(secret);
 }
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Hoisted mocks for proper initialization order
 const { mockCookieStore, mockPrisma, mockJose } = vi.hoisted(() => {
@@ -78,12 +78,25 @@ import { createSession, deleteSession, getCurrentUser, getSessionUserId } from '
 import { findUserById } from '../users';
 
 describe('auth', () => {
+  const originalSessionSecret = process.env.SESSION_SECRET;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    // SESSION_SECRET 설정 (테스트용)
+    process.env.SESSION_SECRET = 'test-secret-for-jwt-signing';
     // Default: no yearRole found (use User.role)
     mockPrisma.userYearRole.findFirst.mockResolvedValue(null);
     // Default: valid JWT token returns userId
     mockJose.jwtVerify.mockResolvedValue({ payload: { userId: '1' } });
+  });
+
+  afterEach(() => {
+    // 원래 환경변수 복원
+    if (originalSessionSecret) {
+      process.env.SESSION_SECRET = originalSessionSecret;
+    } else {
+      delete process.env.SESSION_SECRET;
+    }
   });
 
   describe('createSession', () => {
@@ -104,6 +117,7 @@ describe('auth', () => {
     it('should set secure flag in production', async () => {
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'production';
+      // SESSION_SECRET은 beforeEach에서 이미 설정됨
 
       await createSession('test-user-id');
 
