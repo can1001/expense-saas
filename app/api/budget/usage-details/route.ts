@@ -9,6 +9,7 @@ import type { ApprovalStatus } from '@/lib/types';
  * Query Parameters:
  * - budgetDetail: 세목 이름 (필수)
  * - year: 조회 연도 (필수)
+ * - excludeExpenseId: 제외할 지출결의서 ID (선택, 이중 차감 방지용)
  *
  * Returns: 승인된(APPROVED_STEP_1 이상) 지출 항목 목록
  */
@@ -17,6 +18,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const budgetDetail = searchParams.get('budgetDetail');
     const yearParam = searchParams.get('year');
+    const excludeExpenseId = searchParams.get('excludeExpenseId');
 
     if (!budgetDetail) {
       throw new ApiError('세목(budgetDetail) 파라미터가 필요합니다.', 400);
@@ -38,7 +40,7 @@ export async function GET(request: NextRequest) {
     // 승인된 상태 목록 (APPROVED_STEP_1 이상)
     const approvedStatuses: ApprovalStatus[] = ['APPROVED_STEP_1', 'APPROVED_STEP_2', 'APPROVED_FINAL'];
 
-    // 세목별 승인된 지출 항목 조회
+    // 세목별 승인된 지출 항목 조회 (excludeExpenseId가 있으면 해당 지출 제외)
     const expenseItems = await prisma.expenseItem.findMany({
       where: {
         budgetDetail: budgetDetail,
@@ -50,6 +52,7 @@ export async function GET(request: NextRequest) {
             gte: startDate,
             lt: endDate,
           },
+          ...(excludeExpenseId ? { id: { not: excludeExpenseId } } : {}),
         },
       },
       include: {

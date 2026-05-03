@@ -17,13 +17,14 @@ interface BudgetInfo {
 interface BudgetInfoPanelProps {
   budgetInfo: BudgetInfo[];
   year?: number;
+  expenseId?: string; // 현재 지출결의서 ID (이중 차감 방지용)
 }
 
 function formatAmount(amount: number): string {
   return amount.toLocaleString('ko-KR') + '원';
 }
 
-export function BudgetInfoPanel({ budgetInfo, year }: BudgetInfoPanelProps) {
+export function BudgetInfoPanel({ budgetInfo, year, expenseId }: BudgetInfoPanelProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedBudgetDetail, setSelectedBudgetDetail] = useState<string>('');
 
@@ -126,6 +127,7 @@ export function BudgetInfoPanel({ budgetInfo, year }: BudgetInfoPanelProps) {
         onClose={() => setModalOpen(false)}
         budgetDetailName={selectedBudgetDetail}
         year={displayYear}
+        excludeExpenseId={expenseId}
       />
     </>
   );

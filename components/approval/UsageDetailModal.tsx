@@ -20,6 +20,7 @@ interface UsageDetailModalProps {
   onClose: () => void;
   budgetDetailName: string;
   year: number;
+  excludeExpenseId?: string; // 현재 지출결의서 ID (이중 차감 방지용)
 }
 
 function formatAmount(amount: number): string {
@@ -49,6 +50,7 @@ export function UsageDetailModal({
   onClose,
   budgetDetailName,
   year,
+  excludeExpenseId,
 }: UsageDetailModalProps) {
   const [items, setItems] = useState<UsageDetailItem[]>([]);
   const [totalAmount, setTotalAmount] = useState(0);
@@ -59,7 +61,8 @@ export function UsageDetailModal({
     if (isOpen && budgetDetailName) {
       fetchUsageDetails();
     }
-  }, [isOpen, budgetDetailName, year]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, budgetDetailName, year, excludeExpenseId]);
 
   const fetchUsageDetails = async () => {
     setIsLoading(true);
@@ -70,6 +73,11 @@ export function UsageDetailModal({
         budgetDetail: budgetDetailName,
         year: year.toString(),
       });
+
+      // 현재 지출결의서 제외 (이중 차감 방지)
+      if (excludeExpenseId) {
+        params.set('excludeExpenseId', excludeExpenseId);
+      }
 
       const response = await fetch(`/api/budget/usage-details?${params}`);
 

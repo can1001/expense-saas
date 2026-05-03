@@ -545,6 +545,7 @@ export default function ExpenseDetailPage() {
                 <BudgetInfoPanel
                   budgetInfo={approvalData.budgetInfo}
                   year={new Date(expense.requestDate).getFullYear()}
+                  expenseId={id}
                 />
               </div>
             </Accordion>
@@ -747,6 +748,7 @@ export default function ExpenseDetailPage() {
             <BudgetInfoPanel
               budgetInfo={approvalData.budgetInfo}
               year={new Date(expense.requestDate).getFullYear()}
+              expenseId={id}
             />
           </div>
         )}

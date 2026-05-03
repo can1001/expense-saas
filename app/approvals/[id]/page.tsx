@@ -388,6 +388,7 @@ export default function ApprovalDetailPage() {
               <BudgetInfoPanel
                 budgetInfo={approvalData.budgetInfo}
                 year={new Date(expense.requestDate).getFullYear()}
+                expenseId={id}
               />
             )}
 

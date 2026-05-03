@@ -18,11 +18,13 @@ const APPROVED_STATUSES = ['APPROVED_STEP_1', 'APPROVED_STEP_2', 'APPROVED_FINAL
  *
  * @param budgetDetailNames 세목 이름 목록
  * @param year 대상 연도
+ * @param excludeExpenseId 제외할 지출결의서 ID (현재 보고 있는 지출결의서의 이중 차감 방지용)
  * @returns 세목별 사용금액 Map (세목 이름 → 사용금액)
  */
 export async function getUsedAmountByDetail(
   budgetDetailNames: string[],
-  year: number
+  year: number,
+  excludeExpenseId?: string
 ): Promise<Map<string, number>> {
   const usedAmounts = await prisma.expenseItem.groupBy({
     by: ['budgetDetail'],
@@ -34,6 +36,7 @@ export async function getUsedAmountByDetail(
           gte: new Date(year, 0, 1),
           lt: new Date(year + 1, 0, 1),
         },
+        ...(excludeExpenseId ? { id: { not: excludeExpenseId } } : {}),
       },
     },
     _sum: { amount: true },

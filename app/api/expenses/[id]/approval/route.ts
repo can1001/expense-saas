@@ -11,7 +11,8 @@ import { getUsedAmountByDetail } from '@/lib/services/budget-service';
  */
 async function getBudgetInfoForItems(
   items: { budgetDetail: string; amount: number }[],
-  year: number
+  year: number,
+  excludeExpenseId?: string
 ) {
   // 세목 이름 목록 추출 (중복 제거)
   const budgetDetailNames = [...new Set(items.map((item) => item.budgetDetail))];
@@ -29,8 +30,8 @@ async function getBudgetInfoForItems(
     },
   });
 
-  // 실시간 사용금액 조회 (1차 승인 이상)
-  const usedAmountMap = await getUsedAmountByDetail(budgetDetailNames, year);
+  // 실시간 사용금액 조회 (1차 승인 이상, 현재 지출결의서 제외)
+  const usedAmountMap = await getUsedAmountByDetail(budgetDetailNames, year, excludeExpenseId);
 
   // 세목별 청구금액 합산
   const requestAmountByDetail: Record<string, number> = {};
@@ -128,12 +129,13 @@ export async function GET(
     const isApplicant = approverName === expense.applicantName;
 
     // 결재자 또는 신청자인 경우 예산 정보 추가
+    // 현재 지출결의서 ID를 제외하여 이중 차감 방지
     let budgetInfo = null;
     if ((isApprover || isApplicant) && expense.items.length > 0) {
       const year = expense.requestDate
         ? new Date(expense.requestDate).getFullYear()
         : new Date().getFullYear();
-      budgetInfo = await getBudgetInfoForItems(expense.items, year);
+      budgetInfo = await getBudgetInfoForItems(expense.items, year, id);
     }
 
     return NextResponse.json({
