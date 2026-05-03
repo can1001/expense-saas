@@ -17,6 +17,7 @@ import {
   clearLoginAttempts,
   resetRateLimitStore,
   getClientIp,
+  getRateLimitKey,
 } from '../rate-limit';
 
 describe('Rate Limit 유틸리티', () => {
@@ -228,5 +229,107 @@ describe('getClientIp', () => {
 
     const ip = getClientIp(request);
     expect(ip).toBe('127.0.0.1');
+  });
+
+  it('x-render-client-ip 헤더가 최우선 (Render 환경)', () => {
+    const request = new Request('http://localhost', {
+      headers: {
+        'x-render-client-ip': '10.0.0.1',
+        'x-forwarded-for': '203.0.113.1',
+        'x-real-ip': '203.0.113.2',
+      },
+    });
+
+    const ip = getClientIp(request);
+    expect(ip).toBe('10.0.0.1');
+  });
+
+  it('x-vercel-forwarded-for가 x-forwarded-for보다 우선 (Vercel 환경)', () => {
+    const request = new Request('http://localhost', {
+      headers: {
+        'x-vercel-forwarded-for': '10.0.0.2',
+        'x-forwarded-for': '203.0.113.1',
+        'x-real-ip': '203.0.113.2',
+      },
+    });
+
+    const ip = getClientIp(request);
+    expect(ip).toBe('10.0.0.2');
+  });
+
+  it('잘못된 IP 형식은 무시됨', () => {
+    const request = new Request('http://localhost', {
+      headers: {
+        'x-forwarded-for': '<script>alert(1)</script>',
+        'x-real-ip': '203.0.113.1',
+      },
+    });
+
+    const ip = getClientIp(request);
+    expect(ip).toBe('203.0.113.1');
+  });
+
+  it('너무 긴 IP 문자열은 무시됨', () => {
+    const request = new Request('http://localhost', {
+      headers: {
+        'x-forwarded-for': 'a'.repeat(50),
+        'x-real-ip': '203.0.113.1',
+      },
+    });
+
+    const ip = getClientIp(request);
+    expect(ip).toBe('203.0.113.1');
+  });
+
+  it('IPv6 주소 지원', () => {
+    const request = new Request('http://localhost', {
+      headers: {
+        'x-forwarded-for': '2001:db8::1',
+      },
+    });
+
+    const ip = getClientIp(request);
+    expect(ip).toBe('2001:db8::1');
+  });
+});
+
+describe('getRateLimitKey', () => {
+  it('userid 없이 IP만 반환', () => {
+    const key = getRateLimitKey('192.168.1.1');
+    expect(key).toBe('192.168.1.1');
+  });
+
+  it('IP와 userid 조합으로 키 생성', () => {
+    const key = getRateLimitKey('192.168.1.1', 'testuser');
+    expect(key).toBe('192.168.1.1:testuser');
+  });
+
+  it('동일 IP, 다른 userid는 다른 키', () => {
+    const key1 = getRateLimitKey('192.168.1.1', 'user1');
+    const key2 = getRateLimitKey('192.168.1.1', 'user2');
+    expect(key1).not.toBe(key2);
+  });
+
+  it('다른 IP, 동일 userid도 다른 키', () => {
+    const key1 = getRateLimitKey('192.168.1.1', 'testuser');
+    const key2 = getRateLimitKey('192.168.1.2', 'testuser');
+    expect(key1).not.toBe(key2);
+  });
+
+  it('IP + userid 조합으로 rate limit 적용', () => {
+    const key = getRateLimitKey('192.168.1.1', 'testuser');
+
+    // 5회 실패로 차단
+    for (let i = 0; i < 5; i++) {
+      recordLoginFailure(key);
+    }
+
+    const result = checkLoginRateLimit(key);
+    expect(result.allowed).toBe(false);
+
+    // 같은 IP, 다른 userid는 영향 없음
+    const otherKey = getRateLimitKey('192.168.1.1', 'otheruser');
+    const otherResult = checkLoginRateLimit(otherKey);
+    expect(otherResult.allowed).toBe(true);
   });
 });

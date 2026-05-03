@@ -1,12 +1,17 @@
 /**
  * 로그인 Rate Limiting 유틸리티
  * 무차별 대입 공격 방지를 위한 IP 기반 로그인 시도 제한
+ *
+ * 보안 참고사항:
+ * - Render/Vercel 등 PaaS 환경에서는 플랫폼이 X-Forwarded-For 헤더를 신뢰할 수 있게 설정함
+ * - 직접 호스팅 시 Nginx/로드밸런서에서 클라이언트 헤더를 덮어쓰도록 설정 필요
+ * - 프로덕션에서는 Redis 사용 권장 (멀티인스턴스 환경)
  */
 
-// 설정
-const MAX_ATTEMPTS = 5; // 최대 시도 횟수
-const WINDOW_MS = 15 * 60 * 1000; // 15분 윈도우
-const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15분 차단
+// 설정 (환경변수로 오버라이드 가능)
+const MAX_ATTEMPTS = Number(process.env.LOGIN_MAX_ATTEMPTS) || 5;
+const WINDOW_MS = Number(process.env.LOGIN_WINDOW_MS) || 15 * 60 * 1000; // 15분
+const BLOCK_DURATION_MS = Number(process.env.LOGIN_BLOCK_MS) || 15 * 60 * 1000; // 15분
 
 interface LoginAttempt {
   count: number;
@@ -118,24 +123,68 @@ export function clearLoginAttempts(ip: string): void {
   loginAttempts.delete(ip);
 }
 
+// IPv4/IPv6 기본 형식 검증 (악의적인 값 필터링)
+const IP_PATTERN = /^[\da-fA-F.:]+$/;
+
+function isValidIpFormat(ip: string): boolean {
+  if (!ip || ip.length > 45) return false; // IPv6 최대 길이
+  return IP_PATTERN.test(ip);
+}
+
 /**
  * 요청에서 클라이언트 IP 추출
+ *
+ * 보안 참고사항:
+ * - Render/Vercel 등 PaaS: 플랫폼이 X-Forwarded-For를 신뢰할 수 있게 설정
+ * - 직접 호스팅: Nginx에서 proxy_set_header X-Forwarded-For $remote_addr; 설정 필요
+ * - 개발 환경: 127.0.0.1 사용
+ *
  * @param request Request 객체
  * @returns 클라이언트 IP 주소
  */
 export function getClientIp(request: Request): string {
-  // 프록시/로드밸런서 환경에서의 실제 IP
+  // Render 환경에서 설정되는 헤더 (스푸핑 불가)
+  const renderClientIp = request.headers.get('x-render-client-ip');
+  if (renderClientIp && isValidIpFormat(renderClientIp)) {
+    return renderClientIp;
+  }
+
+  // Vercel 환경에서 설정되는 헤더 (스푸핑 불가)
+  const vercelIp = request.headers.get('x-vercel-forwarded-for');
+  if (vercelIp && isValidIpFormat(vercelIp)) {
+    return vercelIp.split(',')[0].trim();
+  }
+
+  // 일반 프록시 환경 (신뢰할 수 있는 프록시 뒤에서만 사용)
   const forwardedFor = request.headers.get('x-forwarded-for');
   if (forwardedFor) {
-    // 첫 번째 IP가 실제 클라이언트 IP
-    return forwardedFor.split(',')[0].trim();
+    const firstIp = forwardedFor.split(',')[0].trim();
+    if (isValidIpFormat(firstIp)) {
+      return firstIp;
+    }
   }
 
   const realIp = request.headers.get('x-real-ip');
-  if (realIp) {
+  if (realIp && isValidIpFormat(realIp)) {
     return realIp;
   }
 
   // 직접 연결인 경우 (개발 환경)
   return '127.0.0.1';
+}
+
+/**
+ * IP + userid 조합으로 Rate Limit 키 생성
+ * IP 스푸핑 시에도 동일 userid로 시도하면 차단됨
+ *
+ * @param ip 클라이언트 IP
+ * @param userid 로그인 시도 userid (선택적)
+ * @returns Rate Limit 키
+ */
+export function getRateLimitKey(ip: string, userid?: string): string {
+  if (userid) {
+    // userid 기반 키도 함께 사용 (IP 스푸핑 방지)
+    return `${ip}:${userid}`;
+  }
+  return ip;
 }

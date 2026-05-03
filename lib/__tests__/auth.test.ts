@@ -1,23 +1,44 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Hoisted mocks for proper initialization order
-const { mockCookieStore, mockPrisma } = vi.hoisted(() => ({
-  mockCookieStore: {
-    get: vi.fn(),
-    set: vi.fn(),
-    delete: vi.fn(),
-  },
-  mockPrisma: {
-    userYearRole: {
-      findFirst: vi.fn(),
+const { mockCookieStore, mockPrisma, mockJose } = vi.hoisted(() => {
+  // SignJWT needs to be a class that can be instantiated
+  class MockSignJWT {
+    private payload: Record<string, unknown>;
+    constructor(payload: Record<string, unknown>) {
+      this.payload = payload;
+    }
+    setProtectedHeader() { return this; }
+    setIssuedAt() { return this; }
+    setExpirationTime() { return this; }
+    async sign() { return 'mock-jwt-token'; }
+  }
+
+  return {
+    mockCookieStore: {
+      get: vi.fn(),
+      set: vi.fn(),
+      delete: vi.fn(),
     },
-  },
-}));
+    mockPrisma: {
+      userYearRole: {
+        findFirst: vi.fn(),
+      },
+    },
+    mockJose: {
+      SignJWT: MockSignJWT,
+      jwtVerify: vi.fn(),
+    },
+  };
+});
 
 // Mock Next.js cookies
 vi.mock('next/headers', () => ({
   cookies: vi.fn(() => Promise.resolve(mockCookieStore)),
 }));
+
+// Mock jose
+vi.mock('jose', () => mockJose);
 
 // Mock prisma
 vi.mock('../prisma', () => ({
@@ -61,18 +82,20 @@ describe('auth', () => {
     vi.clearAllMocks();
     // Default: no yearRole found (use User.role)
     mockPrisma.userYearRole.findFirst.mockResolvedValue(null);
+    // Default: valid JWT token returns userId
+    mockJose.jwtVerify.mockResolvedValue({ payload: { userId: '1' } });
   });
 
   describe('createSession', () => {
-    it('should create session cookie with userId', async () => {
+    it('should create session cookie with signed JWT token', async () => {
       await createSession('test-user-id');
 
       expect(mockCookieStore.set).toHaveBeenCalledWith(
         'session',
-        'test-user-id',
+        'mock-jwt-token',
         expect.objectContaining({
           httpOnly: true,
-          sameSite: 'lax',
+          sameSite: 'strict',
           path: '/',
         })
       );
@@ -86,7 +109,7 @@ describe('auth', () => {
 
       expect(mockCookieStore.set).toHaveBeenCalledWith(
         'session',
-        'test-user-id',
+        'mock-jwt-token',
         expect.objectContaining({
           secure: true,
         })
@@ -103,7 +126,7 @@ describe('auth', () => {
 
       expect(mockCookieStore.set).toHaveBeenCalledWith(
         'session',
-        'test-user-id',
+        'mock-jwt-token',
         expect.objectContaining({
           secure: false,
         })
@@ -118,7 +141,7 @@ describe('auth', () => {
       const sevenDaysInSeconds = 60 * 60 * 24 * 7;
       expect(mockCookieStore.set).toHaveBeenCalledWith(
         'session',
-        'test-user-id',
+        'mock-jwt-token',
         expect.objectContaining({
           maxAge: sevenDaysInSeconds,
         })
@@ -135,12 +158,14 @@ describe('auth', () => {
   });
 
   describe('getCurrentUser', () => {
-    it('should return user info when session exists', async () => {
-      mockCookieStore.get.mockReturnValue({ value: '1' });
+    it('should return user info when session exists with valid JWT', async () => {
+      mockCookieStore.get.mockReturnValue({ value: 'valid-jwt-token' });
+      mockJose.jwtVerify.mockResolvedValue({ payload: { userId: '1' } });
 
       const user = await getCurrentUser();
 
       expect(mockCookieStore.get).toHaveBeenCalledWith('session');
+      expect(mockJose.jwtVerify).toHaveBeenCalled();
       expect(findUserById).toHaveBeenCalledWith('1');
       expect(user).toBeTruthy();
       expect(user?.userid).toBe('청연정혜종');
@@ -155,18 +180,29 @@ describe('auth', () => {
       expect(user).toBeNull();
     });
 
-    it('should return null when user not found', async () => {
-      mockCookieStore.get.mockReturnValue({ value: 'invalid-user-id' });
+    it('should return null when JWT verification fails', async () => {
+      mockCookieStore.get.mockReturnValue({ value: 'invalid-jwt-token' });
+      mockJose.jwtVerify.mockRejectedValue(new Error('Invalid token'));
 
       const user = await getCurrentUser();
 
       expect(mockCookieStore.get).toHaveBeenCalledWith('session');
+      expect(user).toBeNull();
+    });
+
+    it('should return null when user not found', async () => {
+      mockCookieStore.get.mockReturnValue({ value: 'valid-jwt-token' });
+      mockJose.jwtVerify.mockResolvedValue({ payload: { userId: 'invalid-user-id' } });
+
+      const user = await getCurrentUser();
+
       expect(findUserById).toHaveBeenCalledWith('invalid-user-id');
       expect(user).toBeNull();
     });
 
     it('should return finance head user when session has finance head id', async () => {
-      mockCookieStore.get.mockReturnValue({ value: '3' });
+      mockCookieStore.get.mockReturnValue({ value: 'valid-jwt-token' });
+      mockJose.jwtVerify.mockResolvedValue({ payload: { userId: '3' } });
 
       const user = await getCurrentUser();
 
@@ -176,12 +212,14 @@ describe('auth', () => {
   });
 
   describe('getSessionUserId', () => {
-    it('should return userId when session exists', async () => {
-      mockCookieStore.get.mockReturnValue({ value: 'test-user-id' });
+    it('should return userId when session exists with valid JWT', async () => {
+      mockCookieStore.get.mockReturnValue({ value: 'valid-jwt-token' });
+      mockJose.jwtVerify.mockResolvedValue({ payload: { userId: 'test-user-id' } });
 
       const userId = await getSessionUserId();
 
       expect(mockCookieStore.get).toHaveBeenCalledWith('session');
+      expect(mockJose.jwtVerify).toHaveBeenCalled();
       expect(userId).toBe('test-user-id');
     });
 
@@ -194,13 +232,22 @@ describe('auth', () => {
       expect(userId).toBeNull();
     });
 
-    it('should return empty string when session value is empty', async () => {
-      mockCookieStore.get.mockReturnValue({ value: '' });
+    it('should return null when JWT verification fails', async () => {
+      mockCookieStore.get.mockReturnValue({ value: 'invalid-jwt-token' });
+      mockJose.jwtVerify.mockRejectedValue(new Error('Invalid token'));
 
       const userId = await getSessionUserId();
 
-      // The function returns `value || null`, so empty string becomes null
-      expect(userId).toBe(null);
+      expect(userId).toBeNull();
+    });
+
+    it('should return null when token has no userId', async () => {
+      mockCookieStore.get.mockReturnValue({ value: 'valid-jwt-token' });
+      mockJose.jwtVerify.mockResolvedValue({ payload: {} });
+
+      const userId = await getSessionUserId();
+
+      expect(userId).toBeNull();
     });
   });
 });
