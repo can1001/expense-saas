@@ -7,13 +7,14 @@ import { format } from 'date-fns';
 import { useSwipeable } from 'react-swipeable';
 import { ExpenseListItem } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
-import { Eye, Edit, ChevronLeft } from 'lucide-react';
+import { Eye, Edit, ChevronLeft, Copy } from 'lucide-react';
 
 interface ExpenseCardProps {
   expense: ExpenseListItem;
   isSelected: boolean;
   onSelect: (id: string, checked: boolean) => void;
   onClick: (id: string) => void;
+  onDuplicate?: (id: string) => void;
   userRole?: string;
 }
 
@@ -76,14 +77,14 @@ function SwipeHint({ show }: { show: boolean }) {
   );
 }
 
-export default function ExpenseCard({ expense, isSelected, onSelect, onClick, userRole }: ExpenseCardProps) {
+export default function ExpenseCard({ expense, isSelected, onSelect, onClick, onDuplicate, userRole }: ExpenseCardProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [translateX, setTranslateX] = useState(0);
   const [showHint, setShowHint] = useState(true);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const ACTION_WIDTH = 140; // 액션 버튼 영역 너비
+  const ACTION_WIDTH = onDuplicate ? 190 : 140; // 액션 버튼 영역 너비 (복제 버튼 포함 시 더 넓게)
   const SWIPE_THRESHOLD = 50; // 스와이프 인식 임계값
 
   const handlers = useSwipeable({
@@ -143,6 +144,13 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick, us
     }
   };
 
+  const handleDuplicate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDuplicate) {
+      onDuplicate(expense.id);
+    }
+  };
+
   // 수정 가능 여부 체크
   // 기본: 임시저장, 반려, 회수 상태
   // 추가: 최종승인 + 지급대기 상태 (특정 역할만)
@@ -174,6 +182,15 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick, us
           >
             <Edit className="w-5 h-5" />
             <span className="text-xs font-medium">수정</span>
+          </button>
+        )}
+        {onDuplicate && (
+          <button
+            onClick={handleDuplicate}
+            className="flex-1 flex flex-col items-center justify-center gap-1 bg-gray-500 text-white hover:bg-gray-600 transition-colors"
+          >
+            <Copy className="w-5 h-5" />
+            <span className="text-xs font-medium">복제</span>
           </button>
         )}
       </div>

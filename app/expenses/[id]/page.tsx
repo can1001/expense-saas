@@ -16,7 +16,7 @@ import Accordion, { InfoRow, MobileItemCard } from '@/components/ui/Accordion';
 import { Expense } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_SECONDARY, BTN_DANGER, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
-import { ArrowLeft, Printer, FileSpreadsheet, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Printer, FileSpreadsheet, Edit2, Trash2, Copy } from 'lucide-react';
 
 export default function ExpenseDetailPage() {
   const router = useRouter();
@@ -28,6 +28,7 @@ export default function ExpenseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [duplicateLoading, setDuplicateLoading] = useState(false);
   const [webExcelLoading, setWebExcelLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ userid: string; username: string; role: string } | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -139,6 +140,34 @@ export default function ExpenseDetailPage() {
       alert(err instanceof Error ? err.message : '삭제 중 오류가 발생했습니다.');
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    try {
+      setDuplicateLoading(true);
+      const response = await fetch(`/api/expenses/${id}/duplicate`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '복제에 실패했습니다.');
+      }
+
+      alert('지출결의서가 복제되었습니다.');
+      // 복제된 지출결의서의 편집 페이지로 이동
+      const newId = data.expense.id;
+      if (expense?.version === '4.1.4') {
+        router.push(`/expenses/simple/${newId}/edit`);
+      } else {
+        router.push(`/expenses/${newId}/edit`);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '복제 중 오류가 발생했습니다.');
+    } finally {
+      setDuplicateLoading(false);
     }
   };
 
@@ -453,6 +482,14 @@ export default function ExpenseDetailPage() {
                 삭제
               </button>
             )}
+            <button
+              onClick={handleDuplicate}
+              disabled={duplicateLoading}
+              className={BTN_OUTLINE}
+            >
+              {duplicateLoading ? <div className={SPINNER}></div> : <Copy className="w-4 h-4" />}
+              복제
+            </button>
           </div>
         </div>
 
@@ -882,6 +919,17 @@ export default function ExpenseDetailPage() {
             )}
           </button>
         )}
+        <button
+          onClick={handleDuplicate}
+          disabled={duplicateLoading}
+          className="flex items-center justify-center px-3 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors min-h-[48px] min-w-[48px]"
+        >
+          {duplicateLoading ? (
+            <div className={SPINNER}></div>
+          ) : (
+            <Copy className="w-5 h-5" />
+          )}
+        </button>
       </div>
       </div>
 

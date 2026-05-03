@@ -422,6 +422,33 @@ function ExpensesPageContent() {
     router.push(`/expenses/${id}`);
   };
 
+  // 복제 핸들러
+  const handleDuplicate = async (id: string) => {
+    try {
+      const response = await fetch(`/api/expenses/${id}/duplicate`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '복제에 실패했습니다.');
+      }
+
+      alert('지출결의서가 복제되었습니다.');
+      // 복제된 지출결의서의 편집 페이지로 이동
+      const newId = data.expense.id;
+      const expense = expenses.find(e => e.id === id);
+      if (expense?.version === '4.1.4') {
+        router.push(`/expenses/simple/${newId}/edit`);
+      } else {
+        router.push(`/expenses/${newId}/edit`);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '복제 중 오류가 발생했습니다.');
+    }
+  };
+
   // 체크박스 선택 핸들러
   const handleSelectOne = (id: string, checked: boolean) => {
     const newSelected = new Set(selectedIds);
@@ -1133,6 +1160,7 @@ function ExpensesPageContent() {
                   isSelected={selectedIds.has(expense.id)}
                   onSelect={handleSelectOne}
                   onClick={handleRowClick}
+                  onDuplicate={handleDuplicate}
                   userRole={currentUser?.role}
                 />
               ))}
