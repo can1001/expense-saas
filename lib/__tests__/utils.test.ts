@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cn, formatCurrency, formatDate, formatDateShort, maskAccountNumber, formatRelativeTime } from '../utils';
+import { cn, formatCurrency, formatDate, formatDateShort, maskAccountNumber, formatRelativeTime, getExpenseEditPath } from '../utils';
 
 describe('utils', () => {
   describe('cn (className merger)', () => {
@@ -290,6 +290,49 @@ describe('utils', () => {
       const thirtyDaysAgo = now - 2592000000;
       const result = formatRelativeTime(thirtyDaysAgo);
       expect(result).toBe('지난주');
+    });
+  });
+
+  describe('getExpenseEditPath', () => {
+    it('returns simple edit path for version 4.1.4', () => {
+      const result = getExpenseEditPath('expense-123', '4.1.4');
+      expect(result).toBe('/expenses/simple/expense-123/edit');
+    });
+
+    it('returns regular edit path for other versions', () => {
+      const result = getExpenseEditPath('expense-123', '4.1.0');
+      expect(result).toBe('/expenses/expense-123/edit');
+    });
+
+    it('returns regular edit path for version 4.1.3', () => {
+      const result = getExpenseEditPath('expense-123', '4.1.3');
+      expect(result).toBe('/expenses/expense-123/edit');
+    });
+
+    it('returns regular edit path for null version', () => {
+      const result = getExpenseEditPath('expense-123', null);
+      expect(result).toBe('/expenses/expense-123/edit');
+    });
+
+    it('returns regular edit path for undefined version', () => {
+      const result = getExpenseEditPath('expense-123', undefined);
+      expect(result).toBe('/expenses/expense-123/edit');
+    });
+
+    it('returns regular edit path when version is not provided', () => {
+      const result = getExpenseEditPath('expense-123');
+      expect(result).toBe('/expenses/expense-123/edit');
+    });
+
+    it('handles UUID-like expense IDs', () => {
+      const uuid = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+      const result = getExpenseEditPath(uuid, '4.1.4');
+      expect(result).toBe(`/expenses/simple/${uuid}/edit`);
+    });
+
+    it('handles empty string ID', () => {
+      const result = getExpenseEditPath('', '4.1.4');
+      expect(result).toBe('/expenses/simple//edit');
     });
   });
 });
