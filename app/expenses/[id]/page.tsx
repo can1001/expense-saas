@@ -516,7 +516,10 @@ export default function ExpenseDetailPage() {
           {approvalData?.budgetInfo && approvalData.budgetInfo.length > 0 && (
             <Accordion title="예산 현황">
               <div className="pt-3">
-                <BudgetInfoPanel budgetInfo={approvalData.budgetInfo} />
+                <BudgetInfoPanel
+                  budgetInfo={approvalData.budgetInfo}
+                  year={new Date(expense.requestDate).getFullYear()}
+                />
               </div>
             </Accordion>
           )}
@@ -715,7 +718,10 @@ export default function ExpenseDetailPage() {
         {/* 예산 현황 */}
         {approvalData?.budgetInfo && approvalData.budgetInfo.length > 0 && (
           <div className={SECTION_CARD}>
-            <BudgetInfoPanel budgetInfo={approvalData.budgetInfo} />
+            <BudgetInfoPanel
+              budgetInfo={approvalData.budgetInfo}
+              year={new Date(expense.requestDate).getFullYear()}
+            />
           </div>
         )}
 

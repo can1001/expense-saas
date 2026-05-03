@@ -385,7 +385,10 @@ export default function ApprovalDetailPage() {
 
             {/* 예산 현황 (결재자에게만 표시) */}
             {approvalData?.budgetInfo && approvalData.budgetInfo.length > 0 && (
-              <BudgetInfoPanel budgetInfo={approvalData.budgetInfo} />
+              <BudgetInfoPanel
+                budgetInfo={approvalData.budgetInfo}
+                year={new Date(expense.requestDate).getFullYear()}
+              />
             )}
 
             {/* 결재 액션 버튼 */}
