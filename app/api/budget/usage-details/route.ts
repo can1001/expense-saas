@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
+import { isValidCuid } from '@/lib/validators';
 import type { ApprovalStatus } from '@/lib/types';
 
 /**
@@ -31,6 +32,11 @@ export async function GET(request: NextRequest) {
     const year = parseInt(yearParam, 10);
     if (isNaN(year)) {
       throw new ApiError('연도(year)는 숫자여야 합니다.', 400);
+    }
+
+    // excludeExpenseId CUID 형식 검증
+    if (excludeExpenseId && !isValidCuid(excludeExpenseId)) {
+      throw new ApiError('잘못된 지출결의서 ID 형식입니다.', 400);
     }
 
     // 해당 연도의 시작일과 종료일

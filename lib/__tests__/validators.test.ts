@@ -5,6 +5,7 @@ import {
   expenseItemSchema,
   createExpenseSchema,
   updateExpenseSchema,
+  isValidCuid,
 } from '../validators';
 
 describe('validators', () => {
@@ -348,6 +349,53 @@ describe('validators', () => {
       };
       const result = updateExpenseSchema.safeParse(invalidUpdate);
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe('isValidCuid', () => {
+    it('유효한 CUID 형식을 허용해야 함', () => {
+      // 일반적인 CUID 형식
+      expect(isValidCuid('clfh5asn7z0000qw5vx2e4t5h7')).toBe(true);
+      expect(isValidCuid('clh5asn7z0000qw5vx2e4t5h7')).toBe(true);
+      expect(isValidCuid('cm3xyz1234567890abcdefgh')).toBe(true);
+    });
+
+    it('c로 시작하지 않는 문자열을 거부해야 함', () => {
+      expect(isValidCuid('alfh5asn7z0000qw5vx2e4t5h7')).toBe(false);
+      expect(isValidCuid('1lfh5asn7z0000qw5vx2e4t5h7')).toBe(false);
+    });
+
+    it('길이가 너무 짧은 문자열을 거부해야 함', () => {
+      expect(isValidCuid('c123')).toBe(false);
+      expect(isValidCuid('c1234567890123456789')).toBe(false); // 20자 (c + 19자 = 20자 미만)
+    });
+
+    it('길이가 너무 긴 문자열을 거부해야 함', () => {
+      expect(isValidCuid('c' + 'a'.repeat(35))).toBe(false);
+    });
+
+    it('대문자가 포함된 문자열을 거부해야 함', () => {
+      expect(isValidCuid('cLFh5asn7z0000qw5vx2e4t5h7')).toBe(false);
+      expect(isValidCuid('CLFH5ASN7Z0000QW5VX2E4T5H7')).toBe(false);
+    });
+
+    it('특수문자가 포함된 문자열을 거부해야 함', () => {
+      expect(isValidCuid('clfh5asn7z0000qw5vx2e4-5h7')).toBe(false);
+      expect(isValidCuid('clfh5asn7z0000qw5vx2e4_5h7')).toBe(false);
+      expect(isValidCuid('clfh5asn7z0000qw5vx2e4.5h7')).toBe(false);
+    });
+
+    it('빈 문자열을 거부해야 함', () => {
+      expect(isValidCuid('')).toBe(false);
+    });
+
+    it('UUID 형식을 거부해야 함', () => {
+      expect(isValidCuid('550e8400-e29b-41d4-a716-446655440000')).toBe(false);
+    });
+
+    it('SQL 인젝션 시도를 거부해야 함', () => {
+      expect(isValidCuid("' OR 1=1--")).toBe(false);
+      expect(isValidCuid('"; DROP TABLE expenses;--')).toBe(false);
     });
   });
 });

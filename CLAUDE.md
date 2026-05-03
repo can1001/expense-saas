@@ -136,3 +136,9 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 - `PRD.md` - Detailed requirements
 - `MOBILE_UI_IMPROVEMENT.md` - Mobile optimization details
 - `README.md` - Korean installation guide
+
+## Claude 설정
+
+- **언어**: 모든 설명과 응답은 한글로 작성
+- **커밋 메시지**: 한글로 작성
+- **코드 주석**: 한글 사용 가능
