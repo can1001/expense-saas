@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import {
   parseAccountReportFile,
   validateParsedReport,
@@ -12,6 +12,23 @@ import {
   type SummaryData,
   type ParsedReportItem,
 } from '../account-report-parser';
+
+/**
+ * ExcelJS 워크시트를 HTML로 변환하는 헬퍼 함수 (테스트용)
+ */
+function worksheetToHtml(worksheet: ExcelJS.Worksheet): string {
+  let html = '<table>';
+  worksheet.eachRow({ includeEmpty: false }, (row) => {
+    html += '<tr>';
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      const value = cell.value ?? '';
+      html += `<td>${String(value)}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</table>';
+  return html;
+}
 
 describe('account-report-parser', () => {
   // ========================================
@@ -420,8 +437,11 @@ describe('account-report-parser', () => {
     it('should parse actual xlsx file format (merged table)', async () => {
       // xlsx 파일이 HTML로 변환되었을 때 단일 테이블로 병합된 경우를 시뮬레이션
       // splitTableBySections 로직을 테스트
-      const workbook = XLSX.utils.book_new();
-      const worksheet = XLSX.utils.aoa_to_sheet([
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Sheet1');
+
+      // 데이터 추가
+      const data = [
         ['1. 수지개황'],
         ['구분', '전기이월', '수입총계', '지출총계', '차액', '차기이월'],
         ['당기', 1000000, 5000000, 3000000, 2000000, 3000000],
@@ -432,11 +452,11 @@ describe('account-report-parser', () => {
         ['3. 지출부'],
         ['항목', '예산액', '누계', '당기', '대비(%)'],
         ['인건비', 10000000, 5000000, 2500000, '50%'],
-      ]);
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+      ];
+      data.forEach((row) => worksheet.addRow(row));
 
-      // xlsx를 HTML로 변환하여 테스트 (실제 변환 플로우 시뮬레이션)
-      const htmlContent = XLSX.utils.sheet_to_html(worksheet, { header: '', footer: '' });
+      // ExcelJS 워크시트를 HTML로 변환하여 테스트 (실제 변환 플로우 시뮬레이션)
+      const htmlContent = worksheetToHtml(worksheet);
       const buffer = htmlToArrayBuffer(htmlContent);
 
       const result = await parseAccountReportFile(buffer);

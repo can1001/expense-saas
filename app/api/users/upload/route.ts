@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 
@@ -69,60 +69,64 @@ export async function GET() {
       user: '사용자',
     };
 
-    // 엑셀 데이터 생성
-    const data = users.map((user) => ({
-      'userid (아이디)': user.userid,
-      'username (이름)': user.username,
-      'role (역할)': roleDisplayMap[user.role as UserRole] ?? user.role,
-      'department (부서)': user.department || '',
-      'isActive (활성화)': user.isActive ? 'Y' : 'N',
-    }));
+    // 워크북 생성
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('사용자목록');
 
-    // 빈 행 추가 (새 사용자 등록용)
-    if (data.length === 0) {
-      data.push({
-        'userid (아이디)': '',
-        'username (이름)': '',
-        'role (역할)': '사용자',
-        'department (부서)': '',
-        'isActive (활성화)': 'Y',
+    // 헤더 추가
+    ws.columns = [
+      { header: 'userid (아이디)', key: 'userid', width: 25 },
+      { header: 'username (이름)', key: 'username', width: 15 },
+      { header: 'role (역할)', key: 'role', width: 15 },
+      { header: 'department (부서)', key: 'department', width: 20 },
+      { header: 'isActive (활성화)', key: 'isActive', width: 12 },
+    ];
+
+    // 데이터 추가
+    if (users.length === 0) {
+      ws.addRow({
+        userid: '',
+        username: '',
+        role: '사용자',
+        department: '',
+        isActive: 'Y',
+      });
+    } else {
+      users.forEach((user) => {
+        ws.addRow({
+          userid: user.userid,
+          username: user.username,
+          role: roleDisplayMap[user.role as UserRole] ?? user.role,
+          department: user.department || '',
+          isActive: user.isActive ? 'Y' : 'N',
+        });
       });
     }
 
-    // 워크북 생성
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data);
-
-    // 열 너비 설정
-    ws['!cols'] = [
-      { wch: 25 }, // userid
-      { wch: 15 }, // username
-      { wch: 15 }, // role
-      { wch: 20 }, // department
-      { wch: 12 }, // isActive
-    ];
-
-    XLSX.utils.book_append_sheet(wb, ws, '사용자목록');
-
     // 안내 시트 추가
-    const guideData = [
-      { 항목: 'userid (아이디)', 설명: '로그인 아이디 (필수, 중복불가)', 예시: '청연정혜종' },
-      { 항목: 'username (이름)', 설명: '표시 이름 (필수)', 예시: '정혜종' },
-      { 항목: 'role (역할)', 설명: '역할 (관리자/재정팀장/회계/팀장/행정간사/사용자)', 예시: '사용자' },
-      { 항목: 'department (부서)', 설명: '소속 부서 (선택)', 예시: '재정팀' },
-      { 항목: 'isActive (활성화)', 설명: '활성화 여부 (Y/N)', 예시: 'Y' },
-      { 항목: '', 설명: '', 예시: '' },
-      { 항목: '※ 참고사항', 설명: '', 예시: '' },
-      { 항목: '- 새 사용자', 설명: '기본 비밀번호 chc2026 으로 생성됩니다', 예시: '' },
-      { 항목: '- 기존 사용자', 설명: '병합 모드에서 이름/역할/부서/활성화 상태가 업데이트됩니다', 예시: '' },
-      { 항목: '- 비밀번호', 설명: '엑셀로 변경할 수 없습니다 (보안)', 예시: '' },
+    const wsGuide = workbook.addWorksheet('작성안내');
+    wsGuide.columns = [
+      { header: '항목', key: 'item', width: 20 },
+      { header: '설명', key: 'desc', width: 50 },
+      { header: '예시', key: 'example', width: 20 },
     ];
-    const wsGuide = XLSX.utils.json_to_sheet(guideData);
-    wsGuide['!cols'] = [{ wch: 20 }, { wch: 50 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(wb, wsGuide, '작성안내');
+
+    const guideData = [
+      { item: 'userid (아이디)', desc: '로그인 아이디 (필수, 중복불가)', example: '청연정혜종' },
+      { item: 'username (이름)', desc: '표시 이름 (필수)', example: '정혜종' },
+      { item: 'role (역할)', desc: '역할 (관리자/재정팀장/회계/팀장/행정간사/사용자)', example: '사용자' },
+      { item: 'department (부서)', desc: '소속 부서 (선택)', example: '재정팀' },
+      { item: 'isActive (활성화)', desc: '활성화 여부 (Y/N)', example: 'Y' },
+      { item: '', desc: '', example: '' },
+      { item: '※ 참고사항', desc: '', example: '' },
+      { item: '- 새 사용자', desc: '기본 비밀번호 chc2026 으로 생성됩니다', example: '' },
+      { item: '- 기존 사용자', desc: '병합 모드에서 이름/역할/부서/활성화 상태가 업데이트됩니다', example: '' },
+      { item: '- 비밀번호', desc: '엑셀로 변경할 수 없습니다 (보안)', example: '' },
+    ];
+    guideData.forEach((row) => wsGuide.addRow(row));
 
     // Buffer로 변환
-    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const buffer = await workbook.xlsx.writeBuffer();
 
     return new NextResponse(buffer, {
       headers: {
@@ -156,10 +160,43 @@ export async function POST(request: NextRequest) {
 
     // 파일 읽기
     const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const rawRows = XLSX.utils.sheet_to_json(sheet) as Record<string, unknown>[];
+    const workbook = new ExcelJS.Workbook();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await workbook.xlsx.load(Buffer.from(new Uint8Array(arrayBuffer)) as any);
+
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
+      return NextResponse.json(
+        { success: false, error: { type: 'VALIDATION_ERROR', message: '워크시트를 찾을 수 없습니다.' } },
+        { status: 400 }
+      );
+    }
+
+    // 헤더 행 읽기
+    const headerRow = worksheet.getRow(1);
+    const headers: string[] = [];
+    headerRow.eachCell((cell, colNumber) => {
+      headers[colNumber - 1] = String(cell.value || '').toLowerCase();
+    });
+
+    // 데이터 행 읽기
+    const rawRows: Record<string, unknown>[] = [];
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // 헤더 건너뛰기
+
+      const rowData: Record<string, unknown> = {};
+      row.eachCell((cell, colNumber) => {
+        const header = headers[colNumber - 1];
+        if (header) {
+          rowData[header] = cell.value;
+        }
+      });
+
+      // 빈 행 건너뛰기
+      if (Object.values(rowData).some((v) => v !== null && v !== undefined && v !== '')) {
+        rawRows.push(rowData);
+      }
+    });
 
     if (rawRows.length === 0) {
       return NextResponse.json(

@@ -5,11 +5,11 @@
  *   npm run generate-template
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import * as path from 'path';
 import * as fs from 'fs';
 
-function generateTemplate() {
+async function generateTemplate() {
   // 헤더 정의
   const headers = [
     'groupId',
@@ -99,41 +99,50 @@ function generateTemplate() {
   ];
 
   // 워크북 생성
-  const workbook = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
 
   // 데이터 시트 생성
-  const dataSheet = XLSX.utils.json_to_sheet(sampleData, { header: headers });
+  const dataSheet = workbook.addWorksheet('업로드데이터');
 
-  // 컬럼 너비 설정
-  dataSheet['!cols'] = [
-    { wch: 10 }, // groupId
-    { wch: 15 }, // category
-    { wch: 18 }, // subcategory
-    { wch: 20 }, // detail
-    { wch: 30 }, // description
-    { wch: 10 }, // unitPrice
-    { wch: 8 }, // quantity
-    { wch: 12 }, // requestDate
-    { wch: 12 }, // expenseDate
-    { wch: 12 }, // applicantName
-    { wch: 10 }, // applicantTitle
-    { wch: 12 }, // bankName
-    { wch: 18 }, // accountNumber
-    { wch: 12 }, // accountHolder
+  // 컬럼 정의
+  dataSheet.columns = [
+    { header: 'groupId', key: 'groupId', width: 10 },
+    { header: 'category', key: 'category', width: 15 },
+    { header: 'subcategory', key: 'subcategory', width: 18 },
+    { header: 'detail', key: 'detail', width: 20 },
+    { header: 'description', key: 'description', width: 30 },
+    { header: 'unitPrice', key: 'unitPrice', width: 10 },
+    { header: 'quantity', key: 'quantity', width: 8 },
+    { header: 'requestDate', key: 'requestDate', width: 12 },
+    { header: 'expenseDate', key: 'expenseDate', width: 12 },
+    { header: 'applicantName', key: 'applicantName', width: 12 },
+    { header: 'applicantTitle', key: 'applicantTitle', width: 10 },
+    { header: 'bankName', key: 'bankName', width: 12 },
+    { header: 'accountNumber', key: 'accountNumber', width: 18 },
+    { header: 'accountHolder', key: 'accountHolder', width: 12 },
   ];
 
-  XLSX.utils.book_append_sheet(workbook, dataSheet, '업로드데이터');
+  // 샘플 데이터 추가
+  sampleData.forEach((row) => {
+    dataSheet.addRow(row);
+  });
 
   // 설명 시트 생성
-  const descriptionData = headers.map((header, index) => ({
-    컬럼명: header,
-    설명: headerDescriptions[index],
-    필수여부: ['groupId', 'expenseDate', 'applicantTitle'].includes(header) ? '선택' : '필수',
-  }));
+  const descSheet = workbook.addWorksheet('컬럼설명');
 
-  const descSheet = XLSX.utils.json_to_sheet(descriptionData);
-  descSheet['!cols'] = [{ wch: 18 }, { wch: 40 }, { wch: 10 }];
-  XLSX.utils.book_append_sheet(workbook, descSheet, '컬럼설명');
+  descSheet.columns = [
+    { header: '컬럼명', key: 'colName', width: 18 },
+    { header: '설명', key: 'description', width: 40 },
+    { header: '필수여부', key: 'required', width: 10 },
+  ];
+
+  headers.forEach((header, index) => {
+    descSheet.addRow({
+      colName: header,
+      description: headerDescriptions[index],
+      required: ['groupId', 'expenseDate', 'applicantTitle'].includes(header) ? '선택' : '필수',
+    });
+  });
 
   // 파일 저장
   const outputDir = path.join(process.cwd(), 'templates');
@@ -142,7 +151,7 @@ function generateTemplate() {
   }
 
   const outputPath = path.join(outputDir, 'bulk-upload-template.xlsx');
-  XLSX.writeFile(workbook, outputPath);
+  await workbook.xlsx.writeFile(outputPath);
 
   console.log('='.repeat(60));
   console.log('일괄 업로드 템플릿 생성 완료');

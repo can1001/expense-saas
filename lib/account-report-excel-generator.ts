@@ -4,7 +4,7 @@
  * 업로드된 당해/전년 데이터를 바탕으로 재정보고서(표준) 형식의 xlsx 파일 생성
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import type { SummaryData } from './account-report-parser';
 
 // ========================================
@@ -46,34 +46,35 @@ export interface ExportOptions {
 /**
  * 재정보고서(표준) 엑셀 워크북 생성
  */
-export function generateAccountReportWorkbook(options: ExportOptions): XLSX.WorkBook {
+export function generateAccountReportWorkbook(options: ExportOptions): ExcelJS.Workbook {
   const { year, quarter, currentYear, previousYear } = options;
 
-  const workbook = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
 
   // 수지개황 시트 생성
-  const summarySheet = createSummarySheet(currentYear, previousYear, year, quarter);
-  XLSX.utils.book_append_sheet(workbook, summarySheet, '수지개황');
+  createSummarySheet(workbook, currentYear, previousYear, year, quarter);
 
   // 수입부 시트 생성
-  const incomeSheet = createDetailSheet(
+  createDetailSheet(
+    workbook,
+    '수입부',
     currentYear.incomeItems,
     previousYear?.incomeItems || null,
     '수입',
     currentYear.summary,
     previousYear?.summary || null
   );
-  XLSX.utils.book_append_sheet(workbook, incomeSheet, '수입부');
 
   // 지출부 시트 생성
-  const expenseSheet = createDetailSheet(
+  createDetailSheet(
+    workbook,
+    '지출부',
     currentYear.expenseItems,
     previousYear?.expenseItems || null,
     '지출',
     currentYear.summary,
     previousYear?.summary || null
   );
-  XLSX.utils.book_append_sheet(workbook, expenseSheet, '지출부');
 
   return workbook;
 }
@@ -82,24 +83,35 @@ export function generateAccountReportWorkbook(options: ExportOptions): XLSX.Work
  * 수지개황 시트 생성
  */
 function createSummarySheet(
+  workbook: ExcelJS.Workbook,
   currentYear: ReportData,
   previousYear: ReportData | null,
   year: number,
   quarter: number
-): XLSX.WorkSheet {
-  const data: (string | number)[][] = [];
+): void {
+  const worksheet = workbook.addWorksheet('수지개황');
+
+  // 컬럼 너비 설정
+  worksheet.columns = [
+    { width: 20 }, // 구분
+    { width: 18 }, // 전기이월
+    { width: 18 }, // 수입총계
+    { width: 18 }, // 지출총계
+    { width: 18 }, // 차기이월
+  ];
 
   // 제목
-  data.push([`${year}년 ${quarter}분기 수지개황`]);
-  data.push([]);
-  data.push(['(단위: 원)']);
+  worksheet.addRow([`${year}년 ${quarter}분기 수지개황`]);
+  worksheet.mergeCells(1, 1, 1, 5);
+  worksheet.addRow([]);
+  worksheet.addRow(['(단위: 원)']);
 
   // 헤더
-  data.push(['구 분', '전기이월', '수입총계', '지출총계', '차기이월']);
+  worksheet.addRow(['구 분', '전기이월', '수입총계', '지출총계', '차기이월']);
 
   // 당기누계
   const current = currentYear.summary.current;
-  data.push([
+  worksheet.addRow([
     '당기누계',
     current.previousCarryover,
     current.totalIncome,
@@ -110,7 +122,7 @@ function createSummarySheet(
   // 전년(동분기)누계
   if (previousYear) {
     const previous = previousYear.summary.cumulative;
-    data.push([
+    worksheet.addRow([
       '전년(동분기)누계',
       previous.previousCarryover,
       previous.totalIncome,
@@ -119,7 +131,7 @@ function createSummarySheet(
     ]);
 
     // 전년대비증감
-    data.push([
+    worksheet.addRow([
       '전년대비증감',
       current.previousCarryover - previous.previousCarryover,
       current.totalIncome - previous.totalIncome,
@@ -127,48 +139,49 @@ function createSummarySheet(
       current.nextCarryover - previous.nextCarryover,
     ]);
   }
-
-  const ws = XLSX.utils.aoa_to_sheet(data);
-
-  // 컬럼 너비 설정
-  ws['!cols'] = [
-    { wch: 20 }, // 구분
-    { wch: 18 }, // 전기이월
-    { wch: 18 }, // 수입총계
-    { wch: 18 }, // 지출총계
-    { wch: 18 }, // 차기이월
-  ];
-
-  // 셀 병합 (제목)
-  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }];
-
-  return ws;
 }
 
 /**
  * 수입부/지출부 상세 시트 생성
  */
 function createDetailSheet(
+  workbook: ExcelJS.Workbook,
+  sheetName: string,
   currentItems: ReportItem[],
   previousItems: ReportItem[] | null,
   type: '수입' | '지출',
   currentSummary: SummaryData,
   previousSummary: SummaryData | null
-): XLSX.WorkSheet {
-  const data: (string | number)[][] = [];
+): void {
+  const worksheet = workbook.addWorksheet(sheetName);
   const hasPrevious = previousItems && previousItems.length > 0;
 
+  // 컬럼 너비 설정
+  const cols = [
+    { width: 30 }, // 항목
+    { width: 15 }, // 예산액
+    { width: 15 }, // 당기
+    { width: 15 }, // 누계
+    { width: 10 }, // 진척률
+  ];
+  if (hasPrevious) {
+    cols.push({ width: 18 }, { width: 18 }); // 전년누계, 증감액
+  }
+  worksheet.columns = cols;
+
   // 제목
-  data.push([`${type}부`]);
-  data.push([]);
-  data.push(['(단위: 원)']);
+  worksheet.addRow([`${type}부`]);
+  const mergeColCount = hasPrevious ? 7 : 5;
+  worksheet.mergeCells(1, 1, 1, mergeColCount);
+  worksheet.addRow([]);
+  worksheet.addRow(['(단위: 원)']);
 
   // 헤더
   const headers = ['항목', '예산액', '당기', '누계', '진척률'];
   if (hasPrevious) {
     headers.push('전년(동분기)누계', '전년대비 증감액');
   }
-  data.push(headers);
+  worksheet.addRow(headers);
 
   // 전년도 항목 맵 생성
   const previousMap = new Map<string, ReportItem>();
@@ -197,7 +210,7 @@ function createDetailSheet(
       row.push(prevCumulative, diff);
     }
 
-    data.push(row);
+    worksheet.addRow(row);
 
     // 소분류 항목 (level === 2)
     const childItems = currentItems.filter(
@@ -223,7 +236,7 @@ function createDetailSheet(
         childRow.push(prevChildCumulative, childDiff);
       }
 
-      data.push(childRow);
+      worksheet.addRow(childRow);
     }
   }
 
@@ -244,37 +257,17 @@ function createDetailSheet(
     totalRow.push(prevTotal, totalDiff);
   }
 
-  data.push([]);
-  data.push(totalRow);
-
-  const ws = XLSX.utils.aoa_to_sheet(data);
-
-  // 컬럼 너비 설정
-  const cols = [
-    { wch: 30 }, // 항목
-    { wch: 15 }, // 예산액
-    { wch: 15 }, // 당기
-    { wch: 15 }, // 누계
-    { wch: 10 }, // 진척률
-  ];
-  if (hasPrevious) {
-    cols.push({ wch: 18 }, { wch: 18 }); // 전년누계, 증감액
-  }
-  ws['!cols'] = cols;
-
-  // 셀 병합 (제목)
-  const mergeColCount = hasPrevious ? 6 : 4;
-  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: mergeColCount } }];
-
-  return ws;
+  worksheet.addRow([]);
+  worksheet.addRow(totalRow);
 }
 
 /**
  * 엑셀 파일을 Buffer로 생성
  */
-export function generateAccountReportBuffer(options: ExportOptions): Buffer {
+export async function generateAccountReportBuffer(options: ExportOptions): Promise<Buffer> {
   const workbook = generateAccountReportWorkbook(options);
-  return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
 }
 
 /**

@@ -4,7 +4,7 @@
  * 웹 교적 시스템 "지출재정" 탭 형식에 맞춰 엑셀 파일 생성
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 // 엑셀 행 인터페이스
 export interface ExcelRow {
@@ -108,32 +108,34 @@ export function expensesToExcelRows(
 export function generateExcelWorkbook(
   expenses: ExpenseForExcel[],
   overrideDate?: Date
-): XLSX.WorkBook {
+): ExcelJS.Workbook {
   const rows = expensesToExcelRows(expenses, overrideDate);
 
   // 워크북 생성
-  const workbook = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
 
-  // 데이터를 워크시트로 변환
-  const worksheet = XLSX.utils.json_to_sheet(rows);
+  // "지출재정" 시트 추가
+  const worksheet = workbook.addWorksheet('지출재정');
 
-  // 컬럼 너비 설정
-  worksheet['!cols'] = [
-    { wch: 20 },  // 항
-    { wch: 20 },  // 목
-    { wch: 20 },  // 세목
-    { wch: 10 },  // 세세목
-    { wch: 10 },  // 지급방법
-    { wch: 12 },  // 예금주
-    { wch: 12 },  // 은행
-    { wch: 18 },  // 계좌번호
-    { wch: 15 },  // 금액
-    { wch: 12 },  // 날짜
-    { wch: 40 },  // 메모
+  // 컬럼 정의
+  worksheet.columns = [
+    { header: '항', key: '항', width: 20 },
+    { header: '목', key: '목', width: 20 },
+    { header: '세목', key: '세목', width: 20 },
+    { header: '세세목', key: '세세목', width: 10 },
+    { header: '지급방법', key: '지급방법', width: 10 },
+    { header: '예금주', key: '예금주', width: 12 },
+    { header: '은행', key: '은행', width: 12 },
+    { header: '계좌번호', key: '계좌번호', width: 18 },
+    { header: '금액', key: '금액', width: 15 },
+    { header: '날짜', key: '날짜', width: 12 },
+    { header: '메모', key: '메모', width: 40 },
   ];
 
-  // "지출재정" 시트로 추가
-  XLSX.utils.book_append_sheet(workbook, worksheet, '지출재정');
+  // 데이터 행 추가
+  for (const row of rows) {
+    worksheet.addRow(row);
+  }
 
   return workbook;
 }
@@ -143,12 +145,13 @@ export function generateExcelWorkbook(
  * @param expenses 지출결의서 목록
  * @param overrideDate 사용자 지정 날짜 (있으면 모든 항목에 적용)
  */
-export function generateExcelBuffer(
+export async function generateExcelBuffer(
   expenses: ExpenseForExcel[],
   overrideDate?: Date
-): Buffer {
+): Promise<Buffer> {
   const workbook = generateExcelWorkbook(expenses, overrideDate);
-  return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
 }
 
 /**
@@ -227,27 +230,36 @@ export function expensesToWooriBankRows(expenses: ExpenseForWooriBank[]): WooriB
 /**
  * 우리은행 대량이체 엑셀 워크북 생성
  */
-export function generateWooriBankWorkbook(expenses: ExpenseForWooriBank[]): XLSX.WorkBook {
+export function generateWooriBankWorkbook(expenses: ExpenseForWooriBank[]): ExcelJS.Workbook {
   const rows = expensesToWooriBankRows(expenses);
 
   // 워크북 생성
-  const workbook = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
 
-  // 데이터를 워크시트로 변환 (헤더 없이 데이터만)
-  const worksheet = XLSX.utils.json_to_sheet(rows, { skipHeader: true });
+  // 시트 추가 (헤더 없이)
+  const worksheet = workbook.addWorksheet('Sheet1');
 
-  // 컬럼 너비 설정
-  worksheet['!cols'] = [
-    { wch: 12 },  // 입금은행
-    { wch: 18 },  // 입금계좌번호
-    { wch: 12 },  // 이체금액
-    { wch: 12 },  // 받는분통장표시
-    { wch: 12 },  // 보내는분통장표시
-    { wch: 12 },  // CMS번호
+  // 컬럼 너비 설정 (헤더 없이)
+  worksheet.columns = [
+    { key: 'col1', width: 12 },  // 입금은행
+    { key: 'col2', width: 18 },  // 입금계좌번호
+    { key: 'col3', width: 12 },  // 이체금액
+    { key: 'col4', width: 12 },  // 받는분통장표시
+    { key: 'col5', width: 12 },  // 보내는분통장표시
+    { key: 'col6', width: 12 },  // CMS번호
   ];
 
-  // 시트 추가
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+  // 데이터 행 추가 (헤더 없이)
+  for (const row of rows) {
+    worksheet.addRow([
+      row.입금은행,
+      row.입금계좌번호,
+      row.이체금액,
+      row.받는분통장표시,
+      row.보내는분통장표시,
+      row.CMS번호,
+    ]);
+  }
 
   return workbook;
 }
@@ -255,9 +267,10 @@ export function generateWooriBankWorkbook(expenses: ExpenseForWooriBank[]): XLSX
 /**
  * 우리은행 대량이체 엑셀 파일을 Buffer로 생성
  */
-export function generateWooriBankBuffer(expenses: ExpenseForWooriBank[]): Buffer {
+export async function generateWooriBankBuffer(expenses: ExpenseForWooriBank[]): Promise<Buffer> {
   const workbook = generateWooriBankWorkbook(expenses);
-  return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
 }
 
 /**

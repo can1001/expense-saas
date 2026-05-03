@@ -25,7 +25,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -148,18 +148,46 @@ function parseDate(value: string | Date | number | undefined): Date | null {
 /**
  * Excel 파일 읽기
  */
-function readExcelFile(filePath: string): ExcelRow[] {
+async function readExcelFile(filePath: string): Promise<ExcelRow[]> {
   const absolutePath = path.resolve(filePath);
 
   if (!fs.existsSync(absolutePath)) {
     throw new Error(`파일을 찾을 수 없습니다: ${absolutePath}`);
   }
 
-  const workbook = XLSX.readFile(absolutePath);
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(absolutePath);
 
-  const rows = XLSX.utils.sheet_to_json<ExcelRow>(sheet);
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) {
+    throw new Error('워크시트를 찾을 수 없습니다.');
+  }
+
+  // 헤더 읽기
+  const headerRow = worksheet.getRow(1);
+  const headers: string[] = [];
+  headerRow.eachCell((cell, colNumber) => {
+    headers[colNumber - 1] = String(cell.value || '').toLowerCase();
+  });
+
+  // 데이터 행 읽기
+  const rows: ExcelRow[] = [];
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return; // 헤더 건너뛰기
+
+    const rowData: Record<string, unknown> = {};
+    row.eachCell((cell, colNumber) => {
+      const header = headers[colNumber - 1];
+      if (header) {
+        rowData[header] = cell.value;
+      }
+    });
+
+    // 빈 행 건너뛰기
+    if (Object.values(rowData).some((v) => v !== null && v !== undefined && v !== '')) {
+      rows.push(rowData as unknown as ExcelRow);
+    }
+  });
 
   if (rows.length === 0) {
     throw new Error('Excel 파일에 데이터가 없습니다.');
@@ -347,7 +375,7 @@ async function main() {
   try {
     // 1. Excel 파일 읽기
     console.log('📂 Excel 파일 읽는 중...');
-    const rows = readExcelFile(filePath);
+    const rows = await readExcelFile(filePath);
     console.log(`   ${rows.length}개 행 읽음`);
 
     // 2. 데이터 검증

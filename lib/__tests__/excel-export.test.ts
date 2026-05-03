@@ -233,35 +233,38 @@ describe('excel-export', () => {
     it('generates a valid Excel workbook', () => {
       const workbook = generateExcelWorkbook(mockExpenses);
       expect(workbook).toBeDefined();
-      expect(workbook.SheetNames).toContain('지출재정');
+      const sheetNames = workbook.worksheets.map((ws) => ws.name);
+      expect(sheetNames).toContain('지출재정');
     });
 
     it('creates worksheet with correct data', () => {
       const workbook = generateExcelWorkbook(mockExpenses);
-      const worksheet = workbook.Sheets['지출재정'];
+      const worksheet = workbook.getWorksheet('지출재정');
       expect(worksheet).toBeDefined();
     });
 
     it('applies column width settings', () => {
       const workbook = generateExcelWorkbook(mockExpenses);
-      const worksheet = workbook.Sheets['지출재정'];
-      expect(worksheet['!cols']).toBeDefined();
-      expect(worksheet['!cols']).toHaveLength(11);
-      expect(worksheet['!cols']?.[0]).toEqual({ wch: 20 }); // 항
-      expect(worksheet['!cols']?.[10]).toEqual({ wch: 40 }); // 메모
+      const worksheet = workbook.getWorksheet('지출재정')!;
+      // ExcelJS에서 컬럼 너비 확인
+      expect(worksheet.columns.length).toBeGreaterThan(0);
+      expect(worksheet.getColumn(1).width).toBe(20); // 항
+      expect(worksheet.getColumn(11).width).toBe(40); // 메모
     });
 
     it('handles overrideDate parameter', () => {
       const overrideDate = new Date('2025-12-30');
       const workbook = generateExcelWorkbook(mockExpenses, overrideDate);
       expect(workbook).toBeDefined();
-      expect(workbook.SheetNames).toContain('지출재정');
+      const sheetNames = workbook.worksheets.map((ws) => ws.name);
+      expect(sheetNames).toContain('지출재정');
     });
 
     it('handles empty expenses array', () => {
       const workbook = generateExcelWorkbook([]);
       expect(workbook).toBeDefined();
-      expect(workbook.SheetNames).toContain('지출재정');
+      const sheetNames = workbook.worksheets.map((ws) => ws.name);
+      expect(sheetNames).toContain('지출재정');
     });
   });
 
@@ -285,21 +288,21 @@ describe('excel-export', () => {
       },
     ];
 
-    it('generates a Buffer from workbook', () => {
-      const buffer = generateExcelBuffer(mockExpenses);
+    it('generates a Buffer from workbook', async () => {
+      const buffer = await generateExcelBuffer(mockExpenses);
       expect(buffer).toBeInstanceOf(Buffer);
       expect(buffer.length).toBeGreaterThan(0);
     });
 
-    it('generates valid Excel file data', () => {
-      const buffer = generateExcelBuffer(mockExpenses);
+    it('generates valid Excel file data', async () => {
+      const buffer = await generateExcelBuffer(mockExpenses);
       // Check for Excel file signature (first 4 bytes: PK or D0 CF)
       expect(buffer.length).toBeGreaterThan(100);
     });
 
-    it('handles overrideDate parameter', () => {
+    it('handles overrideDate parameter', async () => {
       const overrideDate = new Date('2025-12-30');
-      const buffer = generateExcelBuffer(mockExpenses, overrideDate);
+      const buffer = await generateExcelBuffer(mockExpenses, overrideDate);
       expect(buffer).toBeInstanceOf(Buffer);
       expect(buffer.length).toBeGreaterThan(0);
     });
@@ -553,24 +556,24 @@ describe('excel-export', () => {
         const workbook = generateWooriBankWorkbook([mockWooriBankExpense]);
 
         expect(workbook).toBeDefined();
-        expect(workbook.SheetNames).toContain('Sheet1');
+        const sheetNames = workbook.worksheets.map((ws) => ws.name);
+        expect(sheetNames).toContain('Sheet1');
       });
 
       it('creates worksheet with correct data', () => {
         const workbook = generateWooriBankWorkbook([mockWooriBankExpense]);
-        const worksheet = workbook.Sheets['Sheet1'];
+        const worksheet = workbook.getWorksheet('Sheet1');
 
         expect(worksheet).toBeDefined();
       });
 
       it('applies column width settings', () => {
         const workbook = generateWooriBankWorkbook([mockWooriBankExpense]);
-        const worksheet = workbook.Sheets['Sheet1'];
+        const worksheet = workbook.getWorksheet('Sheet1')!;
 
-        expect(worksheet['!cols']).toBeDefined();
-        expect(worksheet['!cols']).toHaveLength(6);
-        expect(worksheet['!cols']?.[0]).toEqual({ wch: 12 }); // 입금은행
-        expect(worksheet['!cols']?.[1]).toEqual({ wch: 18 }); // 입금계좌번호
+        expect(worksheet.columns.length).toBeGreaterThan(0);
+        expect(worksheet.getColumn(1).width).toBe(12); // 입금은행
+        expect(worksheet.getColumn(2).width).toBe(18); // 입금계좌번호
       });
 
       it('handles multiple expenses', () => {
@@ -581,37 +584,39 @@ describe('excel-export', () => {
         const workbook = generateWooriBankWorkbook(expenses);
 
         expect(workbook).toBeDefined();
-        expect(workbook.SheetNames).toContain('Sheet1');
+        const sheetNames = workbook.worksheets.map((ws) => ws.name);
+        expect(sheetNames).toContain('Sheet1');
       });
 
       it('handles empty expenses array', () => {
         const workbook = generateWooriBankWorkbook([]);
 
         expect(workbook).toBeDefined();
-        expect(workbook.SheetNames).toContain('Sheet1');
+        const sheetNames = workbook.worksheets.map((ws) => ws.name);
+        expect(sheetNames).toContain('Sheet1');
       });
     });
 
     describe('generateWooriBankBuffer', () => {
-      it('generates a Buffer from workbook', () => {
-        const buffer = generateWooriBankBuffer([mockWooriBankExpense]);
+      it('generates a Buffer from workbook', async () => {
+        const buffer = await generateWooriBankBuffer([mockWooriBankExpense]);
 
         expect(buffer).toBeInstanceOf(Buffer);
         expect(buffer.length).toBeGreaterThan(0);
       });
 
-      it('generates valid Excel file data', () => {
-        const buffer = generateWooriBankBuffer([mockWooriBankExpense]);
+      it('generates valid Excel file data', async () => {
+        const buffer = await generateWooriBankBuffer([mockWooriBankExpense]);
 
         expect(buffer.length).toBeGreaterThan(100);
       });
 
-      it('handles multiple expenses', () => {
+      it('handles multiple expenses', async () => {
         const expenses: ExpenseForWooriBank[] = [
           mockWooriBankExpense,
           { ...mockWooriBankExpense, accountHolder: '김철수' },
         ];
-        const buffer = generateWooriBankBuffer(expenses);
+        const buffer = await generateWooriBankBuffer(expenses);
 
         expect(buffer).toBeInstanceOf(Buffer);
         expect(buffer.length).toBeGreaterThan(0);
