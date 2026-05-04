@@ -106,7 +106,10 @@
       "Bash(npm search:*)",
       "Bash(npm uninstall:*)",
       "Bash(npm show:*)",
-      "WebFetch(domain:ducanh-next-pwa.vercel.app)"
+      "WebFetch(domain:ducanh-next-pwa.vercel.app)",
+      "Skill(agent-skills:plan)",
+      "Skill(review)",
+      "Skill(agent-skills:code-simplify)"
     ],
     "deny": [],
     "ask": []
