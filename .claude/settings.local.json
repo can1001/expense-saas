@@ -109,7 +109,8 @@
       "WebFetch(domain:ducanh-next-pwa.vercel.app)",
       "Skill(agent-skills:plan)",
       "Skill(review)",
-      "Skill(agent-skills:code-simplify)"
+      "Skill(agent-skills:code-simplify)",
+      "Bash(openssl rand:*)"
     ],
     "deny": [],
     "ask": []
