@@ -237,18 +237,24 @@ export default function SimpleItemsSection({
                       <span className="text-xs text-gray-400 ml-2">(클릭하면 예제 표시)</span>
                     )}
                   </label>
-                  <input
-                    type="text"
-                    {...register(`items.${index}.description`)}
-                    ref={(el) => {
-                      descriptionRefs.current[index] = el;
-                    }}
-                    disabled={disabled}
-                    placeholder="예: 11월분 식대"
-                    onFocus={() => handleDescriptionFocus(index)}
-                    onBlur={() => handleDescriptionBlur(index)}
-                    className={`${INPUT_BASE} ${errors?.items?.[index]?.description ? 'border-red-500' : ''}`}
-                  />
+                  {(() => {
+                    const { ref: registerRef, ...rest } = register(`items.${index}.description`);
+                    return (
+                      <input
+                        type="text"
+                        {...rest}
+                        ref={(el) => {
+                          registerRef(el);
+                          descriptionRefs.current[index] = el;
+                        }}
+                        disabled={disabled}
+                        placeholder="예: 11월분 식대"
+                        onFocus={() => handleDescriptionFocus(index)}
+                        onBlur={() => handleDescriptionBlur(index)}
+                        className={`${INPUT_BASE} ${errors?.items?.[index]?.description ? 'border-red-500' : ''}`}
+                      />
+                    );
+                  })()}
                   <MemoTooltip
                     examples={memoExamples[index] || []}
                     favorites={memoFavorites.map((f) => f.memo)}
