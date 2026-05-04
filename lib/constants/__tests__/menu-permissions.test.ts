@@ -21,6 +21,7 @@ import {
   filterAdminMenuByRoles,
   canAccessRecurringExpenseMenu,
   canAccessRecurringExpenseMenuWithRoles,
+  checkRecurringExpenseAccess,
 } from '../menu-permissions';
 
 describe('menu-permissions', () => {
@@ -612,6 +613,55 @@ describe('menu-permissions', () => {
     it('should handle user with multiple non-finance roles', () => {
       const roles = ['team_leader', 'admin_assistant'];
       expect(canAccessRecurringExpenseMenuWithRoles(roles)).toBe(false);
+    });
+  });
+
+  describe('checkRecurringExpenseAccess', () => {
+    it('should return null for admin (has access)', () => {
+      expect(checkRecurringExpenseAccess('admin')).toBeNull();
+    });
+
+    it('should return null for finance_head (has access)', () => {
+      expect(checkRecurringExpenseAccess('finance_head')).toBeNull();
+    });
+
+    it('should return null for accountant (has access)', () => {
+      expect(checkRecurringExpenseAccess('accountant')).toBeNull();
+    });
+
+    it('should return null for finance_member (has access)', () => {
+      expect(checkRecurringExpenseAccess('finance_member')).toBeNull();
+    });
+
+    it('should return error object for team_leader (no access)', () => {
+      const result = checkRecurringExpenseAccess('team_leader');
+      expect(result).not.toBeNull();
+      expect(result?.status).toBe(403);
+      expect(result?.error).toContain('권한');
+    });
+
+    it('should return error object for admin_assistant (no access)', () => {
+      const result = checkRecurringExpenseAccess('admin_assistant');
+      expect(result).not.toBeNull();
+      expect(result?.status).toBe(403);
+    });
+
+    it('should return error object for user (no access)', () => {
+      const result = checkRecurringExpenseAccess('user');
+      expect(result).not.toBeNull();
+      expect(result?.status).toBe(403);
+    });
+
+    it('should return error object for unknown role (no access)', () => {
+      const result = checkRecurringExpenseAccess('unknown_role');
+      expect(result).not.toBeNull();
+      expect(result?.status).toBe(403);
+    });
+
+    it('should return error object for empty string (no access)', () => {
+      const result = checkRecurringExpenseAccess('');
+      expect(result).not.toBeNull();
+      expect(result?.status).toBe(403);
     });
   });
 });

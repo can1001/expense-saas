@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { getCurrentUser } from '@/lib/auth';
 import { calculateNextGenerationDate, RecurringFrequency } from '@/lib/recurring-expense';
+import { checkRecurringExpenseAccess } from '@/lib/constants/menu-permissions';
 import { z } from 'zod';
 
 interface RouteParams {
@@ -31,6 +32,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     if (!currentUser) {
       throw new ApiError('로그인이 필요합니다.', 401);
+    }
+
+    // 역할 기반 접근 권한 확인
+    const accessError = checkRecurringExpenseAccess(currentUser.role);
+    if (accessError) {
+      throw new ApiError(accessError.error, accessError.status);
     }
 
     const recurringExpense = await prisma.recurringExpense.findUnique({
@@ -74,6 +81,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     if (!currentUser) {
       throw new ApiError('로그인이 필요합니다.', 401);
+    }
+
+    // 역할 기반 접근 권한 확인
+    const accessError = checkRecurringExpenseAccess(currentUser.role);
+    if (accessError) {
+      throw new ApiError(accessError.error, accessError.status);
     }
 
     const recurringExpense = await prisma.recurringExpense.findUnique({
@@ -141,6 +154,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     if (!currentUser) {
       throw new ApiError('로그인이 필요합니다.', 401);
+    }
+
+    // 역할 기반 접근 권한 확인
+    const accessError = checkRecurringExpenseAccess(currentUser.role);
+    if (accessError) {
+      throw new ApiError(accessError.error, accessError.status);
     }
 
     const recurringExpense = await prisma.recurringExpense.findUnique({

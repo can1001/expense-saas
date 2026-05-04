@@ -90,10 +90,10 @@ export default function RecurringExpensesPage() {
     [recurringExpenses]
   );
 
-  // 필터 변경 시 새로고침
-  const handleFilterChange = useCallback((newFilter: StatusFilter) => {
+  // 필터 변경 핸들러
+  const handleFilterChange = (newFilter: StatusFilter) => {
     setStatusFilter(newFilter);
-  }, []);
+  };
 
   // 검색어 초기화
   const clearSearch = useCallback(() => {

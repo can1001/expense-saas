@@ -3,6 +3,7 @@ import { prisma, Prisma } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { getCurrentUser } from '@/lib/auth';
 import { createRecurringExpenseSchema, calculateNextGenerationDate, RecurringFrequency } from '@/lib/recurring-expense';
+import { checkRecurringExpenseAccess } from '@/lib/constants/menu-permissions';
 
 // GET /api/recurring-expenses - 자동이체 목록 조회
 export async function GET(request: NextRequest) {
@@ -11,6 +12,12 @@ export async function GET(request: NextRequest) {
 
     if (!currentUser) {
       throw new ApiError('로그인이 필요합니다.', 401);
+    }
+
+    // 역할 기반 접근 권한 확인
+    const accessError = checkRecurringExpenseAccess(currentUser.role);
+    if (accessError) {
+      throw new ApiError(accessError.error, accessError.status);
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -71,6 +78,12 @@ export async function POST(request: NextRequest) {
 
     if (!currentUser) {
       throw new ApiError('로그인이 필요합니다.', 401);
+    }
+
+    // 역할 기반 접근 권한 확인
+    const accessError = checkRecurringExpenseAccess(currentUser.role);
+    if (accessError) {
+      throw new ApiError(accessError.error, accessError.status);
     }
 
     const body = await request.json();

@@ -36,7 +36,8 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 
 describe('자동이체 API', () => {
-  const mockUser = { id: 'user-1', username: '테스트유저' };
+  const mockUser = { id: 'user-1', username: '테스트유저', role: 'finance_head' };
+  const mockUserWithoutAccess = { id: 'user-2', username: '일반사용자', role: 'user' };
   const mockPrisma = prisma as unknown as {
     recurringExpense: {
       findMany: ReturnType<typeof vi.fn>;
@@ -99,6 +100,17 @@ describe('자동이체 API', () => {
 
       expect(response.status).toBe(401);
       expect(data.error).toContain('로그인');
+    });
+
+    it('자동이체 접근 권한이 없는 역할은 403을 반환해야 함', async () => {
+      mockGetCurrentUser.mockResolvedValue(mockUserWithoutAccess);
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses');
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toContain('권한');
     });
 
     it('상태 필터가 적용되어야 함', async () => {
@@ -210,6 +222,21 @@ describe('자동이체 API', () => {
       expect(data.error).toContain('로그인');
     });
 
+    it('자동이체 접근 권한이 없는 역할은 403을 반환해야 함', async () => {
+      mockGetCurrentUser.mockResolvedValue(mockUserWithoutAccess);
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses', {
+        method: 'POST',
+        body: JSON.stringify(validCreateData),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toContain('권한');
+    });
+
     it('필수 필드가 누락되면 400을 반환해야 함', async () => {
       const invalidData = { ...validCreateData };
       delete (invalidData as Record<string, unknown>).name;
@@ -268,6 +295,17 @@ describe('자동이체 API', () => {
 
       expect(response.status).toBe(404);
       expect(data.error).toContain('찾을 수 없');
+    });
+
+    it('자동이체 접근 권한이 없는 역할은 403을 반환해야 함', async () => {
+      mockGetCurrentUser.mockResolvedValue(mockUserWithoutAccess);
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses/rec-1');
+      const response = await GET_ONE(request, { params: Promise.resolve({ id: 'rec-1' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toContain('권한');
     });
 
     it('다른 사용자의 자동이체는 403을 반환해야 함', async () => {
@@ -335,6 +373,21 @@ describe('자동이체 API', () => {
       expect(data.error).toContain('취소');
     });
 
+    it('자동이체 접근 권한이 없는 역할은 403을 반환해야 함', async () => {
+      mockGetCurrentUser.mockResolvedValue(mockUserWithoutAccess);
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses/rec-1', {
+        method: 'PUT',
+        body: JSON.stringify({ name: '수정 시도' }),
+      });
+
+      const response = await PUT(request, { params: Promise.resolve({ id: 'rec-1' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toContain('권한');
+    });
+
     it('다른 사용자의 자동이체는 수정할 수 없어야 함', async () => {
       mockPrisma.recurringExpense.findUnique.mockResolvedValue({
         id: 'rec-1',
@@ -399,6 +452,20 @@ describe('자동이체 API', () => {
 
       expect(response.status).toBe(400);
       expect(data.error).toContain('이미 취소');
+    });
+
+    it('자동이체 접근 권한이 없는 역할은 403을 반환해야 함', async () => {
+      mockGetCurrentUser.mockResolvedValue(mockUserWithoutAccess);
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses/rec-1', {
+        method: 'DELETE',
+      });
+
+      const response = await DELETE(request, { params: Promise.resolve({ id: 'rec-1' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toContain('권한');
     });
 
     it('다른 사용자의 자동이체는 삭제할 수 없어야 함', async () => {
