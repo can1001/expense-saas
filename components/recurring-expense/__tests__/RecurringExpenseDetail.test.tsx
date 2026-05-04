@@ -96,10 +96,11 @@ describe('RecurringExpenseDetail', () => {
       expect(screen.getByText('국민은행')).toBeInTheDocument();
     });
 
-    it('계좌번호를 표시해야 함', () => {
+    it('계좌번호를 마스킹하여 표시해야 함', () => {
       render(<RecurringExpenseDetail recurringExpense={mockRecurringExpense} />);
 
-      expect(screen.getByText('1234567890')).toBeInTheDocument();
+      // 1234567890 → 1234-**-7890 (앞 4자리, 뒤 4자리만 표시)
+      expect(screen.getByText('1234-**-7890')).toBeInTheDocument();
     });
   });
 

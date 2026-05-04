@@ -56,6 +56,18 @@ function formatDate(date: Date | string | null | undefined): string {
   return format(d, 'yyyy-MM-dd');
 }
 
+/**
+ * 계좌번호 마스킹 (앞 4자리와 뒤 4자리만 표시)
+ */
+function maskAccountNumber(accountNumber: string): string {
+  const cleaned = accountNumber.replace(/[^0-9]/g, '');
+  if (cleaned.length <= 8) return accountNumber; // 너무 짧으면 그대로 반환
+  const front = cleaned.slice(0, 4);
+  const back = cleaned.slice(-4);
+  const middleLength = cleaned.length - 8;
+  return `${front}-${'*'.repeat(middleLength)}-${back}`;
+}
+
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between py-2 border-b border-gray-100 last:border-b-0">
@@ -170,7 +182,7 @@ export function RecurringExpenseDetail({ recurringExpense, onStatusChange }: Rec
         <div className="space-y-1">
           <InfoRow label="수취인명" value={recurringExpense.recipientName} />
           <InfoRow label="은행명" value={recurringExpense.bankName} />
-          <InfoRow label="계좌번호" value={recurringExpense.accountNumber} />
+          <InfoRow label="계좌번호" value={maskAccountNumber(recurringExpense.accountNumber)} />
         </div>
       </div>
 

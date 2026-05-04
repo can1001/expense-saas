@@ -136,24 +136,6 @@ export function calculateNextGenerationDate(
 }
 
 /**
- * 주기별 월 간격 반환
- */
-function getMonthInterval(frequency: RecurringFrequency): number {
-  switch (frequency) {
-    case RecurringFrequency.MONTHLY:
-      return 1;
-    case RecurringFrequency.QUARTERLY:
-      return 3;
-    case RecurringFrequency.SEMI_ANNUAL:
-      return 6;
-    case RecurringFrequency.ANNUAL:
-      return 12;
-    default:
-      return 1;
-  }
-}
-
-/**
  * 지출결의서를 생성해야 하는지 확인
  *
  * @param nextGenerationDate - 다음 생성 예정일

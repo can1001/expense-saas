@@ -10,10 +10,7 @@ export async function GET(request: NextRequest) {
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
+      throw new ApiError('로그인이 필요합니다.', 401);
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -39,20 +36,6 @@ export async function GET(request: NextRequest) {
         orderBy: {
           createdAt: 'desc',
         },
-        include: {
-          generatedExpenses: {
-            select: {
-              id: true,
-              requestAmount: true,
-              status: true,
-              createdAt: true,
-            },
-            orderBy: {
-              createdAt: 'desc',
-            },
-            take: 5, // 최근 5건만
-          },
-        },
       }),
       prisma.recurringExpense.count({ where }),
     ]);
@@ -77,10 +60,7 @@ export async function POST(request: NextRequest) {
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
+      throw new ApiError('로그인이 필요합니다.', 401);
     }
 
     const body = await request.json();
