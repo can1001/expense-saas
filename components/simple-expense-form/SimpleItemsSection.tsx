@@ -279,7 +279,7 @@ export default function SimpleItemsSection({
                     onChange={(e) => setValue(`items.${index}.unitPrice`, parseNumber(e.target.value))}
                     disabled={disabled}
                     placeholder="0"
-                    className={`${INPUT_BASE} ${errors?.items?.[index]?.unitPrice ? 'border-red-500' : ''}`}
+                    className={`${INPUT_BASE} min-h-[48px] ${errors?.items?.[index]?.unitPrice ? 'border-red-500' : ''}`}
                   />
                   {errors?.items?.[index]?.unitPrice && (
                     <p className="mt-1 text-sm text-red-500">
@@ -294,10 +294,11 @@ export default function SimpleItemsSection({
                   </label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     {...register(`items.${index}.quantity`, { valueAsNumber: true })}
                     disabled={disabled}
                     min="1"
-                    className={`${INPUT_BASE} ${errors?.items?.[index]?.quantity ? 'border-red-500' : ''}`}
+                    className={`${INPUT_BASE} min-h-[48px] ${errors?.items?.[index]?.quantity ? 'border-red-500' : ''}`}
                   />
                   {errors?.items?.[index]?.quantity && (
                     <p className="mt-1 text-sm text-red-500">

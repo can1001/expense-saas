@@ -577,6 +577,7 @@ model User {
   yearRoles          UserYearRole[]
   bankAccounts       SavedBankAccount[]         // 저장된 은행 계좌들
   expenses           Expense[]                  // 작성한 지출결의서들
+  expenseTemplates   ExpenseTemplate[]          // 지출 템플릿들
   managedBudgets     BudgetDetailYear[]  @relation("BudgetDetailManager")  // 담당 예산 세목들
   signatures         UserSignature[]            // 저장된 서명/도장들
   notificationPreference NotificationPreference? // 알림 설정
@@ -1386,4 +1387,40 @@ model RecitationSubmission {
   @@index([status])
   @@index([submittedAt])
   @@index([approvedBy])
+}
+
+// ========================================
+// 지출결의서 템플릿 (Expense Template)
+// ========================================
+
+// 자주 사용하는 지출 패턴 저장
+model ExpenseTemplate {
+  id                String   @id @default(cuid())
+
+  // 소유자
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 템플릿 정보
+  name              String   // 템플릿 이름 (예: "월례 회의비", "출장 교통비")
+
+  // 예산 항목
+  budgetCategory    String   // 예산(항)
+  budgetSubcategory String   // 예산(목)
+  budgetDetail      String   // 예산(세목)
+
+  // 기본값
+  description       String?  // 기본 적요
+  defaultAmount     Int?     // 기본 금액
+
+  // 사용 통계
+  usageCount        Int      @default(0) // 사용 횟수 (정렬용)
+
+  // 메타
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, usageCount])
+  @@index([budgetDetail])
 }
