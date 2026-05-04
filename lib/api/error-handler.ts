@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { ERROR_MESSAGES } from '@/lib/constants/error-messages';
+import { ZodError } from 'zod';
 
 /**
  * 커스텀 API 에러 클래스
@@ -118,6 +119,20 @@ export function handleApiError(error: unknown): NextResponse<ErrorResponse> {
       {
         error: ERROR_MESSAGES.REQUIRED_FIELDS_MISSING,
         details: error.message,
+      },
+      { status: 400 }
+    );
+  }
+
+  // Zod 검증 에러
+  if (error instanceof ZodError) {
+    return NextResponse.json(
+      {
+        error: ERROR_MESSAGES.REQUIRED_FIELDS_MISSING,
+        details: error.issues.map(e => ({
+          path: e.path.join('.'),
+          message: e.message,
+        })),
       },
       { status: 400 }
     );

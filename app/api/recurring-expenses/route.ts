@@ -1,0 +1,131 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma, Prisma } from '@/lib/prisma';
+import { handleApiError, ApiError } from '@/lib/api/error-handler';
+import { getCurrentUser } from '@/lib/auth';
+import { createRecurringExpenseSchema, calculateNextGenerationDate, RecurringFrequency } from '@/lib/recurring-expense';
+
+// GET /api/recurring-expenses - 자동이체 목록 조회
+export async function GET(request: NextRequest) {
+  try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      );
+    }
+
+    const searchParams = request.nextUrl.searchParams;
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const status = searchParams.get('status'); // ACTIVE, PAUSED, COMPLETED, CANCELLED
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.RecurringExpenseWhereInput = {
+      userId: currentUser.id,
+    };
+
+    // 상태 필터
+    if (status) {
+      where.status = status as Prisma.EnumRecurringExpenseStatusFilter;
+    }
+
+    const [recurringExpenses, total] = await Promise.all([
+      prisma.recurringExpense.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          generatedExpenses: {
+            select: {
+              id: true,
+              requestAmount: true,
+              status: true,
+              createdAt: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 5, // 최근 5건만
+          },
+        },
+      }),
+      prisma.recurringExpense.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      recurringExpenses,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+// POST /api/recurring-expenses - 자동이체 등록
+export async function POST(request: NextRequest) {
+  try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+
+    // 스키마 검증
+    const validatedData = createRecurringExpenseSchema.parse({
+      ...body,
+      startDate: new Date(body.startDate),
+      endDate: body.endDate ? new Date(body.endDate) : undefined,
+    });
+
+    // 다음 생성일 계산
+    const nextGenerationDate = calculateNextGenerationDate(
+      validatedData.frequency as RecurringFrequency,
+      validatedData.dayOfMonth,
+      validatedData.advanceDays,
+      validatedData.startDate
+    );
+
+    const recurringExpense = await prisma.recurringExpense.create({
+      data: {
+        userId: currentUser.id,
+        name: validatedData.name,
+        description: validatedData.description,
+        committee: validatedData.committee,
+        department: validatedData.department,
+        budgetCategory: validatedData.budgetCategory,
+        budgetSubcategory: validatedData.budgetSubcategory,
+        budgetDetail: validatedData.budgetDetail,
+        recipientName: validatedData.recipientName,
+        bankName: validatedData.bankName,
+        accountNumber: validatedData.accountNumber,
+        baseAmount: validatedData.baseAmount,
+        frequency: validatedData.frequency,
+        dayOfMonth: validatedData.dayOfMonth,
+        startDate: validatedData.startDate,
+        endDate: validatedData.endDate,
+        advanceDays: validatedData.advanceDays,
+        nextGenerationDate,
+        status: 'ACTIVE',
+      },
+    });
+
+    return NextResponse.json(recurringExpense, { status: 201 });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}

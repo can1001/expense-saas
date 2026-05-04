@@ -71,6 +71,10 @@ model Expense {
   // 결재선 (1:1 관계)
   approvalLine      ApprovalLine?
 
+  // 자동이체 연결 (자동 생성된 경우)
+  recurringExpenseId String?
+  recurringExpense   RecurringExpense?    @relation("RecurringToExpense", fields: [recurringExpenseId], references: [id], onDelete: SetNull)
+
   // 메타
   version           String               @default("4.1.3")
   createdAt         DateTime             @default(now())
@@ -588,6 +592,7 @@ model User {
   studentPoints      StudentPoints[]  @relation("StudentPoints")  // 청나잇 포인트 기록
   recitations        RecitationSubmission[]  @relation("StudentRecitation")  // 청나잇 암송 제출
   approvedRecitations RecitationSubmission[]  @relation("RecitationApprover")  // 승인한 암송들
+  recurringExpenses   RecurringExpense[]      // 등록한 자동이체 템플릿들
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1423,4 +1428,82 @@ model ExpenseTemplate {
   @@index([userId])
   @@index([userId, usageCount])
   @@index([budgetDetail])
+}
+
+// ========================================
+// 자동이체 지출결의서 (Recurring Expense)
+// ========================================
+
+// 반복 주기 열거형
+enum RecurringFrequency {
+  MONTHLY       // 매월
+  QUARTERLY     // 분기별 (3개월)
+  SEMI_ANNUAL   // 반기별 (6개월)
+  ANNUAL        // 연간
+}
+
+// 자동이체 상태
+enum RecurringExpenseStatus {
+  ACTIVE        // 활성 (정상 실행)
+  PAUSED        // 일시 중지
+  COMPLETED     // 완료 (종료일 도달)
+  CANCELLED     // 취소
+}
+
+// 정기적으로 자동이체되는 지출결의서 템플릿
+model RecurringExpense {
+  id                  String                  @id @default(cuid())
+
+  // 등록자 (관리자 또는 재정팀)
+  userId              String
+  user                User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 기본 정보
+  name                String                  // 자동이체 이름 (예: "월세", "보험료", "전기요금")
+  description         String?                 // 상세 설명
+
+  // 조직 정보 (지출결의서 생성 시 사용)
+  committee           String                  // 위원회
+  department          String                  // 부서
+
+  // 예산 항목 (기존 예산체계 사용)
+  budgetCategory      String                  // 예산(항)
+  budgetSubcategory   String                  // 예산(목)
+  budgetDetail        String                  // 예산(세목)
+
+  // 수취인 정보
+  recipientName       String                  // 수취인 이름
+  bankName            String                  // 은행명
+  accountNumber       String                  // 계좌번호
+
+  // 금액 정보
+  baseAmount          Int                     // 기본 금액 (변동 가능하므로 기본값)
+
+  // 스케줄 설정
+  frequency           RecurringFrequency      // 반복 주기
+  dayOfMonth          Int                     // 매월 몇 일 (1-28, 29-31은 말일 처리)
+  startDate           DateTime                // 시작일
+  endDate             DateTime?               // 종료일 (null이면 무기한)
+
+  // 생성 설정
+  advanceDays         Int                     @default(7) // 이체일 N일 전 생성 (결재 시간 확보)
+
+  // 상태 관리
+  status              RecurringExpenseStatus  @default(ACTIVE)
+
+  // 실행 추적
+  lastGeneratedDate   DateTime?               // 마지막으로 지출결의서 생성한 날짜
+  nextGenerationDate  DateTime?               // 다음 지출결의서 생성 예정일
+
+  // 생성된 지출결의서와의 관계
+  generatedExpenses   Expense[]               @relation("RecurringToExpense")
+
+  // 메타
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([nextGenerationDate])
+  @@index([status, nextGenerationDate])
 }
