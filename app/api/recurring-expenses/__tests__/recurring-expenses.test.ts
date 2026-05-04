@@ -79,7 +79,6 @@ describe('자동이체 API', () => {
       ];
 
       mockPrisma.recurringExpense.findMany.mockResolvedValue(mockRecurringExpenses);
-      mockPrisma.recurringExpense.count.mockResolvedValue(2);
 
       const request = new NextRequest('http://localhost/api/recurring-expenses');
       const response = await GET(request);
@@ -87,7 +86,8 @@ describe('자동이체 API', () => {
 
       expect(response.status).toBe(200);
       expect(data.recurringExpenses).toHaveLength(2);
-      expect(data.pagination.total).toBe(2);
+      expect(data.hasMore).toBe(false);
+      expect(data.nextCursor).toBeNull();
     });
 
     it('로그인하지 않은 경우 401을 반환해야 함', async () => {
@@ -103,7 +103,6 @@ describe('자동이체 API', () => {
 
     it('상태 필터가 적용되어야 함', async () => {
       mockPrisma.recurringExpense.findMany.mockResolvedValue([]);
-      mockPrisma.recurringExpense.count.mockResolvedValue(0);
 
       const request = new NextRequest('http://localhost/api/recurring-expenses?status=ACTIVE');
       await GET(request);
@@ -112,6 +111,44 @@ describe('자동이체 API', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             status: 'ACTIVE',
+          }),
+        })
+      );
+    });
+
+    it('cursor 기반 페이지네이션이 작동해야 함', async () => {
+      const mockRecurringExpenses = [
+        { id: 'rec-3', name: '다음 페이지 항목' },
+      ];
+      mockPrisma.recurringExpense.findMany.mockResolvedValue(mockRecurringExpenses);
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses?cursor=rec-2&limit=10');
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(mockPrisma.recurringExpense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cursor: { id: 'rec-2' },
+          skip: 1,
+        })
+      );
+      expect(data.hasMore).toBe(false);
+    });
+
+    it('검색 필터가 적용되어야 함', async () => {
+      mockPrisma.recurringExpense.findMany.mockResolvedValue([]);
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses?search=임대료');
+      await GET(request);
+
+      expect(mockPrisma.recurringExpense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [
+              { name: { contains: '임대료', mode: 'insensitive' } },
+              { recipientName: { contains: '임대료', mode: 'insensitive' } },
+            ],
           }),
         })
       );

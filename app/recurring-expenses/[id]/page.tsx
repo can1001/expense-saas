@@ -6,6 +6,13 @@ import Header from '@/components/Header';
 import { RecurringExpenseDetail } from '@/components/recurring-expense/RecurringExpenseDetail';
 import { ALERT_ERROR, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 
+interface GeneratedExpenseData {
+  id: string;
+  requestAmount: number;
+  status: string;
+  createdAt: string;
+}
+
 interface RecurringExpenseData {
   id: string;
   name: string;
@@ -29,6 +36,7 @@ interface RecurringExpenseData {
   lastGeneratedDate?: string | null;
   createdAt: string;
   updatedAt: string;
+  generatedExpenses?: GeneratedExpenseData[];
 }
 
 interface PageProps {

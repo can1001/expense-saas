@@ -13,7 +13,9 @@ import {
   BTN_DANGER,
   SPINNER,
 } from '@/lib/constants/styles';
-import { Edit, Pause, Play, XCircle, ArrowLeft } from 'lucide-react';
+import { Edit, Pause, Play, Trash2, ArrowLeft } from 'lucide-react';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { GeneratedExpenseList } from './GeneratedExpenseList';
 
 interface RecurringExpenseDetailProps {
   recurringExpense: {
@@ -39,6 +41,12 @@ interface RecurringExpenseDetailProps {
     lastGeneratedDate?: Date | string | null;
     createdAt?: Date | string;
     updatedAt?: Date | string;
+    generatedExpenses?: Array<{
+      id: string;
+      requestAmount: number;
+      status: string;
+      createdAt: Date | string;
+    }>;
   };
   onStatusChange?: (newStatus: 'ACTIVE' | 'PAUSED' | 'CANCELLED') => Promise<void>;
 }
@@ -80,8 +88,11 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 export function RecurringExpenseDetail({ recurringExpense, onStatusChange }: RecurringExpenseDetailProps) {
   const router = useRouter();
   const [isChangingStatus, setIsChangingStatus] = useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const canChangeStatus = ['ACTIVE', 'PAUSED'].includes(recurringExpense.status);
+  const canCancel = recurringExpense.status !== 'CANCELLED' && recurringExpense.status !== 'COMPLETED';
 
   const handleStatusChange = async (newStatus: 'ACTIVE' | 'PAUSED' | 'CANCELLED') => {
     if (!onStatusChange) return;
@@ -91,6 +102,21 @@ export function RecurringExpenseDetail({ recurringExpense, onStatusChange }: Rec
       await onStatusChange(newStatus);
     } finally {
       setIsChangingStatus(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!onStatusChange) return;
+
+    setIsCancelling(true);
+    try {
+      await onStatusChange('CANCELLED');
+      setIsCancelDialogOpen(false);
+      router.push('/recurring-expenses');
+    } catch {
+      // 에러는 부모 컴포넌트에서 처리
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -159,8 +185,32 @@ export function RecurringExpenseDetail({ recurringExpense, onStatusChange }: Rec
               )}
             </>
           )}
+
+          {canCancel && (
+            <button
+              onClick={() => setIsCancelDialogOpen(true)}
+              disabled={isChangingStatus}
+              className={BTN_DANGER}
+            >
+              <Trash2 className="w-4 h-4" />
+              취소
+            </button>
+          )}
         </div>
       </div>
+
+      {/* 취소 확인 다이얼로그 */}
+      <ConfirmDialog
+        isOpen={isCancelDialogOpen}
+        onClose={() => setIsCancelDialogOpen(false)}
+        onConfirm={handleCancel}
+        title="자동이체 취소"
+        message="이 자동이체를 취소하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+        confirmText="취소하기"
+        cancelText="돌아가기"
+        variant="danger"
+        isLoading={isCancelling}
+      />
 
       {/* 기본 정보 */}
       <div className={SECTION_CARD}>
@@ -242,6 +292,11 @@ export function RecurringExpenseDetail({ recurringExpense, onStatusChange }: Rec
             <span>수정: {formatDate(recurringExpense.updatedAt)}</span>
           )}
         </div>
+      )}
+
+      {/* 생성 이력 */}
+      {recurringExpense.generatedExpenses && (
+        <GeneratedExpenseList expenses={recurringExpense.generatedExpenses} />
       )}
     </div>
   );

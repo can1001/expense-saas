@@ -14,10 +14,10 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get('page') || '1');
+    const cursor = searchParams.get('cursor');
     const limit = parseInt(searchParams.get('limit') || '10');
     const status = searchParams.get('status'); // ACTIVE, PAUSED, COMPLETED, CANCELLED
-    const skip = (page - 1) * limit;
+    const search = searchParams.get('search')?.trim();
 
     const where: Prisma.RecurringExpenseWhereInput = {
       userId: currentUser.id,
@@ -28,26 +28,36 @@ export async function GET(request: NextRequest) {
       where.status = status as Prisma.EnumRecurringExpenseStatusFilter;
     }
 
-    const [recurringExpenses, total] = await Promise.all([
-      prisma.recurringExpense.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: {
-          createdAt: 'desc',
-        },
+    // 검색 필터 (이름, 수취인명에서 검색)
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { recipientName: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // cursor 기반 페이지네이션
+    const recurringExpenses = await prisma.recurringExpense.findMany({
+      where,
+      take: limit + 1, // 다음 페이지 존재 여부 확인용
+      ...(cursor && {
+        cursor: { id: cursor },
+        skip: 1, // cursor 자체는 건너뜀
       }),
-      prisma.recurringExpense.count({ where }),
-    ]);
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // 다음 페이지 존재 여부 확인
+    const hasMore = recurringExpenses.length > limit;
+    const data = hasMore ? recurringExpenses.slice(0, -1) : recurringExpenses;
+    const nextCursor = hasMore ? data[data.length - 1]?.id : null;
 
     return NextResponse.json({
-      recurringExpenses,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      recurringExpenses: data,
+      nextCursor,
+      hasMore,
     });
   } catch (error) {
     return handleApiError(error);

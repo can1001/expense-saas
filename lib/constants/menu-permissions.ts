@@ -43,6 +43,14 @@ export const ADMIN_MENU_ROLES: UserRole[] = [
   'admin_assistant',
 ];
 
+// 자동이체 메뉴 접근 가능 역할 (재정팀 전용)
+export const RECURRING_EXPENSE_MENU_ROLES: UserRole[] = [
+  'admin',
+  'finance_head',
+  'accountant',
+  'finance_member',
+];
+
 // 최종승인 + 지급대기 상태 지출결의서 수정 가능 역할
 export const APPROVED_EDIT_ROLES: UserRole[] = [
   'admin',
@@ -136,6 +144,20 @@ export function canAccessAdminMenu(role: string): boolean {
  */
 export function canAccessAdminMenuWithRoles(roles: string[]): boolean {
   return roles.some(role => ADMIN_MENU_ROLES.includes(role as UserRole));
+}
+
+/**
+ * 자동이체 메뉴 접근 권한 체크
+ */
+export function canAccessRecurringExpenseMenu(role: string): boolean {
+  return RECURRING_EXPENSE_MENU_ROLES.includes(role as UserRole);
+}
+
+/**
+ * 자동이체 메뉴 접근 권한 체크 (다중 역할 지원)
+ */
+export function canAccessRecurringExpenseMenuWithRoles(roles: string[]): boolean {
+  return roles.some(role => RECURRING_EXPENSE_MENU_ROLES.includes(role as UserRole));
 }
 
 /**
