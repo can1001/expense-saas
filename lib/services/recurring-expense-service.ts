@@ -86,7 +86,7 @@ export async function generateExpenseFromRecurring(
           create: [{
             budgetCategory: recurring.budgetCategory,
             budgetSubcategory: recurring.budgetSubcategory,
-            budgetDetail: recurring.budgetDetail,
+            budgetDetail: recurring.budgetDetail || '',
             description: `${recurring.name} - ${format(new Date(), 'yyyy년 MM월')}`,
             unitPrice: recurring.baseAmount,
             quantity: 1,
@@ -150,17 +150,26 @@ export async function processRecurringExpenses(): Promise<ProcessRecurringExpens
     errors: [],
   };
 
-  // 각 자동이체 처리
+  // 각 자동이체 처리 (개별 에러 격리)
   for (const recurring of recurringExpenses) {
-    const generateResult = await generateExpenseFromRecurring(recurring.id);
+    try {
+      const generateResult = await generateExpenseFromRecurring(recurring.id);
 
-    if (generateResult.success) {
-      result.generated++;
-    } else {
+      if (generateResult.success) {
+        result.generated++;
+      } else {
+        result.errors.push({
+          recurringExpenseId: recurring.id,
+          error: generateResult.error || '알 수 없는 오류',
+        });
+      }
+    } catch (error) {
+      // 예상치 못한 예외 발생 시에도 다른 건 계속 처리
       result.errors.push({
         recurringExpenseId: recurring.id,
-        error: generateResult.error || '알 수 없는 오류',
+        error: error instanceof Error ? error.message : '예상치 못한 오류 발생',
       });
+      console.error(`[RecurringExpense] 처리 실패 (id: ${recurring.id}):`, error);
     }
   }
 

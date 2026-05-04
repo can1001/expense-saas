@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import { RecurringExpenseForm } from '@/components/recurring-expense/RecurringExpenseForm';
@@ -38,11 +38,7 @@ export default function EditRecurringExpensePage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchRecurringExpense();
-  }, [id]);
-
-  const fetchRecurringExpense = async () => {
+  const fetchRecurringExpense = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -61,7 +57,11 @@ export default function EditRecurringExpensePage({ params }: PageProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchRecurringExpense();
+  }, [fetchRecurringExpense]);
 
   return (
     <div className="min-h-screen bg-gray-50">

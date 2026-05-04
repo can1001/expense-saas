@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
@@ -34,11 +34,7 @@ export default function RecurringExpensesPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
 
-  useEffect(() => {
-    fetchRecurringExpenses();
-  }, []);
-
-  const fetchRecurringExpenses = async () => {
+  const fetchRecurringExpenses = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -54,7 +50,11 @@ export default function RecurringExpensesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchRecurringExpenses();
+  }, [fetchRecurringExpenses]);
 
   const filteredExpenses = statusFilter === 'ALL'
     ? recurringExpenses

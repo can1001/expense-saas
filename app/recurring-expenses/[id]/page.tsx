@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import { RecurringExpenseDetail } from '@/components/recurring-expense/RecurringExpenseDetail';
@@ -42,11 +42,7 @@ export default function RecurringExpenseDetailPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchRecurringExpense();
-  }, [id]);
-
-  const fetchRecurringExpense = async () => {
+  const fetchRecurringExpense = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -65,7 +61,11 @@ export default function RecurringExpenseDetailPage({ params }: PageProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchRecurringExpense();
+  }, [fetchRecurringExpense]);
 
   const handleStatusChange = async (newStatus: 'ACTIVE' | 'PAUSED' | 'CANCELLED') => {
     try {

@@ -33,7 +33,7 @@ export const createRecurringExpenseSchema = z.object({
   department: z.string().min(1, '사역팀/부를 선택해주세요'),
   budgetCategory: z.string().min(1, '예산(항)을 선택해주세요'),
   budgetSubcategory: z.string().min(1, '예산(목)을 선택해주세요'),
-  budgetDetail: z.string().min(1, '예산(세목)을 선택해주세요'),
+  budgetDetail: z.string().optional(), // 세목이 없는 예산 항목도 있음
   recipientName: z.string().min(1, '수취인명을 입력해주세요'),
   bankName: z.string().min(1, '은행명을 입력해주세요'),
   accountNumber: z.string().min(1, '계좌번호를 입력해주세요'),

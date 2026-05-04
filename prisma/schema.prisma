@@ -1469,7 +1469,7 @@ model RecurringExpense {
   // 예산 항목 (기존 예산체계 사용)
   budgetCategory      String                  // 예산(항)
   budgetSubcategory   String                  // 예산(목)
-  budgetDetail        String                  // 예산(세목)
+  budgetDetail        String?                 // 예산(세목) - 세목이 없는 예산 항목도 있음
 
   // 수취인 정보
   recipientName       String                  // 수취인 이름

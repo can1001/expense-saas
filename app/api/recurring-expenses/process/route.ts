@@ -9,6 +9,15 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
+    // 프로덕션에서 CRON_SECRET 미설정 시 경고 및 차단
+    if (!cronSecret) {
+      if (process.env.NODE_ENV === 'production') {
+        console.error('[SECURITY] CRON_SECRET이 프로덕션에서 설정되지 않았습니다. 엔드포인트가 차단됩니다.');
+        throw new ApiError('서버 설정 오류입니다.', 500);
+      }
+      console.warn('[DEV] CRON_SECRET 미설정 - 개발 환경에서만 허용됩니다.');
+    }
+
     // CRON_SECRET이 설정되어 있으면 인증 필요
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       throw new ApiError('인증에 실패했습니다.', 401);
