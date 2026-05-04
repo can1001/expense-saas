@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { AlertTriangle, Wallet, Info } from 'lucide-react';
 import { UsageDetailModal } from './UsageDetailModal';
 
@@ -27,6 +27,7 @@ function formatAmount(amount: number): string {
 export function BudgetInfoPanel({ budgetInfo, year, expenseId }: BudgetInfoPanelProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedBudgetDetail, setSelectedBudgetDetail] = useState<string>('');
+  const lastTapRef = useRef<number>(0);
 
   // 기본 연도: props로 전달되지 않으면 현재 연도 사용
   const displayYear = year || new Date().getFullYear();
@@ -40,6 +41,16 @@ export function BudgetInfoPanel({ budgetInfo, year, expenseId }: BudgetInfoPanel
   const handleUsedAmountDoubleClick = (budgetDetailName: string) => {
     setSelectedBudgetDetail(budgetDetailName);
     setModalOpen(true);
+  };
+
+  // 모바일 더블탭 감지 핸들러
+  const handleDoubleTap = (budgetDetailName: string) => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      // 300ms 내 두 번 탭 감지
+      handleUsedAmountDoubleClick(budgetDetailName);
+    }
+    lastTapRef.current = now;
   };
 
   return (
@@ -87,6 +98,7 @@ export function BudgetInfoPanel({ budgetInfo, year, expenseId }: BudgetInfoPanel
                 <div
                   className="group flex cursor-pointer justify-between rounded px-1 -mx-1 text-gray-600 transition-colors hover:bg-blue-50"
                   onDoubleClick={() => handleUsedAmountDoubleClick(info.budgetDetailName)}
+                  onTouchEnd={() => handleDoubleTap(info.budgetDetailName)}
                   title="더블클릭하여 사용 내역 보기"
                 >
                   <span className="flex items-center gap-1">
