@@ -34,6 +34,10 @@ interface UseExpenseFormSubmitOptions {
   enableOffline?: boolean;
   /** 첨부파일 File 객체 목록 (오프라인 저장용) */
   attachmentFiles?: File[];
+  /** 성공 시 콜백 (리다이렉트 전에 호출됨, Promise 반환 시 await 후 리다이렉트) */
+  onSuccess?: (result: { id: string; isSubmit: boolean }) => void | Promise<void>;
+  /** alert 메시지 표시 건너뛰기 (커스텀 메시지 사용 시) */
+  skipSuccessAlert?: boolean;
 }
 
 interface SubmitResult {
@@ -55,6 +59,8 @@ export function useExpenseFormSubmit(options: UseExpenseFormSubmitOptions) {
     saveAttachments,
     enableOffline = true,
     attachmentFiles,
+    onSuccess,
+    skipSuccessAlert = false,
   } = options;
 
   const router = useRouter();
@@ -196,7 +202,12 @@ export function useExpenseFormSubmit(options: UseExpenseFormSubmitOptions) {
             throw new Error(errorMsg);
           }
 
-          alert('지출결의서가 성공적으로 제출되었습니다.');
+          if (!skipSuccessAlert) {
+            alert('지출결의서가 성공적으로 제출되었습니다.');
+          }
+          if (onSuccess) {
+            await onSuccess({ id: expenseId, isSubmit: true });
+          }
           router.push(`${redirectPath}/${expenseId}`);
           return { success: true, id: expenseId };
         }
@@ -259,13 +270,19 @@ export function useExpenseFormSubmit(options: UseExpenseFormSubmitOptions) {
           }
         }
 
-        alert(
-          isSubmit
-            ? '지출결의서가 성공적으로 제출되었습니다.'
-            : expenseId
-              ? '지출결의서가 성공적으로 수정되었습니다.'
-              : '지출결의서가 성공적으로 등록되었습니다.'
-        );
+        if (!skipSuccessAlert) {
+          alert(
+            isSubmit
+              ? '지출결의서가 성공적으로 제출되었습니다.'
+              : expenseId
+                ? '지출결의서가 성공적으로 수정되었습니다.'
+                : '지출결의서가 성공적으로 등록되었습니다.'
+          );
+        }
+
+        if (onSuccess) {
+          await onSuccess({ id: result.id, isSubmit });
+        }
 
         router.push(`${redirectPath}/${result.id}`);
 

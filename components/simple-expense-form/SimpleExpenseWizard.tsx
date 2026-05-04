@@ -20,6 +20,8 @@ import {
 import WizardStep1 from './WizardStep1';
 import WizardStep2 from './WizardStep2';
 import WizardNavigation from './WizardNavigation';
+import { TemplateSelectData } from './TemplateSelector';
+import SaveTemplateModal from './SaveTemplateModal';
 import {
   FLEX_CENTER,
   SPINNER_LG,
@@ -48,6 +50,19 @@ export default function SimpleExpenseWizard({
   const [submitMode, setSubmitMode] = useState<'save' | 'submit'>('save');
   const [showNoAttachmentModal, setShowNoAttachmentModal] = useState(false);
   const attachmentSectionRef = useRef<HTMLDivElement>(null);
+
+  // 템플릿 저장 관련 상태
+  const [showTemplatePrompt, setShowTemplatePrompt] = useState(false);
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+  const [pendingRedirectId, setPendingRedirectId] = useState<string | null>(null);
+  const [submittedTemplateData, setSubmittedTemplateData] = useState<{
+    budgetCategory: string;
+    budgetSubcategory: string;
+    budgetDetail: string;
+    description?: string;
+    defaultAmount?: number;
+  } | null>(null);
+  const templatePromptResolveRef = useRef<(() => void) | null>(null);
 
   // 공통 훅 사용
   const {
@@ -81,7 +96,7 @@ export default function SimpleExpenseWizard({
   const accountHolder = watch('accountHolder');
   const items = watch('items');
 
-  // 폼 제출 훅
+  // 폼 제출 훅 - 템플릿 저장 유도를 위해 onSuccess 사용
   const { handleSubmit: handleFormSubmit } = useExpenseFormSubmit({
     expenseId,
     apiEndpoint: '/api/simple-expenses',
@@ -104,6 +119,33 @@ export default function SimpleExpenseWizard({
         )
       );
     },
+    // 신규 생성 + 제출일 때만 템플릿 저장 유도
+    onSuccess: async ({ id, isSubmit }) => {
+      // 수정 모드이거나 임시저장인 경우 바로 리다이렉트
+      if (expenseId || !isSubmit) {
+        return;
+      }
+
+      // 첫 번째 항목 데이터를 템플릿 데이터로 저장
+      const firstItem = items?.[0];
+      if (firstItem?.budgetCategory && firstItem?.budgetSubcategory && firstItem?.budgetDetail) {
+        setSubmittedTemplateData({
+          budgetCategory: firstItem.budgetCategory,
+          budgetSubcategory: firstItem.budgetSubcategory,
+          budgetDetail: firstItem.budgetDetail,
+          description: firstItem.description || undefined,
+          defaultAmount: firstItem.amount || undefined,
+        });
+        setPendingRedirectId(id);
+        setShowTemplatePrompt(true);
+
+        // Promise를 반환하여 리다이렉트 대기
+        return new Promise<void>((resolve) => {
+          templatePromptResolveRef.current = resolve;
+        });
+      }
+    },
+    skipSuccessAlert: false, // 기본 alert는 표시
   });
 
   // 현재 사용자 정보
@@ -139,6 +181,52 @@ export default function SimpleExpenseWizard({
     if (currentStep <= 1) return;
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   }, [currentStep]);
+
+  // 템플릿 선택 시 첫 번째 항목에 적용
+  const handleTemplateSelect = useCallback((templateData: TemplateSelectData) => {
+    // 첫 번째 항목에 예산 정보 설정
+    setValue('items.0.budgetCategory', templateData.budgetCategory);
+    setValue('items.0.budgetSubcategory', templateData.budgetSubcategory);
+    setValue('items.0.budgetDetail', templateData.budgetDetail);
+
+    // 적요가 있으면 설정
+    if (templateData.description) {
+      setValue('items.0.description', templateData.description);
+    }
+
+    // 기본 금액이 있으면 단가에 설정 (수량 1로)
+    if (templateData.defaultAmount) {
+      setValue('items.0.unitPrice', templateData.defaultAmount);
+      setValue('items.0.quantity', 1);
+      setValue('items.0.amount', templateData.defaultAmount);
+    }
+  }, [setValue]);
+
+  // 템플릿 저장 프롬프트에서 "저장하기" 클릭
+  const handleTemplatePromptSave = useCallback(() => {
+    setShowTemplatePrompt(false);
+    setShowSaveTemplateModal(true);
+  }, []);
+
+  // 템플릿 저장 프롬프트에서 "나중에" 클릭
+  const handleTemplatePromptSkip = useCallback(() => {
+    setShowTemplatePrompt(false);
+    // resolve 호출하여 리다이렉트 진행
+    if (templatePromptResolveRef.current) {
+      templatePromptResolveRef.current();
+      templatePromptResolveRef.current = null;
+    }
+  }, []);
+
+  // SaveTemplateModal 닫기 (저장 완료 또는 취소)
+  const handleSaveTemplateModalClose = useCallback(() => {
+    setShowSaveTemplateModal(false);
+    // resolve 호출하여 리다이렉트 진행
+    if (templatePromptResolveRef.current) {
+      templatePromptResolveRef.current();
+      templatePromptResolveRef.current = null;
+    }
+  }, []);
 
   // 스와이프 핸들러
   const swipeHandlers = useSwipeable({
@@ -273,6 +361,7 @@ export default function SimpleExpenseWizard({
             errors={errors}
             disabled={loading || isSubmitting}
             userId={userId}
+            onTemplateSelect={handleTemplateSelect}
           />
         )}
 
@@ -376,6 +465,53 @@ export default function SimpleExpenseWizard({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 템플릿 저장 유도 모달 */}
+      {showTemplatePrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">템플릿으로 저장하시겠습니까?</h3>
+              <p className="text-gray-600 text-sm">
+                자주 사용하는 지출 항목을 템플릿으로 저장하면
+                <br />
+                다음에 더 빠르게 작성할 수 있습니다.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleTemplatePromptSkip}
+                className="flex-1 px-4 py-2 min-h-[48px] border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                나중에
+              </button>
+              <button
+                type="button"
+                onClick={handleTemplatePromptSave}
+                className="flex-1 px-4 py-2 min-h-[48px] bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                저장하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 템플릿 저장 모달 */}
+      {submittedTemplateData && (
+        <SaveTemplateModal
+          isOpen={showSaveTemplateModal}
+          onClose={handleSaveTemplateModalClose}
+          onSuccess={handleSaveTemplateModalClose}
+          templateData={submittedTemplateData}
+        />
       )}
     </form>
   );

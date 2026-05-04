@@ -7,6 +7,7 @@
 import { Control, UseFormRegister, UseFormSetValue, FieldErrors } from 'react-hook-form';
 import { SimpleExpenseFormData } from '@/lib/schemas/simple-expense-schema';
 import SimpleItemsSection from './SimpleItemsSection';
+import TemplateSelector, { TemplateSelectData } from './TemplateSelector';
 
 interface WizardStep1Props {
   control: Control<SimpleExpenseFormData>;
@@ -15,6 +16,8 @@ interface WizardStep1Props {
   errors: FieldErrors<SimpleExpenseFormData>;
   disabled?: boolean;
   userId?: string;
+  /** 템플릿 선택 시 콜백 (첫 번째 항목에 적용) */
+  onTemplateSelect?: (data: TemplateSelectData) => void;
 }
 
 export default function WizardStep1({
@@ -24,6 +27,7 @@ export default function WizardStep1({
   errors,
   disabled = false,
   userId,
+  onTemplateSelect,
 }: WizardStep1Props) {
   return (
     <div className="space-y-6">
@@ -36,6 +40,11 @@ export default function WizardStep1({
           여러 항목을 추가할 수 있습니다.
         </p>
       </div>
+
+      {/* 템플릿 선택 */}
+      {onTemplateSelect && (
+        <TemplateSelector onSelect={onTemplateSelect} disabled={disabled} />
+      )}
 
       {/* Zod 검증 에러 표시 */}
       {errors.items && (
