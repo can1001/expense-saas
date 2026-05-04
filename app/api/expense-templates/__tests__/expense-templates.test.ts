@@ -234,6 +234,49 @@ describe('지출 템플릿 API', () => {
       expect(response.status).toBe(200);
       expect(data.name).toBe('수정된 템플릿');
     });
+
+    it('로그인하지 않은 경우 401을 반환해야 함', async () => {
+      mockGetCurrentUser.mockResolvedValue(null);
+
+      const request = new NextRequest('http://localhost:3000/api/expense-templates/template-1', {
+        method: 'PUT',
+        body: JSON.stringify({ name: '수정' }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const response = await PUT(request, { params: createParams('template-1') });
+      expect(response.status).toBe(401);
+    });
+
+    it('다른 사용자의 템플릿 수정 시 403을 반환해야 함', async () => {
+      mockPrisma.expenseTemplate.findUnique.mockResolvedValue({
+        id: 'template-1',
+        userId: 'other-user',
+        name: '다른 사용자 템플릿',
+      });
+
+      const request = new NextRequest('http://localhost:3000/api/expense-templates/template-1', {
+        method: 'PUT',
+        body: JSON.stringify({ name: '수정' }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const response = await PUT(request, { params: createParams('template-1') });
+      expect(response.status).toBe(403);
+    });
+
+    it('존재하지 않는 템플릿 수정 시 404를 반환해야 함', async () => {
+      mockPrisma.expenseTemplate.findUnique.mockResolvedValue(null);
+
+      const request = new NextRequest('http://localhost:3000/api/expense-templates/nonexistent', {
+        method: 'PUT',
+        body: JSON.stringify({ name: '수정' }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const response = await PUT(request, { params: createParams('nonexistent') });
+      expect(response.status).toBe(404);
+    });
   });
 
   describe('DELETE /api/expense-templates/[id]', () => {
@@ -258,6 +301,43 @@ describe('지출 템플릿 API', () => {
 
       expect(response.status).toBe(200);
       expect(data.message).toContain('삭제');
+    });
+
+    it('로그인하지 않은 경우 401을 반환해야 함', async () => {
+      mockGetCurrentUser.mockResolvedValue(null);
+
+      const request = new NextRequest('http://localhost:3000/api/expense-templates/template-1', {
+        method: 'DELETE',
+      });
+
+      const response = await DELETE(request, { params: createParams('template-1') });
+      expect(response.status).toBe(401);
+    });
+
+    it('다른 사용자의 템플릿 삭제 시 403을 반환해야 함', async () => {
+      mockPrisma.expenseTemplate.findUnique.mockResolvedValue({
+        id: 'template-1',
+        userId: 'other-user',
+        name: '다른 사용자 템플릿',
+      });
+
+      const request = new NextRequest('http://localhost:3000/api/expense-templates/template-1', {
+        method: 'DELETE',
+      });
+
+      const response = await DELETE(request, { params: createParams('template-1') });
+      expect(response.status).toBe(403);
+    });
+
+    it('존재하지 않는 템플릿 삭제 시 404를 반환해야 함', async () => {
+      mockPrisma.expenseTemplate.findUnique.mockResolvedValue(null);
+
+      const request = new NextRequest('http://localhost:3000/api/expense-templates/nonexistent', {
+        method: 'DELETE',
+      });
+
+      const response = await DELETE(request, { params: createParams('nonexistent') });
+      expect(response.status).toBe(404);
     });
   });
 
@@ -293,6 +373,44 @@ describe('지출 템플릿 API', () => {
           },
         })
       );
+    });
+
+    it('로그인하지 않은 경우 401을 반환해야 함', async () => {
+      mockGetCurrentUser.mockResolvedValue(null);
+
+      const request = new NextRequest('http://localhost:3000/api/expense-templates/template-1', {
+        method: 'POST',
+      });
+
+      const response = await USE_TEMPLATE(request, { params: createParams('template-1') });
+      expect(response.status).toBe(401);
+    });
+
+    it('다른 사용자의 템플릿 사용 시 403을 반환해야 함', async () => {
+      mockPrisma.expenseTemplate.findUnique.mockResolvedValue({
+        id: 'template-1',
+        userId: 'other-user',
+        name: '다른 사용자 템플릿',
+        usageCount: 5,
+      });
+
+      const request = new NextRequest('http://localhost:3000/api/expense-templates/template-1', {
+        method: 'POST',
+      });
+
+      const response = await USE_TEMPLATE(request, { params: createParams('template-1') });
+      expect(response.status).toBe(403);
+    });
+
+    it('존재하지 않는 템플릿 사용 시 404를 반환해야 함', async () => {
+      mockPrisma.expenseTemplate.findUnique.mockResolvedValue(null);
+
+      const request = new NextRequest('http://localhost:3000/api/expense-templates/nonexistent', {
+        method: 'POST',
+      });
+
+      const response = await USE_TEMPLATE(request, { params: createParams('nonexistent') });
+      expect(response.status).toBe(404);
     });
   });
 });
