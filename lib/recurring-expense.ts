@@ -48,6 +48,52 @@ export const createRecurringExpenseSchema = z.object({
 export type CreateRecurringExpenseInput = z.infer<typeof createRecurringExpenseSchema>;
 
 /**
+ * 이체일에서 생성일을 계산하는 헬퍼
+ */
+function createGenerationDate(year: number, month: number, dayOfMonth: number, advanceDays: number): Date {
+  const transferDate = new Date(year, month - 1, dayOfMonth);
+  const generationDate = new Date(transferDate);
+  generationDate.setDate(generationDate.getDate() - advanceDays);
+  return generationDate;
+}
+
+/**
+ * 주어진 월 목록에서 현재 날짜 이후의 첫 번째 생성일을 찾음
+ */
+function findNextGenerationDateInMonths(
+  months: number[],
+  year: number,
+  dayOfMonth: number,
+  advanceDays: number,
+  current: Date
+): Date {
+  for (const month of months) {
+    const generationDate = createGenerationDate(year, month, dayOfMonth, advanceDays);
+    if (generationDate >= current) {
+      return generationDate;
+    }
+  }
+  // 올해 모두 지났으면 내년 첫 번째 월
+  return createGenerationDate(year + 1, months[0], dayOfMonth, advanceDays);
+}
+
+/**
+ * 주기별 대상 월 목록 반환
+ */
+function getTargetMonths(frequency: RecurringFrequency, startMonth: number): number[] {
+  switch (frequency) {
+    case RecurringFrequency.ANNUAL:
+      return [startMonth];
+    case RecurringFrequency.SEMI_ANNUAL:
+      return [1, 7];
+    case RecurringFrequency.QUARTERLY:
+      return [1, 4, 7, 10];
+    default:
+      return [];
+  }
+}
+
+/**
  * 주어진 주기에 따라 다음 생성일을 계산
  *
  * @param frequency - 자동이체 주기
@@ -66,78 +112,24 @@ export function calculateNextGenerationDate(
 ): Date {
   const current = new Date(currentDate);
   current.setHours(0, 0, 0, 0);
+  const year = current.getFullYear();
 
-  // 주기별 월 간격
-  const monthInterval = getMonthInterval(frequency);
-
-  // 현재 연월 기준으로 가능한 다음 이체일들을 계산
-  let year = current.getFullYear();
-  let month = current.getMonth() + 1; // 1-indexed
-
-  // ANNUAL의 경우 시작 월 기준으로 계산
-  if (frequency === RecurringFrequency.ANNUAL) {
-    month = startMonth;
-    // 올해 해당 월이 이미 지났으면 내년으로
-    const thisYearTransferDate = new Date(year, startMonth - 1, dayOfMonth);
-    const thisYearGenerationDate = new Date(thisYearTransferDate);
-    thisYearGenerationDate.setDate(thisYearGenerationDate.getDate() - advanceDays);
-
-    if (thisYearGenerationDate >= current) {
-      return thisYearGenerationDate;
-    }
-    return new Date(year + 1, startMonth - 1, dayOfMonth - advanceDays);
-  }
-
-  // SEMI_ANNUAL의 경우
-  if (frequency === RecurringFrequency.SEMI_ANNUAL) {
-    // 1월과 7월 기준으로 계산
-    const baseMonths = [1, 7];
-    for (const baseMonth of baseMonths) {
-      const transferDate = new Date(year, baseMonth - 1, dayOfMonth);
-      const generationDate = new Date(transferDate);
-      generationDate.setDate(generationDate.getDate() - advanceDays);
-
-      if (generationDate >= current) {
-        return generationDate;
-      }
-    }
-    // 올해 둘 다 지났으면 내년 1월
-    return new Date(year + 1, 0, dayOfMonth - advanceDays);
-  }
-
-  // QUARTERLY의 경우
-  if (frequency === RecurringFrequency.QUARTERLY) {
-    // 1, 4, 7, 10월 기준
-    const quarterMonths = [1, 4, 7, 10];
-    for (const quarterMonth of quarterMonths) {
-      const transferDate = new Date(year, quarterMonth - 1, dayOfMonth);
-      const generationDate = new Date(transferDate);
-      generationDate.setDate(generationDate.getDate() - advanceDays);
-
-      if (generationDate >= current) {
-        return generationDate;
-      }
-    }
-    // 올해 모두 지났으면 내년 1월
-    return new Date(year + 1, 0, dayOfMonth - advanceDays);
+  // MONTHLY가 아닌 경우: 대상 월 목록에서 다음 생성일 찾기
+  if (frequency !== RecurringFrequency.MONTHLY) {
+    const targetMonths = getTargetMonths(frequency, startMonth);
+    return findNextGenerationDateInMonths(targetMonths, year, dayOfMonth, advanceDays, current);
   }
 
   // MONTHLY의 경우
-  // 이번 달 이체일 기준 생성일 계산
-  let transferDate = new Date(year, month - 1, dayOfMonth);
-  let generationDate = new Date(transferDate);
-  generationDate.setDate(generationDate.getDate() - advanceDays);
+  let month = current.getMonth() + 1;
+  let generationDate = createGenerationDate(year, month, dayOfMonth, advanceDays);
 
   // 이번 달 생성일이 이미 지났으면 다음 달로
   if (generationDate < current) {
-    month += monthInterval;
-    if (month > 12) {
-      year += Math.floor((month - 1) / 12);
-      month = ((month - 1) % 12) + 1;
-    }
-    transferDate = new Date(year, month - 1, dayOfMonth);
-    generationDate = new Date(transferDate);
-    generationDate.setDate(generationDate.getDate() - advanceDays);
+    month += 1;
+    const nextYear = month > 12 ? year + 1 : year;
+    const nextMonth = month > 12 ? 1 : month;
+    generationDate = createGenerationDate(nextYear, nextMonth, dayOfMonth, advanceDays);
   }
 
   return generationDate;

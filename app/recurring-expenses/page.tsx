@@ -27,6 +27,13 @@ interface RecurringExpenseListItem {
 
 type StatusFilter = 'ALL' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
 
+const STATUS_LABELS: Record<Exclude<StatusFilter, 'ALL'>, string> = {
+  ACTIVE: '활성',
+  PAUSED: '일시정지',
+  COMPLETED: '완료',
+  CANCELLED: '취소',
+};
+
 export default function RecurringExpensesPage() {
   const router = useRouter();
   const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpenseListItem[]>([]);
@@ -60,13 +67,15 @@ export default function RecurringExpensesPage() {
     ? recurringExpenses
     : recurringExpenses.filter(e => e.status === statusFilter);
 
-  const statusCounts = {
-    ALL: recurringExpenses.length,
-    ACTIVE: recurringExpenses.filter(e => e.status === 'ACTIVE').length,
-    PAUSED: recurringExpenses.filter(e => e.status === 'PAUSED').length,
-    COMPLETED: recurringExpenses.filter(e => e.status === 'COMPLETED').length,
-    CANCELLED: recurringExpenses.filter(e => e.status === 'CANCELLED').length,
-  };
+  // 배열을 한 번만 순회하여 상태별 카운트 계산
+  const statusCounts = recurringExpenses.reduce(
+    (counts, e) => {
+      counts[e.status]++;
+      counts.ALL++;
+      return counts;
+    },
+    { ALL: 0, ACTIVE: 0, PAUSED: 0, COMPLETED: 0, CANCELLED: 0 }
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -140,7 +149,7 @@ export default function RecurringExpensesPage() {
                 <p className="text-gray-500 mb-4">
                   {statusFilter === 'ALL'
                     ? '등록된 자동이체가 없습니다.'
-                    : `${statusFilter === 'ACTIVE' ? '활성' : statusFilter === 'PAUSED' ? '일시정지' : statusFilter === 'COMPLETED' ? '완료' : '취소'} 상태의 자동이체가 없습니다.`
+                    : `${STATUS_LABELS[statusFilter]} 상태의 자동이체가 없습니다.`
                   }
                 </p>
                 {statusFilter === 'ALL' && (
