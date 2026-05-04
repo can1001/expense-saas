@@ -96,7 +96,7 @@ export default function TemplateSelector({ onSelect, disabled = false }: Templat
 
       {/* 전체 템플릿 모달 */}
       {showAllModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={(e) => e.target === e.currentTarget && setShowAllModal(false)}>
           <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col">
             {/* 헤더 */}
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
@@ -115,7 +115,7 @@ export default function TemplateSelector({ onSelect, disabled = false }: Templat
             </div>
 
             {/* 템플릿 목록 */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
               <div className="space-y-2">
                 {templates.map((template) => (
                   <button
