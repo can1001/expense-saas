@@ -524,20 +524,20 @@ describe('menu-permissions', () => {
 
   // 자동이체 메뉴 권한 테스트
   describe('RECURRING_EXPENSE_MENU_ROLES', () => {
-    it('should include admin, finance_head, accountant, finance_member', () => {
+    it('should include admin, finance_head, accountant, finance_member, admin_assistant', () => {
       expect(RECURRING_EXPENSE_MENU_ROLES).toContain('admin');
       expect(RECURRING_EXPENSE_MENU_ROLES).toContain('finance_head');
       expect(RECURRING_EXPENSE_MENU_ROLES).toContain('accountant');
       expect(RECURRING_EXPENSE_MENU_ROLES).toContain('finance_member');
+      expect(RECURRING_EXPENSE_MENU_ROLES).toContain('admin_assistant');
     });
 
-    it('should have length of 4', () => {
-      expect(RECURRING_EXPENSE_MENU_ROLES).toHaveLength(4);
+    it('should have length of 5', () => {
+      expect(RECURRING_EXPENSE_MENU_ROLES).toHaveLength(5);
     });
 
-    it('should not include team_leader, admin_assistant, user', () => {
+    it('should not include team_leader, user', () => {
       expect(RECURRING_EXPENSE_MENU_ROLES).not.toContain('team_leader');
-      expect(RECURRING_EXPENSE_MENU_ROLES).not.toContain('admin_assistant');
       expect(RECURRING_EXPENSE_MENU_ROLES).not.toContain('user');
     });
   });
@@ -559,12 +559,12 @@ describe('menu-permissions', () => {
       expect(canAccessRecurringExpenseMenu('finance_member')).toBe(true);
     });
 
-    it('should return false for team_leader', () => {
-      expect(canAccessRecurringExpenseMenu('team_leader')).toBe(false);
+    it('should return true for admin_assistant', () => {
+      expect(canAccessRecurringExpenseMenu('admin_assistant')).toBe(true);
     });
 
-    it('should return false for admin_assistant', () => {
-      expect(canAccessRecurringExpenseMenu('admin_assistant')).toBe(false);
+    it('should return false for team_leader', () => {
+      expect(canAccessRecurringExpenseMenu('team_leader')).toBe(false);
     });
 
     it('should return false for user', () => {
@@ -588,10 +588,13 @@ describe('menu-permissions', () => {
       expect(canAccessRecurringExpenseMenuWithRoles(['finance_member'])).toBe(true);
     });
 
+    it('should return true for admin_assistant', () => {
+      expect(canAccessRecurringExpenseMenuWithRoles(['admin_assistant'])).toBe(true);
+    });
+
     it('should return false if no role can access recurring expense menu', () => {
       expect(canAccessRecurringExpenseMenuWithRoles(['team_leader'])).toBe(false);
       expect(canAccessRecurringExpenseMenuWithRoles(['user'])).toBe(false);
-      expect(canAccessRecurringExpenseMenuWithRoles(['admin_assistant'])).toBe(false);
       expect(canAccessRecurringExpenseMenuWithRoles(['team_leader', 'user'])).toBe(false);
     });
 
@@ -610,9 +613,10 @@ describe('menu-permissions', () => {
       expect(canAccessRecurringExpenseMenuWithRoles(roles)).toBe(true);
     });
 
-    it('should handle user with multiple non-finance roles', () => {
+    it('should handle user with team_leader and admin_assistant roles', () => {
+      // admin_assistant가 이제 자동이체 접근 권한이 있으므로 true 반환
       const roles = ['team_leader', 'admin_assistant'];
-      expect(canAccessRecurringExpenseMenuWithRoles(roles)).toBe(false);
+      expect(canAccessRecurringExpenseMenuWithRoles(roles)).toBe(true);
     });
   });
 
@@ -633,17 +637,15 @@ describe('menu-permissions', () => {
       expect(checkRecurringExpenseAccess('finance_member')).toBeNull();
     });
 
+    it('should return null for admin_assistant (has access)', () => {
+      expect(checkRecurringExpenseAccess('admin_assistant')).toBeNull();
+    });
+
     it('should return error object for team_leader (no access)', () => {
       const result = checkRecurringExpenseAccess('team_leader');
       expect(result).not.toBeNull();
       expect(result?.status).toBe(403);
       expect(result?.error).toContain('권한');
-    });
-
-    it('should return error object for admin_assistant (no access)', () => {
-      const result = checkRecurringExpenseAccess('admin_assistant');
-      expect(result).not.toBeNull();
-      expect(result?.status).toBe(403);
     });
 
     it('should return error object for user (no access)', () => {

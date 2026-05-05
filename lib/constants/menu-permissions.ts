@@ -43,12 +43,13 @@ export const ADMIN_MENU_ROLES: UserRole[] = [
   'admin_assistant',
 ];
 
-// 자동이체 메뉴 접근 가능 역할 (재정팀 전용)
+// 자동이체 메뉴 접근 가능 역할 (재정팀 + 행정간사)
 export const RECURRING_EXPENSE_MENU_ROLES: UserRole[] = [
   'admin',
   'finance_head',
   'accountant',
   'finance_member',
+  'admin_assistant',
 ];
 
 // 최종승인 + 지급대기 상태 지출결의서 수정 가능 역할
