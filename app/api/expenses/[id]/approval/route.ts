@@ -21,7 +21,9 @@ interface BudgetItem {
 async function getBudgetInfoForItems(
   items: BudgetItem[],
   year: number,
-  excludeExpenseId?: string
+  excludeExpenseId?: string,
+  committee?: string | null,
+  department?: string | null
 ) {
   // 항/목/세목 조합으로 고유 키 생성 (중복 제거)
   const uniqueKeys = new Set(
@@ -52,6 +54,8 @@ async function getBudgetInfoForItems(
 
   // 항/목/세목 조합별 청구금액 합산 및 결과 생성
   const results: {
+    committee?: string;
+    department?: string;
     budgetCategory: string;
     budgetSubcategory: string;
     budgetDetailName: string;
@@ -91,6 +95,8 @@ async function getBudgetInfoForItems(
     const afterApproval = remainingAmount - requestAmount;
 
     results.push({
+      committee: committee ?? undefined,
+      department: department ?? undefined,
       budgetCategory: category,
       budgetSubcategory: subcategory,
       budgetDetailName: detailName,
@@ -132,6 +138,8 @@ export async function GET(
         submittedAt: true,
         approvedAt: true,
         rejectedAt: true,
+        committee: true,
+        department: true,
         items: {
           select: {
             budgetCategory: true,
@@ -180,7 +188,13 @@ export async function GET(
       const year = expense.requestDate
         ? new Date(expense.requestDate).getFullYear()
         : new Date().getFullYear();
-      budgetInfo = await getBudgetInfoForItems(expense.items, year, id);
+      budgetInfo = await getBudgetInfoForItems(
+        expense.items,
+        year,
+        id,
+        expense.committee,
+        expense.department
+      );
     }
 
     return NextResponse.json({

@@ -5,6 +5,8 @@ import { AlertTriangle, Wallet, Info } from 'lucide-react';
 import { UsageDetailModal } from './UsageDetailModal';
 
 interface BudgetInfo {
+  committee?: string;
+  department?: string;
   budgetCategory?: string;
   budgetSubcategory?: string;
   budgetDetailName: string;
@@ -93,11 +95,11 @@ export function BudgetInfoPanel({ budgetInfo, year, expenseId }: BudgetInfoPanel
                     </span>
                   )}
                 </div>
-                {(info.budgetCategory || info.budgetSubcategory) && (
+                {(info.committee || info.department || info.budgetCategory || info.budgetSubcategory) && (
                   <div className="mt-0.5 text-xs text-gray-500">
-                    {info.budgetCategory && info.budgetSubcategory
-                      ? `${info.budgetCategory} > ${info.budgetSubcategory}`
-                      : info.budgetCategory || info.budgetSubcategory}
+                    {[info.committee, info.department, info.budgetCategory, info.budgetSubcategory]
+                      .filter(Boolean)
+                      .join(' > ')}
                   </div>
                 )}
               </div>
