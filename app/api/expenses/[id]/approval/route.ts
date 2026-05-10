@@ -52,6 +52,8 @@ async function getBudgetInfoForItems(
 
   // 항/목/세목 조합별 청구금액 합산 및 결과 생성
   const results: {
+    budgetCategory: string;
+    budgetSubcategory: string;
     budgetDetailName: string;
     budgetAmount: number;
     usedAmount: number;
@@ -89,6 +91,8 @@ async function getBudgetInfoForItems(
     const afterApproval = remainingAmount - requestAmount;
 
     results.push({
+      budgetCategory: category,
+      budgetSubcategory: subcategory,
       budgetDetailName: detailName,
       budgetAmount,
       usedAmount,

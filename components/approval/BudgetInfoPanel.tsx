@@ -5,6 +5,8 @@ import { AlertTriangle, Wallet, Info } from 'lucide-react';
 import { UsageDetailModal } from './UsageDetailModal';
 
 interface BudgetInfo {
+  budgetCategory?: string;
+  budgetSubcategory?: string;
   budgetDetailName: string;
   budgetAmount: number;
   usedAmount: number;
@@ -80,14 +82,23 @@ export function BudgetInfoPanel({ budgetInfo, year, expenseId }: BudgetInfoPanel
               key={index}
               className={`px-4 py-3 ${info.isOverBudget ? 'bg-red-50' : ''}`}
             >
-              <div className="mb-2 flex items-center justify-between">
-                <span className="font-medium text-gray-900">
-                  {info.budgetDetailName}
-                </span>
-                {info.isOverBudget && (
-                  <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                    예산 초과
+              <div className="mb-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-gray-900">
+                    {info.budgetDetailName}
                   </span>
+                  {info.isOverBudget && (
+                    <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                      예산 초과
+                    </span>
+                  )}
+                </div>
+                {(info.budgetCategory || info.budgetSubcategory) && (
+                  <div className="mt-0.5 text-xs text-gray-500">
+                    {info.budgetCategory && info.budgetSubcategory
+                      ? `${info.budgetCategory} > ${info.budgetSubcategory}`
+                      : info.budgetCategory || info.budgetSubcategory}
+                  </div>
                 )}
               </div>
 
