@@ -89,24 +89,14 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   // 첨부파일 영역 ref (스크롤 이동용)
   const attachmentSectionRef = useRef<HTMLDivElement>(null);
 
-  // 커스텀 resolver: 예산 정보 동기화
+  // 커스텀 resolver: useFieldArray 삭제 후 남은 undefined 항목 필터링
   const customResolver = async (values: ExpenseFormData, context: any, options: any) => {
-    // items 배열의 모든 항목 처리
-    if (values.items && values.items.length > 0) {
-      const firstItem = values.items[0];
-      const transformedItems = values.items.map((item) => ({
-        ...item,
-        // 첫 번째 항목의 예산(항/목) 정보만 복사
-        budgetCategory: firstItem?.budgetCategory || item?.budgetCategory || '',
-        budgetSubcategory: firstItem?.budgetSubcategory || item?.budgetSubcategory || '',
-        // 나머지 필드는 현재 값 그대로 유지 (기본값만 보장)
-        budgetDetail: item?.budgetDetail || '',
-        description: item?.description || '',
-        unitPrice: typeof item?.unitPrice === 'number' ? item.unitPrice : 0,
-        quantity: typeof item?.quantity === 'number' ? item.quantity : 1,
-        amount: typeof item?.amount === 'number' ? item.amount : 0,
-      }));
-      values = { ...values, items: transformedItems };
+    if (values.items) {
+      // undefined 또는 불완전한 항목 필터링
+      const validItems = values.items.filter(
+        (item) => item && typeof item.budgetCategory === 'string'
+      );
+      values = { ...values, items: validItems };
     }
     return zodResolver(expenseFormSchema)(values, context, options);
   };
@@ -215,17 +205,6 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
 
     // 폼 데이터 로드 (항/목은 items에서 가져옴)
     // 마스킹된 계좌번호인 경우 은행 정보를 비움 (사용자가 직접 선택하도록)
-    // items 데이터 변환
-    const transformedItems = (data.items as Array<Record<string, unknown>>).map((item) => ({
-      budgetCategory: (item.budgetCategory as string) || '',
-      budgetSubcategory: (item.budgetSubcategory as string) || '',
-      budgetDetail: (item.budgetDetail as string) || '',
-      description: (item.description as string) || '',
-      unitPrice: typeof item.unitPrice === 'number' ? item.unitPrice : 0,
-      quantity: typeof item.quantity === 'number' ? item.quantity : 1,
-      amount: typeof item.amount === 'number' ? item.amount : 0,
-    }));
-
     reset({
       committee: data.committee as string,
       department: data.department as string,
@@ -240,7 +219,15 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       bankName: isMaskedAccount ? '' : (data.bankName as string),
       accountNumber: isMaskedAccount ? '' : accountNumber,
       accountHolder: isMaskedAccount ? '' : (data.accountHolder as string),
-      items: transformedItems,
+      items: (data.items as Array<Record<string, unknown>>).map((item) => ({
+        budgetCategory: (item.budgetCategory as string) || '',
+        budgetSubcategory: (item.budgetSubcategory as string) || '',
+        budgetDetail: item.budgetDetail as string,
+        description: item.description as string,
+        unitPrice: item.unitPrice as number,
+        quantity: item.quantity as number,
+        amount: item.amount as number,
+      })),
     });
 
     // 첨부파일 로드
