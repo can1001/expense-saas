@@ -57,13 +57,6 @@ export function UsageDetailModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen && budgetDetailName) {
-      fetchUsageDetails();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, budgetDetailName, year, excludeExpenseId]);
-
   const fetchUsageDetails = async () => {
     setIsLoading(true);
     setError(null);
@@ -95,6 +88,13 @@ export function UsageDetailModal({
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isOpen && budgetDetailName) {
+      fetchUsageDetails();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, budgetDetailName, year, excludeExpenseId]);
 
   return (
     <Modal

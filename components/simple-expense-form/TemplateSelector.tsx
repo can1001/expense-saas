@@ -30,7 +30,7 @@ interface TemplateSelectorProps {
 const MAX_VISIBLE_CHIPS = 6;
 
 export default function TemplateSelector({ onSelect, disabled = false }: TemplateSelectorProps) {
-  const { templates, loading, useTemplate } = useTemplates();
+  const { templates, loading, applyTemplate } = useTemplates();
   const [showAllModal, setShowAllModal] = useState(false);
 
   // 템플릿이 없으면 표시하지 않음
@@ -44,7 +44,7 @@ export default function TemplateSelector({ onSelect, disabled = false }: Templat
   /** 템플릿 선택 처리 */
   const handleSelect = async (template: ExpenseTemplate) => {
     // usageCount 증가
-    await useTemplate(template.id);
+    await applyTemplate(template.id);
 
     // 폼에 데이터 전달
     onSelect({

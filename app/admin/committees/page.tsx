@@ -46,11 +46,6 @@ export default function CommitteesPage() {
   const [newLeaderId, setNewLeaderId] = useState<string>('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    fetchCommittees();
-    fetchUsers();
-  }, []);
-
   const fetchUsers = async () => {
     try {
       const response = await fetch('/api/users?isActive=true&pageSize=200');
@@ -76,6 +71,11 @@ export default function CommitteesPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchCommittees();
+    fetchUsers();
+  }, []);
 
   const handleAdd = async () => {
     if (!newName.trim()) return;

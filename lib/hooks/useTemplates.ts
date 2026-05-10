@@ -52,7 +52,7 @@ interface UseTemplatesResult {
   /** 템플릿 목록 새로고침 */
   refresh: () => Promise<void>;
   /** 템플릿 사용 (usageCount 증가) */
-  useTemplate: (templateId: string) => Promise<ExpenseTemplate | null>;
+  applyTemplate: (templateId: string) => Promise<ExpenseTemplate | null>;
   /** 템플릿 생성 */
   createTemplate: (data: CreateTemplateData) => Promise<ExpenseTemplate | null>;
   /** 템플릿 삭제 */
@@ -96,7 +96,7 @@ export function useTemplates(options: UseTemplatesOptions = {}): UseTemplatesRes
   }, []);
 
   /** 템플릿 사용 (usageCount 증가) */
-  const useTemplate = useCallback(async (templateId: string): Promise<ExpenseTemplate | null> => {
+  const applyTemplate = useCallback(async (templateId: string): Promise<ExpenseTemplate | null> => {
     try {
       const response = await fetch(`/api/expense-templates/${templateId}`, {
         method: 'POST',
@@ -186,7 +186,7 @@ export function useTemplates(options: UseTemplatesOptions = {}): UseTemplatesRes
     loading,
     error,
     refresh: fetchTemplates,
-    useTemplate,
+    applyTemplate,
     createTemplate,
     deleteTemplate,
     isMaxReached: templates.length >= MAX_TEMPLATES,

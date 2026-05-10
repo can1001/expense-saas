@@ -108,6 +108,18 @@ export function useOfflineExpense(): UseOfflineExpenseReturn {
   const [pendingCount, setPendingCount] = useState(0);
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
 
+  // 동기화 대기 수 새로고침
+  const refreshPendingCount = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const count = await getPendingSyncCount();
+      setPendingCount(count);
+    } catch (error) {
+      console.error('[useOfflineExpense] 대기 수 조회 실패:', error);
+    }
+  }, []);
+
   // 데이터베이스 초기화
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -123,18 +135,6 @@ export function useOfflineExpense(): UseOfflineExpenseReturn {
         console.error('[useOfflineExpense] 초기화 실패:', error);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 동기화 대기 수 새로고침
-  const refreshPendingCount = useCallback(async () => {
-    if (typeof window === 'undefined') return;
-
-    try {
-      const count = await getPendingSyncCount();
-      setPendingCount(count);
-    } catch (error) {
-      console.error('[useOfflineExpense] 대기 수 조회 실패:', error);
-    }
   }, []);
 
   // 임시저장

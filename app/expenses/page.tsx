@@ -78,40 +78,6 @@ function ExpensesPageContent() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [filters, setFilters] = useState(getInitialFilters);
 
-  useEffect(() => {
-    fetchExpenses();
-    fetchCurrentUser();
-  }, []);
-
-  // URL 동기화 - 필터/검색 상태가 변경되면 URL 업데이트
-  useEffect(() => {
-    const params = new URLSearchParams();
-
-    if (searchQuery) params.set('q', searchQuery);
-    if (sortKey !== 'requestDate') params.set('sort', sortKey);
-    if (sortDirection !== 'desc') params.set('dir', sortDirection);
-    if (currentPage > 1) params.set('page', String(currentPage));
-    if (filters.committee) params.set('committee', filters.committee);
-    if (filters.department) params.set('department', filters.department);
-    if (filters.budgetCategory) params.set('category', filters.budgetCategory);
-    if (filters.startDate) params.set('startDate', filters.startDate);
-    if (filters.endDate) params.set('endDate', filters.endDate);
-    if (filters.minAmount) params.set('minAmount', filters.minAmount);
-    if (filters.maxAmount) params.set('maxAmount', filters.maxAmount);
-    if (filters.status) params.set('status', filters.status);
-    if (filters.paymentStatus) params.set('paymentStatus', filters.paymentStatus);
-    if (filters.approvedStartDate) params.set('approvedStart', filters.approvedStartDate);
-    if (filters.approvedEndDate) params.set('approvedEnd', filters.approvedEndDate);
-
-    const queryString = params.toString();
-    const newUrl = queryString ? `/expenses?${queryString}` : '/expenses';
-
-    // 현재 URL과 다를 때만 업데이트 (무한 루프 방지)
-    if (window.location.pathname + window.location.search !== newUrl) {
-      window.history.replaceState(null, '', newUrl);
-    }
-  }, [searchQuery, sortKey, sortDirection, currentPage, filters]);
-
   const fetchCurrentUser = async () => {
     try {
       const response = await fetch('/api/auth/me');
@@ -146,6 +112,40 @@ function ExpensesPageContent() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchExpenses();
+    fetchCurrentUser();
+  }, []);
+
+  // URL 동기화 - 필터/검색 상태가 변경되면 URL 업데이트
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (searchQuery) params.set('q', searchQuery);
+    if (sortKey !== 'requestDate') params.set('sort', sortKey);
+    if (sortDirection !== 'desc') params.set('dir', sortDirection);
+    if (currentPage > 1) params.set('page', String(currentPage));
+    if (filters.committee) params.set('committee', filters.committee);
+    if (filters.department) params.set('department', filters.department);
+    if (filters.budgetCategory) params.set('category', filters.budgetCategory);
+    if (filters.startDate) params.set('startDate', filters.startDate);
+    if (filters.endDate) params.set('endDate', filters.endDate);
+    if (filters.minAmount) params.set('minAmount', filters.minAmount);
+    if (filters.maxAmount) params.set('maxAmount', filters.maxAmount);
+    if (filters.status) params.set('status', filters.status);
+    if (filters.paymentStatus) params.set('paymentStatus', filters.paymentStatus);
+    if (filters.approvedStartDate) params.set('approvedStart', filters.approvedStartDate);
+    if (filters.approvedEndDate) params.set('approvedEnd', filters.approvedEndDate);
+
+    const queryString = params.toString();
+    const newUrl = queryString ? `/expenses?${queryString}` : '/expenses';
+
+    // 현재 URL과 다를 때만 업데이트 (무한 루프 방지)
+    if (window.location.pathname + window.location.search !== newUrl) {
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [searchQuery, sortKey, sortDirection, currentPage, filters]);
 
   // 검색 및 필터링
   const filteredExpenses = expenses.filter(expense => {

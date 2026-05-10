@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { AlertTriangle, Wallet, Info } from 'lucide-react';
 import { UsageDetailModal } from './UsageDetailModal';
 
@@ -32,26 +32,27 @@ export function BudgetInfoPanel({ budgetInfo, year, expenseId }: BudgetInfoPanel
   // 기본 연도: props로 전달되지 않으면 현재 연도 사용
   const displayYear = year || new Date().getFullYear();
 
+  const handleUsedAmountDoubleClick = useCallback((budgetDetailName: string) => {
+    setSelectedBudgetDetail(budgetDetailName);
+    setModalOpen(true);
+  }, []);
+
+  // 모바일 더블탭 감지 핸들러
+  const handleDoubleTap = useCallback((budgetDetailName: string) => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      // 300ms 내 두 번 탭 감지
+      setSelectedBudgetDetail(budgetDetailName);
+      setModalOpen(true);
+    }
+    lastTapRef.current = now;
+  }, []);
+
   if (!budgetInfo || budgetInfo.length === 0) {
     return null;
   }
 
   const hasOverBudget = budgetInfo.some((info) => info.isOverBudget);
-
-  const handleUsedAmountDoubleClick = (budgetDetailName: string) => {
-    setSelectedBudgetDetail(budgetDetailName);
-    setModalOpen(true);
-  };
-
-  // 모바일 더블탭 감지 핸들러
-  const handleDoubleTap = (budgetDetailName: string) => {
-    const now = Date.now();
-    if (now - lastTapRef.current < 300) {
-      // 300ms 내 두 번 탭 감지
-      handleUsedAmountDoubleClick(budgetDetailName);
-    }
-    lastTapRef.current = now;
-  };
 
   return (
     <>

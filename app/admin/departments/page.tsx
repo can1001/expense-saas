@@ -53,11 +53,6 @@ export default function DepartmentsPage() {
   const [saving, setSaving] = useState(false);
   const [expandedCommittees, setExpandedCommittees] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    fetchData();
-    fetchUsers();
-  }, []);
-
   const fetchUsers = async () => {
     try {
       const response = await fetch('/api/users?isActive=true&pageSize=200');
@@ -96,6 +91,11 @@ export default function DepartmentsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+    fetchUsers();
+  }, []);
 
   const toggleExpand = (committeeId: string) => {
     setExpandedCommittees((prev) => {

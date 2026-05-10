@@ -42,16 +42,6 @@ export default function ApprovalDetailPage() {
     fetchCurrentUser();
   }, []);
 
-  useEffect(() => {
-    if (id && currentUser) {
-      fetchData(currentUser.username);
-    } else if (id && currentUser === null) {
-      // 로그인 정보 없이도 기본 데이터는 로드
-      fetchData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, currentUser]);
-
   const fetchData = async (username?: string) => {
     try {
       setLoading(true);
@@ -85,6 +75,16 @@ export default function ApprovalDetailPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (id && currentUser) {
+      fetchData(currentUser.username);
+    } else if (id && currentUser === null) {
+      // 로그인 정보 없이도 기본 데이터는 로드
+      fetchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, currentUser]);
 
   // 현재 결재자 정보
   const getCurrentApproverName = () => {

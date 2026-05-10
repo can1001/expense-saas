@@ -47,7 +47,7 @@ vi.mock('@/lib/hooks', () => ({
       },
     ],
     loading: false,
-    useTemplate: mockUseTemplate,
+    applyTemplate: mockUseTemplate,
   }),
 }));
 
@@ -141,7 +141,7 @@ describe('TemplateSelector with empty templates', () => {
       useTemplates: () => ({
         templates: [],
         loading: false,
-        useTemplate: vi.fn(),
+        applyTemplate: vi.fn(),
       }),
     }));
 
@@ -166,7 +166,7 @@ describe('TemplateSelector with many templates', () => {
           usageCount: i,
         })),
         loading: false,
-        useTemplate: vi.fn(),
+        applyTemplate: vi.fn(),
       }),
     }));
 

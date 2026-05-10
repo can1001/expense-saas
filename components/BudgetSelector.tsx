@@ -43,6 +43,52 @@ export default function BudgetSelector({
   const [details, setDetails] = useState<string[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
 
+  const fetchNextLevel = async (params: {
+    committee?: string;
+    department?: string;
+    category?: string;
+    subcategory?: string;
+  }) => {
+    try {
+      setLoading('loading');
+      const response = await fetch('/api/budget', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch budget data');
+
+      const data: BudgetHierarchyResponse = await response.json();
+
+      switch (data.field) {
+        case 'committees':
+          setCommittees(data.options);
+          break;
+        case 'departments':
+          setDepartments(data.options);
+          break;
+        case 'categories':
+          setCategories(data.options);
+          break;
+        case 'subcategories':
+          setSubcategories(data.options);
+          break;
+        case 'details':
+          setDetails(data.options);
+          // 세목 옵션 외부 전달
+          if (onDetailsLoaded) {
+            onDetailsLoaded(data.options);
+          }
+          break;
+      }
+    } catch (error) {
+      console.error('Error fetching budget hierarchy:', error);
+    } finally {
+      setLoading(null);
+    }
+  };
+
   // 초기 위원회 목록 로드
   useEffect(() => {
     fetchNextLevel({});
@@ -105,52 +151,6 @@ export default function BudgetSelector({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value.committee, value.department, value.category, value.subcategory, value.detail, details.length]);
-
-  const fetchNextLevel = async (params: {
-    committee?: string;
-    department?: string;
-    category?: string;
-    subcategory?: string;
-  }) => {
-    try {
-      setLoading('loading');
-      const response = await fetch('/api/budget', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params),
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch budget data');
-
-      const data: BudgetHierarchyResponse = await response.json();
-
-      switch (data.field) {
-        case 'committees':
-          setCommittees(data.options);
-          break;
-        case 'departments':
-          setDepartments(data.options);
-          break;
-        case 'categories':
-          setCategories(data.options);
-          break;
-        case 'subcategories':
-          setSubcategories(data.options);
-          break;
-        case 'details':
-          setDetails(data.options);
-          // 세목 옵션 외부 전달
-          if (onDetailsLoaded) {
-            onDetailsLoaded(data.options);
-          }
-          break;
-      }
-    } catch (error) {
-      console.error('Error fetching budget hierarchy:', error);
-    } finally {
-      setLoading(null);
-    }
-  };
 
   const handleChange = (field: string, selectedValue: string) => {
     // 빈 값을 선택한 경우 undefined로 처리

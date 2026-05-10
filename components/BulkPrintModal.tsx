@@ -24,22 +24,6 @@ export function BulkPrintModal({
   const printContentRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // 모달이 열릴 때 데이터 조회
-  useEffect(() => {
-    if (isOpen && selectedIds.length > 0) {
-      fetchExpenses();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, selectedIds]);
-
-  // 모달이 닫힐 때 초기화
-  useEffect(() => {
-    if (!isOpen) {
-      setExpenses([]);
-      setError(null);
-    }
-  }, [isOpen]);
-
   const fetchExpenses = async () => {
     try {
       setLoading(true);
@@ -64,6 +48,22 @@ export function BulkPrintModal({
       setLoading(false);
     }
   };
+
+  // 모달이 열릴 때 데이터 조회
+  useEffect(() => {
+    if (isOpen && selectedIds.length > 0) {
+      fetchExpenses();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, selectedIds]);
+
+  // 모달이 닫힐 때 초기화
+  useEffect(() => {
+    if (!isOpen) {
+      setExpenses([]);
+      setError(null);
+    }
+  }, [isOpen]);
 
   const handlePrint = () => {
     if (!printContentRef.current || !iframeRef.current) return;

@@ -69,13 +69,6 @@ export default function SimpleExpenseDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      fetchExpense();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
   const fetchExpense = async () => {
     try {
       setLoading(true);
@@ -94,6 +87,13 @@ export default function SimpleExpenseDetailPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (id) {
+      fetchExpense();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const handleDelete = async () => {
     if (!confirm('정말로 이 지출결의서를 삭제하시겠습니까?')) {
