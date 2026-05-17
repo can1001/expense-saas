@@ -64,3 +64,14 @@
 npm test -- --run  # 1465 tests passed
 npm run build      # Success
 ```
+
+---
+
+## 운영 배치 트리거 (Production)
+
+- [x] **B** Render Cron Job 추가
+  - `render.yaml` cron 서비스 정의 (KST 03:00 / UTC 18:00 daily)
+  - `scripts/cron-recurring-process.mjs` 진입 스크립트 추가
+  - `.env.example`에 `CRON_SECRET` 항목 추가
+  - **운영자 작업 필요**: Render 대시보드에서 Blueprint 적용 + `CRON_SECRET`/`APP_URL` 환경변수 설정
+  - **첫 배포 검증**: cron 서비스 "Trigger Run" 수동 실행 후 로그에서 `${생성건수}건의 지출결의서가 생성되었습니다.` 확인
