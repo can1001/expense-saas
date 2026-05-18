@@ -8,6 +8,7 @@ import {
   EXTENDED_MENU_ROLES,
   APPROVAL_MENU_ROLES,
   ADMIN_MENU_ROLES,
+  RECURRING_EXPENSE_MENU_ROLES,
   ROLE_ADMIN_MENU_PATHS,
   canAccessExtendedMenu,
   canAccessApprovalMenu,
@@ -18,6 +19,9 @@ import {
   canAccessAdminMenuWithRoles,
   canAccessAdminMenuPathWithRoles,
   filterAdminMenuByRoles,
+  canAccessRecurringExpenseMenu,
+  canAccessRecurringExpenseMenuWithRoles,
+  checkRecurringExpenseAccess,
 } from '../menu-permissions';
 
 describe('menu-permissions', () => {
@@ -515,6 +519,151 @@ describe('menu-permissions', () => {
       expect(result.some(g => g.title === '조직 관리')).toBe(true);
       // 하지만 사용자/역할 메뉴는 접근 불가 (admin만 가능)
       expect(result.some(g => g.title === '사용자/역할')).toBe(false);
+    });
+  });
+
+  // 자동이체 메뉴 권한 테스트
+  describe('RECURRING_EXPENSE_MENU_ROLES', () => {
+    it('should include admin, finance_head, accountant, finance_member, admin_assistant', () => {
+      expect(RECURRING_EXPENSE_MENU_ROLES).toContain('admin');
+      expect(RECURRING_EXPENSE_MENU_ROLES).toContain('finance_head');
+      expect(RECURRING_EXPENSE_MENU_ROLES).toContain('accountant');
+      expect(RECURRING_EXPENSE_MENU_ROLES).toContain('finance_member');
+      expect(RECURRING_EXPENSE_MENU_ROLES).toContain('admin_assistant');
+    });
+
+    it('should have length of 5', () => {
+      expect(RECURRING_EXPENSE_MENU_ROLES).toHaveLength(5);
+    });
+
+    it('should not include team_leader, user', () => {
+      expect(RECURRING_EXPENSE_MENU_ROLES).not.toContain('team_leader');
+      expect(RECURRING_EXPENSE_MENU_ROLES).not.toContain('user');
+    });
+  });
+
+  describe('canAccessRecurringExpenseMenu', () => {
+    it('should return true for admin', () => {
+      expect(canAccessRecurringExpenseMenu('admin')).toBe(true);
+    });
+
+    it('should return true for finance_head', () => {
+      expect(canAccessRecurringExpenseMenu('finance_head')).toBe(true);
+    });
+
+    it('should return true for accountant', () => {
+      expect(canAccessRecurringExpenseMenu('accountant')).toBe(true);
+    });
+
+    it('should return true for finance_member', () => {
+      expect(canAccessRecurringExpenseMenu('finance_member')).toBe(true);
+    });
+
+    it('should return true for admin_assistant', () => {
+      expect(canAccessRecurringExpenseMenu('admin_assistant')).toBe(true);
+    });
+
+    it('should return false for team_leader', () => {
+      expect(canAccessRecurringExpenseMenu('team_leader')).toBe(false);
+    });
+
+    it('should return false for user', () => {
+      expect(canAccessRecurringExpenseMenu('user')).toBe(false);
+    });
+
+    it('should return false for unknown role', () => {
+      expect(canAccessRecurringExpenseMenu('unknown_role')).toBe(false);
+    });
+
+    it('should return false for empty string', () => {
+      expect(canAccessRecurringExpenseMenu('')).toBe(false);
+    });
+  });
+
+  describe('canAccessRecurringExpenseMenuWithRoles', () => {
+    it('should return true if any role can access recurring expense menu', () => {
+      expect(canAccessRecurringExpenseMenuWithRoles(['team_leader', 'finance_head'])).toBe(true);
+      expect(canAccessRecurringExpenseMenuWithRoles(['user', 'accountant'])).toBe(true);
+      expect(canAccessRecurringExpenseMenuWithRoles(['admin'])).toBe(true);
+      expect(canAccessRecurringExpenseMenuWithRoles(['finance_member'])).toBe(true);
+    });
+
+    it('should return true for admin_assistant', () => {
+      expect(canAccessRecurringExpenseMenuWithRoles(['admin_assistant'])).toBe(true);
+    });
+
+    it('should return false if no role can access recurring expense menu', () => {
+      expect(canAccessRecurringExpenseMenuWithRoles(['team_leader'])).toBe(false);
+      expect(canAccessRecurringExpenseMenuWithRoles(['user'])).toBe(false);
+      expect(canAccessRecurringExpenseMenuWithRoles(['team_leader', 'user'])).toBe(false);
+    });
+
+    it('should return false for empty array', () => {
+      expect(canAccessRecurringExpenseMenuWithRoles([])).toBe(false);
+    });
+
+    it('should handle mixed known and unknown roles', () => {
+      expect(canAccessRecurringExpenseMenuWithRoles(['unknown', 'finance_head'])).toBe(true);
+      expect(canAccessRecurringExpenseMenuWithRoles(['unknown', 'invalid'])).toBe(false);
+    });
+
+    it('should handle real-world scenario: 재정팀장 with team_leader + finance_head', () => {
+      // 재정팀장이 team_leader와 finance_head 두 역할을 가진 경우
+      const roles = ['team_leader', 'finance_head'];
+      expect(canAccessRecurringExpenseMenuWithRoles(roles)).toBe(true);
+    });
+
+    it('should handle user with team_leader and admin_assistant roles', () => {
+      // admin_assistant가 이제 자동이체 접근 권한이 있으므로 true 반환
+      const roles = ['team_leader', 'admin_assistant'];
+      expect(canAccessRecurringExpenseMenuWithRoles(roles)).toBe(true);
+    });
+  });
+
+  describe('checkRecurringExpenseAccess', () => {
+    it('should return null for admin (has access)', () => {
+      expect(checkRecurringExpenseAccess('admin')).toBeNull();
+    });
+
+    it('should return null for finance_head (has access)', () => {
+      expect(checkRecurringExpenseAccess('finance_head')).toBeNull();
+    });
+
+    it('should return null for accountant (has access)', () => {
+      expect(checkRecurringExpenseAccess('accountant')).toBeNull();
+    });
+
+    it('should return null for finance_member (has access)', () => {
+      expect(checkRecurringExpenseAccess('finance_member')).toBeNull();
+    });
+
+    it('should return null for admin_assistant (has access)', () => {
+      expect(checkRecurringExpenseAccess('admin_assistant')).toBeNull();
+    });
+
+    it('should return error object for team_leader (no access)', () => {
+      const result = checkRecurringExpenseAccess('team_leader');
+      expect(result).not.toBeNull();
+      expect(result?.status).toBe(403);
+      expect(result?.error).toContain('권한');
+    });
+
+    it('should return error object for user (no access)', () => {
+      const result = checkRecurringExpenseAccess('user');
+      expect(result).not.toBeNull();
+      expect(result?.status).toBe(403);
+    });
+
+    it('should return error object for unknown role (no access)', () => {
+      const result = checkRecurringExpenseAccess('unknown_role');
+      expect(result).not.toBeNull();
+      expect(result?.status).toBe(403);
+    });
+
+    it('should return error object for empty string (no access)', () => {
+      const result = checkRecurringExpenseAccess('');
+      expect(result).not.toBeNull();
+      expect(result?.status).toBe(403);
     });
   });
 });
