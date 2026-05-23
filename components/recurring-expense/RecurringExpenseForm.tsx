@@ -131,20 +131,6 @@ export function RecurringExpenseForm({ initialData }: RecurringExpenseFormProps)
     },
   });
 
-  const handleBudgetChange = useCallback((value: {
-    committee?: string;
-    department?: string;
-    category?: string;
-    subcategory?: string;
-    detail?: string;
-  }) => {
-    setValue('committee', value.committee || '');
-    setValue('department', value.department || '');
-    setValue('budgetCategory', value.category || '');
-    setValue('budgetSubcategory', value.subcategory || '');
-    setValue('budgetDetail', value.detail || '');
-  }, [setValue]);
-
   const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
     const numericOnly = raw.replace(/[^\d]/g, '');
@@ -236,16 +222,46 @@ export function RecurringExpenseForm({ initialData }: RecurringExpenseFormProps)
         <Controller
           name="committee"
           control={control}
-          render={({ field }) => (
-            <BudgetSelector
-              value={{
-                committee: field.value,
-                department: initialData?.department || '',
-                category: initialData?.budgetCategory || '',
-                subcategory: initialData?.budgetSubcategory || '',
-                detail: initialData?.budgetDetail || '',
-              }}
-              onChange={handleBudgetChange}
+          render={({ field: committeeField }) => (
+            <Controller
+              name="department"
+              control={control}
+              render={({ field: departmentField }) => (
+                <Controller
+                  name="budgetCategory"
+                  control={control}
+                  render={({ field: categoryField }) => (
+                    <Controller
+                      name="budgetSubcategory"
+                      control={control}
+                      render={({ field: subcategoryField }) => (
+                        <Controller
+                          name="budgetDetail"
+                          control={control}
+                          render={({ field: detailField }) => (
+                            <BudgetSelector
+                              value={{
+                                committee: committeeField.value,
+                                department: departmentField.value,
+                                category: categoryField.value,
+                                subcategory: subcategoryField.value,
+                                detail: detailField.value,
+                              }}
+                              onChange={(budget) => {
+                                committeeField.onChange(budget.committee || '');
+                                departmentField.onChange(budget.department || '');
+                                categoryField.onChange(budget.category || '');
+                                subcategoryField.onChange(budget.subcategory || '');
+                                detailField.onChange(budget.detail || '');
+                              }}
+                            />
+                          )}
+                        />
+                      )}
+                    />
+                  )}
+                />
+              )}
             />
           )}
         />
