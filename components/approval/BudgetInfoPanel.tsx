@@ -28,29 +28,44 @@ function formatAmount(amount: number): string {
   return amount.toLocaleString('ko-KR') + '원';
 }
 
+type SelectedDetail = {
+  budgetCategory: string;
+  budgetSubcategory: string;
+  budgetDetailName: string;
+};
+
 export function BudgetInfoPanel({ budgetInfo, year, expenseId }: BudgetInfoPanelProps) {
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedBudgetDetail, setSelectedBudgetDetail] = useState<string>('');
+  const [selectedDetail, setSelectedDetail] = useState<SelectedDetail | null>(null);
   const lastTapRef = useRef<number>(0);
 
   // 기본 연도: props로 전달되지 않으면 현재 연도 사용
   const displayYear = year || new Date().getFullYear();
 
-  const handleUsedAmountDoubleClick = useCallback((budgetDetailName: string) => {
-    setSelectedBudgetDetail(budgetDetailName);
+  const openUsageModal = useCallback((detail: SelectedDetail) => {
+    setSelectedDetail(detail);
     setModalOpen(true);
   }, []);
 
+  const handleUsedAmountDoubleClick = useCallback(
+    (detail: SelectedDetail) => {
+      openUsageModal(detail);
+    },
+    [openUsageModal]
+  );
+
   // 모바일 더블탭 감지 핸들러
-  const handleDoubleTap = useCallback((budgetDetailName: string) => {
-    const now = Date.now();
-    if (now - lastTapRef.current < 300) {
-      // 300ms 내 두 번 탭 감지
-      setSelectedBudgetDetail(budgetDetailName);
-      setModalOpen(true);
-    }
-    lastTapRef.current = now;
-  }, []);
+  const handleDoubleTap = useCallback(
+    (detail: SelectedDetail) => {
+      const now = Date.now();
+      if (now - lastTapRef.current < 300) {
+        // 300ms 내 두 번 탭 감지
+        openUsageModal(detail);
+      }
+      lastTapRef.current = now;
+    },
+    [openUsageModal]
+  );
 
   if (!budgetInfo || budgetInfo.length === 0) {
     return null;
@@ -111,8 +126,20 @@ export function BudgetInfoPanel({ budgetInfo, year, expenseId }: BudgetInfoPanel
                 </div>
                 <div
                   className="group flex cursor-pointer justify-between rounded px-1 -mx-1 text-gray-600 transition-colors hover:bg-blue-50"
-                  onDoubleClick={() => handleUsedAmountDoubleClick(info.budgetDetailName)}
-                  onTouchEnd={() => handleDoubleTap(info.budgetDetailName)}
+                  onDoubleClick={() =>
+                    handleUsedAmountDoubleClick({
+                      budgetCategory: info.budgetCategory ?? '',
+                      budgetSubcategory: info.budgetSubcategory ?? '',
+                      budgetDetailName: info.budgetDetailName,
+                    })
+                  }
+                  onTouchEnd={() =>
+                    handleDoubleTap({
+                      budgetCategory: info.budgetCategory ?? '',
+                      budgetSubcategory: info.budgetSubcategory ?? '',
+                      budgetDetailName: info.budgetDetailName,
+                    })
+                  }
                   title="더블클릭하여 사용 내역 보기"
                 >
                   <span className="flex items-center gap-1">
@@ -151,7 +178,9 @@ export function BudgetInfoPanel({ budgetInfo, year, expenseId }: BudgetInfoPanel
       <UsageDetailModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        budgetDetailName={selectedBudgetDetail}
+        budgetCategory={selectedDetail?.budgetCategory ?? ''}
+        budgetSubcategory={selectedDetail?.budgetSubcategory ?? ''}
+        budgetDetailName={selectedDetail?.budgetDetailName ?? ''}
         year={displayYear}
         excludeExpenseId={expenseId}
       />

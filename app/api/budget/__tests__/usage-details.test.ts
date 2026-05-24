@@ -2,7 +2,7 @@
  * GET /api/budget/usage-details API 테스트
  *
  * 테스트 대상:
- * - 세목별 사용금액 상세 내역 조회
+ * - 항/목/세목 조합별 사용금액 상세 내역 조회
  * - excludeExpenseId 파라미터로 특정 지출 제외
  * - CUID 형식 검증
  * - 필수 파라미터 검증
@@ -34,6 +34,13 @@ describe('GET /api/budget/usage-details', () => {
   const mockPrisma = prisma as any;
   const mockIsValidCuid = isValidCuid as ReturnType<typeof vi.fn>;
 
+  const baseParams = {
+    budgetCategory: '교육사역비',
+    budgetSubcategory: '영유아사역비',
+    budgetDetail: '행사비(선물)',
+    year: '2026',
+  };
+
   const createRequest = (params: Record<string, string>) => {
     const url = new URL('http://localhost:3000/api/budget/usage-details');
     Object.entries(params).forEach(([key, value]) => {
@@ -45,8 +52,10 @@ describe('GET /api/budget/usage-details', () => {
   const mockExpenseItems = [
     {
       id: 'item-1',
-      budgetDetail: '교육비',
-      description: '직원 교육',
+      budgetCategory: '교육사역비',
+      budgetSubcategory: '영유아사역비',
+      budgetDetail: '행사비(선물)',
+      description: '영유아부 선물 구입',
       amount: 100000,
       expense: {
         id: 'expense-1',
@@ -57,8 +66,10 @@ describe('GET /api/budget/usage-details', () => {
     },
     {
       id: 'item-2',
-      budgetDetail: '교육비',
-      description: '세미나 참가',
+      budgetCategory: '교육사역비',
+      budgetSubcategory: '영유아사역비',
+      budgetDetail: '행사비(선물)',
+      description: '영유아부 행사 선물',
       amount: 50000,
       expense: {
         id: 'expense-2',
@@ -75,8 +86,31 @@ describe('GET /api/budget/usage-details', () => {
   });
 
   describe('파라미터 검증', () => {
+    it('budgetCategory 파라미터가 없으면 400 에러를 반환해야 함', async () => {
+      const { budgetCategory: _omit, ...rest } = baseParams;
+      const request = createRequest(rest);
+
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('budgetCategory');
+    });
+
+    it('budgetSubcategory 파라미터가 없으면 400 에러를 반환해야 함', async () => {
+      const { budgetSubcategory: _omit, ...rest } = baseParams;
+      const request = createRequest(rest);
+
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('budgetSubcategory');
+    });
+
     it('budgetDetail 파라미터가 없으면 400 에러를 반환해야 함', async () => {
-      const request = createRequest({ year: '2026' });
+      const { budgetDetail: _omit, ...rest } = baseParams;
+      const request = createRequest(rest);
 
       const response = await GET(request);
       const data = await response.json();
@@ -86,7 +120,8 @@ describe('GET /api/budget/usage-details', () => {
     });
 
     it('year 파라미터가 없으면 400 에러를 반환해야 함', async () => {
-      const request = createRequest({ budgetDetail: '교육비' });
+      const { year: _omit, ...rest } = baseParams;
+      const request = createRequest(rest);
 
       const response = await GET(request);
       const data = await response.json();
@@ -96,7 +131,7 @@ describe('GET /api/budget/usage-details', () => {
     });
 
     it('year가 숫자가 아니면 400 에러를 반환해야 함', async () => {
-      const request = createRequest({ budgetDetail: '교육비', year: 'invalid' });
+      const request = createRequest({ ...baseParams, year: 'invalid' });
 
       const response = await GET(request);
       const data = await response.json();
@@ -107,8 +142,7 @@ describe('GET /api/budget/usage-details', () => {
 
     it('excludeExpenseId가 유효하지 않은 CUID 형식이면 400 에러를 반환해야 함', async () => {
       const request = createRequest({
-        budgetDetail: '교육비',
-        year: '2026',
+        ...baseParams,
         excludeExpenseId: 'invalid-id-format',
       });
 
@@ -124,8 +158,7 @@ describe('GET /api/budget/usage-details', () => {
       const validCuid = 'clfh5asn7z0000qw5vx2e4t5h7';
 
       const request = createRequest({
-        budgetDetail: '교육비',
-        year: '2026',
+        ...baseParams,
         excludeExpenseId: validCuid,
       });
 
@@ -136,19 +169,18 @@ describe('GET /api/budget/usage-details', () => {
   });
 
   describe('정상 조회', () => {
-    it('세목별 사용 내역을 반환해야 함', async () => {
+    it('항/목/세목별 사용 내역을 반환해야 함', async () => {
       mockPrisma.expenseItem.findMany.mockResolvedValue(mockExpenseItems);
 
-      const request = createRequest({
-        budgetDetail: '교육비',
-        year: '2026',
-      });
+      const request = createRequest(baseParams);
 
       const response = await GET(request);
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.budgetDetail).toBe('교육비');
+      expect(data.budgetCategory).toBe('교육사역비');
+      expect(data.budgetSubcategory).toBe('영유아사역비');
+      expect(data.budgetDetail).toBe('행사비(선물)');
       expect(data.year).toBe(2026);
       expect(data.items).toHaveLength(2);
       expect(data.totalAmount).toBe(150000);
@@ -158,10 +190,7 @@ describe('GET /api/budget/usage-details', () => {
     it('반환된 항목에 필요한 필드가 포함되어야 함', async () => {
       mockPrisma.expenseItem.findMany.mockResolvedValue(mockExpenseItems);
 
-      const request = createRequest({
-        budgetDetail: '교육비',
-        year: '2026',
-      });
+      const request = createRequest(baseParams);
 
       const response = await GET(request);
       const data = await response.json();
@@ -179,10 +208,7 @@ describe('GET /api/budget/usage-details', () => {
     it('데이터가 없으면 빈 배열과 0을 반환해야 함', async () => {
       mockPrisma.expenseItem.findMany.mockResolvedValue([]);
 
-      const request = createRequest({
-        budgetDetail: '교육비',
-        year: '2026',
-      });
+      const request = createRequest(baseParams);
 
       const response = await GET(request);
       const data = await response.json();
@@ -200,8 +226,7 @@ describe('GET /api/budget/usage-details', () => {
       const excludeId = 'clfh5asn7z0000qw5vx2e4t5h7';
 
       const request = createRequest({
-        budgetDetail: '교육비',
-        year: '2026',
+        ...baseParams,
         excludeExpenseId: excludeId,
       });
 
@@ -221,27 +246,38 @@ describe('GET /api/budget/usage-details', () => {
     it('excludeExpenseId가 없으면 id 조건 없이 쿼리해야 함', async () => {
       mockPrisma.expenseItem.findMany.mockResolvedValue([]);
 
-      const request = createRequest({
-        budgetDetail: '교육비',
-        year: '2026',
-      });
+      const request = createRequest(baseParams);
 
       await GET(request);
 
-      // id 조건이 포함되지 않아야 함
       const callArgs = mockPrisma.expenseItem.findMany.mock.calls[0][0];
       expect(callArgs.where.expense.id).toBeUndefined();
     });
   });
 
   describe('쿼리 조건 검증', () => {
+    it('항/목/세목 3-튜플 모두를 where에 포함해야 함 (회귀 방지)', async () => {
+      mockPrisma.expenseItem.findMany.mockResolvedValue([]);
+
+      const request = createRequest(baseParams);
+
+      await GET(request);
+
+      expect(mockPrisma.expenseItem.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            budgetCategory: '교육사역비',
+            budgetSubcategory: '영유아사역비',
+            budgetDetail: '행사비(선물)',
+          }),
+        })
+      );
+    });
+
     it('승인된 상태만 조회해야 함', async () => {
       mockPrisma.expenseItem.findMany.mockResolvedValue([]);
 
-      const request = createRequest({
-        budgetDetail: '교육비',
-        year: '2026',
-      });
+      const request = createRequest(baseParams);
 
       await GET(request);
 
@@ -261,10 +297,7 @@ describe('GET /api/budget/usage-details', () => {
     it('해당 연도의 청구일 범위로 필터링해야 함', async () => {
       mockPrisma.expenseItem.findMany.mockResolvedValue([]);
 
-      const request = createRequest({
-        budgetDetail: '교육비',
-        year: '2026',
-      });
+      const request = createRequest(baseParams);
 
       await GET(request);
 
@@ -278,10 +311,7 @@ describe('GET /api/budget/usage-details', () => {
     it('청구일 내림차순으로 정렬해야 함', async () => {
       mockPrisma.expenseItem.findMany.mockResolvedValue([]);
 
-      const request = createRequest({
-        budgetDetail: '교육비',
-        year: '2026',
-      });
+      const request = createRequest(baseParams);
 
       await GET(request);
 

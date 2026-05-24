@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getAllUsedAmounts } from '@/lib/services/budget-service';
+import { getAllUsedAmounts, makeBudgetDetailKey } from '@/lib/services/budget-service';
 
 /**
  * GET /api/budget-details/year?year=2026&includeInactive=true
@@ -93,7 +93,14 @@ export async function GET(request: NextRequest) {
               managerId: yearSetting.managerId,
               managerName: yearSetting.manager?.username,
               budgetAmount: yearSetting.budgetAmount,
-              usedAmount: usedAmountMap.get(detail.name) || 0,
+              usedAmount:
+                usedAmountMap.get(
+                  makeBudgetDetailKey({
+                    budgetCategory: detail.subcategory.category.name,
+                    budgetSubcategory: detail.subcategory.name,
+                    budgetDetail: detail.name,
+                  })
+                ) || 0,
             }
           : null,
       };

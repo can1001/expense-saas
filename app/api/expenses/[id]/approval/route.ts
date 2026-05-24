@@ -4,7 +4,11 @@ import {
   canModifyApprovalLine,
   createApprovalSnapshot,
 } from '@/lib/approval-engine';
-import { getUsedAmountByDetail } from '@/lib/services/budget-service';
+import {
+  getUsedAmountByDetail,
+  makeBudgetDetailKey,
+  type BudgetDetailKey,
+} from '@/lib/services/budget-service';
 
 interface BudgetItem {
   budgetCategory: string;
@@ -30,6 +34,10 @@ async function getBudgetInfoForItems(
     items.map((item) => `${item.budgetCategory}|${item.budgetSubcategory}|${item.budgetDetail}`)
   );
   const budgetDetailNames = [...new Set(items.map((item) => item.budgetDetail))];
+  const detailKeys: BudgetDetailKey[] = Array.from(uniqueKeys).map((k) => {
+    const [budgetCategory, budgetSubcategory, budgetDetail] = k.split('|');
+    return { budgetCategory, budgetSubcategory, budgetDetail };
+  });
 
   // BudgetDetail + BudgetDetailYear 조회 (항/목 계층 포함)
   const budgetDetails = await prisma.budgetDetail.findMany({
@@ -50,7 +58,8 @@ async function getBudgetInfoForItems(
   });
 
   // 실시간 사용금액 조회 (1차 승인 이상, 현재 지출결의서 제외)
-  const usedAmountMap = await getUsedAmountByDetail(budgetDetailNames, year, excludeExpenseId);
+  // 동일명 세목이 다른 목 아래에 있을 수 있으므로 항/목/세목 3-튜플로 식별한다.
+  const usedAmountMap = await getUsedAmountByDetail(detailKeys, year, excludeExpenseId);
 
   // 항/목/세목 조합별 청구금액 합산 및 결과 생성
   const results: {
@@ -90,7 +99,13 @@ async function getBudgetInfoForItems(
       .reduce((sum, item) => sum + item.amount, 0);
 
     const budgetAmount = yearSetting?.budgetAmount ?? 0;
-    const usedAmount = usedAmountMap.get(detailName) ?? 0;
+    const usedAmount = usedAmountMap.get(
+      makeBudgetDetailKey({
+        budgetCategory: category,
+        budgetSubcategory: subcategory,
+        budgetDetail: detailName,
+      })
+    ) ?? 0;
     const remainingAmount = budgetAmount - usedAmount;
     const afterApproval = remainingAmount - requestAmount;
 
