@@ -178,6 +178,13 @@ export async function POST(
             rejectReason: comment,
           })
           .catch((err) => console.error('[Reject] 알림 발송 실패:', err));
+      } else {
+        await notificationService.logUnmatchedRecipient({
+          expenseId: id,
+          eventType: 'REJECT',
+          attemptedName: expense.applicantName,
+          role: 'applicant',
+        });
       }
     } catch (notifyError) {
       console.error('[Reject] 알림 처리 중 오류:', notifyError);

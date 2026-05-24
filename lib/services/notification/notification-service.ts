@@ -30,12 +30,16 @@ export class NotificationService {
   async send(request: SendNotificationRequest): Promise<NotificationResult[]> {
     const results: NotificationResult[] = [];
 
+    const { recipient, eventType, context, channels } = request;
+
+    console.log(
+      `[NotificationService] send 시도: event=${eventType} userId=${recipient.userId ?? 'null'} expenseId=${context.expenseId} enabled=${this.isEnabled}`
+    );
+
     if (!this.isEnabled) {
-      console.log('[NotificationService] 알림 비활성화 상태');
+      console.warn('[NotificationService] 알림이 비활성화되어 발송 스킵 (NOTIFICATION_ENABLED=false)');
       return results;
     }
-
-    const { recipient, eventType, context, channels } = request;
 
     // 사용자 알림 설정 조회
     const preference = recipient.userId
@@ -44,6 +48,13 @@ export class NotificationService {
 
     // 발송할 채널 결정
     const activeChannels = channels || this.getActiveChannels(preference, eventType);
+
+    if (activeChannels.length === 0) {
+      console.warn(
+        `[NotificationService] 활성 채널 없음 - 발송 스킵: event=${eventType} userId=${recipient.userId ?? 'null'} preference=${preference ? 'exists' : 'null'} webPushEnabled=${preference?.webPushEnabled ?? 'default(true)'}`
+      );
+      return results;
+    }
 
     // 템플릿 조회
     const template = getTemplateByEvent(eventType);
@@ -55,10 +66,49 @@ export class NotificationService {
     // 채널별 발송
     for (const channel of activeChannels) {
       const result = await this.sendToChannel(channel, recipient, template, context, eventType);
+      console.log(
+        `[NotificationService] 발송 결과: event=${eventType} channel=${channel} success=${result.success}${result.error ? ` error=${result.error}` : ''}`
+      );
       results.push(result);
     }
 
     return results;
+  }
+
+  /**
+   * 수신자 매칭 실패를 WebPushLog에 기록하고 server log로 남깁니다.
+   *
+   * 결재 API 라우트에서 username 기반 사용자 조회가 null을 반환했을 때 호출합니다.
+   * 호출하지 않으면 알림 발송이 silent skip되어 진단이 불가능합니다.
+   */
+  async logUnmatchedRecipient(params: {
+    expenseId: string;
+    eventType: NotificationEventType;
+    attemptedName: string;
+    role: 'applicant' | 'approver' | 'next-approver' | 'pending-approver';
+  }): Promise<void> {
+    const { expenseId, eventType, attemptedName, role } = params;
+    const errorMessage = `수신자 매칭 실패: ${role}="${attemptedName}" (User.username 일치하는 레코드 없음)`;
+    console.error(
+      `[NotificationService] ${errorMessage} eventType=${eventType} expenseId=${expenseId}`
+    );
+
+    try {
+      await prisma.webPushLog.create({
+        data: {
+          userId: null,
+          expenseId,
+          eventType,
+          title: this.getWebPushTitle(eventType),
+          body: `[발송 안됨] ${role}="${attemptedName}" 사용자를 찾을 수 없습니다.`,
+          url: null,
+          status: 'FAILED',
+          errorMessage,
+        },
+      });
+    } catch (error) {
+      console.error('[NotificationService] 매칭 실패 로그 저장 실패:', error);
+    }
   }
 
   /**

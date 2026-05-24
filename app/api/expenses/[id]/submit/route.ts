@@ -327,6 +327,13 @@ export async function POST(
               budgetDetail: firstItem.budgetDetail,
             })
             .catch((err) => console.error('[Submit] 알림 발송 실패:', err));
+        } else {
+          await notificationService.logUnmatchedRecipient({
+            expenseId: id,
+            eventType: 'SUBMIT',
+            attemptedName: firstPendingStepInfo.approverName,
+            role: 'approver',
+          });
         }
       }
     } catch (notifyError) {
