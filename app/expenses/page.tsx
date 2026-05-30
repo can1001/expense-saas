@@ -44,6 +44,8 @@ function ExpensesPageContent() {
     paymentStatus: searchParams.get('paymentStatus') || '',
     approvedStartDate: searchParams.get('approvedStart') || '',
     approvedEndDate: searchParams.get('approvedEnd') || '',
+    expenseStartDate: searchParams.get('expenseStart') || '',
+    expenseEndDate: searchParams.get('expenseEnd') || '',
   }), [searchParams]);
 
   const [expenses, setExpenses] = useState<ExpenseListItem[]>([]);
@@ -137,6 +139,8 @@ function ExpensesPageContent() {
     if (filters.paymentStatus) params.set('paymentStatus', filters.paymentStatus);
     if (filters.approvedStartDate) params.set('approvedStart', filters.approvedStartDate);
     if (filters.approvedEndDate) params.set('approvedEnd', filters.approvedEndDate);
+    if (filters.expenseStartDate) params.set('expenseStart', filters.expenseStartDate);
+    if (filters.expenseEndDate) params.set('expenseEnd', filters.expenseEndDate);
 
     const queryString = params.toString();
     const newUrl = queryString ? `/expenses?${queryString}` : '/expenses';
@@ -232,6 +236,21 @@ function ExpensesPageContent() {
       const approvedDate = new Date(expense.approvedAt);
       const endDate = new Date(filters.approvedEndDate);
       if (approvedDate > endDate) return false;
+    }
+
+    // 지급일자 범위 필터
+    if (filters.expenseStartDate) {
+      if (!expense.expenseDate) return false;
+      const expDate = new Date(expense.expenseDate);
+      const startDate = new Date(filters.expenseStartDate);
+      if (expDate < startDate) return false;
+    }
+
+    if (filters.expenseEndDate) {
+      if (!expense.expenseDate) return false;
+      const expDate = new Date(expense.expenseDate);
+      const endDate = new Date(filters.expenseEndDate);
+      if (expDate > endDate) return false;
     }
 
     return true;
@@ -411,6 +430,8 @@ function ExpensesPageContent() {
       paymentStatus: '',
       approvedStartDate: '',
       approvedEndDate: '',
+      expenseStartDate: '',
+      expenseEndDate: '',
     });
     setSearchQuery('');
   };
@@ -985,6 +1006,27 @@ function ExpensesPageContent() {
                         type="date"
                         value={filters.approvedEndDate}
                         onChange={(e) => handleFilterChange('approvedEndDate', e.target.value)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      지급일자 범위
+                    </label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="date"
+                        value={filters.expenseStartDate}
+                        onChange={(e) => handleFilterChange('expenseStartDate', e.target.value)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white"
+                      />
+                      <span className="text-gray-500">~</span>
+                      <input
+                        type="date"
+                        value={filters.expenseEndDate}
+                        onChange={(e) => handleFilterChange('expenseEndDate', e.target.value)}
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white"
                       />
                     </div>
