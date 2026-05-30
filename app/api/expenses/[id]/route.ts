@@ -265,13 +265,24 @@ export async function DELETE(
       throw new ApiError('지출결의서를 찾을 수 없습니다.', 404);
     }
 
-    // 소유권 검증
-    if (expense.userId !== currentUserId) {
-      throw new ApiError('삭제 권한이 없습니다.', 403);
-    }
-
+    // 상태 검증 — 제출된 건은 어떤 역할도 삭제 불가
     if (!EDITABLE_STATUSES.includes(expense.status)) {
       throw new ApiError('제출된 지출결의서는 삭제할 수 없습니다.', 403);
+    }
+
+    // 소유권 검증 — 관리 역할(admin/finance_head/accountant/admin_assistant)은 우회 가능
+    // (PUT의 APPROVED_FINAL+PENDING 우회 패턴과 동일한 역할 집합 사용)
+    const isOwner = expense.userId === currentUserId;
+    let canBypassOwnership = false;
+    if (!isOwner) {
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        const { role: effectiveRole } = await getEffectiveRole(currentUser.id, CURRENT_YEAR);
+        canBypassOwnership = APPROVED_EDIT_ROLES.includes(effectiveRole as typeof APPROVED_EDIT_ROLES[number]);
+      }
+    }
+    if (!isOwner && !canBypassOwnership) {
+      throw new ApiError('삭제 권한이 없습니다.', 403);
     }
 
     // 첨부파일 정보 가져오기
