@@ -108,9 +108,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 실행
+  // 실행 — 청구인 정보는 모두 로그인 사용자(업로더)에서 자동 채움
   try {
-    const result = await executeBulkUpload(rows, { dryRun });
+    const result = await executeBulkUpload(rows, { dryRun }, {
+      userId: user.id,
+      username: user.username,
+    });
     return NextResponse.json(result);
   } catch (err) {
     // 트랜잭션 내 DB 에러 등 — 전체 롤백된 상태

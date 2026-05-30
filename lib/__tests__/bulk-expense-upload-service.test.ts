@@ -33,8 +33,14 @@ import { lookupBudgetHierarchy, verifyBudgetMapping } from '../services/budget-l
 
 const mockLookup = vi.mocked(lookupBudgetHierarchy);
 const mockVerify = vi.mocked(verifyBudgetMapping);
-const mockUserFindMany = vi.mocked(prisma.user.findMany);
 const mockTransaction = vi.mocked(prisma.$transaction);
+
+/** 테스트용 업로드 수행자 (executeBulkUpload 3번째 인자) */
+const TEST_APPLICANT = {
+  userId: 'user-admin-assistant',
+  username: '행정간사1',
+  title: null,
+};
 
 /** 테스트용 행 ‐ 모든 필수 필드 기본값 채운 헬퍼 */
 function makeRow(overrides: Partial<ExcelRow> = {}): ExcelRow {
@@ -48,7 +54,6 @@ function makeRow(overrides: Partial<ExcelRow> = {}): ExcelRow {
     unitPrice: 10000,
     quantity: 5,
     requestDate: '2026-05-15',
-    applicantName: '홍길동',
     bankName: '우리은행',
     accountNumber: '1002-123-456789',
     accountHolder: '홍길동',
@@ -178,13 +183,14 @@ describe('executeBulkUpload', () => {
     });
     // 기본: 입력된 (위원회, 사역팀, 세목) 조합이 실제 매핑이라고 가정
     mockVerify.mockResolvedValue(true);
-    mockUserFindMany.mockResolvedValue([
-      { id: 'user-1', username: '홍길동' },
-    ] as never);
   });
 
   it('dry-run: DB 변경 없이 preview/errors 반환', async () => {
-    const result = await executeBulkUpload([makeRow(), makeRow({ groupId: 2 })], { dryRun: true });
+    const result = await executeBulkUpload(
+      [makeRow(), makeRow({ groupId: 2 })],
+      { dryRun: true },
+      TEST_APPLICANT
+    );
 
     expect(result.dryRun).toBe(true);
     expect(result.errors).toEqual([]);
@@ -193,12 +199,12 @@ describe('executeBulkUpload', () => {
     expect(mockTransaction).not.toHaveBeenCalled();
   });
 
-  it('dry-run: preview에 committee/department/금액 정확히 채워짐', async () => {
-    const result = await executeBulkUpload([makeRow()], { dryRun: true });
+  it('dry-run preview: 청구인은 항상 applicant 인자의 username', async () => {
+    const result = await executeBulkUpload([makeRow()], { dryRun: true }, TEST_APPLICANT);
     expect(result.preview![0]).toMatchObject({
       committee: '교육위원회',
       department: '기획팀',
-      applicantName: '홍길동',
+      applicantName: '행정간사1', // 엑셀이 아닌 applicant.username에서 옴
       itemsCount: 1,
       requestAmount: 50000,
     });
@@ -206,23 +212,17 @@ describe('executeBulkUpload', () => {
 
   it('예산 조회 실패 → budgetError', async () => {
     mockLookup.mockResolvedValue(null);
-    const result = await executeBulkUpload([makeRow()], { dryRun: true });
+    const result = await executeBulkUpload([makeRow()], { dryRun: true }, TEST_APPLICANT);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].message).toContain('예산 정보를 찾을 수 없습니다');
-  });
-
-  it('청구인 매칭 실패 → 에러 (admin 폴백 없음)', async () => {
-    mockUserFindMany.mockResolvedValue([]);
-    const result = await executeBulkUpload([makeRow({ applicantName: '없는사람' })], { dryRun: true });
-    expect(result.errors.some((e) => e.field === 'applicantName')).toBe(true);
-    expect(result.errors[0].message).toContain('없는사람');
   });
 
   it('입력 (위원회, 사역팀, 세목) 조합이 실제 매핑이 아니면 에러', async () => {
     mockVerify.mockResolvedValue(false);
     const result = await executeBulkUpload(
       [makeRow({ committee: '오타위원회' })],
-      { dryRun: true }
+      { dryRun: true },
+      TEST_APPLICANT
     );
     expect(result.errors.some((e) => e.field === 'department')).toBe(true);
     expect(result.errors[0].message).toContain('매핑되어 있지 않습니다');
@@ -238,14 +238,12 @@ describe('executeBulkUpload', () => {
       budgetSubcategory: '기획비',
       budgetDetailId: 'bd-1',
     });
-    // verifyBudgetMapping은 입력 조합이 실제 매핑이라고 답함 — 1:N의 정답 측
     mockVerify.mockResolvedValue(true);
-    // 사용자도 입력에 맞춰 변경
-    mockUserFindMany.mockResolvedValue([{ id: 'u', username: '김찬양' }] as never);
 
     const result = await executeBulkUpload(
-      [makeRow({ committee: '예배위원회', department: '찬양팀', applicantName: '김찬양' })],
-      { dryRun: true }
+      [makeRow({ committee: '예배위원회', department: '찬양팀' })],
+      { dryRun: true },
+      TEST_APPLICANT
     );
     expect(result.errors).toEqual([]);
     expect(result.preview![0].committee).toBe('예배위원회');
@@ -276,7 +274,8 @@ describe('executeBulkUpload', () => {
 
     const result = await executeBulkUpload(
       [makeRow(), makeRow({ groupId: 2 })],
-      { dryRun: false }
+      { dryRun: false },
+      TEST_APPLICANT
     );
 
     expect(result.errors).toEqual([]);
@@ -284,9 +283,52 @@ describe('executeBulkUpload', () => {
     expect(mockTransaction).toHaveBeenCalledTimes(1);
   });
 
+  it('commit: expense.create에 applicant 정보가 정확히 전달됨', async () => {
+    let captured: { userId: string; applicantName: string; applicantTitle: string | null } | undefined;
+    mockTransaction.mockImplementation(async (cb: unknown) => {
+      const tx = {
+        expense: {
+          create: vi.fn().mockImplementation(async ({ data }) => {
+            captured = data;
+            return { id: 'exp-1' };
+          }),
+        },
+      };
+      return (cb as (tx: unknown) => Promise<unknown>)(tx);
+    });
+
+    await executeBulkUpload([makeRow()], { dryRun: false }, {
+      userId: 'u-xyz',
+      username: '특정사용자',
+      title: '간사',
+    });
+
+    expect(captured?.userId).toBe('u-xyz');
+    expect(captured?.applicantName).toBe('특정사용자');
+    expect(captured?.applicantTitle).toBe('간사');
+  });
+
+  it('commit: applicant.title이 null이면 applicantTitle도 null', async () => {
+    let captured: { applicantTitle: string | null } | undefined;
+    mockTransaction.mockImplementation(async (cb: unknown) => {
+      const tx = {
+        expense: {
+          create: vi.fn().mockImplementation(async ({ data }) => {
+            captured = data;
+            return { id: 'exp-1' };
+          }),
+        },
+      };
+      return (cb as (tx: unknown) => Promise<unknown>)(tx);
+    });
+
+    await executeBulkUpload([makeRow()], { dryRun: false }, TEST_APPLICANT);
+    expect(captured?.applicantTitle).toBeNull();
+  });
+
   it('commit: 에러 있으면 트랜잭션 진입조차 안 함', async () => {
     mockLookup.mockResolvedValue(null);
-    const result = await executeBulkUpload([makeRow()], { dryRun: false });
+    const result = await executeBulkUpload([makeRow()], { dryRun: false }, TEST_APPLICANT);
     expect(result.createdIds).toBeUndefined();
     expect(result.errors).toHaveLength(1);
     expect(mockTransaction).not.toHaveBeenCalled();
@@ -305,7 +347,11 @@ describe('executeBulkUpload', () => {
     });
 
     await expect(
-      executeBulkUpload([makeRow(), makeRow({ groupId: 2 })], { dryRun: false })
+      executeBulkUpload(
+        [makeRow(), makeRow({ groupId: 2 })],
+        { dryRun: false },
+        TEST_APPLICANT
+      )
     ).rejects.toThrow('DB 제약 위반');
   });
 
@@ -328,7 +374,8 @@ describe('executeBulkUpload', () => {
         makeRow({ groupId: 1, description: 'A', unitPrice: 1000, quantity: 2 }),
         makeRow({ groupId: 1, description: 'B', unitPrice: 500, quantity: 3 }),
       ],
-      { dryRun: false }
+      { dryRun: false },
+      TEST_APPLICANT
     );
 
     expect((capturedData!.items.create as unknown[]).length).toBe(2);
@@ -347,8 +394,8 @@ describe('parseExpenseExcelBuffer', () => {
 
   it('헤더와 데이터 행을 읽어 ExcelRow 배열 반환', async () => {
     const buf = await makeBuffer(
-      ['committee', 'department', 'budgetCategory', 'budgetSubcategory', 'budgetDetail', 'description', 'unitPrice', 'quantity', 'requestDate', 'applicantName', 'bankName', 'accountNumber', 'accountHolder'],
-      [['교육위원회', '기획팀', '사역지원비', '기획비', '아웃팅비', '회의 후 식사', 10000, 5, '2026-05-15', '홍길동', '우리은행', '1002-123-456789', '홍길동']]
+      ['committee', 'department', 'budgetCategory', 'budgetSubcategory', 'budgetDetail', 'description', 'unitPrice', 'quantity', 'requestDate', 'bankName', 'accountNumber', 'accountHolder'],
+      [['교육위원회', '기획팀', '사역지원비', '기획비', '아웃팅비', '회의 후 식사', 10000, 5, '2026-05-15', '우리은행', '1002-123-456789', '홍길동']]
     );
     const rows = await parseExpenseExcelBuffer(buf);
     expect(rows).toHaveLength(1);

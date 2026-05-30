@@ -22,9 +22,12 @@ import { lookupBudgetHierarchy, verifyBudgetMapping } from './budget-lookup-serv
 // ============================================================
 
 /**
- * 엑셀 컬럼 ↔ 폼/스키마 필드 1:1 매핑.
- * 기존 신규 작성 폼(`createExpenseSchema`)과 동일 명명 규칙 사용.
- * groupId만 일괄 업로드 전용(같은 ID는 한 지출결의서로 묶임).
+ * 엑셀 컬럼 ↔ 폼/스키마 필드 매핑.
+ * 청구인(applicantName/applicantTitle/userId)은 엑셀에서 받지 않고 업로드를
+ * 수행하는 로그인 사용자(`applicant` 인자)에서 자동 채움 — 동명이인 문제 회피 +
+ * 데이터 입력자의 실제 책임 추적.
+ *
+ * 은행 정보(수취 계좌)는 그대로 엑셀에서 받음 — 행마다 다른 지출자에게 송금되므로.
  */
 export interface ExcelRow {
   groupId?: string | number;
@@ -38,8 +41,6 @@ export interface ExcelRow {
   quantity?: number;
   requestDate?: string | Date | number;
   expenseDate?: string | Date | number; // 지급일자
-  applicantName?: string;
-  applicantTitle?: string;
   bankName?: string;
   accountNumber?: string | number;
   accountHolder?: string;
@@ -58,12 +59,18 @@ export const EXCEL_ROW_HEADERS = [
   'quantity',
   'requestDate',
   'expenseDate',
-  'applicantName',
-  'applicantTitle',
   'bankName',
   'accountNumber',
   'accountHolder',
 ] as const satisfies ReadonlyArray<keyof ExcelRow>;
+
+/** 업로드 수행자 정보 — 모든 생성된 지출결의서의 청구인이 됨. */
+export interface BulkUploadApplicant {
+  userId: string;
+  username: string;
+  /** 선택 — 사용자 프로필에 직책이 없으면 null */
+  title?: string | null;
+}
 
 export interface ValidationError {
   rowNumber: number;     // Excel 1-based 행 번호 (헤더 포함 → 데이터 첫 행은 2)
@@ -158,7 +165,6 @@ export function validateRows(rows: ExcelRow[]): ValidationError[] {
       ['budgetDetail', '예산(세목)'],
       ['description', '적요'],
       ['requestDate', '청구일자'],
-      ['applicantName', '청구인'],
       ['bankName', '은행명'],
       ['accountNumber', '계좌번호'],
       ['accountHolder', '예금주'],
@@ -212,35 +218,19 @@ export function groupRows(rows: ExcelRow[]): Map<string, ExcelRow[]> {
 
 export async function executeBulkUpload(
   rows: ExcelRow[],
-  options: BulkUploadOptions
+  options: BulkUploadOptions,
+  applicant: BulkUploadApplicant
 ): Promise<BulkUploadResult> {
   const validationErrors = validateRows(rows);
   const groups = groupRows(rows);
 
-  // 그룹별 예산 조회 + 청구인 조회 (사전 일괄)
+  // 그룹별 예산 조회 (사전 일괄)
   const budgetErrors: ValidationError[] = [];
   // 세목 조회 결과 캐시(자동 도출). 1:N인 경우 임의의 한 부서.
   const budgetCache = new Map<string, { committee: string; department: string }>();
   // 그룹별로 cross-validation 통과 후 확정된 (위원회, 사역팀) — commit 패스에서 사용.
   const resolvedByGroup = new Map<string, { committee: string; department: string }>();
-  const applicantCache = new Map<string, { id: string; username: string }>();
   const preview: PreviewItem[] = [];
-
-  // 미리 청구인 이름 모두 모아 일괄 조회 (N+1 회피)
-  const applicantNames = Array.from(
-    new Set(
-      Array.from(groups.values())
-        .map((g) => g[0].applicantName?.toString().trim())
-        .filter((n): n is string => !!n)
-    )
-  );
-  if (applicantNames.length > 0) {
-    const users = await prisma.user.findMany({
-      where: { username: { in: applicantNames }, isActive: true },
-      select: { id: true, username: true },
-    });
-    users.forEach((u) => applicantCache.set(u.username, u));
-  }
 
   for (const [groupKey, groupRowsList] of groups) {
     const first = groupRowsList[0];
@@ -251,7 +241,6 @@ export async function executeBulkUpload(
     const det = first.budgetDetail?.toString().trim();
     const inputCommittee = first.committee?.toString().trim();
     const inputDepartment = first.department?.toString().trim();
-    const applicantName = first.applicantName?.toString().trim();
 
     // 예산 조회
     let budgetInfo: { committee: string; department: string } | undefined;
@@ -305,17 +294,6 @@ export async function executeBulkUpload(
     // budgetCache의 자동 도출값(잘못된 부서일 수 있음)을 가져갈 위험이 있으므로 분리.
     resolvedByGroup.set(groupKey, budgetInfo);
 
-    // 청구인 조회
-    if (!applicantName || !applicantCache.has(applicantName)) {
-      budgetErrors.push({
-        rowNumber,
-        groupId: groupKey,
-        field: 'applicantName',
-        message: `청구인을 찾을 수 없습니다: ${applicantName ?? '(미입력)'}`,
-      });
-      continue;
-    }
-
     const requestAmount = groupRowsList.reduce((sum, r) => {
       const up = Number(r.unitPrice) || 0;
       const qty = Number(r.quantity) || 0;
@@ -326,7 +304,7 @@ export async function executeBulkUpload(
       groupId: groupKey,
       committee: budgetInfo.committee,
       department: budgetInfo.department,
-      applicantName,
+      applicantName: applicant.username, // 모든 행 동일 — 업로드 수행자
       itemsCount: groupRowsList.length,
       requestAmount,
     });
@@ -361,13 +339,10 @@ export async function executeBulkUpload(
       const ids: string[] = [];
       for (const [groupKey, groupRowsList] of groups) {
         const first = groupRowsList[0];
-        const applicantName = first.applicantName!.toString().trim();
 
-        // dry-run 패스에서 resolvedByGroup/applicantCache가 모두 채워졌고
-        // 에러가 0건이어야만 여기 도달한다는 사전 불변량.
+        // dry-run 패스에서 resolvedByGroup가 채워졌고 에러 0건이어야만 여기 도달.
         const budgetInfo = resolvedByGroup.get(groupKey);
-        const user = applicantCache.get(applicantName);
-        if (!budgetInfo || !user) {
+        if (!budgetInfo) {
           throw new Error('내부 오류: 검증 단계에서 채워졌어야 할 캐시가 비어있습니다.');
         }
 
@@ -392,15 +367,15 @@ export async function executeBulkUpload(
 
         const expense = await tx.expense.create({
           data: {
-            userId: user.id,
+            userId: applicant.userId,
             committee: budgetInfo.committee,
             department: budgetInfo.department,
             expenseDate,
             requestAmount,
             requestDate,
             requestTeam: '출납팀',
-            applicantName,
-            applicantTitle: first.applicantTitle?.toString().trim() || null,
+            applicantName: applicant.username,
+            applicantTitle: applicant.title ?? null,
             bankName: first.bankName!.toString().trim(),
             accountNumber: String(first.accountNumber).trim(),
             accountHolder: first.accountHolder!.toString().trim(),

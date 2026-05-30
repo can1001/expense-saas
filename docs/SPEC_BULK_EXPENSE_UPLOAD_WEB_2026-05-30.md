@@ -1,8 +1,12 @@
 # Spec: 행정간사용 지출결의서 엑셀 일괄 업로드 (웹 UI)
 
-작성일: 2026-05-30
+작성일: 2026-05-30 (v4 개정)
 대상 사용자: 행정간사 (`role = admin_assistant`), 관리자 (`role = admin`)
 참고 기존 자산: [BULK_UPLOAD.md](./BULK_UPLOAD.md), `scripts/bulk-upload.ts`, `scripts/generate-upload-template.ts`
+
+> **v4 핵심 변경 (2026-05-30)**: 엑셀에서 `applicantName`/`applicantTitle` 컬럼 제거.
+> 모든 일괄 등록된 지출결의서의 청구인은 **업로드 수행자(로그인 사용자)** 본인으로 자동 설정.
+> /ship 리뷰의 동명이인 보안 결함(B1) 근본 해소 + 데이터 입력 책임 추적 자연 확보.
 
 ---
 

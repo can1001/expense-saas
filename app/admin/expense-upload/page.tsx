@@ -143,7 +143,8 @@ export default function ExpenseUploadPage() {
           <li>&apos;템플릿 다운로드&apos; 버튼으로 양식 파일을 받아 작성합니다.</li>
           <li>파일을 선택한 뒤 &apos;검증(미리보기)&apos;를 클릭합니다.</li>
           <li>모든 오류가 해결되면 &apos;확정 업로드&apos;가 활성화됩니다.</li>
-          <li>일괄 등록된 지출결의서는 <strong>DRAFT(임시저장)</strong> 상태로 저장됩니다. 작성자가 별도로 결재 상신을 진행해야 합니다.</li>
+          <li>일괄 등록된 지출결의서는 <strong>DRAFT(임시저장)</strong> 상태로 저장됩니다. 결재 상신은 별도로 진행해야 합니다.</li>
+          <li><strong>청구인은 로그인 사용자(본인)로 자동 설정</strong>됩니다. 엑셀에 청구인 컬럼이 없습니다.</li>
           <li>한 행이라도 실패하면 전체 롤백됩니다.</li>
         </ol>
       </div>

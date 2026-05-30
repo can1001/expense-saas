@@ -4,6 +4,10 @@
  * 컬럼 명명은 기존 신규 작성 폼(`createExpenseSchema`)과 동일.
  * 위원회/사역팀은 입력 필수 — 시스템이 budgetDetail로 자동 도출한 값과
  * 교차 검증하여 불일치 시 행 에러로 처리.
+ *
+ * 청구인 정보(applicantName/applicantTitle/userId)는 엑셀에 포함되지 않으며
+ * 업로드 수행자(로그인 사용자 또는 CLI의 --as 인자)가 자동으로 채워짐.
+ * 은행 정보는 행마다 다른 수취인에게 송금되므로 엑셀 유지.
  */
 
 import ExcelJS from 'exceljs';
@@ -20,8 +24,6 @@ const HEADERS = [
   'quantity',
   'requestDate',
   'expenseDate',
-  'applicantName',
-  'applicantTitle',
   'bankName',
   'accountNumber',
   'accountHolder',
@@ -39,14 +41,12 @@ const HEADER_DESCRIPTIONS: Record<(typeof HEADERS)[number], string> = {
   quantity: '수량',
   requestDate: '청구일자 (YYYY-MM-DD)',
   expenseDate: '지급일자 (YYYY-MM-DD, 선택)',
-  applicantName: '청구인 (정확한 username 일치 필요)',
-  applicantTitle: '직책 (선택)',
-  bankName: '은행명',
-  accountNumber: '계좌번호',
-  accountHolder: '예금주',
+  bankName: '은행명 (수취 계좌)',
+  accountNumber: '계좌번호 (수취 계좌)',
+  accountHolder: '예금주 (수취 계좌)',
 };
 
-const OPTIONAL_FIELDS = new Set(['groupId', 'expenseDate', 'applicantTitle']);
+const OPTIONAL_FIELDS = new Set(['groupId', 'expenseDate']);
 
 const SAMPLE_ROWS = [
   {
@@ -61,8 +61,6 @@ const SAMPLE_ROWS = [
     quantity: 5,
     requestDate: '2026-05-01',
     expenseDate: '2026-05-05',
-    applicantName: '홍길동',
-    applicantTitle: '팀장',
     bankName: '우리은행',
     accountNumber: '1002-123-456789',
     accountHolder: '홍길동',
@@ -79,8 +77,6 @@ const SAMPLE_ROWS = [
     quantity: 10,
     requestDate: '2026-05-01',
     expenseDate: '2026-05-05',
-    applicantName: '홍길동',
-    applicantTitle: '팀장',
     bankName: '우리은행',
     accountNumber: '1002-123-456789',
     accountHolder: '홍길동',
@@ -97,8 +93,6 @@ const SAMPLE_ROWS = [
     quantity: 20,
     requestDate: '2026-05-02',
     expenseDate: '',
-    applicantName: '김찬양',
-    applicantTitle: '',
     bankName: '국민은행',
     accountNumber: '123-45-6789012',
     accountHolder: '김찬양',
@@ -117,8 +111,6 @@ const COLUMN_WIDTHS: Record<(typeof HEADERS)[number], number> = {
   quantity: 8,
   requestDate: 12,
   expenseDate: 12,
-  applicantName: 12,
-  applicantTitle: 10,
   bankName: 12,
   accountNumber: 18,
   accountHolder: 12,

@@ -2,11 +2,11 @@
  * 지출결의서 일괄 업로드 스크립트
  *
  * 사용법:
- *   npm run bulk-upload -- <excel-file-path>           # 실제 업로드
- *   npm run bulk-upload -- <excel-file-path> --dry-run # 검증만
+ *   npm run bulk-upload -- <excel-file-path> --as <username>           # 실제 업로드
+ *   npm run bulk-upload -- <excel-file-path> --as <username> --dry-run # 검증만
  *
- * 내부 로직은 lib/services/bulk-expense-upload-service.ts 공용.
- * 청구인 매칭 실패는 admin 폴백 없이 에러로 처리 (스펙 결정).
+ * --as <username>: 생성될 지출결의서의 청구인(userId/applicantName)으로 사용할 사용자.
+ *                  웹 UI는 로그인 사용자가 자동으로 지정되지만 CLI는 명시 필요.
  */
 
 import * as path from 'path';
@@ -18,17 +18,22 @@ import {
 } from '@/lib/services/bulk-expense-upload-service';
 
 function printUsage() {
-  console.log('사용법: npm run bulk-upload -- <excel-file-path> [--dry-run]');
+  console.log('사용법: npm run bulk-upload -- <excel-file-path> --as <username> [--dry-run]');
+  console.log('');
+  console.log('  --as <username>  생성될 지출결의서의 청구인 (필수)');
+  console.log('  --dry-run        실제 저장 없이 검증만');
   console.log('');
   console.log('Excel 파일 형식은 docs/BULK_UPLOAD.md 참고');
 }
 
 async function main() {
   const args = process.argv.slice(2);
-  const fileArg = args.find((a) => !a.startsWith('--'));
+  const fileArg = args.find((a) => !a.startsWith('--') && !args[args.indexOf(a) - 1]?.startsWith('--as'));
   const dryRun = args.includes('--dry-run');
+  const asIdx = args.indexOf('--as');
+  const asUsername = asIdx >= 0 ? args[asIdx + 1] : undefined;
 
-  if (!fileArg) {
+  if (!fileArg || !asUsername) {
     printUsage();
     process.exit(1);
   }
@@ -43,10 +48,22 @@ async function main() {
   console.log('지출결의서 일괄 업로드');
   console.log('='.repeat(60));
   console.log(`파일: ${fileArg}`);
+  console.log(`청구인: ${asUsername}`);
   console.log(`모드: ${dryRun ? 'DRY RUN (실제 저장 안 함)' : '실제 업로드'}`);
   console.log('');
 
   try {
+    // 청구인 사용자 조회
+    const user = await prisma.user.findFirst({
+      where: { username: asUsername, isActive: true },
+      select: { id: true, username: true },
+    });
+    if (!user) {
+      console.error(`❌ 청구인 사용자를 찾을 수 없습니다: ${asUsername}`);
+      process.exit(1);
+    }
+    const applicant = { userId: user.id, username: user.username };
+
     console.log('📂 Excel 파일 읽는 중...');
     const buffer = fs.readFileSync(absolutePath);
     const rows = await parseExpenseExcelBuffer(buffer);
@@ -59,7 +76,7 @@ async function main() {
 
     console.log('');
     console.log(dryRun ? '🔍 검증 중 (dry-run)...' : '💾 일괄 업로드 시도 중...');
-    const result = await executeBulkUpload(rows, { dryRun });
+    const result = await executeBulkUpload(rows, { dryRun }, applicant);
 
     if (result.errors.length > 0) {
       console.log('');
