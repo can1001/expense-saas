@@ -344,62 +344,98 @@ export async function executeBulkUpload(
     };
   }
 
-  // 트랜잭션 일괄 생성
+  // 트랜잭션 일괄 생성 — createManyAndReturn + createMany로 라운드트립 2회로 축소
+  // (이전 sequential `tx.expense.create` 루프는 500 그룹 × ~50ms RTT ≈ 25s)
+  const expensePayloads: Array<{
+    userId: string;
+    committee: string;
+    department: string;
+    expenseDate: Date | null;
+    requestAmount: number;
+    requestDate: Date;
+    requestTeam: string;
+    applicantName: string;
+    applicantTitle: string | null;
+    bankName: string;
+    accountNumber: string;
+    accountHolder: string;
+  }> = [];
+  const itemsPerGroup: Array<Array<{
+    budgetCategory: string;
+    budgetSubcategory: string;
+    budgetDetail: string;
+    description: string;
+    unitPrice: number;
+    quantity: number;
+    amount: number;
+    order: number;
+  }>> = [];
+
+  for (const [groupKey, groupRowsList] of groups) {
+    const first = groupRowsList[0];
+    const budgetInfo = resolvedByGroup.get(groupKey);
+    if (!budgetInfo) {
+      throw new Error('내부 오류: 검증 단계에서 채워졌어야 할 캐시가 비어있습니다.');
+    }
+
+    const items = groupRowsList.map((r, idx) => {
+      const { unitPrice, quantity, amount } = computeItemAmount(r);
+      return {
+        budgetCategory: r.budgetCategory!.toString().trim(),
+        budgetSubcategory: r.budgetSubcategory!.toString().trim(),
+        budgetDetail: r.budgetDetail!.toString().trim(),
+        description: r.description!.toString().trim(),
+        unitPrice,
+        quantity,
+        amount,
+        order: idx + 1,
+      };
+    });
+
+    expensePayloads.push({
+      userId: applicant.userId,
+      committee: budgetInfo.committee,
+      department: budgetInfo.department,
+      expenseDate: parseDate(first.expenseDate),
+      requestAmount: items.reduce((sum, i) => sum + i.amount, 0),
+      requestDate: parseDate(first.requestDate)!,
+      requestTeam: '출납팀',
+      applicantName: applicant.username,
+      applicantTitle: null,
+      bankName: first.bankName!.toString().trim(),
+      accountNumber: String(first.accountNumber).trim(),
+      accountHolder: first.accountHolder!.toString().trim(),
+    });
+    itemsPerGroup.push(items);
+  }
+
   const createdIds = await prisma.$transaction(
     async (tx) => {
-      const ids: string[] = [];
-      for (const [groupKey, groupRowsList] of groups) {
-        const first = groupRowsList[0];
+      // createManyAndReturn은 input order 그대로 반환 (Prisma 5.14+ 문서 보장)
+      const createdExpenses = await tx.expense.createManyAndReturn({
+        data: expensePayloads,
+        select: { id: true },
+      });
 
-        // dry-run 패스에서 resolvedByGroup가 채워졌고 에러 0건이어야만 여기 도달.
-        const budgetInfo = resolvedByGroup.get(groupKey);
-        if (!budgetInfo) {
-          throw new Error('내부 오류: 검증 단계에서 채워졌어야 할 캐시가 비어있습니다.');
-        }
-
-        const items = groupRowsList.map((r, idx) => {
-          const { unitPrice, quantity, amount } = computeItemAmount(r);
-          return {
-            budgetCategory: r.budgetCategory!.toString().trim(),
-            budgetSubcategory: r.budgetSubcategory!.toString().trim(),
-            budgetDetail: r.budgetDetail!.toString().trim(),
-            description: r.description!.toString().trim(),
-            unitPrice,
-            quantity,
-            amount,
-            order: idx + 1,
-          };
-        });
-
-        const requestAmount = items.reduce((sum, i) => sum + i.amount, 0);
-        const requestDate = parseDate(first.requestDate)!;
-        const expenseDate = parseDate(first.expenseDate);
-
-        const expense = await tx.expense.create({
-          data: {
-            userId: applicant.userId,
-            committee: budgetInfo.committee,
-            department: budgetInfo.department,
-            expenseDate,
-            requestAmount,
-            requestDate,
-            requestTeam: '출납팀',
-            applicantName: applicant.username,
-            applicantTitle: null,
-            bankName: first.bankName!.toString().trim(),
-            accountNumber: String(first.accountNumber).trim(),
-            accountHolder: first.accountHolder!.toString().trim(),
-            items: { create: items },
-          },
-        });
-
-        ids.push(expense.id);
+      if (createdExpenses.length !== itemsPerGroup.length) {
+        throw new Error(
+          `내부 오류: 생성된 expense 수(${createdExpenses.length})가 그룹 수(${itemsPerGroup.length})와 다릅니다.`
+        );
       }
-      return ids;
+
+      const allItems = createdExpenses.flatMap((expense, i) =>
+        itemsPerGroup[i].map((item) => ({ ...item, expenseId: expense.id }))
+      );
+
+      if (allItems.length > 0) {
+        await tx.expenseItem.createMany({ data: allItems });
+      }
+
+      return createdExpenses.map((e) => e.id);
     },
     {
-      // 500행 × 항목당 INSERT가 Neon RTT에서 5s 기본을 쉽게 넘김 — 리뷰 C1
-      timeout: 120_000,
+      // 2 round trips만 사용 — 30s 여유면 충분
+      timeout: 30_000,
       maxWait: 10_000,
     }
   );

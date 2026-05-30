@@ -16,7 +16,8 @@ import {
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    expense: { create: vi.fn() },
+    expense: { createManyAndReturn: vi.fn() },
+    expenseItem: { createMany: vi.fn() },
     $transaction: vi.fn(),
     budgetDetail: { findFirst: vi.fn() },
     departmentBudgetDetail: { findFirst: vi.fn() },
@@ -289,17 +290,37 @@ describe('executeBulkUpload', () => {
     expect(errors.some((e) => e.field === 'quantity')).toBe(true);
   });
 
-  it('commit: 정상 트랜잭션으로 생성 → createdIds 반환', async () => {
-    mockTransaction.mockImplementation(async (cb: unknown) => {
-      const tx = {
-        expense: {
-          create: vi.fn()
-            .mockResolvedValueOnce({ id: 'exp-1' })
-            .mockResolvedValueOnce({ id: 'exp-2' }),
-        },
-      };
-      return (cb as (tx: unknown) => Promise<unknown>)(tx);
-    });
+  // 헬퍼: createManyAndReturn + createMany를 mocking하는 tx 객체 생성
+  function buildMockTx(opts: {
+    returnIds?: string[];
+    createManyError?: Error;
+    itemCreateManyError?: Error;
+    captureExpenses?: (data: unknown[]) => void;
+    captureItems?: (data: unknown[]) => void;
+  }) {
+    return {
+      expense: {
+        createManyAndReturn: vi.fn().mockImplementation(async ({ data }: { data: unknown[] }) => {
+          opts.captureExpenses?.(data);
+          if (opts.createManyError) throw opts.createManyError;
+          return (opts.returnIds ?? data.map((_, i) => `exp-${i + 1}`)).map((id) => ({ id }));
+        }),
+      },
+      expenseItem: {
+        createMany: vi.fn().mockImplementation(async ({ data }: { data: unknown[] }) => {
+          opts.captureItems?.(data);
+          if (opts.itemCreateManyError) throw opts.itemCreateManyError;
+          return { count: data.length };
+        }),
+      },
+    };
+  }
+
+  it('commit: 정상 트랜잭션으로 생성 → createdIds 반환 (라운드트립 2회)', async () => {
+    const tx = buildMockTx({ returnIds: ['exp-1', 'exp-2'] });
+    mockTransaction.mockImplementation(async (cb: unknown) =>
+      (cb as (tx: unknown) => Promise<unknown>)(tx)
+    );
 
     const result = await executeBulkUpload(
       [makeRow(), makeRow({ groupId: 2 })],
@@ -310,35 +331,34 @@ describe('executeBulkUpload', () => {
     expect(result.errors).toEqual([]);
     expect(result.createdIds).toEqual(['exp-1', 'exp-2']);
     expect(mockTransaction).toHaveBeenCalledTimes(1);
+    expect(tx.expense.createManyAndReturn).toHaveBeenCalledTimes(1);
+    expect(tx.expenseItem.createMany).toHaveBeenCalledTimes(1);
   });
 
-  it('commit: expense.create에 applicant 정보 + 도메인 상수가 정확히 전달됨', async () => {
-    let captured:
-      | { userId: string; applicantName: string; applicantTitle: string | null; requestTeam: string; committee: string; department: string }
-      | undefined;
-    mockTransaction.mockImplementation(async (cb: unknown) => {
-      const tx = {
-        expense: {
-          create: vi.fn().mockImplementation(async ({ data }) => {
-            captured = data;
-            return { id: 'exp-1' };
-          }),
-        },
-      };
-      return (cb as (tx: unknown) => Promise<unknown>)(tx);
+  it('commit: createManyAndReturn에 applicant 정보 + 도메인 상수가 정확히 전달됨', async () => {
+    let capturedExpenses: unknown[] | undefined;
+    const tx = buildMockTx({
+      returnIds: ['exp-1'],
+      captureExpenses: (data) => {
+        capturedExpenses = data;
+      },
     });
+    mockTransaction.mockImplementation(async (cb: unknown) =>
+      (cb as (tx: unknown) => Promise<unknown>)(tx)
+    );
 
     await executeBulkUpload([makeRow()], { dryRun: false }, {
       userId: 'u-xyz',
       username: '특정사용자',
     });
 
-    expect(captured?.userId).toBe('u-xyz');
-    expect(captured?.applicantName).toBe('특정사용자');
-    expect(captured?.applicantTitle).toBeNull(); // 항상 null — 직책 필드는 일괄 업로드에서 미지원
-    expect(captured?.requestTeam).toBe('출납팀');
-    expect(captured?.committee).toBe('교육위원회');
-    expect(captured?.department).toBe('기획팀');
+    const first = capturedExpenses?.[0] as Record<string, unknown>;
+    expect(first?.userId).toBe('u-xyz');
+    expect(first?.applicantName).toBe('특정사용자');
+    expect(first?.applicantTitle).toBeNull(); // 항상 null — 직책 필드는 일괄 업로드에서 미지원
+    expect(first?.requestTeam).toBe('출납팀');
+    expect(first?.committee).toBe('교육위원회');
+    expect(first?.department).toBe('기획팀');
   });
 
   it('commit: 에러 있으면 트랜잭션 진입조차 안 함', async () => {
@@ -349,17 +369,11 @@ describe('executeBulkUpload', () => {
     expect(mockTransaction).not.toHaveBeenCalled();
   });
 
-  it('commit: 트랜잭션 내 1건 실패 시 전체 throw (롤백)', async () => {
-    mockTransaction.mockImplementation(async (cb: unknown) => {
-      const tx = {
-        expense: {
-          create: vi.fn()
-            .mockResolvedValueOnce({ id: 'exp-1' })
-            .mockRejectedValueOnce(new Error('DB 제약 위반')),
-        },
-      };
-      return (cb as (tx: unknown) => Promise<unknown>)(tx);
-    });
+  it('commit: 트랜잭션 내 createManyAndReturn 실패 시 throw (롤백)', async () => {
+    const tx = buildMockTx({ createManyError: new Error('DB 제약 위반') });
+    mockTransaction.mockImplementation(async (cb: unknown) =>
+      (cb as (tx: unknown) => Promise<unknown>)(tx)
+    );
 
     await expect(
       executeBulkUpload(
@@ -370,19 +384,32 @@ describe('executeBulkUpload', () => {
     ).rejects.toThrow('DB 제약 위반');
   });
 
-  it('groupId 동일한 여러 행 → 1개 expense + 여러 items', async () => {
-    let capturedData: { items: { create: unknown[] } } | undefined;
-    mockTransaction.mockImplementation(async (cb: unknown) => {
-      const tx = {
-        expense: {
-          create: vi.fn().mockImplementation(async ({ data }) => {
-            capturedData = data;
-            return { id: 'exp-1' };
-          }),
-        },
-      };
-      return (cb as (tx: unknown) => Promise<unknown>)(tx);
+  it('commit: expenseItem.createMany 실패 시도 throw (롤백 — items도 atomic)', async () => {
+    const tx = buildMockTx({ itemCreateManyError: new Error('item FK 위반') });
+    mockTransaction.mockImplementation(async (cb: unknown) =>
+      (cb as (tx: unknown) => Promise<unknown>)(tx)
+    );
+
+    await expect(
+      executeBulkUpload([makeRow()], { dryRun: false }, TEST_APPLICANT)
+    ).rejects.toThrow('item FK 위반');
+  });
+
+  it('groupId 동일한 여러 행 → 1개 expense + 여러 items (FK 연결)', async () => {
+    let capturedExpenses: unknown[] | undefined;
+    let capturedItems: unknown[] | undefined;
+    const tx = buildMockTx({
+      returnIds: ['exp-1'],
+      captureExpenses: (data) => {
+        capturedExpenses = data;
+      },
+      captureItems: (data) => {
+        capturedItems = data;
+      },
     });
+    mockTransaction.mockImplementation(async (cb: unknown) =>
+      (cb as (tx: unknown) => Promise<unknown>)(tx)
+    );
 
     await executeBulkUpload(
       [
@@ -393,7 +420,12 @@ describe('executeBulkUpload', () => {
       TEST_APPLICANT
     );
 
-    expect((capturedData!.items.create as unknown[]).length).toBe(2);
+    expect(capturedExpenses).toHaveLength(1); // 한 그룹 → 한 expense
+    expect(capturedItems).toHaveLength(2); // 두 행 → 두 items
+    // 모든 items가 같은 expenseId('exp-1')에 FK 연결
+    capturedItems?.forEach((it) => {
+      expect((it as { expenseId: string }).expenseId).toBe('exp-1');
+    });
   });
 });
 
