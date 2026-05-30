@@ -28,10 +28,11 @@ function printUsage() {
 
 async function main() {
   const args = process.argv.slice(2);
-  const fileArg = args.find((a) => !a.startsWith('--') && !args[args.indexOf(a) - 1]?.startsWith('--as'));
   const dryRun = args.includes('--dry-run');
   const asIdx = args.indexOf('--as');
   const asUsername = asIdx >= 0 ? args[asIdx + 1] : undefined;
+  // 인덱스 기반으로 식별 — 같은 값이 중복돼도 안전, --as의 값 슬롯도 정확히 제외
+  const fileArg = args.find((a, i) => !a.startsWith('--') && i !== asIdx + 1);
 
   if (!fileArg || !asUsername) {
     printUsage();

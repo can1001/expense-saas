@@ -242,13 +242,17 @@ export default function ExpenseUploadPage() {
               <div className="bg-green-50 px-3 py-2 text-sm text-green-800 font-semibold">
                 ✓ 검증 통과 — &apos;확정 업로드&apos;를 클릭하면 저장됩니다.
               </div>
+              {previewResult.preview && previewResult.preview.length > 0 && (
+                <div className="bg-gray-50 px-3 py-2 text-xs text-gray-600 border-b border-gray-200">
+                  청구인은 모두 <strong>{previewResult.preview[0].applicantName}</strong> (로그인 사용자)으로 설정됩니다.
+                </div>
+              )}
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-3 py-2 text-left">그룹</th>
                     <th className="px-3 py-2 text-left">위원회</th>
                     <th className="px-3 py-2 text-left">사역팀</th>
-                    <th className="px-3 py-2 text-left">청구인</th>
                     <th className="px-3 py-2 text-right">항목 수</th>
                     <th className="px-3 py-2 text-right">금액</th>
                   </tr>
@@ -259,7 +263,6 @@ export default function ExpenseUploadPage() {
                       <td className="px-3 py-2">{p.groupId}</td>
                       <td className="px-3 py-2">{p.committee}</td>
                       <td className="px-3 py-2">{p.department}</td>
-                      <td className="px-3 py-2">{p.applicantName}</td>
                       <td className="px-3 py-2 text-right">{p.itemsCount}</td>
                       <td className="px-3 py-2 text-right">{p.requestAmount.toLocaleString()}원</td>
                     </tr>

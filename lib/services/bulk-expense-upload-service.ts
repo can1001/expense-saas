@@ -68,8 +68,6 @@ export const EXCEL_ROW_HEADERS = [
 export interface BulkUploadApplicant {
   userId: string;
   username: string;
-  /** 선택 — 사용자 프로필에 직책이 없으면 null */
-  title?: string | null;
 }
 
 export interface ValidationError {
@@ -375,7 +373,7 @@ export async function executeBulkUpload(
             requestDate,
             requestTeam: '출납팀',
             applicantName: applicant.username,
-            applicantTitle: applicant.title ?? null,
+            applicantTitle: null,
             bankName: first.bankName!.toString().trim(),
             accountNumber: String(first.accountNumber).trim(),
             accountHolder: first.accountHolder!.toString().trim(),

@@ -15,7 +15,6 @@ import {
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    user: { findMany: vi.fn() },
     expense: { create: vi.fn() },
     $transaction: vi.fn(),
     budgetDetail: { findFirst: vi.fn() },
@@ -39,7 +38,6 @@ const mockTransaction = vi.mocked(prisma.$transaction);
 const TEST_APPLICANT = {
   userId: 'user-admin-assistant',
   username: '행정간사1',
-  title: null,
 };
 
 /** 테스트용 행 ‐ 모든 필수 필드 기본값 채운 헬퍼 */
@@ -283,8 +281,10 @@ describe('executeBulkUpload', () => {
     expect(mockTransaction).toHaveBeenCalledTimes(1);
   });
 
-  it('commit: expense.create에 applicant 정보가 정확히 전달됨', async () => {
-    let captured: { userId: string; applicantName: string; applicantTitle: string | null } | undefined;
+  it('commit: expense.create에 applicant 정보 + 도메인 상수가 정확히 전달됨', async () => {
+    let captured:
+      | { userId: string; applicantName: string; applicantTitle: string | null; requestTeam: string; committee: string; department: string }
+      | undefined;
     mockTransaction.mockImplementation(async (cb: unknown) => {
       const tx = {
         expense: {
@@ -300,30 +300,14 @@ describe('executeBulkUpload', () => {
     await executeBulkUpload([makeRow()], { dryRun: false }, {
       userId: 'u-xyz',
       username: '특정사용자',
-      title: '간사',
     });
 
     expect(captured?.userId).toBe('u-xyz');
     expect(captured?.applicantName).toBe('특정사용자');
-    expect(captured?.applicantTitle).toBe('간사');
-  });
-
-  it('commit: applicant.title이 null이면 applicantTitle도 null', async () => {
-    let captured: { applicantTitle: string | null } | undefined;
-    mockTransaction.mockImplementation(async (cb: unknown) => {
-      const tx = {
-        expense: {
-          create: vi.fn().mockImplementation(async ({ data }) => {
-            captured = data;
-            return { id: 'exp-1' };
-          }),
-        },
-      };
-      return (cb as (tx: unknown) => Promise<unknown>)(tx);
-    });
-
-    await executeBulkUpload([makeRow()], { dryRun: false }, TEST_APPLICANT);
-    expect(captured?.applicantTitle).toBeNull();
+    expect(captured?.applicantTitle).toBeNull(); // 항상 null — 직책 필드는 일괄 업로드에서 미지원
+    expect(captured?.requestTeam).toBe('출납팀');
+    expect(captured?.committee).toBe('교육위원회');
+    expect(captured?.department).toBe('기획팀');
   });
 
   it('commit: 에러 있으면 트랜잭션 진입조차 안 함', async () => {
