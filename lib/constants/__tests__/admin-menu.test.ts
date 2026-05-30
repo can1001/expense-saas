@@ -4,7 +4,7 @@ import { ADMIN_SIDEBAR_MENU } from '../admin-menu';
 describe('admin-menu', () => {
   describe('ADMIN_SIDEBAR_MENU structure', () => {
     it('should have correct number of groups', () => {
-      expect(ADMIN_SIDEBAR_MENU).toHaveLength(8);
+      expect(ADMIN_SIDEBAR_MENU).toHaveLength(9);
     });
 
     it('should have dashboard group', () => {
@@ -45,14 +45,22 @@ describe('admin-menu', () => {
       expect(approvalGroup.items).toHaveLength(2);
     });
 
+    it('should have expense management group', () => {
+      const expenseGroup = ADMIN_SIDEBAR_MENU[6];
+      expect(expenseGroup.title).toBe('지출 관리');
+      expect(expenseGroup.items).toHaveLength(1);
+      expect(expenseGroup.items[0].href).toBe('/admin/expense-upload');
+      expect(expenseGroup.items[0].label).toBe('지출결의서 일괄 업로드');
+    });
+
     it('should have income management group', () => {
-      const incomeGroup = ADMIN_SIDEBAR_MENU[6];
+      const incomeGroup = ADMIN_SIDEBAR_MENU[7];
       expect(incomeGroup.title).toBe('수입 관리');
       expect(incomeGroup.items).toHaveLength(1);
     });
 
     it('should have system group', () => {
-      const systemGroup = ADMIN_SIDEBAR_MENU[7];
+      const systemGroup = ADMIN_SIDEBAR_MENU[8];
       expect(systemGroup.title).toBe('시스템');
       expect(systemGroup.items).toHaveLength(2);
     });
@@ -117,7 +125,7 @@ describe('admin-menu', () => {
     });
 
     it('should include notification sending', () => {
-      const systemGroup = ADMIN_SIDEBAR_MENU[7];
+      const systemGroup = ADMIN_SIDEBAR_MENU[8];
       const notifItem = systemGroup.items.find(
         (item) => item.href === '/admin/notifications'
       );
@@ -136,6 +144,7 @@ describe('admin-menu', () => {
         '예산 편성',
         '결산/실적',
         '결재 관리',
+        '지출 관리',
         '수입 관리',
         '시스템',
       ]);

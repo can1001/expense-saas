@@ -98,6 +98,12 @@ export const ADMIN_SIDEBAR_MENU: SidebarGroup[] = [
     ],
   },
   {
+    title: '지출 관리',
+    items: [
+      { href: '/admin/expense-upload', label: '지출결의서 일괄 업로드', icon: Upload },
+    ],
+  },
+  {
     title: '수입 관리',
     items: [
       { href: '/admin/offerings', label: '헌금 관리', icon: HandCoins },

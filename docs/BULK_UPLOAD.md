@@ -81,7 +81,13 @@ npm run bulk-upload -- ./your-file.xlsx
 
 1. Excel의 `category`, `subcategory`, `detail` 값으로 BudgetMaster 테이블 검색
 2. 매칭되는 레코드에서 `committee`, `department` 값 가져오기
-3. 해당 값으로 지출결의서 생성
+3. `applicantName`으로 User 테이블에서 활성 사용자 조회 (정확한 username 일치 필요)
+4. 해당 값으로 지출결의서 생성 (status=DRAFT, 결재선 미생성)
+
+> **변경 사항 (2026-05-30)**
+> - 청구인 매칭 실패 시 admin 폴백 동작 제거. 정확한 username 필수.
+> - 일부 행 실패 시 전체 트랜잭션 롤백 (성공한 건만 저장 X).
+> - CLI 내부 로직이 `lib/services/bulk-expense-upload-service.ts`로 이동됨 (웹 UI와 공유).
 
 ## 에러 처리
 

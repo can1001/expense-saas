@@ -309,8 +309,12 @@ describe('menu-permissions', () => {
       expect(ROLE_ADMIN_MENU_PATHS['finance_head']).toEqual(ROLE_ADMIN_MENU_PATHS['accountant']);
     });
 
-    it('should give admin_assistant same access as accountant', () => {
-      expect(ROLE_ADMIN_MENU_PATHS['admin_assistant']).toEqual(ROLE_ADMIN_MENU_PATHS['accountant']);
+    it('should give admin_assistant accountant access plus expense-upload', () => {
+      // admin_assistant는 accountant의 모든 경로에 더해 /admin/expense-upload 추가
+      const accountantPaths = ROLE_ADMIN_MENU_PATHS['accountant'] as string[];
+      const assistantPaths = ROLE_ADMIN_MENU_PATHS['admin_assistant'] as string[];
+      accountantPaths.forEach((p) => expect(assistantPaths).toContain(p));
+      expect(assistantPaths).toContain('/admin/expense-upload');
     });
 
     it('should not include team_leader', () => {

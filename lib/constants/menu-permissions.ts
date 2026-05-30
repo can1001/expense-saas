@@ -88,6 +88,7 @@ export const ROLE_ADMIN_MENU_PATHS: Record<string, string[] | 'all'> = {
     '/admin/cumulative-report',
     '/admin/account-report',       // 재정보고서
     '/admin/offerings',
+    '/admin/expense-upload',       // 지출결의서 일괄 업로드
   ],
   finance_head: [
     '/admin',
