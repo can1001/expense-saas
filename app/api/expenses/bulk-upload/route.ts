@@ -40,11 +40,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
   }
 
-  // 파일 크기 사전 검사 (zip-bomb/대용량 OOM 방어, 리뷰 C2)
-  const contentLength = Number(request.headers.get('content-length') || 0);
-  if (contentLength > MAX_FILE_BYTES) {
+  // 파일 크기 사전 검사 — Content-Length 누락 요청도 거부 (formData가 무제한 메모리 로드 방지)
+  const contentLengthHeader = request.headers.get('content-length');
+  const contentLength = contentLengthHeader === null ? NaN : Number(contentLengthHeader);
+  if (!Number.isFinite(contentLength) || contentLength <= 0 || contentLength > MAX_FILE_BYTES) {
     return NextResponse.json(
-      { error: `파일이 너무 큽니다 (최대 ${MAX_FILE_BYTES / 1024 / 1024}MB).` },
+      {
+        error: `파일 크기를 확인할 수 없거나 너무 큽니다 (최대 ${MAX_FILE_BYTES / 1024 / 1024}MB, Content-Length 헤더 필수).`,
+      },
       { status: 413 }
     );
   }

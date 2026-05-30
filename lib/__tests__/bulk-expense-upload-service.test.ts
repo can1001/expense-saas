@@ -25,12 +25,14 @@ vi.mock('@/lib/prisma', () => ({
 
 vi.mock('../services/budget-lookup-service', () => ({
   lookupBudgetHierarchy: vi.fn(),
+  verifyBudgetMapping: vi.fn(),
 }));
 
 import { prisma } from '@/lib/prisma';
-import { lookupBudgetHierarchy } from '../services/budget-lookup-service';
+import { lookupBudgetHierarchy, verifyBudgetMapping } from '../services/budget-lookup-service';
 
 const mockLookup = vi.mocked(lookupBudgetHierarchy);
+const mockVerify = vi.mocked(verifyBudgetMapping);
 const mockUserFindMany = vi.mocked(prisma.user.findMany);
 const mockTransaction = vi.mocked(prisma.$transaction);
 
@@ -174,6 +176,8 @@ describe('executeBulkUpload', () => {
       budgetSubcategory: '기획비',
       budgetDetailId: 'bd-1',
     });
+    // 기본: 입력된 (위원회, 사역팀, 세목) 조합이 실제 매핑이라고 가정
+    mockVerify.mockResolvedValue(true);
     mockUserFindMany.mockResolvedValue([
       { id: 'user-1', username: '홍길동' },
     ] as never);
@@ -214,32 +218,48 @@ describe('executeBulkUpload', () => {
     expect(result.errors[0].message).toContain('없는사람');
   });
 
-  it('입력 위원회가 자동 도출과 다르면 교차 검증 에러', async () => {
+  it('입력 (위원회, 사역팀, 세목) 조합이 실제 매핑이 아니면 에러', async () => {
+    mockVerify.mockResolvedValue(false);
     const result = await executeBulkUpload(
       [makeRow({ committee: '오타위원회' })],
       { dryRun: true }
     );
-    expect(result.errors.some((e) => e.field === 'committee')).toBe(true);
-    expect(result.errors[0].message).toContain('오타위원회');
-    expect(result.errors[0].message).toContain('교육위원회');
-  });
-
-  it('입력 사역팀이 자동 도출과 다르면 교차 검증 에러', async () => {
-    const result = await executeBulkUpload(
-      [makeRow({ department: '다른부서' })],
-      { dryRun: true }
-    );
     expect(result.errors.some((e) => e.field === 'department')).toBe(true);
-    expect(result.errors[0].message).toContain('다른부서');
+    expect(result.errors[0].message).toContain('매핑되어 있지 않습니다');
+    expect(result.errors[0].message).toContain('오타위원회');
   });
 
-  it('입력 위원회/사역팀이 자동 도출과 일치하면 통과', async () => {
+  it('1:N 매핑 — 자동 도출과 다르더라도 입력값이 실제 매핑이면 통과', async () => {
+    // 자동 도출은 (교육위원회/기획팀) 반환, 입력은 다른 부서 (예배위원회/찬양팀)
+    mockLookup.mockResolvedValue({
+      committee: '교육위원회',
+      department: '기획팀',
+      budgetCategory: '사역지원비',
+      budgetSubcategory: '기획비',
+      budgetDetailId: 'bd-1',
+    });
+    // verifyBudgetMapping은 입력 조합이 실제 매핑이라고 답함 — 1:N의 정답 측
+    mockVerify.mockResolvedValue(true);
+    // 사용자도 입력에 맞춰 변경
+    mockUserFindMany.mockResolvedValue([{ id: 'u', username: '김찬양' }] as never);
+
     const result = await executeBulkUpload(
-      [makeRow({ committee: '교육위원회', department: '기획팀' })],
+      [makeRow({ committee: '예배위원회', department: '찬양팀', applicantName: '김찬양' })],
       { dryRun: true }
     );
     expect(result.errors).toEqual([]);
-    expect(result.preview).toHaveLength(1);
+    expect(result.preview![0].committee).toBe('예배위원회');
+    expect(result.preview![0].department).toBe('찬양팀');
+  });
+
+  it('단가가 비수치 문자열(NaN) → 검증 에러', () => {
+    const errors = validateRows([makeRow({ unitPrice: 'abc' as unknown as number })]);
+    expect(errors.some((e) => e.field === 'unitPrice')).toBe(true);
+  });
+
+  it('수량이 비수치 문자열(NaN) → 검증 에러', () => {
+    const errors = validateRows([makeRow({ quantity: 'xyz' as unknown as number })]);
+    expect(errors.some((e) => e.field === 'quantity')).toBe(true);
   });
 
   it('commit: 정상 트랜잭션으로 생성 → createdIds 반환', async () => {

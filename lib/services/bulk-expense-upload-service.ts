@@ -15,7 +15,7 @@
 
 import { prisma } from '@/lib/prisma';
 import ExcelJS from 'exceljs';
-import { lookupBudgetHierarchy } from './budget-lookup-service';
+import { lookupBudgetHierarchy, verifyBudgetMapping } from './budget-lookup-service';
 
 // ============================================================
 // 타입
@@ -170,12 +170,15 @@ export function validateRows(rows: ExcelRow[]): ValidationError[] {
       }
     }
 
-    if (row.unitPrice === undefined || row.unitPrice === null || Number(row.unitPrice) <= 0) {
-      errors.push({ rowNumber, groupId, field: 'unitPrice', message: '단가가 유효하지 않습니다 (0 이하)' });
+    // 비수치(문자) 입력은 Number()→NaN, `NaN <= 0`은 false라 우회됨 — Number.isFinite로 명시 검증
+    const up = row.unitPrice === undefined || row.unitPrice === null ? NaN : Number(row.unitPrice);
+    if (!Number.isFinite(up) || up <= 0) {
+      errors.push({ rowNumber, groupId, field: 'unitPrice', message: '단가가 유효하지 않습니다 (양수만 허용)' });
     }
 
-    if (row.quantity === undefined || row.quantity === null || Number(row.quantity) <= 0) {
-      errors.push({ rowNumber, groupId, field: 'quantity', message: '수량이 유효하지 않습니다 (0 이하)' });
+    const qty = row.quantity === undefined || row.quantity === null ? NaN : Number(row.quantity);
+    if (!Number.isFinite(qty) || qty <= 0) {
+      errors.push({ rowNumber, groupId, field: 'quantity', message: '수량이 유효하지 않습니다 (양수만 허용)' });
     }
 
     if (row.requestDate && !parseDate(row.requestDate)) {
@@ -216,7 +219,10 @@ export async function executeBulkUpload(
 
   // 그룹별 예산 조회 + 청구인 조회 (사전 일괄)
   const budgetErrors: ValidationError[] = [];
+  // 세목 조회 결과 캐시(자동 도출). 1:N인 경우 임의의 한 부서.
   const budgetCache = new Map<string, { committee: string; department: string }>();
+  // 그룹별로 cross-validation 통과 후 확정된 (위원회, 사역팀) — commit 패스에서 사용.
+  const resolvedByGroup = new Map<string, { committee: string; department: string }>();
   const applicantCache = new Map<string, { id: string; username: string }>();
   const preview: PreviewItem[] = [];
 
@@ -272,25 +278,32 @@ export async function executeBulkUpload(
       continue;
     }
 
-    // 입력된 위원회/사역팀과 자동 도출 결과 교차 검증
-    if (inputCommittee && inputCommittee !== budgetInfo.committee) {
-      budgetErrors.push({
-        rowNumber,
-        groupId: groupKey,
-        field: 'committee',
-        message: `위원회 불일치: 입력 "${inputCommittee}" ≠ 예산 매핑 "${budgetInfo.committee}"`,
-      });
-      continue;
+    // 입력된 (위원회, 사역팀, 세목) 조합이 실제 활성 매핑인지 검증.
+    // 한 세목이 여러 부서에 매핑된 1:N 경우에도 정답 부서를 모두 인정.
+    if (inputCommittee && inputDepartment) {
+      const valid = await verifyBudgetMapping(
+        inputCommittee,
+        inputDepartment,
+        cat,
+        sub,
+        det
+      );
+      if (!valid) {
+        budgetErrors.push({
+          rowNumber,
+          groupId: groupKey,
+          field: 'department',
+          message: `위원회/사역팀이 해당 세목에 매핑되어 있지 않습니다: ${inputCommittee} / ${inputDepartment} / ${cat} / ${sub} / ${det}`,
+        });
+        continue;
+      }
+      // 검증 통과: 입력값을 신뢰값으로 사용 (자동 도출이 다른 부서를 반환했을 수 있음)
+      budgetInfo = { committee: inputCommittee, department: inputDepartment };
     }
-    if (inputDepartment && inputDepartment !== budgetInfo.department) {
-      budgetErrors.push({
-        rowNumber,
-        groupId: groupKey,
-        field: 'department',
-        message: `사역팀(부) 불일치: 입력 "${inputDepartment}" ≠ 예산 매핑 "${budgetInfo.department}"`,
-      });
-      continue;
-    }
+
+    // 그룹별 확정값을 별도로 저장 — commit 패스가 동일 키로 다시 조회하면
+    // budgetCache의 자동 도출값(잘못된 부서일 수 있음)을 가져갈 위험이 있으므로 분리.
+    resolvedByGroup.set(groupKey, budgetInfo);
 
     // 청구인 조회
     if (!applicantName || !applicantCache.has(applicantName)) {
@@ -346,16 +359,13 @@ export async function executeBulkUpload(
   const createdIds = await prisma.$transaction(
     async (tx) => {
       const ids: string[] = [];
-      for (const [, groupRowsList] of groups) {
+      for (const [groupKey, groupRowsList] of groups) {
         const first = groupRowsList[0];
-        const cat = first.budgetCategory!.toString().trim();
-        const sub = first.budgetSubcategory!.toString().trim();
-        const det = first.budgetDetail!.toString().trim();
         const applicantName = first.applicantName!.toString().trim();
 
-        // dry-run 패스에서 budgetCache/applicantCache가 모두 채워졌고
+        // dry-run 패스에서 resolvedByGroup/applicantCache가 모두 채워졌고
         // 에러가 0건이어야만 여기 도달한다는 사전 불변량.
-        const budgetInfo = budgetCache.get(`${cat}|${sub}|${det}`);
+        const budgetInfo = resolvedByGroup.get(groupKey);
         const user = applicantCache.get(applicantName);
         if (!budgetInfo || !user) {
           throw new Error('내부 오류: 검증 단계에서 채워졌어야 할 캐시가 비어있습니다.');
