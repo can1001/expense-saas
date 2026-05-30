@@ -197,6 +197,20 @@ export function validateRows(rows: ExcelRow[]): ValidationError[] {
 }
 
 // ============================================================
+// 금액 계산 (미리보기/commit 공용)
+// ============================================================
+
+/**
+ * Excel 행에서 단가·수량·금액을 계산. 미리보기와 commit이 동일한 결과를 보장하기 위해
+ * 단일 헬퍼로 노출. 단가/수량을 정수로 floor 처리 (Prisma Int 컬럼과 정합).
+ */
+export function computeItemAmount(row: ExcelRow): { unitPrice: number; quantity: number; amount: number } {
+  const unitPrice = Math.floor(Number(row.unitPrice) || 0);
+  const quantity = Math.floor(Number(row.quantity) || 0);
+  return { unitPrice, quantity, amount: unitPrice * quantity };
+}
+
+// ============================================================
 // 그룹핑
 // ============================================================
 
@@ -292,11 +306,10 @@ export async function executeBulkUpload(
     // budgetCache의 자동 도출값(잘못된 부서일 수 있음)을 가져갈 위험이 있으므로 분리.
     resolvedByGroup.set(groupKey, budgetInfo);
 
-    const requestAmount = groupRowsList.reduce((sum, r) => {
-      const up = Number(r.unitPrice) || 0;
-      const qty = Number(r.quantity) || 0;
-      return sum + up * qty;
-    }, 0);
+    const requestAmount = groupRowsList.reduce(
+      (sum, r) => sum + computeItemAmount(r).amount,
+      0
+    );
 
     preview.push({
       groupId: groupKey,
@@ -345,8 +358,7 @@ export async function executeBulkUpload(
         }
 
         const items = groupRowsList.map((r, idx) => {
-          const unitPrice = Math.floor(Number(r.unitPrice));
-          const quantity = Math.floor(Number(r.quantity));
+          const { unitPrice, quantity, amount } = computeItemAmount(r);
           return {
             budgetCategory: r.budgetCategory!.toString().trim(),
             budgetSubcategory: r.budgetSubcategory!.toString().trim(),
@@ -354,7 +366,7 @@ export async function executeBulkUpload(
             description: r.description!.toString().trim(),
             unitPrice,
             quantity,
-            amount: unitPrice * quantity,
+            amount,
             order: idx + 1,
           };
         });

@@ -77,7 +77,8 @@ export default function ExpenseUploadPage() {
       a.href = url;
       a.download = 'expense-bulk-upload-template.xlsx';
       a.click();
-      URL.revokeObjectURL(url);
+      // Safari는 a.click() 동기 종료 직후 url을 revoke하면 다운로드를 놓치는 경우가 있음
+      setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : '템플릿 다운로드 실패');
     }

@@ -95,8 +95,13 @@ export async function POST(request: NextRequest) {
   try {
     rows = await parseExpenseExcelBuffer(buffer);
   } catch (err) {
+    console.error('[bulk-upload] Excel parse error', err);
+    const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: `Excel 파싱 실패: ${err instanceof Error ? err.message : String(err)}` },
+      {
+        error: 'Excel 파일을 읽을 수 없습니다. 양식이 올바른지 확인해주세요.',
+        ...(process.env.NODE_ENV !== 'production' && { detail: msg }),
+      },
       { status: 400 }
     );
   }
@@ -120,10 +125,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (err) {
     // 트랜잭션 내 DB 에러 등 — 전체 롤백된 상태
+    console.error('[bulk-upload] commit error', err);
+    const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
       {
         error: '일괄 업로드 처리 중 오류가 발생했습니다. 모든 변경사항은 롤백되었습니다.',
-        detail: err instanceof Error ? err.message : String(err),
+        ...(process.env.NODE_ENV !== 'production' && { detail: msg }),
       },
       { status: 500 }
     );

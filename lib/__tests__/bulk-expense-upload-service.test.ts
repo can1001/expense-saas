@@ -10,6 +10,7 @@ import {
   groupRows,
   executeBulkUpload,
   parseDate,
+  computeItemAmount,
   type ExcelRow,
 } from '../services/bulk-expense-upload-service';
 
@@ -139,6 +140,36 @@ describe('validateRows', () => {
     expect(errors).toHaveLength(2);
     expect(errors[0].rowNumber).toBe(3);
     expect(errors[1].rowNumber).toBe(4);
+  });
+});
+
+describe('computeItemAmount', () => {
+  it('정수 단가/수량 → 정확한 곱', () => {
+    expect(computeItemAmount({ unitPrice: 10000, quantity: 5 })).toEqual({
+      unitPrice: 10000,
+      quantity: 5,
+      amount: 50000,
+    });
+  });
+
+  it('소수 단가 → floor 후 곱 (미리보기/commit 동일 결과 보장)', () => {
+    expect(computeItemAmount({ unitPrice: 10000.7, quantity: 5 })).toEqual({
+      unitPrice: 10000,
+      quantity: 5,
+      amount: 50000,
+    });
+  });
+
+  it('소수 수량 → floor 후 곱', () => {
+    expect(computeItemAmount({ unitPrice: 1000, quantity: 2.9 })).toEqual({
+      unitPrice: 1000,
+      quantity: 2,
+      amount: 2000,
+    });
+  });
+
+  it('NaN/undefined → 0 처리 (validateRows에서 이미 차단되지만 방어)', () => {
+    expect(computeItemAmount({})).toEqual({ unitPrice: 0, quantity: 0, amount: 0 });
   });
 });
 
