@@ -280,7 +280,14 @@ export default function ExpenseCard({ expense, isSelected, onSelect, onClick, on
             <span className="text-lg font-bold text-gray-900">
               {formatCurrency(expense.requestAmount)}
             </span>
-            <PaymentStatusBadge status={expense.status} paymentStatus={expense.paymentStatus} />
+            <div className="flex flex-col items-end gap-0.5">
+              {expense.expenseDate && (
+                <span className="text-xs text-gray-500">
+                  지급 {format(new Date(expense.expenseDate), 'MM-dd')}
+                </span>
+              )}
+              <PaymentStatusBadge status={expense.status} paymentStatus={expense.paymentStatus} />
+            </div>
           </div>
         </div>
       </div>

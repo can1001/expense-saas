@@ -24,7 +24,7 @@ interface CurrentUser {
   role: UserRole | string;
 }
 
-type SortKey = 'requestDate' | 'applicantName' | 'budgetCategory' | 'budgetSubcategory' | 'budgetDetail' | 'requestAmount' | 'committee' | 'status' | 'approvedAt' | 'paymentStatus';
+type SortKey = 'requestDate' | 'applicantName' | 'budgetCategory' | 'budgetSubcategory' | 'budgetDetail' | 'requestAmount' | 'committee' | 'status' | 'approvedAt' | 'paymentStatus' | 'expenseDate';
 type SortDirection = 'asc' | 'desc';
 
 function ExpensesPageContent() {
@@ -316,6 +316,10 @@ function ExpensesPageContent() {
       case 'approvedAt':
         aValue = a.approvedAt ? new Date(a.approvedAt).getTime() : 0;
         bValue = b.approvedAt ? new Date(b.approvedAt).getTime() : 0;
+        break;
+      case 'expenseDate':
+        aValue = a.expenseDate ? new Date(a.expenseDate).getTime() : 0;
+        bValue = b.expenseDate ? new Date(b.expenseDate).getTime() : 0;
         break;
       case 'paymentStatus':
         aValue = a.paymentStatus || '';
@@ -1311,6 +1315,15 @@ function ExpensesPageContent() {
                   </th>
                   <th
                     className="px-3 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    onClick={() => handleSort('expenseDate')}
+                  >
+                    <div className="flex items-center justify-center">
+                      지급일자
+                      {renderSortIcon('expenseDate')}
+                    </div>
+                  </th>
+                  <th
+                    className="px-3 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
                     onClick={() => handleSort('paymentStatus')}
                   >
                     <div className="flex items-center justify-center">
@@ -1323,7 +1336,7 @@ function ExpensesPageContent() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={12} className="px-6 py-12 text-center text-gray-500">
                       {searchQuery ? '검색 결과가 없습니다.' : '등록된 지출결의서가 없습니다.'}
                     </td>
                   </tr>
@@ -1446,6 +1459,14 @@ function ExpensesPageContent() {
                       >
                         {expense.approvedAt
                           ? format(new Date(expense.approvedAt), 'yyyy-MM-dd')
+                          : '-'}
+                      </td>
+                      <td
+                        className="px-3 py-3 whitespace-nowrap text-sm text-center text-gray-900"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
+                        {expense.expenseDate
+                          ? format(new Date(expense.expenseDate), 'yyyy-MM-dd')
                           : '-'}
                       </td>
                       <td
