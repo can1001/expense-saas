@@ -21,22 +21,49 @@ import { lookupBudgetHierarchy } from './budget-lookup-service';
 // 타입
 // ============================================================
 
+/**
+ * 엑셀 컬럼 ↔ 폼/스키마 필드 1:1 매핑.
+ * 기존 신규 작성 폼(`createExpenseSchema`)과 동일 명명 규칙 사용.
+ * groupId만 일괄 업로드 전용(같은 ID는 한 지출결의서로 묶임).
+ */
 export interface ExcelRow {
-  category?: string;
-  subcategory?: string;
-  detail?: string;
-  description?: string;
+  groupId?: string | number;
+  committee?: string;            // 위원회 (필수, 자동 도출 결과와 교차 검증)
+  department?: string;           // 사역팀(부) (필수, 자동 도출 결과와 교차 검증)
+  budgetCategory?: string;       // 예산(항)
+  budgetSubcategory?: string;    // 예산(목)
+  budgetDetail?: string;         // 예산(세목)
+  description?: string;          // 적요
   unitPrice?: number;
   quantity?: number;
   requestDate?: string | Date | number;
-  expenseDate?: string | Date | number;
+  expenseDate?: string | Date | number; // 지급일자
   applicantName?: string;
   applicantTitle?: string;
   bankName?: string;
   accountNumber?: string | number;
   accountHolder?: string;
-  groupId?: string | number;
 }
+
+/** ExcelRow의 정식 헤더 (parseExpenseExcelBuffer가 이 키들만 받는다) */
+export const EXCEL_ROW_HEADERS = [
+  'groupId',
+  'committee',
+  'department',
+  'budgetCategory',
+  'budgetSubcategory',
+  'budgetDetail',
+  'description',
+  'unitPrice',
+  'quantity',
+  'requestDate',
+  'expenseDate',
+  'applicantName',
+  'applicantTitle',
+  'bankName',
+  'accountNumber',
+  'accountHolder',
+] as const satisfies ReadonlyArray<keyof ExcelRow>;
 
 export interface ValidationError {
   rowNumber: number;     // Excel 1-based 행 번호 (헤더 포함 → 데이터 첫 행은 2)
@@ -83,18 +110,20 @@ export async function parseExpenseExcelBuffer(buffer: Buffer): Promise<ExcelRow[
     throw new Error('워크시트를 찾을 수 없습니다.');
   }
 
-  // 헤더는 템플릿 생성기가 만든 camelCase 그대로 매칭 (ExcelRow 인터페이스와 일치)
+  // 헤더는 정식 ExcelRow 키만 화이트리스트 매칭 (프로토타입 오염·오타 방지)
+  const allowedHeaders = new Set<string>(EXCEL_ROW_HEADERS);
   const headerRow = worksheet.getRow(1);
-  const headers: string[] = [];
+  const headers: (string | null)[] = [];
   headerRow.eachCell((cell, colNumber) => {
-    headers[colNumber - 1] = String(cell.value || '').trim();
+    const h = String(cell.value || '').trim();
+    headers[colNumber - 1] = allowedHeaders.has(h) ? h : null;
   });
 
   const rows: ExcelRow[] = [];
   worksheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) return;
 
-    const rowData: Record<string, unknown> = {};
+    const rowData: Record<string, unknown> = Object.create(null);
     row.eachCell((cell, colNumber) => {
       const header = headers[colNumber - 1];
       if (header) {
@@ -122,9 +151,11 @@ export function validateRows(rows: ExcelRow[]): ValidationError[] {
     const groupId = row.groupId?.toString();
 
     const required: Array<[keyof ExcelRow, string]> = [
-      ['category', '예산(항)'],
-      ['subcategory', '예산(목)'],
-      ['detail', '예산(세목)'],
+      ['committee', '위원회'],
+      ['department', '사역팀(부)'],
+      ['budgetCategory', '예산(항)'],
+      ['budgetSubcategory', '예산(목)'],
+      ['budgetDetail', '예산(세목)'],
       ['description', '적요'],
       ['requestDate', '청구일자'],
       ['applicantName', '청구인'],
@@ -209,9 +240,11 @@ export async function executeBulkUpload(
     const first = groupRowsList[0];
     const rowNumber = rows.indexOf(first) + 2;
 
-    const cat = first.category?.toString().trim();
-    const sub = first.subcategory?.toString().trim();
-    const det = first.detail?.toString().trim();
+    const cat = first.budgetCategory?.toString().trim();
+    const sub = first.budgetSubcategory?.toString().trim();
+    const det = first.budgetDetail?.toString().trim();
+    const inputCommittee = first.committee?.toString().trim();
+    const inputDepartment = first.department?.toString().trim();
     const applicantName = first.applicantName?.toString().trim();
 
     // 예산 조회
@@ -236,6 +269,26 @@ export async function executeBulkUpload(
       }
     } else {
       // 필수 누락은 validationErrors가 이미 처리. preview 생성만 건너뜀.
+      continue;
+    }
+
+    // 입력된 위원회/사역팀과 자동 도출 결과 교차 검증
+    if (inputCommittee && inputCommittee !== budgetInfo.committee) {
+      budgetErrors.push({
+        rowNumber,
+        groupId: groupKey,
+        field: 'committee',
+        message: `위원회 불일치: 입력 "${inputCommittee}" ≠ 예산 매핑 "${budgetInfo.committee}"`,
+      });
+      continue;
+    }
+    if (inputDepartment && inputDepartment !== budgetInfo.department) {
+      budgetErrors.push({
+        rowNumber,
+        groupId: groupKey,
+        field: 'department',
+        message: `사역팀(부) 불일치: 입력 "${inputDepartment}" ≠ 예산 매핑 "${budgetInfo.department}"`,
+      });
       continue;
     }
 
@@ -290,60 +343,71 @@ export async function executeBulkUpload(
   }
 
   // 트랜잭션 일괄 생성
-  const createdIds = await prisma.$transaction(async (tx) => {
-    const ids: string[] = [];
-    for (const [groupKey, groupRowsList] of groups) {
-      const first = groupRowsList[0];
-      const cat = first.category!.toString().trim();
-      const sub = first.subcategory!.toString().trim();
-      const det = first.detail!.toString().trim();
-      const applicantName = first.applicantName!.toString().trim();
+  const createdIds = await prisma.$transaction(
+    async (tx) => {
+      const ids: string[] = [];
+      for (const [, groupRowsList] of groups) {
+        const first = groupRowsList[0];
+        const cat = first.budgetCategory!.toString().trim();
+        const sub = first.budgetSubcategory!.toString().trim();
+        const det = first.budgetDetail!.toString().trim();
+        const applicantName = first.applicantName!.toString().trim();
 
-      const budgetInfo = budgetCache.get(`${cat}|${sub}|${det}`)!;
-      const user = applicantCache.get(applicantName)!;
+        // dry-run 패스에서 budgetCache/applicantCache가 모두 채워졌고
+        // 에러가 0건이어야만 여기 도달한다는 사전 불변량.
+        const budgetInfo = budgetCache.get(`${cat}|${sub}|${det}`);
+        const user = applicantCache.get(applicantName);
+        if (!budgetInfo || !user) {
+          throw new Error('내부 오류: 검증 단계에서 채워졌어야 할 캐시가 비어있습니다.');
+        }
 
-      const items = groupRowsList.map((r, idx) => {
-        const unitPrice = Math.floor(Number(r.unitPrice));
-        const quantity = Math.floor(Number(r.quantity));
-        return {
-          budgetCategory: r.category!.toString().trim(),
-          budgetSubcategory: r.subcategory!.toString().trim(),
-          budgetDetail: r.detail!.toString().trim(),
-          description: r.description!.toString().trim(),
-          unitPrice,
-          quantity,
-          amount: unitPrice * quantity,
-          order: idx + 1,
-        };
-      });
+        const items = groupRowsList.map((r, idx) => {
+          const unitPrice = Math.floor(Number(r.unitPrice));
+          const quantity = Math.floor(Number(r.quantity));
+          return {
+            budgetCategory: r.budgetCategory!.toString().trim(),
+            budgetSubcategory: r.budgetSubcategory!.toString().trim(),
+            budgetDetail: r.budgetDetail!.toString().trim(),
+            description: r.description!.toString().trim(),
+            unitPrice,
+            quantity,
+            amount: unitPrice * quantity,
+            order: idx + 1,
+          };
+        });
 
-      const requestAmount = items.reduce((sum, i) => sum + i.amount, 0);
-      const requestDate = parseDate(first.requestDate)!;
-      const expenseDate = parseDate(first.expenseDate);
+        const requestAmount = items.reduce((sum, i) => sum + i.amount, 0);
+        const requestDate = parseDate(first.requestDate)!;
+        const expenseDate = parseDate(first.expenseDate);
 
-      const expense = await tx.expense.create({
-        data: {
-          userId: user.id,
-          committee: budgetInfo.committee,
-          department: budgetInfo.department,
-          expenseDate,
-          requestAmount,
-          requestDate,
-          requestTeam: '출납팀',
-          applicantName,
-          applicantTitle: first.applicantTitle?.toString().trim() || null,
-          bankName: first.bankName!.toString().trim(),
-          accountNumber: String(first.accountNumber).trim(),
-          accountHolder: first.accountHolder!.toString().trim(),
-          items: { create: items },
-        },
-      });
+        const expense = await tx.expense.create({
+          data: {
+            userId: user.id,
+            committee: budgetInfo.committee,
+            department: budgetInfo.department,
+            expenseDate,
+            requestAmount,
+            requestDate,
+            requestTeam: '출납팀',
+            applicantName,
+            applicantTitle: first.applicantTitle?.toString().trim() || null,
+            bankName: first.bankName!.toString().trim(),
+            accountNumber: String(first.accountNumber).trim(),
+            accountHolder: first.accountHolder!.toString().trim(),
+            items: { create: items },
+          },
+        });
 
-      ids.push(expense.id);
-      void groupKey;
+        ids.push(expense.id);
+      }
+      return ids;
+    },
+    {
+      // 500행 × 항목당 INSERT가 Neon RTT에서 5s 기본을 쉽게 넘김 — 리뷰 C1
+      timeout: 120_000,
+      maxWait: 10_000,
     }
-    return ids;
-  });
+  );
 
   return {
     dryRun: false,

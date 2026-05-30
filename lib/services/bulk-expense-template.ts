@@ -1,16 +1,20 @@
 /**
  * 지출결의서 일괄 업로드 템플릿 (CLI/API 공유)
  *
- * 워크북을 빌드해서 Buffer로 반환. 파일 저장은 호출자 책임.
+ * 컬럼 명명은 기존 신규 작성 폼(`createExpenseSchema`)과 동일.
+ * 위원회/사역팀은 입력 필수 — 시스템이 budgetDetail로 자동 도출한 값과
+ * 교차 검증하여 불일치 시 행 에러로 처리.
  */
 
 import ExcelJS from 'exceljs';
 
 const HEADERS = [
   'groupId',
-  'category',
-  'subcategory',
-  'detail',
+  'committee',
+  'department',
+  'budgetCategory',
+  'budgetSubcategory',
+  'budgetDetail',
   'description',
   'unitPrice',
   'quantity',
@@ -24,10 +28,12 @@ const HEADERS = [
 ] as const;
 
 const HEADER_DESCRIPTIONS: Record<(typeof HEADERS)[number], string> = {
-  groupId: '그룹ID (같은 ID는 하나의 지출결의서)',
-  category: '예산(항)',
-  subcategory: '예산(목)',
-  detail: '예산(세목)',
+  groupId: '그룹ID — 같은 ID는 한 지출결의서로 묶임 (비우면 행마다 별건)',
+  committee: '위원회 (예산 매핑과 교차 검증)',
+  department: '사역팀(부) (예산 매핑과 교차 검증)',
+  budgetCategory: '예산(항)',
+  budgetSubcategory: '예산(목)',
+  budgetDetail: '예산(세목)',
   description: '적요',
   unitPrice: '단가',
   quantity: '수량',
@@ -45,9 +51,11 @@ const OPTIONAL_FIELDS = new Set(['groupId', 'expenseDate', 'applicantTitle']);
 const SAMPLE_ROWS = [
   {
     groupId: 1,
-    category: '사역지원비',
-    subcategory: '기획비',
-    detail: '아웃팅비',
+    committee: '교육위원회',
+    department: '기획팀',
+    budgetCategory: '사역지원비',
+    budgetSubcategory: '기획비',
+    budgetDetail: '아웃팅비',
     description: '기획팀 회의 후 식사',
     unitPrice: 10000,
     quantity: 5,
@@ -61,9 +69,11 @@ const SAMPLE_ROWS = [
   },
   {
     groupId: 1,
-    category: '사역지원비',
-    subcategory: '기획비',
-    detail: '행사비(전교인행사)',
+    committee: '교육위원회',
+    department: '기획팀',
+    budgetCategory: '사역지원비',
+    budgetSubcategory: '기획비',
+    budgetDetail: '행사비(전교인행사)',
     description: '기획팀 회의 다과',
     unitPrice: 5000,
     quantity: 10,
@@ -77,9 +87,11 @@ const SAMPLE_ROWS = [
   },
   {
     groupId: 2,
-    category: '예배사역비',
-    subcategory: '찬양팀운영비',
-    detail: '소모품비',
+    committee: '예배위원회',
+    department: '찬양팀',
+    budgetCategory: '예배사역비',
+    budgetSubcategory: '찬양팀운영비',
+    budgetDetail: '소모품비',
     description: '마이크 커버 구매',
     unitPrice: 3000,
     quantity: 20,
@@ -95,9 +107,11 @@ const SAMPLE_ROWS = [
 
 const COLUMN_WIDTHS: Record<(typeof HEADERS)[number], number> = {
   groupId: 10,
-  category: 15,
-  subcategory: 18,
-  detail: 20,
+  committee: 14,
+  department: 14,
+  budgetCategory: 15,
+  budgetSubcategory: 18,
+  budgetDetail: 20,
   description: 30,
   unitPrice: 10,
   quantity: 8,

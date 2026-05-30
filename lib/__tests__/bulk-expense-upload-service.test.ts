@@ -37,9 +37,11 @@ const mockTransaction = vi.mocked(prisma.$transaction);
 /** 테스트용 행 ‐ 모든 필수 필드 기본값 채운 헬퍼 */
 function makeRow(overrides: Partial<ExcelRow> = {}): ExcelRow {
   return {
-    category: '사역지원비',
-    subcategory: '기획비',
-    detail: '아웃팅비',
+    committee: '교육위원회',
+    department: '기획팀',
+    budgetCategory: '사역지원비',
+    budgetSubcategory: '기획비',
+    budgetDetail: '아웃팅비',
     description: '회의 후 식사',
     unitPrice: 10000,
     quantity: 5,
@@ -88,10 +90,16 @@ describe('validateRows', () => {
   });
 
   it('필수 컬럼 누락 시 에러 (행번호=2부터)', () => {
-    const errors = validateRows([makeRow({ category: undefined, description: undefined })]);
+    const errors = validateRows([makeRow({ budgetCategory: undefined, description: undefined })]);
     expect(errors).toHaveLength(2);
     expect(errors[0].rowNumber).toBe(2);
-    expect(errors.map((e) => e.field)).toEqual(expect.arrayContaining(['category', 'description']));
+    expect(errors.map((e) => e.field)).toEqual(expect.arrayContaining(['budgetCategory', 'description']));
+  });
+
+  it('위원회/사역팀 누락 시 에러', () => {
+    const errors = validateRows([makeRow({ committee: undefined, department: undefined })]);
+    expect(errors).toHaveLength(2);
+    expect(errors.map((e) => e.field)).toEqual(expect.arrayContaining(['committee', 'department']));
   });
 
   it('unitPrice가 0 이하면 에러', () => {
@@ -206,6 +214,34 @@ describe('executeBulkUpload', () => {
     expect(result.errors[0].message).toContain('없는사람');
   });
 
+  it('입력 위원회가 자동 도출과 다르면 교차 검증 에러', async () => {
+    const result = await executeBulkUpload(
+      [makeRow({ committee: '오타위원회' })],
+      { dryRun: true }
+    );
+    expect(result.errors.some((e) => e.field === 'committee')).toBe(true);
+    expect(result.errors[0].message).toContain('오타위원회');
+    expect(result.errors[0].message).toContain('교육위원회');
+  });
+
+  it('입력 사역팀이 자동 도출과 다르면 교차 검증 에러', async () => {
+    const result = await executeBulkUpload(
+      [makeRow({ department: '다른부서' })],
+      { dryRun: true }
+    );
+    expect(result.errors.some((e) => e.field === 'department')).toBe(true);
+    expect(result.errors[0].message).toContain('다른부서');
+  });
+
+  it('입력 위원회/사역팀이 자동 도출과 일치하면 통과', async () => {
+    const result = await executeBulkUpload(
+      [makeRow({ committee: '교육위원회', department: '기획팀' })],
+      { dryRun: true }
+    );
+    expect(result.errors).toEqual([]);
+    expect(result.preview).toHaveLength(1);
+  });
+
   it('commit: 정상 트랜잭션으로 생성 → createdIds 반환', async () => {
     mockTransaction.mockImplementation(async (cb: unknown) => {
       const tx = {
@@ -291,30 +327,36 @@ describe('parseExpenseExcelBuffer', () => {
 
   it('헤더와 데이터 행을 읽어 ExcelRow 배열 반환', async () => {
     const buf = await makeBuffer(
-      ['category', 'subcategory', 'detail', 'description', 'unitPrice', 'quantity', 'requestDate', 'applicantName', 'bankName', 'accountNumber', 'accountHolder'],
-      [['사역지원비', '기획비', '아웃팅비', '회의 후 식사', 10000, 5, '2026-05-15', '홍길동', '우리은행', '1002-123-456789', '홍길동']]
+      ['committee', 'department', 'budgetCategory', 'budgetSubcategory', 'budgetDetail', 'description', 'unitPrice', 'quantity', 'requestDate', 'applicantName', 'bankName', 'accountNumber', 'accountHolder'],
+      [['교육위원회', '기획팀', '사역지원비', '기획비', '아웃팅비', '회의 후 식사', 10000, 5, '2026-05-15', '홍길동', '우리은행', '1002-123-456789', '홍길동']]
     );
     const rows = await parseExpenseExcelBuffer(buf);
     expect(rows).toHaveLength(1);
-    expect(rows[0].category).toBe('사역지원비');
+    expect(rows[0].budgetCategory).toBe('사역지원비');
+    expect(rows[0].committee).toBe('교육위원회');
     expect(rows[0].unitPrice).toBe(10000);
   });
 
   it('빈 행은 건너뛴다', async () => {
     const buf = await makeBuffer(
-      ['category', 'subcategory'],
+      ['budgetCategory', 'budgetSubcategory'],
       [['A', 'B'], [null, null], ['', ''], ['C', 'D']]
     );
     const rows = await parseExpenseExcelBuffer(buf);
     expect(rows).toHaveLength(2);
   });
 
-  it('헤더는 정식 camelCase로 매칭 (대소문자 다르면 무시)', async () => {
-    const buf = await makeBuffer(['Category', 'unitPrice'], [['A', 999]]);
+  it('정식 헤더만 매칭 (오타/대소문자/위험 키 무시)', async () => {
+    const buf = await makeBuffer(
+      ['BudgetCategory', 'unitPrice', '__proto__'],
+      [['ignored', 999, 'attack']]
+    );
     const rows = await parseExpenseExcelBuffer(buf);
-    // 'Category'는 정식 'category'와 다르므로 매칭 안 됨
-    expect(rows[0].category).toBeUndefined();
-    // 'unitPrice'는 정식과 일치
+    // 대소문자 다른 키는 매칭 안 됨
+    expect(rows[0].budgetCategory).toBeUndefined();
+    // 정식 키는 매칭
     expect(rows[0].unitPrice).toBe(999);
+    // 프로토타입 오염 방지 — __proto__ 헤더는 무시되어 Object.prototype 영향 없음
+    expect(({} as Record<string, unknown>).__proto__).not.toBe('attack');
   });
 });

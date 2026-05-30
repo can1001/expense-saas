@@ -37,16 +37,20 @@ npm run bulk-upload -- ./your-file.xlsx
 
 ### 필수 컬럼
 
+컬럼명은 신규 작성 폼 스키마(`createExpenseSchema`)와 동일.
+
 | 컬럼 | 설명 | 예시 |
 |------|------|------|
-| `category` | 예산(항) | 사역지원비 |
-| `subcategory` | 예산(목) | 기획비 |
-| `detail` | 예산(세목) | 아웃팅비 |
+| `committee` | 위원회 | 교육위원회 |
+| `department` | 사역팀(부) | 기획팀 |
+| `budgetCategory` | 예산(항) | 사역지원비 |
+| `budgetSubcategory` | 예산(목) | 기획비 |
+| `budgetDetail` | 예산(세목) | 아웃팅비 |
 | `description` | 적요 | 기획팀 회의 후 식사 |
 | `unitPrice` | 단가 | 10000 |
 | `quantity` | 수량 | 5 |
-| `requestDate` | 청구일자 | 2024-12-01 |
-| `applicantName` | 청구인 | 홍길동 |
+| `requestDate` | 청구일자 | 2026-05-01 |
+| `applicantName` | 청구인 (정확한 username) | 홍길동 |
 | `bankName` | 은행명 | 우리은행 |
 | `accountNumber` | 계좌번호 | 1002-123-456789 |
 | `accountHolder` | 예금주 | 홍길동 |
@@ -56,35 +60,34 @@ npm run bulk-upload -- ./your-file.xlsx
 | 컬럼 | 설명 | 예시 |
 |------|------|------|
 | `groupId` | 그룹ID (같은 ID는 하나의 지출결의서) | 1 |
-| `expenseDate` | 지출일자 | 2024-12-01 |
+| `expenseDate` | 지급일자 | 2026-05-05 |
 | `applicantTitle` | 직책 | 팀장 |
 
 ## 그룹핑 기능
 
-`groupId`가 같은 행들은 하나의 지출결의서로 묶입니다.
+`groupId`가 같은 행들은 하나의 지출결의서로 묶입니다 (`groupId` 없으면 각 행이 개별 지출결의서).
 
 ### 예시
 
-| groupId | detail | description | unitPrice | quantity |
-|---------|--------|-------------|-----------|----------|
+| groupId | budgetDetail | description | unitPrice | quantity |
+|---------|--------------|-------------|-----------|----------|
 | 1 | 아웃팅비 | 회의 후 식사 | 10000 | 5 |
 | 1 | 소모품비 | 회의 다과 | 5000 | 10 |
 | 2 | 교육교재비 | 공과 구입 | 15000 | 20 |
 
-위 데이터는 2개의 지출결의서로 생성됩니다:
-- 지출결의서 1: 2개 항목 (아웃팅비 + 소모품비)
-- 지출결의서 2: 1개 항목 (교육교재비)
+위 데이터는 2개의 지출결의서로 생성됩니다.
 
-`groupId`가 없으면 각 행이 개별 지출결의서로 생성됩니다.
+## 검증 로직
 
-## 자동 조회 로직
-
-1. Excel의 `category`, `subcategory`, `detail` 값으로 BudgetMaster 테이블 검색
-2. 매칭되는 레코드에서 `committee`, `department` 값 가져오기
-3. `applicantName`으로 User 테이블에서 활성 사용자 조회 (정확한 username 일치 필요)
-4. 해당 값으로 지출결의서 생성 (status=DRAFT, 결재선 미생성)
+1. **필수 컬럼**: 누락 시 행 에러.
+2. **예산 매핑 조회**: `budgetCategory/budgetSubcategory/budgetDetail`로 위원회/사역팀 자동 도출.
+3. **위원회/사역팀 교차 검증**: 엑셀 입력 `committee`/`department`가 자동 도출 결과와 다르면 행 에러.
+4. **청구인 매칭**: `applicantName`으로 활성 사용자 조회 (정확한 username 일치 필요, admin 폴백 없음).
+5. 검증 통과 시 `status=DRAFT`, 결재선 미생성으로 일괄 생성. 한 건이라도 실패 시 **전체 트랜잭션 롤백**.
 
 > **변경 사항 (2026-05-30)**
+> - 컬럼명을 신규 작성 폼 스키마와 동일하게 통일 (`category`→`budgetCategory` 등).
+> - `committee`, `department` 컬럼 필수 추가 + 자동 도출 결과와 교차 검증.
 > - 청구인 매칭 실패 시 admin 폴백 동작 제거. 정확한 username 필수.
 > - 일부 행 실패 시 전체 트랜잭션 롤백 (성공한 건만 저장 X).
 > - CLI 내부 로직이 `lib/services/bulk-expense-upload-service.ts`로 이동됨 (웹 UI와 공유).
