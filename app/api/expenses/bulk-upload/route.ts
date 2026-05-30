@@ -122,6 +122,21 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       username: user.username,
     });
+    // 감사 로그 — Render 로그 익스플로러에서 [bulk-upload]로 검색
+    console.info(
+      '[bulk-upload]',
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        actorId: user.id,
+        actorUsername: user.username,
+        mode: dryRun ? 'dry-run' : 'commit',
+        fileSize: arrayBuffer.byteLength,
+        totalRows: result.totalRows,
+        totalExpenses: result.totalExpenses,
+        errorCount: result.errors.length,
+        createdCount: result.createdIds?.length ?? 0,
+      })
+    );
     return NextResponse.json(result);
   } catch (err) {
     // 트랜잭션 내 DB 에러 등 — 전체 롤백된 상태
