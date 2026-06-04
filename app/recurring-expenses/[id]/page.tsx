@@ -94,6 +94,25 @@ export default function RecurringExpenseDetailPage({ params }: PageProps) {
     }
   };
 
+  const handleGenerateNow = async () => {
+    try {
+      const response = await fetch(`/api/recurring-expenses/${id}/generate`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '지출결의서 생성에 실패했습니다.');
+      }
+
+      // 생성된 지출결의서 상세 페이지로 이동
+      router.push(`/expenses/${data.expenseId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '지출결의서 생성에 실패했습니다.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -123,6 +142,7 @@ export default function RecurringExpenseDetailPage({ params }: PageProps) {
           <RecurringExpenseDetail
             recurringExpense={recurringExpense}
             onStatusChange={handleStatusChange}
+            onGenerateNow={handleGenerateNow}
           />
         )}
       </div>

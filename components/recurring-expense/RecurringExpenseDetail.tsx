@@ -13,7 +13,7 @@ import {
   BTN_DANGER,
   SPINNER,
 } from '@/lib/constants/styles';
-import { Edit, Pause, Play, Trash2, ArrowLeft } from 'lucide-react';
+import { Edit, Pause, Play, Trash2, ArrowLeft, Zap } from 'lucide-react';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { GeneratedExpenseList } from './GeneratedExpenseList';
 
@@ -49,6 +49,7 @@ interface RecurringExpenseDetailProps {
     }>;
   };
   onStatusChange?: (newStatus: 'ACTIVE' | 'PAUSED' | 'CANCELLED') => Promise<void>;
+  onGenerateNow?: () => Promise<void>;
 }
 
 const frequencyLabels: Record<string, string> = {
@@ -85,14 +86,16 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export function RecurringExpenseDetail({ recurringExpense, onStatusChange }: RecurringExpenseDetailProps) {
+export function RecurringExpenseDetail({ recurringExpense, onStatusChange, onGenerateNow }: RecurringExpenseDetailProps) {
   const router = useRouter();
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const canChangeStatus = ['ACTIVE', 'PAUSED'].includes(recurringExpense.status);
   const canCancel = recurringExpense.status !== 'CANCELLED' && recurringExpense.status !== 'COMPLETED';
+  const canGenerateNow = recurringExpense.status === 'ACTIVE' && !!onGenerateNow;
 
   const handleStatusChange = async (newStatus: 'ACTIVE' | 'PAUSED' | 'CANCELLED') => {
     if (!onStatusChange) return;
@@ -102,6 +105,17 @@ export function RecurringExpenseDetail({ recurringExpense, onStatusChange }: Rec
       await onStatusChange(newStatus);
     } finally {
       setIsChangingStatus(false);
+    }
+  };
+
+  const handleGenerateNow = async () => {
+    if (!onGenerateNow) return;
+
+    setIsGenerating(true);
+    try {
+      await onGenerateNow();
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -144,6 +158,22 @@ export function RecurringExpenseDetail({ recurringExpense, onStatusChange }: Rec
 
         {/* 액션 버튼 */}
         <div className="flex items-center gap-2">
+          {canGenerateNow && (
+            <button
+              onClick={handleGenerateNow}
+              disabled={isGenerating || isChangingStatus}
+              className={`${BTN_OUTLINE} text-blue-600 border-blue-300 hover:bg-blue-50`}
+              title="다음 생성 예정일을 기다리지 않고 지출결의서를 즉시 생성합니다"
+            >
+              {isGenerating ? (
+                <div className={SPINNER}></div>
+              ) : (
+                <Zap className="w-4 h-4" />
+              )}
+              지금 생성
+            </button>
+          )}
+
           <button
             onClick={() => router.push(`/recurring-expenses/${recurringExpense.id}/edit`)}
             className={BTN_OUTLINE}

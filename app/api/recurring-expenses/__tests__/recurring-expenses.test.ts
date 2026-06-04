@@ -29,9 +29,16 @@ vi.mock('@/lib/auth', () => ({
   getCurrentUser: vi.fn(),
 }));
 
+// Mock recurring-expense-service (POST /[id]/generate에서 사용)
+vi.mock('@/lib/services/recurring-expense-service', () => ({
+  generateExpenseFromRecurring: vi.fn(),
+}));
+
 // Import after mocking
 import { GET, POST } from '../route';
 import { GET as GET_ONE, PUT, DELETE } from '../[id]/route';
+import { POST as GENERATE_NOW } from '../[id]/generate/route';
+import { generateExpenseFromRecurring } from '@/lib/services/recurring-expense-service';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -484,6 +491,110 @@ describe('자동이체 API', () => {
 
       expect(response.status).toBe(403);
       expect(data.error).toContain('권한');
+    });
+  });
+
+  describe('POST /api/recurring-expenses/[id]/generate (수동 즉시 생성)', () => {
+    const mockGenerate = generateExpenseFromRecurring as ReturnType<typeof vi.fn>;
+
+    it('자동이체에서 지출결의서를 즉시 생성하고 expenseId를 반환해야 함', async () => {
+      mockPrisma.recurringExpense.findUnique.mockResolvedValue({
+        userId: 'user-1',
+      });
+      mockGenerate.mockResolvedValue({
+        success: true,
+        expenseId: 'exp-123',
+      });
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses/rec-1/generate', {
+        method: 'POST',
+      });
+
+      const response = await GENERATE_NOW(request, { params: Promise.resolve({ id: 'rec-1' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(data.expenseId).toBe('exp-123');
+      expect(mockGenerate).toHaveBeenCalledWith('rec-1');
+    });
+
+    it('비로그인 사용자는 401을 반환해야 함', async () => {
+      mockGetCurrentUser.mockResolvedValue(null);
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses/rec-1/generate', {
+        method: 'POST',
+      });
+
+      const response = await GENERATE_NOW(request, { params: Promise.resolve({ id: 'rec-1' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toContain('로그인');
+    });
+
+    it('자동이체 접근 권한이 없는 역할은 403을 반환해야 함', async () => {
+      mockGetCurrentUser.mockResolvedValue(mockUserWithoutAccess);
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses/rec-1/generate', {
+        method: 'POST',
+      });
+
+      const response = await GENERATE_NOW(request, { params: Promise.resolve({ id: 'rec-1' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toContain('권한');
+    });
+
+    it('존재하지 않는 자동이체는 404를 반환해야 함', async () => {
+      mockPrisma.recurringExpense.findUnique.mockResolvedValue(null);
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses/rec-x/generate', {
+        method: 'POST',
+      });
+
+      const response = await GENERATE_NOW(request, { params: Promise.resolve({ id: 'rec-x' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toContain('찾을 수 없');
+    });
+
+    it('다른 사용자의 자동이체는 생성 불가 403을 반환해야 함', async () => {
+      mockPrisma.recurringExpense.findUnique.mockResolvedValue({
+        userId: 'other-user',
+      });
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses/rec-1/generate', {
+        method: 'POST',
+      });
+
+      const response = await GENERATE_NOW(request, { params: Promise.resolve({ id: 'rec-1' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toContain('권한');
+      expect(mockGenerate).not.toHaveBeenCalled();
+    });
+
+    it('서비스 실패 시 400과 에러 메시지를 반환해야 함', async () => {
+      mockPrisma.recurringExpense.findUnique.mockResolvedValue({
+        userId: 'user-1',
+      });
+      mockGenerate.mockResolvedValue({
+        success: false,
+        error: '활성화된 자동이체만 생성할 수 있습니다.',
+      });
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses/rec-1/generate', {
+        method: 'POST',
+      });
+
+      const response = await GENERATE_NOW(request, { params: Promise.resolve({ id: 'rec-1' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('활성화된');
     });
   });
 });
