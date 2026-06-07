@@ -23,6 +23,7 @@ interface RecurringExpenseListItem {
   dayOfMonth: number;
   status: 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
   nextGenerationDate: string | null;
+  user?: { id: string; username: string } | null;
 }
 
 type StatusFilter = 'ALL' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
@@ -53,7 +54,7 @@ export default function RecurringExpensesPage() {
     if (cursor) params.set('cursor', cursor);
     if (statusFilter !== 'ALL') params.set('status', statusFilter);
     if (debouncedSearch) params.set('search', debouncedSearch);
-    params.set('limit', '10');
+    params.set('limit', '100');
 
     const response = await fetch(`/api/recurring-expenses?${params}`);
     if (!response.ok) {

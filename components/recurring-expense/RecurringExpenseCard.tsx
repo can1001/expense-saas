@@ -19,6 +19,7 @@ interface RecurringExpenseCardProps {
     dayOfMonth: number;
     status: 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
     nextGenerationDate?: Date | string | null;
+    user?: { username: string } | null;
   };
   onClick?: (id: string) => void;
 }
@@ -68,6 +69,12 @@ export function RecurringExpenseCard({ recurringExpense, onClick }: RecurringExp
         <span>{recurringExpense.committee}</span>
         <span className="text-gray-300">|</span>
         <span>{recurringExpense.department}</span>
+        {recurringExpense.user?.username && (
+          <>
+            <span className="text-gray-300">|</span>
+            <span className="text-gray-500">작성자: {recurringExpense.user.username}</span>
+          </>
+        )}
       </div>
 
       {/* 예산 정보 */}

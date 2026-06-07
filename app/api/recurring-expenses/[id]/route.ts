@@ -3,7 +3,10 @@ import { prisma } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { getCurrentUser } from '@/lib/auth';
 import { calculateNextGenerationDate, RecurringFrequency } from '@/lib/recurring-expense';
-import { checkRecurringExpenseAccess } from '@/lib/constants/menu-permissions';
+import {
+  checkRecurringExpenseAccess,
+  canManageAllRecurringExpenses,
+} from '@/lib/constants/menu-permissions';
 import { z } from 'zod';
 
 interface RouteParams {
@@ -43,6 +46,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const recurringExpense = await prisma.recurringExpense.findUnique({
       where: { id },
       include: {
+        user: {
+          select: { id: true, username: true },
+        },
         generatedExpenses: {
           select: {
             id: true,
@@ -62,8 +68,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       throw new ApiError('자동이체를 찾을 수 없습니다.', 404);
     }
 
-    // 소유권 확인
-    if (recurringExpense.userId !== currentUser.id) {
+    // 소유권 확인 (전체 관리 권한자는 우회)
+    if (
+      !canManageAllRecurringExpenses(currentUser.role) &&
+      recurringExpense.userId !== currentUser.id
+    ) {
       throw new ApiError('조회 권한이 없습니다.', 403);
     }
 
@@ -104,8 +113,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       throw new ApiError('자동이체를 찾을 수 없습니다.', 404);
     }
 
-    // 소유권 확인
-    if (recurringExpense.userId !== currentUser.id) {
+    // 소유권 확인 (전체 관리 권한자는 우회)
+    if (
+      !canManageAllRecurringExpenses(currentUser.role) &&
+      recurringExpense.userId !== currentUser.id
+    ) {
       throw new ApiError('수정 권한이 없습니다.', 403);
     }
 
@@ -174,8 +186,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       throw new ApiError('자동이체를 찾을 수 없습니다.', 404);
     }
 
-    // 소유권 확인
-    if (recurringExpense.userId !== currentUser.id) {
+    // 소유권 확인 (전체 관리 권한자는 우회)
+    if (
+      !canManageAllRecurringExpenses(currentUser.role) &&
+      recurringExpense.userId !== currentUser.id
+    ) {
       throw new ApiError('삭제 권한이 없습니다.', 403);
     }
 

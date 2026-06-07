@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { getCurrentUser } from '@/lib/auth';
-import { checkRecurringExpenseAccess } from '@/lib/constants/menu-permissions';
+import {
+  checkRecurringExpenseAccess,
+  canManageAllRecurringExpenses,
+} from '@/lib/constants/menu-permissions';
 import { generateExpenseFromRecurring } from '@/lib/services/recurring-expense-service';
 
 interface RouteParams {
@@ -35,7 +38,10 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       throw new ApiError('자동이체를 찾을 수 없습니다.', 404);
     }
 
-    if (recurringExpense.userId !== currentUser.id) {
+    if (
+      !canManageAllRecurringExpenses(currentUser.role) &&
+      recurringExpense.userId !== currentUser.id
+    ) {
       throw new ApiError('생성 권한이 없습니다.', 403);
     }
 

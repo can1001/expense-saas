@@ -52,6 +52,15 @@ export const RECURRING_EXPENSE_MENU_ROLES: UserRole[] = [
   'admin_assistant',
 ];
 
+// 자동이체 전체 관리 가능 역할 (본인 소유 외 모든 자동이체 조회/수정/삭제/생성)
+export const RECURRING_EXPENSE_FULL_ACCESS_ROLES: UserRole[] = [
+  'admin',
+  'finance_head',
+  'accountant',
+  'finance_member',
+  'admin_assistant',
+];
+
 // 최종승인 + 지급대기 상태 지출결의서 수정 가능 역할
 export const APPROVED_EDIT_ROLES: UserRole[] = [
   'admin',
@@ -153,6 +162,13 @@ export function canAccessAdminMenuWithRoles(roles: string[]): boolean {
  */
 export function canAccessRecurringExpenseMenu(role: string): boolean {
   return RECURRING_EXPENSE_MENU_ROLES.includes(role as UserRole);
+}
+
+/**
+ * 자동이체 전체 관리 권한 체크 (본인 소유 외 데이터 접근)
+ */
+export function canManageAllRecurringExpenses(role: string): boolean {
+  return RECURRING_EXPENSE_FULL_ACCESS_ROLES.includes(role as UserRole);
 }
 
 /**

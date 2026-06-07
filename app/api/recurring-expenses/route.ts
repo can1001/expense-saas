@@ -3,7 +3,10 @@ import { prisma, Prisma } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { getCurrentUser } from '@/lib/auth';
 import { createRecurringExpenseSchema, calculateNextGenerationDate, RecurringFrequency } from '@/lib/recurring-expense';
-import { checkRecurringExpenseAccess } from '@/lib/constants/menu-permissions';
+import {
+  checkRecurringExpenseAccess,
+  canManageAllRecurringExpenses,
+} from '@/lib/constants/menu-permissions';
 
 // GET /api/recurring-expenses - 자동이체 목록 조회
 export async function GET(request: NextRequest) {
@@ -26,9 +29,11 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status'); // ACTIVE, PAUSED, COMPLETED, CANCELLED
     const search = searchParams.get('search')?.trim();
 
-    const where: Prisma.RecurringExpenseWhereInput = {
-      userId: currentUser.id,
-    };
+    // 전체 관리 권한이 있으면 모든 자동이체 조회, 아니면 본인 것만
+    const where: Prisma.RecurringExpenseWhereInput =
+      canManageAllRecurringExpenses(currentUser.role)
+        ? {}
+        : { userId: currentUser.id };
 
     // 상태 필터
     if (status) {
@@ -53,6 +58,11 @@ export async function GET(request: NextRequest) {
       }),
       orderBy: {
         createdAt: 'desc',
+      },
+      include: {
+        user: {
+          select: { id: true, username: true },
+        },
       },
     });
 
