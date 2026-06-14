@@ -24,7 +24,8 @@ const updateRecurringExpenseSchema = z.object({
   dayOfMonth: z.number().int().min(1).max(28).optional(),
   advanceDays: z.number().int().min(0).max(30).optional(),
   endDate: z.date().optional().nullable(),
-  status: z.enum(['ACTIVE', 'PAUSED', 'CANCELLED']).optional(),
+  // 취소는 DELETE 엔드포인트로 일원화 (deletedAt 동시 세팅을 위해)
+  status: z.enum(['ACTIVE', 'PAUSED']).optional(),
 });
 
 // GET /api/recurring-expenses/[id] - 자동이체 상세 조회

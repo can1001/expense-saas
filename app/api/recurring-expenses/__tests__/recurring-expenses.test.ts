@@ -456,6 +456,27 @@ describe('자동이체 API', () => {
       expect(response.status).toBe(403);
       expect(data.error).toContain('권한');
     });
+
+    it('PUT으로 status=CANCELLED 전환은 거부되어야 함 (DELETE로 일원화)', async () => {
+      mockPrisma.recurringExpense.findUnique.mockResolvedValue({
+        id: 'rec-1',
+        userId: 'user-1',
+        status: 'ACTIVE',
+        frequency: 'MONTHLY',
+        dayOfMonth: 25,
+        advanceDays: 7,
+      });
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses/rec-1', {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'CANCELLED' }),
+      });
+
+      const response = await PUT(request, { params: Promise.resolve({ id: 'rec-1' }) });
+
+      expect(response.status).toBe(400);
+      expect(mockPrisma.recurringExpense.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('DELETE /api/recurring-expenses/[id]', () => {
