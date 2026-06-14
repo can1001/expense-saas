@@ -100,22 +100,26 @@ export async function PUT(
     // 소유권 검증 (기본 수정 가능 상태에서는 소유자만 수정 가능)
     const isOwner = existing.userId === currentUserId;
 
-    // 최종승인 + 지급대기 상태에서는 역할 체크 필요 (연도별 유효 역할 기준)
-    let canEditApprovedPending = false;
-    if (isApprovedPending) {
-      const currentUser = await getCurrentUser();
+    // 관리 역할 우회 (소유자 아닐 때 또는 최종승인+지급대기 상태에서 역할 확인 필요)
+    let canBypassOwnership = false;
+    let currentUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
+    if (!isOwner || isApprovedPending) {
+      currentUser = await getCurrentUser();
       if (currentUser) {
         const { role: effectiveRole } = await getEffectiveRole(currentUser.id, CURRENT_YEAR);
-        canEditApprovedPending = APPROVED_EDIT_ROLES.includes(effectiveRole as any);
+        canBypassOwnership = APPROVED_EDIT_ROLES.includes(effectiveRole as typeof APPROVED_EDIT_ROLES[number]);
       }
     }
 
-    // 기본 수정 가능 상태: 소유자만 수정 가능
-    if (isBasicEditable && !isOwner) {
+    const canEditApprovedPending = isApprovedPending && canBypassOwnership;
+    const ownerBypassUsed = isBasicEditable && !isOwner && canBypassOwnership;
+
+    // 기본 수정 가능 상태: 소유자 또는 관리 역할 우회
+    if (isBasicEditable && !isOwner && !canBypassOwnership) {
       throw new ApiError('수정 권한이 없습니다.', 403);
     }
 
-    // 최종승인 상태: 특정 역할만 수정 가능 (소유권 무관)
+    // 최종승인 상태: 관리 역할만 수정 가능 (소유권 무관)
     if (!isBasicEditable && !canEditApprovedPending) {
       throw new ApiError('이 상태에서는 수정할 수 없습니다.', 403);
     }
@@ -206,18 +210,25 @@ export async function PUT(
       },
     });
 
-    // 최종승인 + 지급대기 상태에서 수정한 경우 감사 로그 기록
-    if (canEditApprovedPending) {
+    // 감사 로그 기록: 최종승인 후 수정 또는 관리 역할 소유권 우회 수정
+    if (canEditApprovedPending || ownerBypassUsed) {
+      const actorName =
+        currentUser?.username ||
+        validatedData.applicantName ||
+        existing.applicantName;
       await prisma.approvalLog.create({
         data: {
           expenseId: id,
           action: 'MODIFY_CONTENT',
-          actorName: validatedData.applicantName || existing.applicantName,
+          actorName,
           previousStatus: existing.status,
           newStatus: existing.status,
-          comment: '최종승인 후 내용 수정',
+          comment: canEditApprovedPending
+            ? '최종승인 후 내용 수정'
+            : '관리 역할 소유권 우회 수정',
           metadata: {
             modifiedAt: new Date().toISOString(),
+            ...(ownerBypassUsed && { bypassedOwnerId: existing.userId }),
           },
         },
       });
