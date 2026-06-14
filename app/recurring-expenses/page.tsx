@@ -170,7 +170,9 @@ export default function RecurringExpensesPage() {
               }`}
             >
               {status === 'ALL' ? '전체' : <RecurringExpenseStatus status={status} />}
-              {statusFilter === 'ALL' && <span className="text-xs">({statusCounts[status]})</span>}
+              {statusFilter === 'ALL' && status !== 'CANCELLED' && (
+                <span className="text-xs">({statusCounts[status]})</span>
+              )}
             </button>
           ))}
         </div>

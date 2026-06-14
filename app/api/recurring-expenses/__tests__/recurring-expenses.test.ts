@@ -120,7 +120,7 @@ describe('자동이체 API', () => {
       expect(data.error).toContain('권한');
     });
 
-    it('상태 필터가 적용되어야 함', async () => {
+    it('status=ACTIVE 필터가 적용되어야 함', async () => {
       mockPrisma.recurringExpense.findMany.mockResolvedValue([]);
 
       const request = new NextRequest('http://localhost/api/recurring-expenses?status=ACTIVE');
@@ -133,6 +133,49 @@ describe('자동이체 API', () => {
           }),
         })
       );
+    });
+
+    it('status 미지정 시 CANCELLED를 기본 제외해야 함 (soft delete)', async () => {
+      mockPrisma.recurringExpense.findMany.mockResolvedValue([]);
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses');
+      await GET(request);
+
+      expect(mockPrisma.recurringExpense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: { not: 'CANCELLED' },
+          }),
+        })
+      );
+    });
+
+    it('status=CANCELLED를 명시하면 CANCELLED만 반환해야 함', async () => {
+      mockPrisma.recurringExpense.findMany.mockResolvedValue([]);
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses?status=CANCELLED');
+      await GET(request);
+
+      expect(mockPrisma.recurringExpense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: 'CANCELLED',
+          }),
+        })
+      );
+    });
+
+    it('이체 임박순(nextGenerationDate ASC)으로 정렬되어야 함', async () => {
+      mockPrisma.recurringExpense.findMany.mockResolvedValue([]);
+
+      const request = new NextRequest('http://localhost/api/recurring-expenses');
+      await GET(request);
+
+      const call = mockPrisma.recurringExpense.findMany.mock.calls[0][0];
+      expect(call.orderBy).toEqual([
+        { nextGenerationDate: { sort: 'asc', nulls: 'last' } },
+        { id: 'asc' },
+      ]);
     });
 
     it('cursor 기반 페이지네이션이 작동해야 함', async () => {
