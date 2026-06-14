@@ -35,9 +35,13 @@ export async function GET(request: NextRequest) {
         ? {}
         : { userId: currentUser.id };
 
-    // 상태 필터
-    if (status) {
+    // 상태 필터: CANCELLED 명시 시에만 노출, 그 외 기본 목록은 CANCELLED 제외 (soft delete)
+    if (status === 'CANCELLED') {
+      where.status = 'CANCELLED';
+    } else if (status) {
       where.status = status as Prisma.EnumRecurringExpenseStatusFilter;
+    } else {
+      where.status = { not: 'CANCELLED' };
     }
 
     // 검색 필터 (이름, 수취인명에서 검색)
@@ -48,7 +52,7 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // cursor 기반 페이지네이션
+    // cursor 기반 페이지네이션 (이체 임박순 + id tie-break)
     const recurringExpenses = await prisma.recurringExpense.findMany({
       where,
       take: limit + 1, // 다음 페이지 존재 여부 확인용
@@ -56,9 +60,10 @@ export async function GET(request: NextRequest) {
         cursor: { id: cursor },
         skip: 1, // cursor 자체는 건너뜀
       }),
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [
+        { nextGenerationDate: { sort: 'asc', nulls: 'last' } },
+        { id: 'asc' },
+      ],
       include: {
         user: {
           select: { id: true, username: true },
