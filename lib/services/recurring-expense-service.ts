@@ -64,7 +64,8 @@ export async function generateExpenseFromRecurring(
 
     // 요청 팀 계산
     const requestTeam = deriveRequestTeam(
-      `${recurring.committee}/${recurring.department}`
+      recurring.committee,
+      recurring.department,
     );
 
     // 지출결의서 생성 (DRAFT 상태로 생성, 결재선은 제출 시 계산됨)
@@ -72,7 +73,7 @@ export async function generateExpenseFromRecurring(
       data: {
         userId: recurring.userId,
         committee: recurring.committee,
-        department: `${recurring.committee}/${recurring.department}`,
+        department: recurring.department,
         applicantName: recurring.user.username,
         accountHolder: recurring.recipientName, // 수취인 이름을 예금주로 설정
         bankName: recurring.bankName,

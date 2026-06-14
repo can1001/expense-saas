@@ -5,6 +5,7 @@ import {
   ApprovalLineInfo,
 } from '@/lib/services/approval-line-service';
 import { notificationService } from '@/lib/services/notification';
+import { getCurrentUser } from '@/lib/auth';
 
 /**
  * POST /api/expenses/[id]/submit
@@ -23,6 +24,9 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+
+    // 현재 로그인 사용자 (제출 행위자 기록용)
+    const currentUser = await getCurrentUser();
 
     // 지출결의서 조회
     const expense = await prisma.expense.findUnique({
@@ -256,18 +260,25 @@ export async function POST(
       });
 
       // 3. 감사 로그 생성 - 제출
+      const submitterName = currentUser?.username || expense.applicantName;
+      const isProxySubmit =
+        currentUser !== null && currentUser.id !== expense.userId;
       await tx.approvalLog.create({
         data: {
           expenseId: id,
           action: 'SUBMIT',
-          actorName: expense.applicantName,
-          actorRole: '작성자',
+          actorName: submitterName,
+          actorRole: isProxySubmit ? '대리 제출' : '작성자',
           previousStatus: expense.status,
           newStatus: 'PENDING',
           comment: expense.status === 'WITHDRAWN' ? '지출결의서 재제출' : '지출결의서 제출',
           metadata: {
             userAgent: request.headers.get('user-agent') || '',
             timestamp: now.toISOString(),
+            ...(isProxySubmit && {
+              proxySubmit: true,
+              applicantName: expense.applicantName,
+            }),
           },
           afterSnapshot: JSON.parse(snapshot),
         },
