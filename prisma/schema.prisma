@@ -1498,6 +1498,9 @@ model RecurringExpense {
   // 생성된 지출결의서와의 관계
   generatedExpenses   Expense[]               @relation("RecurringToExpense")
 
+  // 소프트 삭제 시각 (status=CANCELLED와 동시 세팅)
+  deletedAt           DateTime?
+
   // 메타
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
@@ -1506,4 +1509,5 @@ model RecurringExpense {
   @@index([status])
   @@index([nextGenerationDate])
   @@index([status, nextGenerationDate])
+  @@index([deletedAt])
 }

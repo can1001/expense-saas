@@ -199,11 +199,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       throw new ApiError('이미 취소된 자동이체입니다.', 400);
     }
 
-    // 소프트 삭제: 상태를 CANCELLED로 변경
+    // 소프트 삭제: 상태를 CANCELLED로 변경 + 삭제 시각 기록
     await prisma.recurringExpense.update({
       where: { id },
       data: {
         status: 'CANCELLED',
+        deletedAt: new Date(),
       },
     });
 

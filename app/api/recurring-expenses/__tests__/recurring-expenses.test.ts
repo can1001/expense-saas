@@ -416,7 +416,7 @@ describe('자동이체 API', () => {
   });
 
   describe('DELETE /api/recurring-expenses/[id]', () => {
-    it('자동이체를 취소해야 함', async () => {
+    it('자동이체를 취소하고 deletedAt을 함께 세팅해야 함 (soft delete)', async () => {
       mockPrisma.recurringExpense.findUnique.mockResolvedValue({
         id: 'rec-1',
         userId: 'user-1',
@@ -426,6 +426,7 @@ describe('자동이체 API', () => {
       mockPrisma.recurringExpense.update.mockResolvedValue({
         id: 'rec-1',
         status: 'CANCELLED',
+        deletedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/recurring-expenses/rec-1', {
@@ -439,7 +440,10 @@ describe('자동이체 API', () => {
       expect(data.message).toContain('취소');
       expect(mockPrisma.recurringExpense.update).toHaveBeenCalledWith({
         where: { id: 'rec-1' },
-        data: { status: 'CANCELLED' },
+        data: expect.objectContaining({
+          status: 'CANCELLED',
+          deletedAt: expect.any(Date),
+        }),
       });
     });
 
