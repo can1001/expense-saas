@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense, useCallback } from 'react';
+import { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import Image from 'next/image';
@@ -378,6 +378,12 @@ function ExpensesPageContent() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedExpenses = sortedExpenses.slice(startIndex, endIndex);
+
+  // 조회된 결과 전체의 청구금액 합계 (필터·검색 적용 후, 페이지네이션과 무관)
+  const totalRequestAmount = useMemo(
+    () => sortedExpenses.reduce((sum, e) => sum + (e.requestAmount ?? 0), 0),
+    [sortedExpenses]
+  );
 
   // 페이지 변경 시 첫 페이지로 리셋
   useEffect(() => {
@@ -1210,6 +1216,17 @@ function ExpensesPageContent() {
                 hasMore={hasMoreMobile}
                 loadMoreRef={loadMoreRef}
               />
+              {/* 조회 결과 합계 카드 */}
+              <div className="mt-2 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">
+                    합계 ({sortedExpenses.length}건)
+                  </span>
+                  <span className="text-lg font-bold text-blue-700">
+                    {formatCurrency(totalRequestAmount)}
+                  </span>
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -1499,6 +1516,17 @@ function ExpensesPageContent() {
                       </td>
                     </tr>
                   ))
+                )}
+                {sortedExpenses.length > 0 && (
+                  <tr className="bg-gray-50 border-t-2 border-gray-300 font-semibold">
+                    <td colSpan={7} className="px-3 py-3 text-right text-sm text-gray-700">
+                      합계 ({sortedExpenses.length}건)
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-right text-sm text-blue-700">
+                      {formatCurrency(totalRequestAmount)}
+                    </td>
+                    <td colSpan={4} />
+                  </tr>
                 )}
               </tbody>
             </table>
