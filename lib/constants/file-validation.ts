@@ -10,6 +10,7 @@ export const FILE_VALIDATION = {
     'image/png',
     'image/gif',
     'image/webp',
+    'application/pdf',
   ] as const,
 
   // 허용되는 파일 확장자
@@ -19,15 +20,17 @@ export const FILE_VALIDATION = {
     '.png',
     '.gif',
     '.webp',
+    '.pdf',
   ] as const,
 
-  // 허용되는 이미지 포맷 (DB 저장용)
+  // 허용되는 파일 포맷 (DB 저장용)
   ALLOWED_FORMATS: [
     'jpg',
     'jpeg',
     'png',
     'gif',
     'webp',
+    'pdf',
   ] as const,
 
   // 파일 크기 제한 (5MB)
