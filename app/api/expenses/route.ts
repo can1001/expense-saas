@@ -14,7 +14,26 @@ import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
 // 전체 조회 권한이 있는 역할
 const FULL_ACCESS_ROLES = ['admin', 'finance_head', 'accountant', 'finance_member', 'admin_assistant'];
 
-// GET /api/expenses - 지출결의서 목록 조회 (역할 기반 필터링)
+// 서버 정렬 허용 키 — Expense 직속 컬럼 8개
+// 예산 3개(budgetCategory/Subcategory/Detail)는 ExpenseItem 1:N 관계라 Prisma orderBy 불가 → 클라에서 비활성화
+const SORTABLE_KEYS = [
+  'requestDate',
+  'applicantName',
+  'requestAmount',
+  'committee',
+  'status',
+  'approvedAt',
+  'expenseDate',
+  'paymentStatus',
+  'createdAt',
+] as const;
+type SortableKey = (typeof SORTABLE_KEYS)[number];
+
+function isSortableKey(value: string): value is SortableKey {
+  return (SORTABLE_KEYS as readonly string[]).includes(value);
+}
+
+// GET /api/expenses - 지출결의서 목록 조회 (역할 기반 필터링 + 사용자 필터 + 서버 정렬/페이지네이션 + 합계)
 export async function GET(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
@@ -27,8 +46,8 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '50')));
     const skip = (page - 1) * limit;
 
     // 연도별 유효 역할 조회 (UserYearRole 테이블 기준)
@@ -47,33 +66,103 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 역할에 따른 조회 조건 설정
-    const where: Prisma.ExpenseWhereInput = {};
+    // 역할 기반 권한 where 절
+    const permissionWhere: Prisma.ExpenseWhereInput = {};
 
     if (FULL_ACCESS_ROLES.includes(effectiveRole)) {
       // 전체 조회 권한: 필터 없음
     } else if (effectiveRole === 'team_leader') {
-      // 팀장: 본인 부서 지출결의서만 조회
       const department = effectiveDepartment ?? currentUser.department;
       if (department) {
-        where.department = department;
+        permissionWhere.department = department;
       } else {
-        // 부서가 없으면 본인 작성만
-        where.userId = currentUser.id;
+        permissionWhere.userId = currentUser.id;
       }
     } else {
-      // 일반 사용자: 본인 작성 지출결의서만 조회
-      where.userId = currentUser.id;
+      permissionWhere.userId = currentUser.id;
     }
 
-    const [expenses, total] = await Promise.all([
+    // 사용자 필터 (쿼리스트링)
+    const userFilters: Prisma.ExpenseWhereInput[] = [];
+
+    const committee = searchParams.get('committee');
+    if (committee) userFilters.push({ committee });
+
+    const department = searchParams.get('department');
+    if (department) userFilters.push({ department });
+
+    const category = searchParams.get('category');
+    if (category) {
+      // 예산 카테고리는 ExpenseItem 컬럼이므로 items.some 으로 매칭
+      userFilters.push({ items: { some: { budgetCategory: category } } });
+    }
+
+    const startDate = searchParams.get('startDate');
+    if (startDate) userFilters.push({ requestDate: { gte: new Date(startDate) } });
+
+    const endDate = searchParams.get('endDate');
+    if (endDate) userFilters.push({ requestDate: { lte: new Date(endDate) } });
+
+    const minAmount = searchParams.get('minAmount');
+    if (minAmount) userFilters.push({ requestAmount: { gte: Number(minAmount) } });
+
+    const maxAmount = searchParams.get('maxAmount');
+    if (maxAmount) userFilters.push({ requestAmount: { lte: Number(maxAmount) } });
+
+    const status = searchParams.get('status');
+    if (status) userFilters.push({ status: status as Prisma.ExpenseWhereInput['status'] });
+
+    // 지급 상태 필터: 최종 승인된 항목 중 paymentStatus 일치 (클라 기존 동작 보존)
+    const paymentStatus = searchParams.get('paymentStatus');
+    if (paymentStatus) {
+      userFilters.push({
+        status: 'APPROVED_FINAL',
+        paymentStatus: paymentStatus as Prisma.ExpenseWhereInput['paymentStatus'],
+      });
+    }
+
+    const approvedStart = searchParams.get('approvedStart');
+    if (approvedStart) userFilters.push({ approvedAt: { gte: new Date(approvedStart) } });
+
+    const approvedEnd = searchParams.get('approvedEnd');
+    if (approvedEnd) userFilters.push({ approvedAt: { lte: new Date(approvedEnd) } });
+
+    const expenseStart = searchParams.get('expenseStart');
+    if (expenseStart) userFilters.push({ expenseDate: { gte: new Date(expenseStart) } });
+
+    const expenseEnd = searchParams.get('expenseEnd');
+    if (expenseEnd) userFilters.push({ expenseDate: { lte: new Date(expenseEnd) } });
+
+    // 검색어: applicantName/committee/department/items.budgetCategory contains (대소문자 무시)
+    const q = searchParams.get('q');
+    if (q && q.trim()) {
+      const query = q.trim();
+      userFilters.push({
+        OR: [
+          { applicantName: { contains: query, mode: 'insensitive' } },
+          { committee: { contains: query, mode: 'insensitive' } },
+          { department: { contains: query, mode: 'insensitive' } },
+          { items: { some: { budgetCategory: { contains: query, mode: 'insensitive' } } } },
+        ],
+      });
+    }
+
+    // 권한 where 와 사용자 필터를 AND 로 결합
+    const where: Prisma.ExpenseWhereInput =
+      userFilters.length > 0 ? { AND: [permissionWhere, ...userFilters] } : permissionWhere;
+
+    // 정렬
+    const sortByRaw = searchParams.get('sortBy') || 'createdAt';
+    const sortDirRaw = searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc';
+    const sortBy: SortableKey = isSortableKey(sortByRaw) ? sortByRaw : 'createdAt';
+    const orderBy: Prisma.ExpenseOrderByWithRelationInput = { [sortBy]: sortDirRaw };
+
+    const [expenses, total, aggregate] = await Promise.all([
       prisma.expense.findMany({
         where,
         skip,
         take: limit,
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy,
         include: {
           items: {
             orderBy: {
@@ -94,6 +183,10 @@ export async function GET(request: NextRequest) {
         },
       }),
       prisma.expense.count({ where }),
+      prisma.expense.aggregate({
+        where,
+        _sum: { requestAmount: true },
+      }),
     ]);
 
     return NextResponse.json({
@@ -103,6 +196,10 @@ export async function GET(request: NextRequest) {
         limit,
         total,
         totalPages: Math.ceil(total / limit),
+      },
+      aggregates: {
+        totalCount: total,
+        totalRequestAmount: aggregate._sum.requestAmount ?? 0,
       },
     });
   } catch (error) {

@@ -16,6 +16,7 @@ vi.mock('@/lib/prisma', () => ({
     expense: {
       findMany: vi.fn(),
       count: vi.fn(),
+      aggregate: vi.fn(),
     },
     department: {
       findUnique: vi.fn(),
@@ -102,6 +103,11 @@ describe('GET /api/expenses', () => {
     mockGetEffectiveRole.mockResolvedValue({
       role: 'admin',
       departmentId: null,
+    });
+
+    // Default aggregate response
+    mockPrisma.expense.aggregate.mockResolvedValue({
+      _sum: { requestAmount: 0 },
     });
   });
 
@@ -424,6 +430,254 @@ describe('GET /api/expenses', () => {
         total: 100,
         totalPages: 5,
       });
+    });
+
+    it('limit 미지정 시 기본값 50이 적용된다', async () => {
+      mockPrisma.expense.findMany.mockResolvedValue([]);
+      mockPrisma.expense.count.mockResolvedValue(0);
+
+      const request = new NextRequest('http://localhost:3000/api/expenses');
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 0, take: 50 })
+      );
+      expect(data.pagination.limit).toBe(50);
+    });
+
+    it('limit이 200을 초과해도 200으로 캡된다', async () => {
+      mockPrisma.expense.findMany.mockResolvedValue([]);
+      mockPrisma.expense.count.mockResolvedValue(0);
+
+      const request = new NextRequest('http://localhost:3000/api/expenses?limit=99999');
+      await GET(request);
+
+      expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 200 })
+      );
+    });
+  });
+
+  describe('aggregates 응답', () => {
+    it('응답에 aggregates.totalRequestAmount와 totalCount가 포함된다', async () => {
+      mockPrisma.expense.findMany.mockResolvedValue([]);
+      mockPrisma.expense.count.mockResolvedValue(42);
+      mockPrisma.expense.aggregate.mockResolvedValue({
+        _sum: { requestAmount: 1234500 },
+      });
+
+      const request = new NextRequest('http://localhost:3000/api/expenses');
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(data.aggregates).toEqual({
+        totalCount: 42,
+        totalRequestAmount: 1234500,
+      });
+    });
+
+    it('_sum이 null이면 totalRequestAmount는 0으로 반환된다', async () => {
+      mockPrisma.expense.findMany.mockResolvedValue([]);
+      mockPrisma.expense.count.mockResolvedValue(0);
+      mockPrisma.expense.aggregate.mockResolvedValue({
+        _sum: { requestAmount: null },
+      });
+
+      const request = new NextRequest('http://localhost:3000/api/expenses');
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(data.aggregates.totalRequestAmount).toBe(0);
+    });
+
+    it('aggregate 호출 시 권한+사용자 필터가 결합된 where 가 전달된다', async () => {
+      // 일반 사용자
+      mockGetCurrentUser.mockResolvedValue({
+        id: 'user-1',
+        userid: 'user',
+        username: '일반사용자',
+        role: 'user',
+        department: '청년부',
+      });
+      mockGetEffectiveRole.mockResolvedValue({ role: 'user', departmentId: null });
+
+      mockPrisma.expense.findMany.mockResolvedValue([]);
+      mockPrisma.expense.count.mockResolvedValue(0);
+
+      const request = new NextRequest(
+        'http://localhost:3000/api/expenses?status=APPROVED_FINAL'
+      );
+      await GET(request);
+
+      expect(mockPrisma.expense.aggregate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            AND: expect.arrayContaining([
+              { userId: 'user-1' },
+              { status: 'APPROVED_FINAL' },
+            ]),
+          }),
+          _sum: { requestAmount: true },
+        })
+      );
+    });
+  });
+
+  describe('사용자 필터 (쿼리스트링)', () => {
+    beforeEach(() => {
+      mockPrisma.expense.findMany.mockResolvedValue([]);
+      mockPrisma.expense.count.mockResolvedValue(0);
+    });
+
+    it('committee 파라미터가 where에 반영된다', async () => {
+      const request = new NextRequest(
+        'http://localhost:3000/api/expenses?committee=선교위원회'
+      );
+      await GET(request);
+
+      expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            AND: expect.arrayContaining([{ committee: '선교위원회' }]),
+          }),
+        })
+      );
+    });
+
+    it('금액 범위 필터(minAmount/maxAmount)가 적용된다', async () => {
+      const request = new NextRequest(
+        'http://localhost:3000/api/expenses?minAmount=10000&maxAmount=500000'
+      );
+      await GET(request);
+
+      expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            AND: expect.arrayContaining([
+              { requestAmount: { gte: 10000 } },
+              { requestAmount: { lte: 500000 } },
+            ]),
+          }),
+        })
+      );
+    });
+
+    it('날짜 범위 필터(startDate/endDate)가 requestDate에 적용된다', async () => {
+      const request = new NextRequest(
+        'http://localhost:3000/api/expenses?startDate=2026-01-01&endDate=2026-12-31'
+      );
+      await GET(request);
+
+      const call = mockPrisma.expense.findMany.mock.calls[0][0];
+      expect(call.where.AND).toEqual(
+        expect.arrayContaining([
+          { requestDate: { gte: new Date('2026-01-01') } },
+          { requestDate: { lte: new Date('2026-12-31') } },
+        ])
+      );
+    });
+
+    it('paymentStatus 필터는 status=APPROVED_FINAL 와 함께 적용된다', async () => {
+      const request = new NextRequest(
+        'http://localhost:3000/api/expenses?paymentStatus=PENDING'
+      );
+      await GET(request);
+
+      expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            AND: expect.arrayContaining([
+              { status: 'APPROVED_FINAL', paymentStatus: 'PENDING' },
+            ]),
+          }),
+        })
+      );
+    });
+
+    it('category 파라미터는 items.some 으로 매칭된다', async () => {
+      const request = new NextRequest(
+        'http://localhost:3000/api/expenses?category=선교비'
+      );
+      await GET(request);
+
+      expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            AND: expect.arrayContaining([
+              { items: { some: { budgetCategory: '선교비' } } },
+            ]),
+          }),
+        })
+      );
+    });
+
+    it('검색어(q)는 OR 조건으로 4개 필드에 매칭된다', async () => {
+      const request = new NextRequest(
+        'http://localhost:3000/api/expenses?q=홍길동'
+      );
+      await GET(request);
+
+      const call = mockPrisma.expense.findMany.mock.calls[0][0];
+      const orFilter = call.where.AND.find((c: any) => c.OR);
+      expect(orFilter.OR).toHaveLength(4);
+      expect(orFilter.OR).toEqual(
+        expect.arrayContaining([
+          { applicantName: { contains: '홍길동', mode: 'insensitive' } },
+          { committee: { contains: '홍길동', mode: 'insensitive' } },
+          { department: { contains: '홍길동', mode: 'insensitive' } },
+          { items: { some: { budgetCategory: { contains: '홍길동', mode: 'insensitive' } } } },
+        ])
+      );
+    });
+
+    it('필터가 없으면 권한 where 그대로 (AND 없음)', async () => {
+      // admin은 권한 where 가 {} 이므로 사용자 필터 없으면 AND도 없어야 함
+      const request = new NextRequest('http://localhost:3000/api/expenses');
+      await GET(request);
+
+      expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: {} })
+      );
+    });
+  });
+
+  describe('정렬 (sortBy / sortDir)', () => {
+    beforeEach(() => {
+      mockPrisma.expense.findMany.mockResolvedValue([]);
+      mockPrisma.expense.count.mockResolvedValue(0);
+    });
+
+    it('sortBy 미지정 시 createdAt desc 기본', async () => {
+      const request = new NextRequest('http://localhost:3000/api/expenses');
+      await GET(request);
+
+      expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: { createdAt: 'desc' } })
+      );
+    });
+
+    it('허용된 sortBy 키는 그대로 적용된다', async () => {
+      const request = new NextRequest(
+        'http://localhost:3000/api/expenses?sortBy=requestAmount&sortDir=asc'
+      );
+      await GET(request);
+
+      expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: { requestAmount: 'asc' } })
+      );
+    });
+
+    it('허용되지 않은 sortBy 는 createdAt 으로 fallback', async () => {
+      // 예산 정렬은 ExpenseItem 관계라 화이트리스트 밖 → fallback
+      const request = new NextRequest(
+        'http://localhost:3000/api/expenses?sortBy=budgetCategory'
+      );
+      await GET(request);
+
+      expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: { createdAt: 'desc' } })
+      );
     });
   });
 });
