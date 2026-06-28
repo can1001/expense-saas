@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { NotificationChannel, NotificationEventType } from '@prisma/client';
 import { notificationHubProvider } from './notification-hub-provider';
 import { webPushProvider } from './web-push-provider';
+import { fcmProvider } from './fcm-provider';
 import { getTemplateByEvent, renderTemplate } from './templates';
 import type {
   NotificationContext,
@@ -182,37 +183,43 @@ export class NotificationService {
           };
         }
       } else if (channel === 'WEB_PUSH') {
-        // 웹 푸시 알림 발송
+        // 웹 푸시(VAPID) + FCM(Capacitor 모바일 앱) 병행 발송
         if (!recipient.userId) {
           result = {
             success: false,
             channel,
             error: '사용자 ID가 필요합니다.',
           };
-        } else if (!webPushProvider.isEnabled()) {
+        } else if (!webPushProvider.isEnabled() && !fcmProvider.isEnabled()) {
           result = {
             success: false,
             channel,
-            error: 'VAPID 키 미설정',
+            error: 'VAPID/FCM 모두 미설정',
           };
         } else {
-          const pushResults = await webPushProvider.sendToUser(
-            recipient.userId,
-            {
-              title: this.getWebPushTitle(eventType),
-              body: renderTemplate(template.sms, context),
-              url: context.statusUrl,
-              expenseId: context.expenseId,
-              tag: `expense-${eventType.toLowerCase()}`,
-            },
-            eventType
-          );
+          const pushPayload = {
+            title: this.getWebPushTitle(eventType),
+            body: renderTemplate(template.sms, context),
+            url: context.statusUrl,
+            expenseId: context.expenseId,
+            tag: `expense-${eventType.toLowerCase()}`,
+          };
 
-          const hasSuccess = pushResults.some((r) => r.success);
+          const [webPushResults, fcmResults] = await Promise.all([
+            webPushProvider.isEnabled()
+              ? webPushProvider.sendToUser(recipient.userId, pushPayload, eventType)
+              : Promise.resolve([] as Array<{ success: boolean }>),
+            fcmProvider.isEnabled()
+              ? fcmProvider.sendToUser(recipient.userId, pushPayload, eventType)
+              : Promise.resolve([] as Array<{ success: boolean }>),
+          ]);
+
+          const hasSuccess =
+            webPushResults.some((r) => r.success) || fcmResults.some((r) => r.success);
           result = {
             success: hasSuccess,
             channel,
-            error: hasSuccess ? undefined : '모든 구독에 발송 실패',
+            error: hasSuccess ? undefined : '모든 WEB_PUSH/FCM 발송 실패',
           };
         }
       } else {
