@@ -14,6 +14,7 @@ vi.mock('@/lib/prisma', () => ({
     },
     expense: {
       create: vi.fn(),
+      findFirst: vi.fn(), // 중복 생성 방지 체크용
     },
   },
 }));
@@ -47,6 +48,7 @@ describe('recurring-expense-service', () => {
     };
     expense: {
       create: ReturnType<typeof vi.fn>;
+      findFirst: ReturnType<typeof vi.fn>;
     };
   };
 
@@ -83,6 +85,7 @@ describe('recurring-expense-service', () => {
 
     it('자동이체에서 지출결의서를 생성해야 함', async () => {
       mockPrisma.recurringExpense.findUnique.mockResolvedValue(mockRecurring);
+      mockPrisma.expense.findFirst.mockResolvedValue(null); // 이번 달 생성된 지출결의서 없음
       mockPrisma.expense.create.mockResolvedValue({ id: 'expense-1' });
       mockPrisma.recurringExpense.update.mockResolvedValue({});
 
@@ -140,6 +143,30 @@ describe('recurring-expense-service', () => {
         data: { status: 'COMPLETED' },
       });
     });
+
+    it('이번 달 이미 생성된 경우 중복 생성하지 않아야 함', async () => {
+      mockPrisma.recurringExpense.findUnique.mockResolvedValue(mockRecurring);
+      mockPrisma.expense.findFirst.mockResolvedValue({
+        id: 'existing-expense',
+        createdAt: new Date(), // 이번 달 생성됨
+      });
+      mockPrisma.recurringExpense.update.mockResolvedValue({});
+
+      const result = await generateExpenseFromRecurring('rec-1');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('이미 생성');
+      expect(mockPrisma.expense.create).not.toHaveBeenCalled();
+      // nextGenerationDate는 업데이트되어야 함
+      expect(mockPrisma.recurringExpense.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'rec-1' },
+          data: expect.objectContaining({
+            nextGenerationDate: expect.any(Date),
+          }),
+        })
+      );
+    });
   });
 
   describe('processRecurringExpenses', () => {
@@ -181,6 +208,7 @@ describe('recurring-expense-service', () => {
           department: '총무부',
         },
       });
+      mockPrisma.expense.findFirst.mockResolvedValue(null); // 이번 달 생성된 지출결의서 없음
       mockPrisma.expense.create.mockResolvedValue({ id: 'expense-new' });
       mockPrisma.recurringExpense.update.mockResolvedValue({});
 

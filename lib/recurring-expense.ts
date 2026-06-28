@@ -124,8 +124,8 @@ export function calculateNextGenerationDate(
   let month = current.getMonth() + 1;
   let generationDate = createGenerationDate(year, month, dayOfMonth, advanceDays);
 
-  // 이번 달 생성일이 이미 지났으면 다음 달로
-  if (generationDate < current) {
+  // 이번 달 생성일이 이미 지났거나 오늘이면 다음 달로 (중복 생성 방지)
+  if (generationDate <= current) {
     month += 1;
     const nextYear = month > 12 ? year + 1 : year;
     const nextMonth = month > 12 ? 1 : month;
