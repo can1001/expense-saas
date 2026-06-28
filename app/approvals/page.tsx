@@ -84,14 +84,6 @@ export default function ApprovalsPage() {
     fetchUser();
   }, [router]);
 
-  // 사용자 정보가 있을 때 결재 목록 가져오기
-  useEffect(() => {
-    if (user) {
-      fetchApprovals();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, statusFilter]);
-
   const fetchApprovals = async () => {
     if (!user) return;
 
@@ -114,6 +106,14 @@ export default function ApprovalsPage() {
       setLoading(false);
     }
   };
+
+  // 사용자 정보가 있을 때 결재 목록 가져오기
+  useEffect(() => {
+    if (user) {
+      fetchApprovals();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, statusFilter]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';

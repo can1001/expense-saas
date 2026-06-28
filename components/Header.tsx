@@ -3,10 +3,10 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown, Bell, History, Send, UserPlus, Moon } from 'lucide-react';
+import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown, Bell, History, Send, UserPlus, Moon, Repeat } from 'lucide-react';
 import { useRoles } from '@/hooks/useRoles';
 import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount';
-import { canShowUserRegisterMenu, canAccessAdminMenuWithRoles } from '@/lib/constants/menu-permissions';
+import { canShowUserRegisterMenu, canAccessAdminMenuWithRoles, canAccessRecurringExpenseMenuWithRoles } from '@/lib/constants/menu-permissions';
 import QuickUserRegister from '@/components/QuickUserRegister';
 
 interface UserInfo {
@@ -353,6 +353,17 @@ export default function Header() {
       icon: CheckSquare,
       active: pathname.startsWith('/approvals'),
     },
+    // 자동이체 메뉴 (재정팀 전용)
+    ...(user && canAccessRecurringExpenseMenuWithRoles(user.roles || [user.role])
+      ? [
+          {
+            href: '/recurring-expenses',
+            label: '자동이체',
+            icon: Repeat,
+            active: pathname.startsWith('/recurring-expenses'),
+          },
+        ]
+      : []),
     // 청나잇 메뉴 (임시 숨김)
     // {
     //   href: '/youth-night',

@@ -98,7 +98,19 @@
       "Bash(for file in \"account-report-excel-generator\" \"excel-export\" \"account-report-parser\")",
       "Bash(do echo \"=== $file ===\")",
       "Bash(bash:*)",
-      "WebFetch(domain:study-index-card.onrender.com)"
+      "WebFetch(domain:study-index-card.onrender.com)",
+      "Skill(agent-skills:build)",
+      "Bash(npm ls:*)",
+      "Bash(npm view:*)",
+      "WebFetch(domain:security.snyk.io)",
+      "Bash(npm search:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm show:*)",
+      "WebFetch(domain:ducanh-next-pwa.vercel.app)",
+      "Skill(agent-skills:plan)",
+      "Skill(review)",
+      "Skill(agent-skills:code-simplify)",
+      "Bash(openssl rand:*)"
     ],
     "deny": [],
     "ask": []

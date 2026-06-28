@@ -74,10 +74,6 @@ export default function RankingClient({ user, ageGroup, urlAgeGroup, curriculums
 
   const router = useRouter();
 
-  useEffect(() => {
-    fetchRankings();
-  }, [selectedCurriculum]);
-
   const fetchRankings = async () => {
     try {
       setLoading(true);
@@ -104,6 +100,11 @@ export default function RankingClient({ user, ageGroup, urlAgeGroup, curriculums
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchRankings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCurriculum]);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {

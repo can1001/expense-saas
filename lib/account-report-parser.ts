@@ -11,7 +11,7 @@
  * - 테이블 6: 지출 상세 (항목, 예산액, 누계, 당기, 대비%)
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 // ========================================
 // 타입 정의
@@ -141,6 +141,37 @@ export interface ParseError {
 // ========================================
 
 /**
+ * ExcelJS 워크시트를 HTML 테이블로 변환
+ */
+function worksheetToHtml(worksheet: ExcelJS.Worksheet): string {
+  let html = '<table>';
+
+  worksheet.eachRow({ includeEmpty: false }, (row) => {
+    html += '<tr>';
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      const value = cell.value ?? '';
+      html += `<td>${escapeHtml(String(value))}</td>`;
+    });
+    html += '</tr>';
+  });
+
+  html += '</table>';
+  return html;
+}
+
+/**
+ * HTML 이스케이프 헬퍼
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
  * 재정보고서 파일 파싱
  * @param buffer 파일 버퍼 (ArrayBuffer)
  * @returns 파싱된 재정보고서 데이터
@@ -159,16 +190,16 @@ export async function parseAccountReportFile(
 
     // HTML 태그가 없으면 xlsx로 시도 (다중 시트 지원)
     if (!htmlContent.includes('<table')) {
-      // xlsx 라이브러리로 파싱 시도
-      const workbook = XLSX.read(buffer, { type: 'array' });
+      // ExcelJS로 파싱 시도
+      const workbook = new ExcelJS.Workbook();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await workbook.xlsx.load(Buffer.from(new Uint8Array(buffer)) as any);
 
       // 모든 시트를 하나의 HTML로 결합
       let combinedHtml = '';
-      workbook.SheetNames.forEach((sheetName) => {
-        const sheet = workbook.Sheets[sheetName];
-        // 병합 셀 정보 포함하여 HTML 변환
-        const sheetHtml = XLSX.utils.sheet_to_html(sheet, { header: '', footer: '' });
-        combinedHtml += `<!-- 시트: ${sheetName} -->\n${sheetHtml}\n`;
+      workbook.worksheets.forEach((sheet) => {
+        const sheetHtml = worksheetToHtml(sheet);
+        combinedHtml += `<!-- 시트: ${sheet.name} -->\n${sheetHtml}\n`;
       });
 
       htmlContent = combinedHtml;

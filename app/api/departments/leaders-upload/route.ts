@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { prisma } from '@/lib/prisma';
 
 interface ExcelRow {
@@ -44,54 +44,58 @@ export async function GET(request: NextRequest) {
       ],
     });
 
-    // 엑셀 데이터 생성
-    const data = departments.map((dept) => ({
-      '위원회': dept.committee.name,
-      '사역팀': dept.name,
-      '팀장': dept.yearRoles[0]?.user?.username || '',
-    }));
+    // 워크북 생성
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('사역팀장목록');
 
-    // 빈 행 추가 (없는 경우)
-    if (data.length === 0) {
-      data.push({
-        '위원회': '',
-        '사역팀': '',
-        '팀장': '',
+    // 헤더 추가
+    ws.columns = [
+      { header: '위원회', key: 'committee', width: 20 },
+      { header: '사역팀', key: 'department', width: 25 },
+      { header: '팀장', key: 'leader', width: 15 },
+    ];
+
+    // 데이터 추가
+    if (departments.length === 0) {
+      ws.addRow({
+        committee: '',
+        department: '',
+        leader: '',
+      });
+    } else {
+      departments.forEach((dept) => {
+        ws.addRow({
+          committee: dept.committee.name,
+          department: dept.name,
+          leader: dept.yearRoles[0]?.user?.username || '',
+        });
       });
     }
 
-    // 워크북 생성
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data);
-
-    // 열 너비 설정
-    ws['!cols'] = [
-      { wch: 20 }, // 위원회
-      { wch: 25 }, // 사역팀
-      { wch: 15 }, // 팀장
-    ];
-
-    XLSX.utils.book_append_sheet(wb, ws, '사역팀장목록');
-
     // 안내 시트 추가
-    const guideData = [
-      { 항목: '적용 연도', 설명: String(year), 예시: '' },
-      { 항목: '', 설명: '', 예시: '' },
-      { 항목: '위원회', 설명: '위원회 이름 (필수)', 예시: '교육위원회' },
-      { 항목: '사역팀', 설명: '사역팀 이름 (필수)', 예시: '유년부' },
-      { 항목: '팀장', 설명: '팀장 이름 (사용자 이름과 일치해야 함)', 예시: '정혜종' },
-      { 항목: '', 설명: '', 예시: '' },
-      { 항목: '※ 참고사항', 설명: '', 예시: '' },
-      { 항목: '- 팀장 비우기', 설명: '팀장 열을 비워두면 팀장이 해제됩니다', 예시: '' },
-      { 항목: '- 사용자 매칭', 설명: '팀장 이름이 정확히 일치해야 합니다', 예시: '' },
-      { 항목: '- 연도별 관리', 설명: '팀장은 연도별로 관리됩니다', 예시: '' },
+    const wsGuide = workbook.addWorksheet('작성안내');
+    wsGuide.columns = [
+      { header: '항목', key: 'item', width: 20 },
+      { header: '설명', key: 'desc', width: 50 },
+      { header: '예시', key: 'example', width: 20 },
     ];
-    const wsGuide = XLSX.utils.json_to_sheet(guideData);
-    wsGuide['!cols'] = [{ wch: 20 }, { wch: 50 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(wb, wsGuide, '작성안내');
+
+    const guideData = [
+      { item: '적용 연도', desc: String(year), example: '' },
+      { item: '', desc: '', example: '' },
+      { item: '위원회', desc: '위원회 이름 (필수)', example: '교육위원회' },
+      { item: '사역팀', desc: '사역팀 이름 (필수)', example: '유년부' },
+      { item: '팀장', desc: '팀장 이름 (사용자 이름과 일치해야 함)', example: '정혜종' },
+      { item: '', desc: '', example: '' },
+      { item: '※ 참고사항', desc: '', example: '' },
+      { item: '- 팀장 비우기', desc: '팀장 열을 비워두면 팀장이 해제됩니다', example: '' },
+      { item: '- 사용자 매칭', desc: '팀장 이름이 정확히 일치해야 합니다', example: '' },
+      { item: '- 연도별 관리', desc: '팀장은 연도별로 관리됩니다', example: '' },
+    ];
+    guideData.forEach((row) => wsGuide.addRow(row));
 
     // Buffer로 변환
-    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const buffer = await workbook.xlsx.writeBuffer();
 
     return new NextResponse(buffer, {
       headers: {
@@ -125,10 +129,43 @@ export async function POST(request: NextRequest) {
 
     // 파일 읽기
     const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const rawRows = XLSX.utils.sheet_to_json(sheet) as Record<string, unknown>[];
+    const workbook = new ExcelJS.Workbook();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await workbook.xlsx.load(Buffer.from(new Uint8Array(arrayBuffer)) as any);
+
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
+      return NextResponse.json(
+        { success: false, error: { type: 'VALIDATION_ERROR', message: '워크시트를 찾을 수 없습니다.' } },
+        { status: 400 }
+      );
+    }
+
+    // 헤더 행 읽기
+    const headerRow = worksheet.getRow(1);
+    const headers: string[] = [];
+    headerRow.eachCell((cell, colNumber) => {
+      headers[colNumber - 1] = String(cell.value || '').toLowerCase();
+    });
+
+    // 데이터 행 읽기
+    const rawRows: Record<string, unknown>[] = [];
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // 헤더 건너뛰기
+
+      const rowData: Record<string, unknown> = {};
+      row.eachCell((cell, colNumber) => {
+        const header = headers[colNumber - 1];
+        if (header) {
+          rowData[header] = cell.value;
+        }
+      });
+
+      // 빈 행 건너뛰기
+      if (Object.values(rowData).some((v) => v !== null && v !== undefined && v !== '')) {
+        rawRows.push(rowData);
+      }
+    });
 
     if (rawRows.length === 0) {
       return NextResponse.json(

@@ -2,10 +2,17 @@
 
 import { ToastProvider } from '@/components/ui/Toast';
 import { useSafeArea } from '@/lib/hooks/useSafeArea';
+import { useFcmRegistration } from '@/lib/hooks/useFcmRegistration';
 
 // Android PWA에서 safe-area CSS 변수 초기화
 function SafeAreaInitializer({ children }: { children: React.ReactNode }) {
   useSafeArea();
+  return <>{children}</>;
+}
+
+// Capacitor 모바일 앱에서 마운트 시 FCM 토큰 자동 등록 시도 (일반 브라우저에선 no-op)
+function FcmAutoRegister({ children }: { children: React.ReactNode }) {
+  useFcmRegistration({ autoRegister: true });
   return <>{children}</>;
 }
 
@@ -16,9 +23,11 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <SafeAreaInitializer>
-      <ToastProvider>
-        {children}
-      </ToastProvider>
+      <FcmAutoRegister>
+        <ToastProvider>
+          {children}
+        </ToastProvider>
+      </FcmAutoRegister>
     </SafeAreaInitializer>
   );
 }

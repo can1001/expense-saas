@@ -89,6 +89,18 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   // 첨부파일 영역 ref (스크롤 이동용)
   const attachmentSectionRef = useRef<HTMLDivElement>(null);
 
+  // 커스텀 resolver: useFieldArray 삭제 후 남은 undefined 항목 필터링
+  const customResolver = async (values: ExpenseFormData, context: any, options: any) => {
+    if (values.items) {
+      // undefined 또는 불완전한 항목 필터링
+      const validItems = values.items.filter(
+        (item) => item && typeof item.budgetCategory === 'string'
+      );
+      values = { ...values, items: validItems };
+    }
+    return zodResolver(expenseFormSchema)(values, context, options);
+  };
+
   const {
     control,
     register,
@@ -99,7 +111,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
     watch,
     formState: { errors, isSubmitting },
   } = useForm<ExpenseFormData>({
-    resolver: zodResolver(expenseFormSchema),
+    resolver: customResolver,
     defaultValues: defaultExpenseFormData as ExpenseFormData,
   });
 

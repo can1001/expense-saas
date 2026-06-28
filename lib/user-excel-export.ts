@@ -2,7 +2,7 @@
  * 사용자 목록 엑셀 내보내기 유틸리티
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 // 사용자 인터페이스
 export interface UserForExcel {
@@ -61,28 +61,30 @@ export function usersToExcelRows(
 export function generateUserExcelWorkbook(
   users: UserForExcel[],
   getRoleName?: (role: string) => string
-): XLSX.WorkBook {
+): ExcelJS.Workbook {
   const rows = usersToExcelRows(users, getRoleName);
 
   // 워크북 생성
-  const workbook = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
 
-  // 데이터를 워크시트로 변환
-  const worksheet = XLSX.utils.json_to_sheet(rows);
+  // "사용자목록" 시트 추가
+  const worksheet = workbook.addWorksheet('사용자목록');
 
-  // 컬럼 너비 설정
-  worksheet['!cols'] = [
-    { wch: 15 },  // 아이디
-    { wch: 12 },  // 이름
-    { wch: 15 },  // 역할코드
-    { wch: 15 },  // 역할명
-    { wch: 20 },  // 부서
-    { wch: 10 },  // 상태
-    { wch: 12 },  // 등록일
+  // 컬럼 정의
+  worksheet.columns = [
+    { header: '아이디', key: '아이디', width: 15 },
+    { header: '이름', key: '이름', width: 12 },
+    { header: '역할코드', key: '역할코드', width: 15 },
+    { header: '역할명', key: '역할명', width: 15 },
+    { header: '부서', key: '부서', width: 20 },
+    { header: '상태', key: '상태', width: 10 },
+    { header: '등록일', key: '등록일', width: 12 },
   ];
 
-  // "사용자목록" 시트로 추가
-  XLSX.utils.book_append_sheet(workbook, worksheet, '사용자목록');
+  // 데이터 행 추가
+  for (const row of rows) {
+    worksheet.addRow(row);
+  }
 
   return workbook;
 }
@@ -90,11 +92,11 @@ export function generateUserExcelWorkbook(
 /**
  * 엑셀 파일 다운로드 (브라우저)
  */
-export function downloadUserExcel(
+export async function downloadUserExcel(
   users: UserForExcel[],
   getRoleName?: (role: string) => string,
   filename?: string
-): void {
+): Promise<void> {
   const workbook = generateUserExcelWorkbook(users, getRoleName);
 
   // 파일명 생성
@@ -102,6 +104,20 @@ export function downloadUserExcel(
   const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const defaultFilename = `사용자목록_${dateStr}.xlsx`;
 
-  // 다운로드
-  XLSX.writeFile(workbook, filename || defaultFilename);
+  // Buffer로 변환
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  // Blob으로 변환하여 다운로드
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename || defaultFilename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }

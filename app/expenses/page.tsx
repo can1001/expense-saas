@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense, useCallback } from 'react';
+import { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import Image from 'next/image';
@@ -24,7 +24,7 @@ interface CurrentUser {
   role: UserRole | string;
 }
 
-type SortKey = 'requestDate' | 'applicantName' | 'budgetCategory' | 'budgetSubcategory' | 'budgetDetail' | 'requestAmount' | 'committee' | 'status' | 'approvedAt' | 'paymentStatus';
+type SortKey = 'requestDate' | 'applicantName' | 'budgetCategory' | 'budgetSubcategory' | 'budgetDetail' | 'requestAmount' | 'committee' | 'status' | 'approvedAt' | 'paymentStatus' | 'expenseDate';
 type SortDirection = 'asc' | 'desc';
 
 function ExpensesPageContent() {
@@ -44,14 +44,27 @@ function ExpensesPageContent() {
     paymentStatus: searchParams.get('paymentStatus') || '',
     approvedStartDate: searchParams.get('approvedStart') || '',
     approvedEndDate: searchParams.get('approvedEnd') || '',
+    expenseStartDate: searchParams.get('expenseStart') || '',
+    expenseEndDate: searchParams.get('expenseEnd') || '',
   }), [searchParams]);
 
   const [expenses, setExpenses] = useState<ExpenseListItem[]>([]);
+  const [serverPagination, setServerPagination] = useState({ page: 1, limit: 50, total: 0, totalPages: 0 });
+  const [serverAggregates, setServerAggregates] = useState({ totalCount: 0, totalRequestAmount: 0 });
+  const [filterOptions, setFilterOptions] = useState<{ committees: string[]; departments: string[]; budgetCategories: string[] }>({
+    committees: [],
+    departments: [],
+    budgetCategories: [],
+  });
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+  const refetch = useCallback(() => setRefetchTrigger((t) => t + 1), []);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchParams.get('q') || '');
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   // 정렬 상태
   const [sortKey, setSortKey] = useState<SortKey>((searchParams.get('sort') as SortKey) || 'requestDate');
@@ -78,10 +91,98 @@ function ExpensesPageContent() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [filters, setFilters] = useState(getInitialFilters);
 
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentUser(data.user);
+      }
+    } catch {
+      // 로그인 안 된 경우 무시
+    }
+  };
+
+  // 지급상태 변경 권한 확인 (admin, finance_head, accountant, admin_assistant)
+  const paymentStatusRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
+  const canBulkChangePaymentStatus = currentUser && paymentStatusRoles.includes(currentUser.role);
+
+  // 검색어 debounce (300ms)
   useEffect(() => {
-    fetchExpenses();
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // 마운트 시 1회: 현재 사용자 + 필터 옵션
+  useEffect(() => {
     fetchCurrentUser();
+    fetch('/api/expenses/filter-options')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => setFilterOptions(data))
+      .catch(() => {
+        // 옵션 조회 실패는 무시 (드롭다운만 빈 상태)
+      });
   }, []);
+
+  // 지출결의서 목록 fetch (필터/검색/정렬/페이지 변경 시)
+  useEffect(() => {
+    const controller = new AbortController();
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const params = new URLSearchParams();
+        params.set('page', String(currentPage));
+        params.set('limit', String(itemsPerPage));
+        params.set('sortBy', sortKey);
+        params.set('sortDir', sortDirection);
+        if (debouncedSearchQuery) params.set('q', debouncedSearchQuery);
+        if (filters.committee) params.set('committee', filters.committee);
+        if (filters.department) params.set('department', filters.department);
+        if (filters.budgetCategory) params.set('category', filters.budgetCategory);
+        if (filters.startDate) params.set('startDate', filters.startDate);
+        if (filters.endDate) params.set('endDate', filters.endDate);
+        if (filters.minAmount) params.set('minAmount', filters.minAmount);
+        if (filters.maxAmount) params.set('maxAmount', filters.maxAmount);
+        if (filters.status) params.set('status', filters.status);
+        if (filters.paymentStatus) params.set('paymentStatus', filters.paymentStatus);
+        if (filters.approvedStartDate) params.set('approvedStart', filters.approvedStartDate);
+        if (filters.approvedEndDate) params.set('approvedEnd', filters.approvedEndDate);
+        if (filters.expenseStartDate) params.set('expenseStart', filters.expenseStartDate);
+        if (filters.expenseEndDate) params.set('expenseEnd', filters.expenseEndDate);
+
+        const response = await fetch(`/api/expenses?${params.toString()}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error('데이터를 불러오는데 실패했습니다.');
+        }
+
+        const data = await response.json();
+        setExpenses(data.expenses || []);
+        if (data.pagination) setServerPagination(data.pagination);
+        if (data.aggregates) setServerAggregates(data.aggregates);
+      } catch (err) {
+        if ((err as any)?.name === 'AbortError') return;
+        setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    })();
+    return () => controller.abort();
+  }, [
+    debouncedSearchQuery,
+    currentPage,
+    itemsPerPage,
+    sortKey,
+    sortDirection,
+    filters,
+    refetchTrigger,
+  ]);
 
   // URL 동기화 - 필터/검색 상태가 변경되면 URL 업데이트
   useEffect(() => {
@@ -102,6 +203,8 @@ function ExpensesPageContent() {
     if (filters.paymentStatus) params.set('paymentStatus', filters.paymentStatus);
     if (filters.approvedStartDate) params.set('approvedStart', filters.approvedStartDate);
     if (filters.approvedEndDate) params.set('approvedEnd', filters.approvedEndDate);
+    if (filters.expenseStartDate) params.set('expenseStart', filters.expenseStartDate);
+    if (filters.expenseEndDate) params.set('expenseEnd', filters.expenseEndDate);
 
     const queryString = params.toString();
     const newUrl = queryString ? `/expenses?${queryString}` : '/expenses';
@@ -112,213 +215,11 @@ function ExpensesPageContent() {
     }
   }, [searchQuery, sortKey, sortDirection, currentPage, filters]);
 
-  const fetchCurrentUser = async () => {
-    try {
-      const response = await fetch('/api/auth/me');
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentUser(data.user);
-      }
-    } catch {
-      // 로그인 안 된 경우 무시
-    }
-  };
+  // 필터링/검색은 이제 서버에서 처리 — 응답을 그대로 사용
+  const filteredExpenses = expenses;
 
-  // 지급상태 변경 권한 확인 (admin, finance_head, accountant, admin_assistant)
-  const paymentStatusRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
-  const canBulkChangePaymentStatus = currentUser && paymentStatusRoles.includes(currentUser.role);
-
-  const fetchExpenses = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch('/api/expenses?limit=10000');
-
-      if (!response.ok) {
-        throw new Error('데이터를 불러오는데 실패했습니다.');
-      }
-
-      const data: ExpenseListResponse = await response.json();
-      setExpenses(data.expenses || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 검색 및 필터링
-  const filteredExpenses = expenses.filter(expense => {
-    // 첫 번째 항목의 예산 정보 (항/목은 이제 items에 있음)
-    const firstItemCategory = expense.items?.[0]?.budgetCategory || '';
-
-    // 텍스트 검색
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch =
-        expense.applicantName.toLowerCase().includes(query) ||
-        expense.committee.toLowerCase().includes(query) ||
-        expense.department.toLowerCase().includes(query) ||
-        firstItemCategory.toLowerCase().includes(query);
-
-      if (!matchesSearch) return false;
-    }
-
-    // 위원회 필터
-    if (filters.committee && expense.committee !== filters.committee) {
-      return false;
-    }
-
-    // 사역팀 필터
-    if (filters.department && expense.department !== filters.department) {
-      return false;
-    }
-
-    // 예산항목 필터 (첫 번째 항목 기준)
-    if (filters.budgetCategory && firstItemCategory !== filters.budgetCategory) {
-      return false;
-    }
-
-    // 날짜 범위 필터
-    if (filters.startDate) {
-      const expenseDate = new Date(expense.requestDate);
-      const startDate = new Date(filters.startDate);
-      if (expenseDate < startDate) return false;
-    }
-
-    if (filters.endDate) {
-      const expenseDate = new Date(expense.requestDate);
-      const endDate = new Date(filters.endDate);
-      if (expenseDate > endDate) return false;
-    }
-
-    // 금액 범위 필터
-    if (filters.minAmount && expense.requestAmount < Number(filters.minAmount)) {
-      return false;
-    }
-
-    if (filters.maxAmount && expense.requestAmount > Number(filters.maxAmount)) {
-      return false;
-    }
-
-    // 결재상태 필터
-    if (filters.status && expense.status !== filters.status) {
-      return false;
-    }
-
-    // 지출 상태 필터
-    if (filters.paymentStatus) {
-      // 최종 승인된 항목만 지출 상태 필터 적용
-      if (expense.status === 'APPROVED_FINAL') {
-        if (expense.paymentStatus !== filters.paymentStatus) {
-          return false;
-        }
-      } else {
-        // 최종 승인 전 항목은 지출 상태 필터 시 제외
-        return false;
-      }
-    }
-
-    // 최종승인일 범위 필터
-    if (filters.approvedStartDate) {
-      if (!expense.approvedAt) return false;
-      const approvedDate = new Date(expense.approvedAt);
-      const startDate = new Date(filters.approvedStartDate);
-      if (approvedDate < startDate) return false;
-    }
-
-    if (filters.approvedEndDate) {
-      if (!expense.approvedAt) return false;
-      const approvedDate = new Date(expense.approvedAt);
-      const endDate = new Date(filters.approvedEndDate);
-      if (approvedDate > endDate) return false;
-    }
-
-    return true;
-  });
-
-  // 정렬 함수
-  const sortedExpenses = [...filteredExpenses].sort((a, b) => {
-    let aValue: string | number | null = null;
-    let bValue: string | number | null = null;
-
-    switch (sortKey) {
-      case 'requestDate':
-        aValue = new Date(a.requestDate).getTime();
-        bValue = new Date(b.requestDate).getTime();
-        break;
-      case 'applicantName':
-        aValue = a.applicantName;
-        bValue = b.applicantName;
-        break;
-      case 'budgetCategory':
-        aValue = a.items?.[0]?.budgetCategory || '';
-        bValue = b.items?.[0]?.budgetCategory || '';
-        break;
-      case 'budgetSubcategory': {
-        // 1차: 항 비교
-        const subCatA = a.items?.[0]?.budgetCategory || '';
-        const subCatB = b.items?.[0]?.budgetCategory || '';
-        const catCompare = subCatA.localeCompare(subCatB, 'ko');
-        if (catCompare !== 0) return sortDirection === 'asc' ? catCompare : -catCompare;
-        // 2차: 목 비교
-        aValue = a.items?.[0]?.budgetSubcategory || '';
-        bValue = b.items?.[0]?.budgetSubcategory || '';
-        break;
-      }
-      case 'budgetDetail': {
-        // 1차: 항 비교
-        const detCatA = a.items?.[0]?.budgetCategory || '';
-        const detCatB = b.items?.[0]?.budgetCategory || '';
-        const catCmp = detCatA.localeCompare(detCatB, 'ko');
-        if (catCmp !== 0) return sortDirection === 'asc' ? catCmp : -catCmp;
-        // 2차: 목 비교
-        const detSubA = a.items?.[0]?.budgetSubcategory || '';
-        const detSubB = b.items?.[0]?.budgetSubcategory || '';
-        const subCmp = detSubA.localeCompare(detSubB, 'ko');
-        if (subCmp !== 0) return sortDirection === 'asc' ? subCmp : -subCmp;
-        // 3차: 세목 비교
-        aValue = a.items?.[0]?.budgetDetail || '';
-        bValue = b.items?.[0]?.budgetDetail || '';
-        break;
-      }
-      case 'requestAmount':
-        aValue = a.requestAmount;
-        bValue = b.requestAmount;
-        break;
-      case 'committee':
-        aValue = a.committee;
-        bValue = b.committee;
-        break;
-      case 'status':
-        aValue = a.status || '';
-        bValue = b.status || '';
-        break;
-      case 'approvedAt':
-        aValue = a.approvedAt ? new Date(a.approvedAt).getTime() : 0;
-        bValue = b.approvedAt ? new Date(b.approvedAt).getTime() : 0;
-        break;
-      case 'paymentStatus':
-        aValue = a.paymentStatus || '';
-        bValue = b.paymentStatus || '';
-        break;
-      default:
-        return 0;
-    }
-
-    if (aValue === null || bValue === null) return 0;
-
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      const comparison = aValue.localeCompare(bValue, 'ko');
-      return sortDirection === 'asc' ? comparison : -comparison;
-    }
-
-    if (typeof aValue === 'number' && typeof bValue === 'number') {
-      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-    }
-
-    return 0;
-  });
+  // 정렬은 이제 서버에서 처리 — 응답을 그대로 사용
+  const sortedExpenses = filteredExpenses;
 
   // 정렬 토글 핸들러
   const handleSort = (key: SortKey) => {
@@ -350,46 +251,28 @@ function ExpensesPageContent() {
     );
   };
 
-  // 페이지네이션
-  const totalPages = Math.ceil(sortedExpenses.length / itemsPerPage);
+  // 페이지네이션 — 서버 응답을 그대로 사용
+  const totalPages = serverPagination.totalPages;
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedExpenses = sortedExpenses.slice(startIndex, endIndex);
+  const endIndex = startIndex + sortedExpenses.length;
+  const paginatedExpenses = sortedExpenses;
 
-  // 페이지 변경 시 첫 페이지로 리셋
+  // 조회 결과 전체의 청구금액 합계 — 서버 aggregate 값
+  const totalRequestAmount = serverAggregates.totalRequestAmount;
+
+  // 필터/검색/정렬 변경 시 첫 페이지로 리셋 (페이지 자체 변경엔 반응 X)
   useEffect(() => {
     setCurrentPage(1);
-    setMobileVisibleCount(10); // 모바일도 리셋
-  }, [searchQuery, itemsPerPage, filters, sortKey, sortDirection]);
+  }, [debouncedSearchQuery, itemsPerPage, filters, sortKey, sortDirection]);
 
-  // 모바일 무한 스크롤 - Intersection Observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && mobileVisibleCount < sortedExpenses.length) {
-          setMobileVisibleCount(prev => Math.min(prev + 10, sortedExpenses.length));
-        }
-      },
-      { threshold: 0.1, rootMargin: '100px' }
-    );
+  // 모바일 표시 항목 (무한 스크롤은 2단계 후속 PR 에서 복원 — 임시로 페이지네이션 사용)
+  const mobileVisibleExpenses = sortedExpenses;
+  const hasMoreMobile = false;
 
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [mobileVisibleCount, sortedExpenses.length]);
-
-  // 모바일용 표시 항목
-  const mobileVisibleExpenses = sortedExpenses.slice(0, mobileVisibleCount);
-  const hasMoreMobile = mobileVisibleCount < sortedExpenses.length;
-
-  // 필터 옵션 추출 (첫 번째 항목의 예산 정보 사용)
-  const uniqueCommittees = Array.from(new Set(expenses.map(e => e.committee))).sort();
-  const uniqueDepartments = Array.from(new Set(expenses.map(e => e.department))).sort();
-  const uniqueCategories = Array.from(new Set(
-    expenses.map(e => e.items?.[0]?.budgetCategory).filter(Boolean)
-  )).sort() as string[];
+  // 필터 옵션 — 서버 reference API 응답 사용
+  const uniqueCommittees = filterOptions.committees;
+  const uniqueDepartments = filterOptions.departments;
+  const uniqueCategories = filterOptions.budgetCategories;
 
   // 활성화된 필터 개수 계산
   const activeFilterCount = Object.values(filters).filter(v => v !== '').length;
@@ -411,6 +294,8 @@ function ExpensesPageContent() {
       paymentStatus: '',
       approvedStartDate: '',
       approvedEndDate: '',
+      expenseStartDate: '',
+      expenseEndDate: '',
     });
     setSearchQuery('');
   };
@@ -602,7 +487,7 @@ function ExpensesPageContent() {
       alert(data.message);
 
       // 목록 새로고침 및 선택 초기화
-      await fetchExpenses();
+      refetch();
       setSelectedIds(new Set());
     } catch (err) {
       alert(err instanceof Error ? err.message : '일괄 변경 중 오류가 발생했습니다.');
@@ -636,7 +521,7 @@ function ExpensesPageContent() {
       alert(data.message);
 
       // 목록 새로고침 및 선택 초기화
-      await fetchExpenses();
+      refetch();
       setSelectedIds(new Set());
       setShowBulkExpenseDateModal(false);
     } catch (err) {
@@ -682,7 +567,7 @@ function ExpensesPageContent() {
           <h2 className="text-2xl font-bold text-gray-800 mb-2">오류 발생</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
-            onClick={fetchExpenses}
+            onClick={refetch}
             className={BTN_PRIMARY}
           >
             다시 시도
@@ -701,7 +586,7 @@ function ExpensesPageContent() {
           <div>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">지출결의서 목록</h1>
             <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
-              총 {sortedExpenses.length}건의 지출결의서
+              총 {serverPagination.total}건의 지출결의서
             </p>
           </div>
           <button
@@ -989,6 +874,27 @@ function ExpensesPageContent() {
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      지급일자 범위
+                    </label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="date"
+                        value={filters.expenseStartDate}
+                        onChange={(e) => handleFilterChange('expenseStartDate', e.target.value)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white"
+                      />
+                      <span className="text-gray-500">~</span>
+                      <input
+                        type="date"
+                        value={filters.expenseEndDate}
+                        onChange={(e) => handleFilterChange('expenseEndDate', e.target.value)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-white"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex justify-end">
@@ -1136,7 +1042,7 @@ function ExpensesPageContent() {
               <span className="text-sm font-medium text-gray-700">전체 선택</span>
             </label>
             <span className="text-sm text-gray-500">
-              {mobileVisibleExpenses.length} / {sortedExpenses.length}건
+              {mobileVisibleExpenses.length} / {serverPagination.total}건
             </span>
           </div>
 
@@ -1164,6 +1070,17 @@ function ExpensesPageContent() {
                 hasMore={hasMoreMobile}
                 loadMoreRef={loadMoreRef}
               />
+              {/* 조회 결과 합계 카드 */}
+              <div className="mt-2 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">
+                    합계 ({serverAggregates.totalCount}건)
+                  </span>
+                  <span className="text-lg font-bold text-blue-700">
+                    {formatCurrency(totalRequestAmount)}
+                  </span>
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -1210,28 +1127,11 @@ function ExpensesPageContent() {
                     </div>
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                    {/* 예산 컬럼 정렬은 ExpenseItem 관계 정렬이 Prisma orderBy로 불가능해 비활성화 (2단계 spec 참조) */}
                     <div className="flex flex-col gap-0.5">
-                      <div
-                        className="flex items-center cursor-pointer hover:bg-blue-600 px-1 py-0.5 rounded transition-colors select-none whitespace-nowrap"
-                        onClick={() => handleSort('budgetCategory')}
-                      >
-                        예산(항)
-                        {renderSortIcon('budgetCategory')}
-                      </div>
-                      <div
-                        className="flex items-center cursor-pointer hover:bg-blue-600 px-1 py-0.5 rounded transition-colors select-none text-blue-200 whitespace-nowrap"
-                        onClick={() => handleSort('budgetSubcategory')}
-                      >
-                        예산(목)
-                        {renderSortIcon('budgetSubcategory')}
-                      </div>
-                      <div
-                        className="flex items-center cursor-pointer hover:bg-blue-600 px-1 py-0.5 rounded transition-colors select-none text-blue-300 whitespace-nowrap"
-                        onClick={() => handleSort('budgetDetail')}
-                      >
-                        예산(세목)
-                        {renderSortIcon('budgetDetail')}
-                      </div>
+                      <div className="px-1 py-0.5 select-none whitespace-nowrap">예산(항)</div>
+                      <div className="px-1 py-0.5 select-none text-blue-200 whitespace-nowrap">예산(목)</div>
+                      <div className="px-1 py-0.5 select-none text-blue-300 whitespace-nowrap">예산(세목)</div>
                     </div>
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap">
@@ -1269,6 +1169,15 @@ function ExpensesPageContent() {
                   </th>
                   <th
                     className="px-3 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
+                    onClick={() => handleSort('expenseDate')}
+                  >
+                    <div className="flex items-center justify-center">
+                      지급일자
+                      {renderSortIcon('expenseDate')}
+                    </div>
+                  </th>
+                  <th
+                    className="px-3 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors select-none"
                     onClick={() => handleSort('paymentStatus')}
                   >
                     <div className="flex items-center justify-center">
@@ -1281,7 +1190,7 @@ function ExpensesPageContent() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={12} className="px-6 py-12 text-center text-gray-500">
                       {searchQuery ? '검색 결과가 없습니다.' : '등록된 지출결의서가 없습니다.'}
                     </td>
                   </tr>
@@ -1407,6 +1316,14 @@ function ExpensesPageContent() {
                           : '-'}
                       </td>
                       <td
+                        className="px-3 py-3 whitespace-nowrap text-sm text-center text-gray-900"
+                        onClick={() => handleRowClick(expense.id)}
+                      >
+                        {expense.expenseDate
+                          ? format(new Date(expense.expenseDate), 'yyyy-MM-dd')
+                          : '-'}
+                      </td>
+                      <td
                         className="px-3 py-3 whitespace-nowrap text-sm text-center"
                         onClick={() => handleRowClick(expense.id)}
                       >
@@ -1437,6 +1354,17 @@ function ExpensesPageContent() {
                     </tr>
                   ))
                 )}
+                {serverAggregates.totalCount > 0 && (
+                  <tr className="bg-gray-50 border-t-2 border-gray-300 font-semibold">
+                    <td colSpan={7} className="px-3 py-3 text-right text-sm text-gray-700">
+                      합계 ({serverAggregates.totalCount}건)
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-right text-sm text-blue-700">
+                      {formatCurrency(totalRequestAmount)}
+                    </td>
+                    <td colSpan={4} />
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -1450,10 +1378,10 @@ function ExpensesPageContent() {
               <span className="font-medium">{startIndex + 1}</span>
               {' - '}
               <span className="font-medium">
-                {Math.min(endIndex, sortedExpenses.length)}
+                {Math.min(endIndex, serverPagination.total)}
               </span>
               {' / '}
-              <span className="font-medium">{sortedExpenses.length}</span>
+              <span className="font-medium">{serverPagination.total}</span>
               {' 건'}
             </div>
 

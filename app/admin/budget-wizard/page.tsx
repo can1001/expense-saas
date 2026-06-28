@@ -95,10 +95,6 @@ export default function BudgetWizardPage() {
     createdCount: number;
   } | null>(null);
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
   const fetchInitialData = async () => {
     try {
       setLoading(true);
@@ -126,6 +122,10 @@ export default function BudgetWizardPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
 
   const fetchDepartments = async (committeeId: string) => {
     try {

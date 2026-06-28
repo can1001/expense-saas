@@ -9,3 +9,5 @@ export { useExpenseFormState } from './useExpenseFormState';
 export { useExpenseFormSubmit } from './useExpenseFormSubmit';
 export { useBudgetPreferences } from './useBudgetPreferences';
 export { useSafeArea } from './useSafeArea';
+export { useTemplates } from './useTemplates';
+export type { ExpenseTemplate, CreateTemplateData } from './useTemplates';

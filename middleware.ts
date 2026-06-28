@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
 // 로그인이 필요한 경로
-const protectedPaths = ['/expenses', '/approvals'];
+const protectedPaths = ['/expenses', '/approvals', '/recurring-expenses'];
 
 // 로그인 후 접근 불가 경로
 const authPaths = ['/login'];

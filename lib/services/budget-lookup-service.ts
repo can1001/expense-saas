@@ -107,6 +107,39 @@ export async function lookupBudgetHierarchy(
 }
 
 /**
+ * 입력된 (위원회, 사역팀, 항, 목, 세목) 조합이 활성 매핑으로 실제 존재하는지 검증.
+ *
+ * `lookupBudgetHierarchy`는 한 세목이 여러 부서에 매핑된 경우 임의의 첫 부서만 반환한다.
+ * 일괄 업로드에서 사용자가 정답인 대안 부서를 입력해도 단순 비교로는 잘못된 불일치가 발생한다.
+ * 본 함수는 "입력 부서가 해당 세목 매핑 중 하나인가"를 직접 묻는다.
+ */
+export async function verifyBudgetMapping(
+  committee: string,
+  department: string,
+  budgetCategory: string,
+  budgetSubcategory: string,
+  budgetDetail: string
+): Promise<boolean> {
+  const count = await prisma.departmentBudgetDetail.count({
+    where: {
+      isActive: true,
+      department: {
+        name: department,
+        committee: { name: committee },
+      },
+      budgetDetail: {
+        name: budgetDetail,
+        subcategory: {
+          name: budgetSubcategory,
+          category: { name: budgetCategory },
+        },
+      },
+    },
+  });
+  return count > 0;
+}
+
+/**
  * 세목의 담당자 ID 조회
  *
  * @param budgetCategory 예산(항) 이름

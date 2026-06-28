@@ -142,13 +142,13 @@ export const COLORS = {
 
 export const MODAL_OVERLAY = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
 
-export const MODAL_CONTAINER = 'bg-white rounded-lg shadow-xl max-h-[90vh] overflow-hidden';
+export const MODAL_CONTAINER = 'bg-white rounded-lg shadow-xl max-h-[90vh] overflow-hidden flex flex-col';
 
-export const MODAL_HEADER = 'px-6 py-4 border-b border-gray-200 flex items-center justify-between';
+export const MODAL_HEADER = 'px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0';
 
-export const MODAL_BODY = 'px-6 py-4 overflow-y-auto';
+export const MODAL_BODY = 'px-6 py-4 flex-1 min-h-0 overflow-y-auto overscroll-contain';
 
-export const MODAL_FOOTER = 'px-6 py-4 border-t border-gray-200 flex justify-end gap-3';
+export const MODAL_FOOTER = 'px-6 py-4 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0';
 
 // 모달 크기
 export const MODAL_SM = 'w-full max-w-md';

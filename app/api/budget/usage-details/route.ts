@@ -1,24 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
+import { isValidCuid } from '@/lib/validators';
 import type { ApprovalStatus } from '@/lib/types';
 
 /**
- * GET /api/budget/usage-details - 세목별 사용금액 상세 내역 조회
+ * GET /api/budget/usage-details - 항/목/세목별 사용금액 상세 내역 조회
  *
  * Query Parameters:
+ * - budgetCategory: 항 이름 (필수)
+ * - budgetSubcategory: 목 이름 (필수)
  * - budgetDetail: 세목 이름 (필수)
  * - year: 조회 연도 (필수)
  * - excludeExpenseId: 제외할 지출결의서 ID (선택, 이중 차감 방지용)
+ *
+ * 동일한 세목 이름이 다른 목 아래에 존재할 수 있으므로 항/목까지 함께 지정해야 한다.
  *
  * Returns: 승인된(APPROVED_STEP_1 이상) 지출 항목 목록
  */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
+    const budgetCategory = searchParams.get('budgetCategory');
+    const budgetSubcategory = searchParams.get('budgetSubcategory');
     const budgetDetail = searchParams.get('budgetDetail');
     const yearParam = searchParams.get('year');
     const excludeExpenseId = searchParams.get('excludeExpenseId');
+
+    if (!budgetCategory) {
+      throw new ApiError('항(budgetCategory) 파라미터가 필요합니다.', 400);
+    }
+
+    if (!budgetSubcategory) {
+      throw new ApiError('목(budgetSubcategory) 파라미터가 필요합니다.', 400);
+    }
 
     if (!budgetDetail) {
       throw new ApiError('세목(budgetDetail) 파라미터가 필요합니다.', 400);
@@ -33,6 +48,11 @@ export async function GET(request: NextRequest) {
       throw new ApiError('연도(year)는 숫자여야 합니다.', 400);
     }
 
+    // excludeExpenseId CUID 형식 검증
+    if (excludeExpenseId && !isValidCuid(excludeExpenseId)) {
+      throw new ApiError('잘못된 지출결의서 ID 형식입니다.', 400);
+    }
+
     // 해당 연도의 시작일과 종료일
     const startDate = new Date(year, 0, 1); // 1월 1일
     const endDate = new Date(year + 1, 0, 1); // 다음 연도 1월 1일
@@ -40,10 +60,12 @@ export async function GET(request: NextRequest) {
     // 승인된 상태 목록 (APPROVED_STEP_1 이상)
     const approvedStatuses: ApprovalStatus[] = ['APPROVED_STEP_1', 'APPROVED_STEP_2', 'APPROVED_FINAL'];
 
-    // 세목별 승인된 지출 항목 조회 (excludeExpenseId가 있으면 해당 지출 제외)
+    // 항/목/세목 조합별 승인된 지출 항목 조회 (excludeExpenseId가 있으면 해당 지출 제외)
     const expenseItems = await prisma.expenseItem.findMany({
       where: {
-        budgetDetail: budgetDetail,
+        budgetCategory,
+        budgetSubcategory,
+        budgetDetail,
         expense: {
           status: {
             in: approvedStatuses,
@@ -87,6 +109,8 @@ export async function GET(request: NextRequest) {
     const totalAmount = expenseItems.reduce((sum, item) => sum + item.amount, 0);
 
     return NextResponse.json({
+      budgetCategory,
+      budgetSubcategory,
       budgetDetail,
       year,
       items: usageDetails,

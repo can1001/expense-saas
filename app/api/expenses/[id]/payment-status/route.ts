@@ -221,6 +221,13 @@ export async function PUT(
               paymentDate: now.toLocaleDateString('ko-KR'),
             })
             .catch((err) => console.error('[PaymentComplete] 알림 발송 실패:', err));
+        } else {
+          await notificationService.logUnmatchedRecipient({
+            expenseId: id,
+            eventType: 'PAYMENT_COMPLETE',
+            attemptedName: expense.applicantName,
+            role: 'applicant',
+          });
         }
       } catch (notifyError) {
         console.error('[PaymentComplete] 알림 처리 중 오류:', notifyError);

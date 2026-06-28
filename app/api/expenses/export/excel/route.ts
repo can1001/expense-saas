@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
         requestAmount: expense.requestAmount,
       }));
 
-      buffer = generateWooriBankBuffer(expensesForWoori);
+      buffer = await generateWooriBankBuffer(expensesForWoori);
       filename = generateWooriBankFilename();
     } else {
       // 기본 (웹교적 지출재정) 양식
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
         })),
       }));
 
-      buffer = generateExcelBuffer(
+      buffer = await generateExcelBuffer(
         expensesForExcel,
         useSameDate ? overrideDate : undefined
       );

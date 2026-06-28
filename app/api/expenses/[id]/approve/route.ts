@@ -316,6 +316,13 @@ export async function POST(
             isComplete,
           })
           .catch((err) => console.error('[Approve] 신청자 알림 발송 실패:', err));
+      } else {
+        await notificationService.logUnmatchedRecipient({
+          expenseId: id,
+          eventType: 'APPROVE',
+          attemptedName: expense.applicantName,
+          role: 'applicant',
+        });
       }
 
       // 다음 결재자에게 알림 (최종 승인이 아닌 경우)
@@ -338,6 +345,13 @@ export async function POST(
                 department: expense.department,
               })
               .catch((err) => console.error('[Approve] 다음 결재자 알림 발송 실패:', err));
+          } else {
+            await notificationService.logUnmatchedRecipient({
+              expenseId: id,
+              eventType: 'SUBMIT',
+              attemptedName: nextStepData.approverName,
+              role: 'next-approver',
+            });
           }
         }
       }

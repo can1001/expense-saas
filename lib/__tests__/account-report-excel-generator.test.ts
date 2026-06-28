@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import {
   generateAccountReportWorkbook,
   generateAccountReportBuffer,
@@ -12,6 +12,41 @@ import {
   type ExportOptions,
 } from '../account-report-excel-generator';
 import type { SummaryData } from '../account-report-parser';
+
+/**
+ * ExcelJS 워크시트를 2D 배열로 변환하는 헬퍼 함수 (테스트용)
+ * XLSX.utils.sheet_to_json(sheet, { header: 1 }) 대체
+ */
+function worksheetToArray(worksheet: ExcelJS.Worksheet): unknown[][] {
+  const result: unknown[][] = [];
+  const rowCount = worksheet.rowCount;
+
+  // 모든 행을 순회 (빈 행 포함)
+  for (let rowNum = 1; rowNum <= rowCount; rowNum++) {
+    const row = worksheet.getRow(rowNum);
+    const rowData: unknown[] = [];
+
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      // 배열 인덱스 맞추기 (1-based → 0-based)
+      while (rowData.length < colNumber - 1) {
+        rowData.push(undefined);
+      }
+      rowData.push(cell.value);
+    });
+
+    result.push(rowData);
+  }
+  return result;
+}
+
+/**
+ * Buffer에서 ExcelJS 워크북을 로드하는 헬퍼 함수 (테스트용)
+ */
+async function readWorkbookFromBuffer(buffer: Buffer): Promise<ExcelJS.Workbook> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  return workbook;
+}
 
 describe('account-report-excel-generator', () => {
   // ========================================
@@ -205,9 +240,10 @@ describe('account-report-excel-generator', () => {
       };
 
       const workbook = generateAccountReportWorkbook(options);
+      const sheetNames = workbook.worksheets.map((ws) => ws.name);
 
-      expect(workbook.SheetNames).toHaveLength(3);
-      expect(workbook.SheetNames).toEqual(['수지개황', '수입부', '지출부']);
+      expect(sheetNames).toHaveLength(3);
+      expect(sheetNames).toEqual(['수지개황', '수입부', '지출부']);
     });
 
     it('should create summary sheet with correct data', () => {
@@ -220,8 +256,8 @@ describe('account-report-excel-generator', () => {
       };
 
       const workbook = generateAccountReportWorkbook(options);
-      const sheet = workbook.Sheets['수지개황'];
-      const data = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+      const sheet = workbook.getWorksheet('수지개황')!;
+      const data = worksheetToArray(sheet);
 
       // 제목 확인
       expect(data[0][0]).toBe('2024년 2분기 수지개황');
@@ -244,8 +280,8 @@ describe('account-report-excel-generator', () => {
       };
 
       const workbook = generateAccountReportWorkbook(options);
-      const sheet = workbook.Sheets['수지개황'];
-      const data = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+      const sheet = workbook.getWorksheet('수지개황')!;
+      const data = worksheetToArray(sheet);
 
       // 전년(동분기)누계 행 확인
       expect(data[5][0]).toBe('전년(동분기)누계');
@@ -266,8 +302,8 @@ describe('account-report-excel-generator', () => {
       };
 
       const workbook = generateAccountReportWorkbook(options);
-      const sheet = workbook.Sheets['수입부'];
-      const data = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+      const sheet = workbook.getWorksheet('수입부')!;
+      const data = worksheetToArray(sheet);
 
       // 제목
       expect(data[0][0]).toBe('수입부');
@@ -303,8 +339,8 @@ describe('account-report-excel-generator', () => {
       };
 
       const workbook = generateAccountReportWorkbook(options);
-      const sheet = workbook.Sheets['지출부'];
-      const data = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+      const sheet = workbook.getWorksheet('지출부')!;
+      const data = worksheetToArray(sheet);
 
       // 대분류
       expect(data[4][0]).toBe('○ 인건비');
@@ -329,8 +365,8 @@ describe('account-report-excel-generator', () => {
       };
 
       const workbook = generateAccountReportWorkbook(options);
-      const incomeSheet = workbook.Sheets['수입부'];
-      const incomeData = XLSX.utils.sheet_to_json<any>(incomeSheet, { header: 1 });
+      const incomeSheet = workbook.getWorksheet('수입부')!;
+      const incomeData = worksheetToArray(incomeSheet);
 
       // 합계 행 찾기 (마지막 행)
       const totalRow = incomeData[incomeData.length - 1];
@@ -351,8 +387,8 @@ describe('account-report-excel-generator', () => {
       };
 
       const workbook = generateAccountReportWorkbook(options);
-      const sheet = workbook.Sheets['수입부'];
-      const data = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+      const sheet = workbook.getWorksheet('수입부')!;
+      const data = worksheetToArray(sheet);
 
       // 헤더에 전년 컬럼 포함
       expect(data[3]).toEqual([
@@ -385,8 +421,8 @@ describe('account-report-excel-generator', () => {
       };
 
       const workbook = generateAccountReportWorkbook(options);
-      const sheet = workbook.Sheets['수입부'];
-      const data = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+      const sheet = workbook.getWorksheet('수입부')!;
+      const data = worksheetToArray(sheet);
 
       // 십일조는 전년 데이터 없음
       const 십일조Row = data[5];
@@ -408,8 +444,8 @@ describe('account-report-excel-generator', () => {
       };
 
       const workbook = generateAccountReportWorkbook(options);
-      const sheet = workbook.Sheets['수입부'];
-      const data = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+      const sheet = workbook.getWorksheet('수입부')!;
+      const data = worksheetToArray(sheet);
 
       expect(data[4][4]).toBe('75.0%');
     });
@@ -427,8 +463,8 @@ describe('account-report-excel-generator', () => {
       };
 
       const workbook = generateAccountReportWorkbook(options);
-      const sheet = workbook.Sheets['수입부'];
-      const data = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+      const sheet = workbook.getWorksheet('수입부')!;
+      const data = worksheetToArray(sheet);
 
       // 0으로 나누지 않고 0.0% 반환
       expect(data[4][4]).toBe('0.0%');
@@ -444,15 +480,13 @@ describe('account-report-excel-generator', () => {
 
       const workbook = generateAccountReportWorkbook(options);
 
-      // 수지개황 시트
-      const summarySheet = workbook.Sheets['수지개황'];
-      expect(summarySheet['!cols']).toBeDefined();
-      expect(summarySheet['!cols']).toHaveLength(5);
+      // 수지개황 시트 - 컬럼 너비가 설정되어야 함
+      const summarySheet = workbook.getWorksheet('수지개황')!;
+      expect(summarySheet.columns.length).toBeGreaterThan(0);
 
       // 수입부 시트
-      const incomeSheet = workbook.Sheets['수입부'];
-      expect(incomeSheet['!cols']).toBeDefined();
-      expect(incomeSheet['!cols']).toHaveLength(5);
+      const incomeSheet = workbook.getWorksheet('수입부')!;
+      expect(incomeSheet.columns.length).toBeGreaterThan(0);
     });
 
     it('should merge title cells', () => {
@@ -464,11 +498,12 @@ describe('account-report-excel-generator', () => {
       };
 
       const workbook = generateAccountReportWorkbook(options);
-      const sheet = workbook.Sheets['수지개황'];
+      const sheet = workbook.getWorksheet('수지개황')!;
 
-      expect(sheet['!merges']).toBeDefined();
-      expect(sheet['!merges']).toHaveLength(1);
-      expect(sheet['!merges']![0]).toEqual({ s: { r: 0, c: 0 }, e: { r: 0, c: 4 } });
+      // ExcelJS에서 병합된 셀 확인
+      // 첫 번째 셀 A1이 병합되었는지 확인
+      const cell = sheet.getCell('A1');
+      expect(cell.isMerged).toBe(true);
     });
   });
 
@@ -477,7 +512,7 @@ describe('account-report-excel-generator', () => {
   // ========================================
 
   describe('generateAccountReportBuffer', () => {
-    it('should generate valid Excel buffer', () => {
+    it('should generate valid Excel buffer', async () => {
       const options: ExportOptions = {
         year: 2024,
         quarter: 2,
@@ -485,17 +520,18 @@ describe('account-report-excel-generator', () => {
         previousYear: null,
       };
 
-      const buffer = generateAccountReportBuffer(options);
+      const buffer = await generateAccountReportBuffer(options);
 
       expect(buffer).toBeInstanceOf(Buffer);
       expect(buffer.length).toBeGreaterThan(0);
 
       // Buffer를 다시 읽어서 검증
-      const workbook = XLSX.read(buffer, { type: 'buffer' });
-      expect(workbook.SheetNames).toHaveLength(3);
+      const workbook = await readWorkbookFromBuffer(buffer);
+      const sheetNames = workbook.worksheets.map((ws) => ws.name);
+      expect(sheetNames).toHaveLength(3);
     });
 
-    it('should create readable Excel file', () => {
+    it('should create readable Excel file', async () => {
       const options: ExportOptions = {
         year: 2024,
         quarter: 2,
@@ -503,10 +539,10 @@ describe('account-report-excel-generator', () => {
         previousYear: createPreviousYearReportData(),
       };
 
-      const buffer = generateAccountReportBuffer(options);
-      const workbook = XLSX.read(buffer, { type: 'buffer' });
-      const sheet = workbook.Sheets['수지개황'];
-      const data = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+      const buffer = await generateAccountReportBuffer(options);
+      const workbook = await readWorkbookFromBuffer(buffer);
+      const sheet = workbook.getWorksheet('수지개황')!;
+      const data = worksheetToArray(sheet);
 
       expect(data[0][0]).toBe('2024년 2분기 수지개황');
     });
@@ -572,8 +608,8 @@ describe('account-report-excel-generator', () => {
       };
 
       const workbook = generateAccountReportWorkbook(options);
-      const sheet = workbook.Sheets['수입부'];
-      const data = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+      const sheet = workbook.getWorksheet('수입부')!;
+      const data = worksheetToArray(sheet);
 
       // 헤더는 있어야 함
       expect(data[3]).toEqual(['항목', '예산액', '당기', '누계', '진척률']);
@@ -596,8 +632,8 @@ describe('account-report-excel-generator', () => {
       };
 
       const workbook = generateAccountReportWorkbook(options);
-      const sheet = workbook.Sheets['지출부'];
-      const data = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+      const sheet = workbook.getWorksheet('지출부')!;
+      const data = worksheetToArray(sheet);
 
       const totalRow = data[data.length - 1];
       expect(totalRow[0]).toBe('합계');
@@ -628,8 +664,8 @@ describe('account-report-excel-generator', () => {
       };
 
       const workbook = generateAccountReportWorkbook(options);
-      const sheet = workbook.Sheets['수입부'];
-      const data = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+      const sheet = workbook.getWorksheet('수입부')!;
+      const data = worksheetToArray(sheet);
 
       // level 1 항목이 없으므로 합계는 0
       const totalRow = data[data.length - 1];

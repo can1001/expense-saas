@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { NotificationChannel, NotificationEventType } from '@prisma/client';
 import { notificationHubProvider } from './notification-hub-provider';
 import { webPushProvider } from './web-push-provider';
+import { fcmProvider } from './fcm-provider';
 import { getTemplateByEvent, renderTemplate } from './templates';
 import type {
   NotificationContext,
@@ -30,12 +31,16 @@ export class NotificationService {
   async send(request: SendNotificationRequest): Promise<NotificationResult[]> {
     const results: NotificationResult[] = [];
 
+    const { recipient, eventType, context, channels } = request;
+
+    console.log(
+      `[NotificationService] send 시도: event=${eventType} userId=${recipient.userId ?? 'null'} expenseId=${context.expenseId} enabled=${this.isEnabled}`
+    );
+
     if (!this.isEnabled) {
-      console.log('[NotificationService] 알림 비활성화 상태');
+      console.warn('[NotificationService] 알림이 비활성화되어 발송 스킵 (NOTIFICATION_ENABLED=false)');
       return results;
     }
-
-    const { recipient, eventType, context, channels } = request;
 
     // 사용자 알림 설정 조회
     const preference = recipient.userId
@@ -44,6 +49,13 @@ export class NotificationService {
 
     // 발송할 채널 결정
     const activeChannels = channels || this.getActiveChannels(preference, eventType);
+
+    if (activeChannels.length === 0) {
+      console.warn(
+        `[NotificationService] 활성 채널 없음 - 발송 스킵: event=${eventType} userId=${recipient.userId ?? 'null'} preference=${preference ? 'exists' : 'null'} webPushEnabled=${preference?.webPushEnabled ?? 'default(true)'}`
+      );
+      return results;
+    }
 
     // 템플릿 조회
     const template = getTemplateByEvent(eventType);
@@ -55,10 +67,49 @@ export class NotificationService {
     // 채널별 발송
     for (const channel of activeChannels) {
       const result = await this.sendToChannel(channel, recipient, template, context, eventType);
+      console.log(
+        `[NotificationService] 발송 결과: event=${eventType} channel=${channel} success=${result.success}${result.error ? ` error=${result.error}` : ''}`
+      );
       results.push(result);
     }
 
     return results;
+  }
+
+  /**
+   * 수신자 매칭 실패를 WebPushLog에 기록하고 server log로 남깁니다.
+   *
+   * 결재 API 라우트에서 username 기반 사용자 조회가 null을 반환했을 때 호출합니다.
+   * 호출하지 않으면 알림 발송이 silent skip되어 진단이 불가능합니다.
+   */
+  async logUnmatchedRecipient(params: {
+    expenseId: string;
+    eventType: NotificationEventType;
+    attemptedName: string;
+    role: 'applicant' | 'approver' | 'next-approver' | 'pending-approver';
+  }): Promise<void> {
+    const { expenseId, eventType, attemptedName, role } = params;
+    const errorMessage = `수신자 매칭 실패: ${role}="${attemptedName}" (User.username 일치하는 레코드 없음)`;
+    console.error(
+      `[NotificationService] ${errorMessage} eventType=${eventType} expenseId=${expenseId}`
+    );
+
+    try {
+      await prisma.webPushLog.create({
+        data: {
+          userId: null,
+          expenseId,
+          eventType,
+          title: this.getWebPushTitle(eventType),
+          body: `[발송 안됨] ${role}="${attemptedName}" 사용자를 찾을 수 없습니다.`,
+          url: null,
+          status: 'FAILED',
+          errorMessage,
+        },
+      });
+    } catch (error) {
+      console.error('[NotificationService] 매칭 실패 로그 저장 실패:', error);
+    }
   }
 
   /**
@@ -132,37 +183,43 @@ export class NotificationService {
           };
         }
       } else if (channel === 'WEB_PUSH') {
-        // 웹 푸시 알림 발송
+        // 웹 푸시(VAPID) + FCM(Capacitor 모바일 앱) 병행 발송
         if (!recipient.userId) {
           result = {
             success: false,
             channel,
             error: '사용자 ID가 필요합니다.',
           };
-        } else if (!webPushProvider.isEnabled()) {
+        } else if (!webPushProvider.isEnabled() && !fcmProvider.isEnabled()) {
           result = {
             success: false,
             channel,
-            error: 'VAPID 키 미설정',
+            error: 'VAPID/FCM 모두 미설정',
           };
         } else {
-          const pushResults = await webPushProvider.sendToUser(
-            recipient.userId,
-            {
-              title: this.getWebPushTitle(eventType),
-              body: renderTemplate(template.sms, context),
-              url: context.statusUrl,
-              expenseId: context.expenseId,
-              tag: `expense-${eventType.toLowerCase()}`,
-            },
-            eventType
-          );
+          const pushPayload = {
+            title: this.getWebPushTitle(eventType),
+            body: renderTemplate(template.sms, context),
+            url: context.statusUrl,
+            expenseId: context.expenseId,
+            tag: `expense-${eventType.toLowerCase()}`,
+          };
 
-          const hasSuccess = pushResults.some((r) => r.success);
+          const [webPushResults, fcmResults] = await Promise.all([
+            webPushProvider.isEnabled()
+              ? webPushProvider.sendToUser(recipient.userId, pushPayload, eventType)
+              : Promise.resolve([] as Array<{ success: boolean }>),
+            fcmProvider.isEnabled()
+              ? fcmProvider.sendToUser(recipient.userId, pushPayload, eventType)
+              : Promise.resolve([] as Array<{ success: boolean }>),
+          ]);
+
+          const hasSuccess =
+            webPushResults.some((r) => r.success) || fcmResults.some((r) => r.success);
           result = {
             success: hasSuccess,
             channel,
-            error: hasSuccess ? undefined : '모든 구독에 발송 실패',
+            error: hasSuccess ? undefined : '모든 WEB_PUSH/FCM 발송 실패',
           };
         }
       } else {

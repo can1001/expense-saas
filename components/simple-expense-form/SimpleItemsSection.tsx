@@ -237,18 +237,24 @@ export default function SimpleItemsSection({
                       <span className="text-xs text-gray-400 ml-2">(클릭하면 예제 표시)</span>
                     )}
                   </label>
-                  <input
-                    type="text"
-                    {...register(`items.${index}.description`)}
-                    ref={(el) => {
-                      descriptionRefs.current[index] = el;
-                    }}
-                    disabled={disabled}
-                    placeholder="예: 11월분 식대"
-                    onFocus={() => handleDescriptionFocus(index)}
-                    onBlur={() => handleDescriptionBlur(index)}
-                    className={`${INPUT_BASE} ${errors?.items?.[index]?.description ? 'border-red-500' : ''}`}
-                  />
+                  {(() => {
+                    const { ref: registerRef, ...rest } = register(`items.${index}.description`);
+                    return (
+                      <input
+                        type="text"
+                        {...rest}
+                        ref={(el) => {
+                          registerRef(el);
+                          descriptionRefs.current[index] = el;
+                        }}
+                        disabled={disabled}
+                        placeholder="예: 11월분 식대"
+                        onFocus={() => handleDescriptionFocus(index)}
+                        onBlur={() => handleDescriptionBlur(index)}
+                        className={`${INPUT_BASE} ${errors?.items?.[index]?.description ? 'border-red-500' : ''}`}
+                      />
+                    );
+                  })()}
                   <MemoTooltip
                     examples={memoExamples[index] || []}
                     favorites={memoFavorites.map((f) => f.memo)}
@@ -279,7 +285,7 @@ export default function SimpleItemsSection({
                     onChange={(e) => setValue(`items.${index}.unitPrice`, parseNumber(e.target.value))}
                     disabled={disabled}
                     placeholder="0"
-                    className={`${INPUT_BASE} ${errors?.items?.[index]?.unitPrice ? 'border-red-500' : ''}`}
+                    className={`${INPUT_BASE} min-h-[48px] ${errors?.items?.[index]?.unitPrice ? 'border-red-500' : ''}`}
                   />
                   {errors?.items?.[index]?.unitPrice && (
                     <p className="mt-1 text-sm text-red-500">
@@ -294,10 +300,11 @@ export default function SimpleItemsSection({
                   </label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     {...register(`items.${index}.quantity`, { valueAsNumber: true })}
                     disabled={disabled}
                     min="1"
-                    className={`${INPUT_BASE} ${errors?.items?.[index]?.quantity ? 'border-red-500' : ''}`}
+                    className={`${INPUT_BASE} min-h-[48px] ${errors?.items?.[index]?.quantity ? 'border-red-500' : ''}`}
                   />
                   {errors?.items?.[index]?.quantity && (
                     <p className="mt-1 text-sm text-red-500">

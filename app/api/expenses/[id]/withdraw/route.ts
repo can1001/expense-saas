@@ -147,6 +147,17 @@ export async function POST(
             select: { id: true, username: true, phoneNumber: true },
           });
 
+          const matchedNames = new Set(approverUsers.map((u) => u.username));
+          const unmatchedNames = pendingApprovers.filter((name) => !matchedNames.has(name));
+          for (const name of unmatchedNames) {
+            await notificationService.logUnmatchedRecipient({
+              expenseId: id,
+              eventType: 'WITHDRAW',
+              attemptedName: name,
+              role: 'pending-approver',
+            });
+          }
+
           const approversWithInfo = approverUsers.map((user) => ({
             name: user.username,
             phone: user.phoneNumber || '',

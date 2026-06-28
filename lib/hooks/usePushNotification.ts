@@ -53,6 +53,21 @@ export function usePushNotification(): UsePushNotificationReturn {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 기존 구독 여부 확인
+  const checkSubscription = useCallback(async () => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      setIsSubscribed(!!subscription);
+    } catch (err) {
+      console.error('[usePushNotification] 구독 확인 실패:', err);
+    }
+  }, []);
+
   // 브라우저 지원 여부 및 권한 상태 확인
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -76,21 +91,6 @@ export function usePushNotification(): UsePushNotificationReturn {
     // 기존 구독 여부 확인
     checkSubscription();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // 기존 구독 여부 확인
-  const checkSubscription = useCallback(async () => {
-    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
-      return;
-    }
-
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
-      setIsSubscribed(!!subscription);
-    } catch (err) {
-      console.error('[usePushNotification] 구독 확인 실패:', err);
-    }
   }, []);
 
   // VAPID 공개키 가져오기

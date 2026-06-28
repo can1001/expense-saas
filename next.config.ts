@@ -5,8 +5,8 @@ const withPWA = withPWAInit({
   dest: "public",
   register: true,
   disable: process.env.NODE_ENV === "development", // 개발 모드에서는 비활성화
-  // 커스텀 Service Worker (백그라운드 동기화, 푸시 알림)
-  customWorkerDest: "worker",
+  // 커스텀 Service Worker 소스 (백그라운드 동기화, 푸시 알림)
+  customWorkerSrc: "worker",
   // 오프라인 폴백 페이지
   fallbacks: {
     document: "/offline",

@@ -1852,10 +1852,6 @@ function RecitationApproval() {
   });
   const [approving, setApproving] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchSubmissions();
-  }, [filter]);
-
   const fetchSubmissions = async () => {
     try {
       const queryParams = new URLSearchParams();
@@ -1876,6 +1872,11 @@ function RecitationApproval() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchSubmissions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   const handleApprove = async (submissionId: string, score: number) => {
     if (!confirm(`${score}점으로 암송을 승인하시겠습니까?`)) return;
@@ -2138,10 +2139,6 @@ function StatsDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('');
 
-  useEffect(() => {
-    fetchStats();
-  }, [selectedAgeGroup]);
-
   const fetchStats = async () => {
     try {
       const queryParams = new URLSearchParams();
@@ -2161,6 +2158,11 @@ function StatsDashboard() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAgeGroup]);
 
   if (loading) {
     return (

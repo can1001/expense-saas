@@ -18,6 +18,8 @@ interface UsageDetailItem {
 interface UsageDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
+  budgetCategory: string;
+  budgetSubcategory: string;
   budgetDetailName: string;
   year: number;
   excludeExpenseId?: string; // 현재 지출결의서 ID (이중 차감 방지용)
@@ -48,6 +50,8 @@ function getStatusLabel(status: string): { label: string; className: string } {
 export function UsageDetailModal({
   isOpen,
   onClose,
+  budgetCategory,
+  budgetSubcategory,
   budgetDetailName,
   year,
   excludeExpenseId,
@@ -57,19 +61,14 @@ export function UsageDetailModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen && budgetDetailName) {
-      fetchUsageDetails();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, budgetDetailName, year, excludeExpenseId]);
-
   const fetchUsageDetails = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
       const params = new URLSearchParams({
+        budgetCategory,
+        budgetSubcategory,
         budgetDetail: budgetDetailName,
         year: year.toString(),
       });
@@ -95,6 +94,13 @@ export function UsageDetailModal({
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isOpen && budgetDetailName && budgetCategory && budgetSubcategory) {
+      fetchUsageDetails();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, budgetCategory, budgetSubcategory, budgetDetailName, year, excludeExpenseId]);
 
   return (
     <Modal

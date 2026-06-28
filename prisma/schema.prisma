@@ -12,69 +12,73 @@ datasource db {
 
 // 지출결의서 메인 테이블
 model Expense {
-  id                String               @id @default(cuid())
+  id String @id @default(cuid())
 
   // 작성자
-  userId            String
-  user              User                 @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
   // 기본 정보
-  committee         String               // 위원회
-  department        String               // 사역팀(부)
+  committee  String // 위원회
+  department String // 사역팀(부)
 
   // 지출일자 (재정팀 입력)
-  expenseDate       DateTime?
+  expenseDate DateTime?
 
   // 청구금액 (자동 계산)
-  requestAmount     Int
+  requestAmount Int
 
   // 세부 항목들
-  items             ExpenseItem[]
+  items ExpenseItem[]
 
   // 첨부파일들
-  attachments       ExpenseAttachment[] @relation("ExpenseAttachments")
+  attachments ExpenseAttachment[] @relation("ExpenseAttachments")
 
   // 신청 정보
-  requestDate       DateTime             // 청구 일자
-  requestTeam       String               @default("출납팀")
-  applicantName     String               // 청구인
-  applicantTitle    String?              // 직책
+  requestDate    DateTime // 청구 일자
+  requestTeam    String   @default("출납팀")
+  applicantName  String // 청구인
+  applicantTitle String? // 직책
 
   // 청구인 서명
-  applicantSignatureType   String?       // "signature" | "stamp"
-  applicantSignatureData   String?   @db.Text  // base64 인코딩 이미지
+  applicantSignatureType String? // "signature" | "stamp"
+  applicantSignatureData String? @db.Text // base64 인코딩 이미지
 
   // 은행 정보
-  bankName          String               // 은행명
-  accountNumber     String               // 계좌번호
-  accountHolder     String               // 예금주
+  bankName      String // 은행명
+  accountNumber String // 계좌번호
+  accountHolder String // 예금주
 
   // 결재 상태
-  status            ApprovalStatus       @default(DRAFT)
-  submittedAt       DateTime?            // 제출 일시
-  approvedAt        DateTime?            // 최종 승인 일시
-  rejectedAt        DateTime?            // 반려 일시
+  status      ApprovalStatus @default(DRAFT)
+  submittedAt DateTime? // 제출 일시
+  approvedAt  DateTime? // 최종 승인 일시
+  rejectedAt  DateTime? // 반려 일시
 
   // 지출 상태 (최종 승인 후 관리)
-  paymentStatus     PaymentStatus        @default(PENDING)
-  paymentCompletedAt DateTime?           // 지급완료 시각
-  paymentCompletedBy String?             // 지급완료 처리자
-  paymentNote       String?              // 지급 메모
-  paymentHoldReason String?              // 보류/취소 사유
-  paymentHoldAt     DateTime?            // 보류/취소 시각
-  paymentHoldBy     String?              // 보류/취소 처리자
+  paymentStatus      PaymentStatus @default(PENDING)
+  paymentCompletedAt DateTime? // 지급완료 시각
+  paymentCompletedBy String? // 지급완료 처리자
+  paymentNote        String? // 지급 메모
+  paymentHoldReason  String? // 보류/취소 사유
+  paymentHoldAt      DateTime? // 보류/취소 시각
+  paymentHoldBy      String? // 보류/취소 처리자
 
   // 출납 서명 (지급 완료 시)
-  paymentSignatureType String?           // "signature" | "stamp"
-  paymentSignatureData String?   @db.Text // base64 인코딩 이미지
+  paymentSignatureType String? // "signature" | "stamp"
+  paymentSignatureData String? @db.Text // base64 인코딩 이미지
 
   // 결재선 (1:1 관계)
-  approvalLine      ApprovalLine?
+  approvalLine ApprovalLine?
+
+  // 자동이체 연결 (자동 생성된 경우)
+  recurringExpenseId String?
+  recurringExpense   RecurringExpense? @relation("RecurringToExpense", fields: [recurringExpenseId], references: [id], onDelete: SetNull)
 
   // 메타
-  version           String               @default("4.1.3")
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
+  version   String   @default("4.1.3")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([committee])
@@ -88,20 +92,20 @@ model Expense {
 
 // 지출 세부 항목
 model ExpenseItem {
-  id           String   @id @default(cuid())
-  expenseId    String
-  expense      Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  expenseId String
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
 
-  budgetCategory    String   @default("") // 예산(항)
-  budgetSubcategory String   @default("") // 예산(목)
-  budgetDetail      String   // 예산(세목)
-  description       String   // 적요 (상세 설명)
-  unitPrice         Int      // 단가
-  quantity          Int      // 인원(수량)
-  amount            Int      // 금액 = TRUNC(unitPrice × quantity / 10) * 10
+  budgetCategory    String @default("") // 예산(항)
+  budgetSubcategory String @default("") // 예산(목)
+  budgetDetail      String // 예산(세목)
+  description       String // 적요 (상세 설명)
+  unitPrice         Int // 단가
+  quantity          Int // 인원(수량)
+  amount            Int // 금액 = TRUNC(unitPrice × quantity / 10) * 10
 
-  order        Int      // 순서 (1~10)
-  createdAt    DateTime @default(now())
+  order     Int // 순서 (1~10)
+  createdAt DateTime @default(now())
 
   @@index([expenseId])
   @@index([budgetCategory, budgetSubcategory])
@@ -109,24 +113,24 @@ model ExpenseItem {
 
 // 첨부파일 (영수증 이미지 등)
 model ExpenseAttachment {
-  id          String   @id @default(cuid())
-  expenseId   String
-  expense     Expense  @relation("ExpenseAttachments", fields: [expenseId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  expenseId String
+  expense   Expense @relation("ExpenseAttachments", fields: [expenseId], references: [id], onDelete: Cascade)
 
   // Cloudinary 정보
-  publicId    String   // Cloudinary public_id
-  url         String   // 이미지 URL
-  secureUrl   String   // HTTPS URL
-  format      String   // 파일 포맷 (jpg, png 등)
+  publicId  String // Cloudinary public_id
+  url       String // 이미지 URL
+  secureUrl String // HTTPS URL
+  format    String // 파일 포맷 (jpg, png 등)
 
   // 파일 정보
-  fileName    String   // 원본 파일명
-  fileSize    Int      // 파일 크기 (bytes)
-  width       Int?     // 이미지 너비
-  height      Int?     // 이미지 높이
+  fileName String // 원본 파일명
+  fileSize Int // 파일 크기 (bytes)
+  width    Int? // 이미지 너비
+  height   Int? // 이미지 높이
 
   // 메타
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([expenseId])
 }
@@ -137,19 +141,19 @@ model ExpenseAttachment {
 
 // 위원회
 model Committee {
-  id          String       @id @default(cuid())
-  name        String       @unique  // "기획위원회", "선교위원회"
-  sortOrder   Int          @default(0)
-  isActive    Boolean      @default(true)
+  id        String  @id @default(cuid())
+  name      String  @unique // "기획위원회", "선교위원회"
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
   // 위원장
-  leaderId    String?
-  leader      User?        @relation("CommitteeLeader", fields: [leaderId], references: [id])
+  leaderId String?
+  leader   User?   @relation("CommitteeLeader", fields: [leaderId], references: [id])
 
   departments Department[]
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([sortOrder])
   @@index([isActive])
@@ -158,20 +162,20 @@ model Committee {
 
 // 사역팀(부)
 model Department {
-  id           String     @id @default(cuid())
-  committeeId  String
-  committee    Committee  @relation(fields: [committeeId], references: [id])
+  id          String    @id @default(cuid())
+  committeeId String
+  committee   Committee @relation(fields: [committeeId], references: [id])
 
-  name         String     // "재정팀", "공간사역팀"
-  sortOrder    Int        @default(0)
-  isActive     Boolean    @default(true)
+  name      String // "재정팀", "공간사역팀"
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
   // 관계
   budgetDetails DepartmentBudgetDetail[]
-  yearRoles     UserYearRole[]  // 연도별 팀장 (팀장은 UserYearRole에서 조회)
+  yearRoles     UserYearRole[] // 연도별 팀장 (팀장은 UserYearRole에서 조회)
 
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([committeeId, name])
   @@index([committeeId])
@@ -181,15 +185,15 @@ model Department {
 
 // 예산(항)
 model BudgetCategory {
-  id            String              @id @default(cuid())
-  name          String              @unique  // "사무행정비", "비전사역비"
-  sortOrder     Int                 @default(0)
-  isActive      Boolean             @default(true)
+  id        String  @id @default(cuid())
+  name      String  @unique // "사무행정비", "비전사역비"
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
   subcategories BudgetSubcategory[]
 
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([sortOrder])
   @@index([isActive])
@@ -197,18 +201,18 @@ model BudgetCategory {
 
 // 예산(목)
 model BudgetSubcategory {
-  id          String          @id @default(cuid())
-  categoryId  String
-  category    BudgetCategory  @relation(fields: [categoryId], references: [id])
+  id         String         @id @default(cuid())
+  categoryId String
+  category   BudgetCategory @relation(fields: [categoryId], references: [id])
 
-  name        String          // "회의및접대비", "공간사역비"
-  sortOrder   Int             @default(0)
-  isActive    Boolean         @default(true)
+  name      String // "회의및접대비", "공간사역비"
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
-  details     BudgetDetail[]
+  details BudgetDetail[]
 
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([categoryId, name])
   @@index([categoryId])
@@ -218,22 +222,22 @@ model BudgetSubcategory {
 
 // 예산(세목)
 model BudgetDetail {
-  id             String            @id @default(cuid())
-  subcategoryId  String
-  subcategory    BudgetSubcategory @relation(fields: [subcategoryId], references: [id])
+  id            String            @id @default(cuid())
+  subcategoryId String
+  subcategory   BudgetSubcategory @relation(fields: [subcategoryId], references: [id])
 
-  name           String            // "아웃팅비_재정팀", "인건비"
-  accountCode    String?           // 계정코드
-  description    String?           // 항목 내역
-  sortOrder      Int               @default(0)
-  isActive       Boolean           @default(true)
+  name        String // "아웃팅비_재정팀", "인건비"
+  accountCode String? // 계정코드
+  description String? // 항목 내역
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
 
   // 관계
-  yearSettings       BudgetDetailYear[]
-  departmentDetails  DepartmentBudgetDetail[]
+  yearSettings      BudgetDetailYear[]
+  departmentDetails DepartmentBudgetDetail[]
 
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([subcategoryId, name])
   @@index([subcategoryId])
@@ -243,25 +247,25 @@ model BudgetDetail {
 
 // 연도별 세목 설정 (담당자 + 예산금액)
 model BudgetDetailYear {
-  id              String       @id @default(cuid())
+  id String @id @default(cuid())
 
-  budgetDetailId  String
-  budgetDetail    BudgetDetail @relation(fields: [budgetDetailId], references: [id], onDelete: Cascade)
+  budgetDetailId String
+  budgetDetail   BudgetDetail @relation(fields: [budgetDetailId], references: [id], onDelete: Cascade)
 
-  year            Int          // 2024, 2025, 2026...
+  year Int // 2024, 2025, 2026...
 
   // 담당자 (1차 결재자) - User 테이블 참조
-  managerId       String?
-  manager         User?        @relation("BudgetDetailManager", fields: [managerId], references: [id])
+  managerId String?
+  manager   User?   @relation("BudgetDetailManager", fields: [managerId], references: [id])
 
   // 예산금액
-  budgetAmount    Int          @default(0)   // 배정 예산
-  usedAmount      Int          @default(0)   // 사용 금액 (집계)
+  budgetAmount Int @default(0) // 배정 예산
+  usedAmount   Int @default(0) // 사용 금액 (집계)
 
-  isActive        Boolean      @default(true)
+  isActive Boolean @default(true)
 
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([budgetDetailId, year])
   @@index([year])
@@ -271,17 +275,17 @@ model BudgetDetailYear {
 
 // 사역팀별 사용 가능 세목 (부서-세목 연결)
 model DepartmentBudgetDetail {
-  id              String       @id @default(cuid())
+  id String @id @default(cuid())
 
-  departmentId    String
-  department      Department   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
-  budgetDetailId  String
-  budgetDetail    BudgetDetail @relation(fields: [budgetDetailId], references: [id], onDelete: Cascade)
+  budgetDetailId String
+  budgetDetail   BudgetDetail @relation(fields: [budgetDetailId], references: [id], onDelete: Cascade)
 
-  isActive        Boolean      @default(true)
+  isActive Boolean @default(true)
 
-  createdAt       DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([departmentId, budgetDetailId])
   @@index([departmentId])
@@ -290,26 +294,26 @@ model DepartmentBudgetDetail {
 
 // 저장된 은행 계좌 (사용자별)
 model SavedBankAccount {
-  id             String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // 소유자
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // 은행 정보
-  bankName       String   // 은행명
-  accountNumber  String   // 계좌번호
-  accountHolder  String   // 예금주
+  bankName      String // 은행명
+  accountNumber String // 계좌번호
+  accountHolder String // 예금주
 
   // 표시 이름 (드롭다운에서 구분용)
-  nickname       String?  // 예: "개인 급여계좌", "사역팀 공용계좌"
+  nickname String? // 예: "개인 급여계좌", "사역팀 공용계좌"
 
   // 기본 계좌 여부
-  isDefault      Boolean  @default(false)
+  isDefault Boolean @default(false)
 
   // 메타
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // 같은 사용자 내에서만 계좌번호 중복 방지
   @@unique([userId, accountNumber])
@@ -320,33 +324,33 @@ model SavedBankAccount {
 
 // 간편 지출결의서 (Ver.4.1.4) - 항목별 예산 선택
 model SimpleExpense {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // 지출일자
-  expenseDate     DateTime?
+  expenseDate DateTime?
 
   // 청구금액 (자동 계산)
-  requestAmount   Int
+  requestAmount Int
 
   // 세부 항목들
-  items           SimpleExpenseItem[]
+  items SimpleExpenseItem[]
 
   // 첨부파일들
-  attachments     SimpleExpenseAttachment[]
+  attachments SimpleExpenseAttachment[]
 
   // 청구 정보
-  requestDate     DateTime   // 청구 일자
-  applicantName   String     // 청구인 (1명)
+  requestDate   DateTime // 청구 일자
+  applicantName String // 청구인 (1명)
 
   // 은행 정보
-  bankName        String     // 은행명
-  accountNumber   String     // 계좌번호
-  accountHolder   String     // 예금주
+  bankName      String // 은행명
+  accountNumber String // 계좌번호
+  accountHolder String // 예금주
 
   // 메타
-  version         String   @default("4.1.4")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  version   String   @default("4.1.4")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([requestDate])
   @@index([createdAt])
@@ -354,49 +358,49 @@ model SimpleExpense {
 
 // 간편 지출결의서 세부 항목
 model SimpleExpenseItem {
-  id              String        @id @default(cuid())
-  expenseId       String
-  expense         SimpleExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  id        String        @id @default(cuid())
+  expenseId String
+  expense   SimpleExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
 
   // 예산 항목 (각 행마다 선택)
-  budgetCategory     String    // 예산(항)
-  budgetSubcategory  String    // 예산(목)
-  budgetDetail       String    // 예산(세목)
+  budgetCategory    String // 예산(항)
+  budgetSubcategory String // 예산(목)
+  budgetDetail      String // 예산(세목)
 
   // 적요
-  description     String       // 적요 (상세 설명)
+  description String // 적요 (상세 설명)
 
   // 금액 (자동 계산)
-  unitPrice       Int          // 단가
-  quantity        Int          // 인원(수량)
-  amount          Int          // 금액 = TRUNC(unitPrice × quantity / 10) * 10
+  unitPrice Int // 단가
+  quantity  Int // 인원(수량)
+  amount    Int // 금액 = TRUNC(unitPrice × quantity / 10) * 10
 
-  order           Int          // 순서 (1~10)
-  createdAt       DateTime     @default(now())
+  order     Int // 순서 (1~10)
+  createdAt DateTime @default(now())
 
   @@index([expenseId])
 }
 
 // 간편 지출결의서 첨부파일
 model SimpleExpenseAttachment {
-  id          String        @id @default(cuid())
-  expenseId   String
-  expense     SimpleExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  id        String        @id @default(cuid())
+  expenseId String
+  expense   SimpleExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
 
   // Cloudinary 정보
-  publicId    String   // Cloudinary public_id
-  url         String   // 이미지 URL
-  secureUrl   String   // HTTPS URL
-  format      String   // 파일 포맷 (jpg, png 등)
+  publicId  String // Cloudinary public_id
+  url       String // 이미지 URL
+  secureUrl String // HTTPS URL
+  format    String // 파일 포맷 (jpg, png 등)
 
   // 파일 정보
-  fileName    String   // 원본 파일명
-  fileSize    Int      // 파일 크기 (bytes)
-  width       Int?     // 이미지 너비
-  height      Int?     // 이미지 높이
+  fileName String // 원본 파일명
+  fileSize Int // 파일 크기 (bytes)
+  width    Int? // 이미지 너비
+  height   Int? // 이미지 높이
 
   // 메타
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([expenseId])
 }
@@ -407,45 +411,45 @@ model SimpleExpenseAttachment {
 
 // 결재 상태 (3단계 결재: 팀장 → 회계 → 재정팀장)
 enum ApprovalStatus {
-  DRAFT             // 작성중 (제출 전)
-  PENDING           // 결재 대기 (제출됨, 1차 팀장 결재 대기)
-  APPROVED_STEP_1   // 1차 승인 완료 (팀장 승인, 2차 회계 결재 대기)
-  APPROVED_STEP_2   // 2차 승인 완료 (회계 승인, 3차 재정팀장 결재 대기)
-  APPROVED_FINAL    // 최종 승인 (재정팀장 승인 완료)
-  REJECTED          // 반려
-  WITHDRAWN         // 회수 (작성자가 철회)
+  DRAFT // 작성중 (제출 전)
+  PENDING // 결재 대기 (제출됨, 1차 팀장 결재 대기)
+  APPROVED_STEP_1 // 1차 승인 완료 (팀장 승인, 2차 회계 결재 대기)
+  APPROVED_STEP_2 // 2차 승인 완료 (회계 승인, 3차 재정팀장 결재 대기)
+  APPROVED_FINAL // 최종 승인 (재정팀장 승인 완료)
+  REJECTED // 반려
+  WITHDRAWN // 회수 (작성자가 철회)
 }
 
 // 지출 상태 (최종 승인 후 관리)
 enum PaymentStatus {
-  PENDING     // 지급 대기 (기본값)
-  HOLD        // 지급 보류
-  CANCELLED   // 지급 취소
-  COMPLETED   // 지급 완료
+  PENDING // 지급 대기 (기본값)
+  HOLD // 지급 보류
+  CANCELLED // 지급 취소
+  COMPLETED // 지급 완료
 }
 
 // 결재선 (지출결의서당 1개, 스냅샷)
 model ApprovalLine {
-  id          String   @id @default(cuid())
-  expenseId   String   @unique
-  expense     Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  expenseId String  @unique
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
 
   // 결재 단계들
-  steps       ApprovalStep[]
+  steps ApprovalStep[]
 
   // 결재선 스냅샷 (제출 시점 고정)
-  snapshot    Json?    // 제출 시 결재선 전체를 JSON으로 저장
+  snapshot Json? // 제출 시 결재선 전체를 JSON으로 저장
 
   // 현재 진행 상태
-  currentStep Int      @default(1)  // 현재 결재 단계 (1부터 시작)
-  totalSteps  Int                   // 전체 결재 단계 수
+  currentStep Int @default(1) // 현재 결재 단계 (1부터 시작)
+  totalSteps  Int // 전체 결재 단계 수
 
   // 긴급 처리 플래그
-  isUrgent    Boolean  @default(false)
+  isUrgent Boolean @default(false)
 
   // 메타
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([expenseId])
   @@index([currentStep])
@@ -453,40 +457,40 @@ model ApprovalLine {
 
 // 결재 단계 (결재선당 여러 개)
 model ApprovalStep {
-  id              String         @id @default(cuid())
-  approvalLineId  String
-  approvalLine    ApprovalLine   @relation(fields: [approvalLineId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  approvalLineId String
+  approvalLine   ApprovalLine @relation(fields: [approvalLineId], references: [id], onDelete: Cascade)
 
   // 단계 정보
-  stepNumber      Int            // 결재 순서 (1, 2, 3...)
-  stepName        String         // 결재자 역할명 (예: "팀장", "회계", "재정팀장")
+  stepNumber Int // 결재 순서 (1, 2, 3...)
+  stepName   String // 결재자 역할명 (예: "팀장", "회계", "재정팀장")
 
   // 결재자 정보
-  approverName    String         // 결재자 이름
-  approverEmail   String?        // 결재자 이메일 (선택)
-  approverTitle   String?        // 결재자 직책
+  approverName  String // 결재자 이름
+  approverEmail String? // 결재자 이메일 (선택)
+  approverTitle String? // 결재자 직책
 
   // 대리 결재
-  delegatedTo     String?        // 대리 결재자 이름
-  delegationReason String?       // 대리 사유
+  delegatedTo      String? // 대리 결재자 이름
+  delegationReason String? // 대리 사유
 
   // 결재 상태
-  status          StepStatus     @default(PENDING)
-  approvedAt      DateTime?      // 승인 일시
-  rejectedAt      DateTime?      // 반려 일시
-  comment         String?        // 결재 의견
+  status     StepStatus @default(PENDING)
+  approvedAt DateTime? // 승인 일시
+  rejectedAt DateTime? // 반려 일시
+  comment    String? // 결재 의견
 
   // 서명/도장
-  signatureType   String?        // "signature" | "stamp" | "realtime"
-  signatureData   String?        // base64 인코딩 이미지 데이터
+  signatureType String? // "signature" | "stamp" | "realtime"
+  signatureData String? // base64 인코딩 이미지 데이터
 
   // 필수 여부
-  isRequired      Boolean        @default(true)  // 필수 결재자 여부
-  isParallel      Boolean        @default(false) // 병렬 승인 여부 (동일 stepNumber)
+  isRequired Boolean @default(true) // 필수 결재자 여부
+  isParallel Boolean @default(false) // 병렬 승인 여부 (동일 stepNumber)
 
   // 메타
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([approvalLineId])
   @@index([stepNumber])
@@ -496,26 +500,26 @@ model ApprovalStep {
 
 // 결재 단계 상태
 enum StepStatus {
-  PENDING     // 대기중
-  APPROVED    // 승인
-  REJECTED    // 반려
-  SKIPPED     // 건너뜀 (선택적 결재자)
+  PENDING // 대기중
+  APPROVED // 승인
+  REJECTED // 반려
+  SKIPPED // 건너뜀 (선택적 결재자)
 }
 
 // 결재 액션 타입
 enum ApprovalAction {
-  SUBMIT           // 제출
-  APPROVE          // 승인
-  REJECT           // 반려
-  RESUBMIT         // 재제출
-  WITHDRAW         // 회수
-  MODIFY_LINE      // 결재선 수정
-  MODIFY_CONTENT   // 내용 수정 (최종승인 후)
-  DELEGATE         // 위임/대리 지정
+  SUBMIT // 제출
+  APPROVE // 승인
+  REJECT // 반려
+  RESUBMIT // 재제출
+  WITHDRAW // 회수
+  MODIFY_LINE // 결재선 수정
+  MODIFY_CONTENT // 내용 수정 (최종승인 후)
+  DELEGATE // 위임/대리 지정
   PAYMENT_COMPLETE // 지급완료 처리
-  PAYMENT_REVERT   // 지급 대기로 되돌림
-  PAYMENT_HOLD     // 지급 보류
-  PAYMENT_CANCEL   // 지급 취소
+  PAYMENT_REVERT // 지급 대기로 되돌림
+  PAYMENT_HOLD // 지급 보류
+  PAYMENT_CANCEL // 지급 취소
   BULK_EXPENSE_DATE_UPDATE // 일괄 지출일자 설정
 }
 
@@ -528,27 +532,27 @@ enum ApprovalAction {
 
 // 역할 마스터 테이블
 model Role {
-  id           String   @id @default(cuid())
-  code         String   @unique    // admin, finance_head, accountant, team_leader, admin_assistant, user
-  name         String              // 관리자, 재정팀장, 회계, 팀장, 행정간사, 사용자
-  description  String?             // 역할 설명
-  stepNumber   Int?                // 결재 단계 (1, 2, 3, null)
-  sortOrder    Int      @default(0)
-  isActive     Boolean  @default(true)
+  id          String  @id @default(cuid())
+  code        String  @unique // admin, finance_head, accountant, team_leader, admin_assistant, user
+  name        String // 관리자, 재정팀장, 회계, 팀장, 행정간사, 사용자
+  description String? // 역할 설명
+  stepNumber  Int? // 결재 단계 (1, 2, 3, null)
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
 
   // 권한 플래그
-  canApprove       Boolean @default(false)  // 결재 권한
-  canManageExpense Boolean @default(false)  // 지출 관리 권한
-  canAccessAdmin   Boolean @default(false)  // 관리자 메뉴 접근
-  canExportData    Boolean @default(false)  // 데이터 내보내기 권한
-  canRegisterUsers Boolean @default(false)  // 사용자 등록 권한
+  canApprove       Boolean @default(false) // 결재 권한
+  canManageExpense Boolean @default(false) // 지출 관리 권한
+  canAccessAdmin   Boolean @default(false) // 관리자 메뉴 접근
+  canExportData    Boolean @default(false) // 데이터 내보내기 권한
+  canRegisterUsers Boolean @default(false) // 사용자 등록 권한
 
   // 관계
-  users         User[]          @relation("UserRole")
-  userYearRoles UserYearRole[]  @relation("YearRole")
+  users         User[]         @relation("UserRole")
+  userYearRoles UserYearRole[] @relation("YearRole")
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([code])
   @@index([stepNumber])
@@ -557,39 +561,42 @@ model Role {
 
 // 사용자 테이블
 model User {
-  id          String    @id @default(cuid())
-  userid      String    @unique           // 로그인 아이디 (예: 청연정혜종)
-  username    String                      // 표시 이름 (예: 정혜종)
-  password    String?                     // 해시된 비밀번호 (향후 인증용)
-  role        String    @default("user")  // 역할 코드 (Role.code 참조)
-  roleId      String?                     // 새 역할 테이블 참조
-  roleRef     Role?     @relation("UserRole", fields: [roleId], references: [id])
-  department  String?                     // 소속 부서 (참고용)
-  isActive    Boolean   @default(true)    // 활성 상태
+  id         String  @id @default(cuid())
+  userid     String  @unique // 로그인 아이디 (예: 청연정혜종)
+  username   String // 표시 이름 (예: 정혜종)
+  password   String? // 해시된 비밀번호 (향후 인증용)
+  role       String  @default("user") // 역할 코드 (Role.code 참조)
+  roleId     String? // 새 역할 테이블 참조
+  roleRef    Role?   @relation("UserRole", fields: [roleId], references: [id])
+  department String? // 소속 부서 (참고용)
+  isActive   Boolean @default(true) // 활성 상태
 
   // 연락처 정보
-  phoneNumber String?                     // 휴대폰 번호 (010-xxxx-xxxx)
+  phoneNumber String? // 휴대폰 번호 (010-xxxx-xxxx)
 
   // 개별 권한 플래그 (역할과 별개로 특정 사용자에게 직접 부여)
-  canRegisterUsers Boolean @default(false)  // 사용자 등록 권한
+  canRegisterUsers Boolean @default(false) // 사용자 등록 권한
 
   // 관계
-  yearRoles          UserYearRole[]
-  bankAccounts       SavedBankAccount[]         // 저장된 은행 계좌들
-  expenses           Expense[]                  // 작성한 지출결의서들
-  managedBudgets     BudgetDetailYear[]  @relation("BudgetDetailManager")  // 담당 예산 세목들
-  signatures         UserSignature[]            // 저장된 서명/도장들
+  yearRoles              UserYearRole[]
+  bankAccounts           SavedBankAccount[] // 저장된 은행 계좌들
+  expenses               Expense[] // 작성한 지출결의서들
+  expenseTemplates       ExpenseTemplate[] // 지출 템플릿들
+  managedBudgets         BudgetDetailYear[]      @relation("BudgetDetailManager") // 담당 예산 세목들
+  signatures             UserSignature[] // 저장된 서명/도장들
   notificationPreference NotificationPreference? // 알림 설정
-  pushSubscriptions  PushSubscription[]         // 웹 푸시 구독 정보
-  ledCommittees      Committee[]  @relation("CommitteeLeader")  // 위원장으로 있는 위원회
-  attendances        Attendance[]  @relation("StudentAttendance")  // 청나잇 출석 기록
-  quizResponses      QuizResponse[]  @relation("StudentQuizResponse")  // 청나잇 퀴즈 응답
-  studentPoints      StudentPoints[]  @relation("StudentPoints")  // 청나잇 포인트 기록
-  recitations        RecitationSubmission[]  @relation("StudentRecitation")  // 청나잇 암송 제출
-  approvedRecitations RecitationSubmission[]  @relation("RecitationApprover")  // 승인한 암송들
+  pushSubscriptions      PushSubscription[] // 웹 푸시 구독 정보
+  fcmTokens              FcmToken[] // Capacitor 모바일 앱 FCM 토큰들
+  ledCommittees          Committee[]             @relation("CommitteeLeader") // 위원장으로 있는 위원회
+  attendances            Attendance[]            @relation("StudentAttendance") // 청나잇 출석 기록
+  quizResponses          QuizResponse[]          @relation("StudentQuizResponse") // 청나잇 퀴즈 응답
+  studentPoints          StudentPoints[]         @relation("StudentPoints") // 청나잇 포인트 기록
+  recitations            RecitationSubmission[]  @relation("StudentRecitation") // 청나잇 암송 제출
+  approvedRecitations    RecitationSubmission[]  @relation("RecitationApprover") // 승인한 암송들
+  recurringExpenses      RecurringExpense[] // 등록한 자동이체 템플릿들
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([role])
   @@index([roleId])
@@ -600,21 +607,21 @@ model User {
 
 // 연도별 사용자 역할 (finance_head, accountant, team_leader, admin_assistant)
 model UserYearRole {
-  id            String      @id @default(cuid())
-  userId        String
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  year          Int                         // 연도 (예: 2024, 2025)
-  role          String                      // 역할 코드 (Role.code 참조)
-  roleId        String?                     // 새 역할 테이블 참조
-  roleRef       Role?       @relation("YearRole", fields: [roleId], references: [id])
-  departmentId  String?                     // 소속 부서 FK (팀장인 경우)
-  department    Department? @relation(fields: [departmentId], references: [id])
+  year         Int // 연도 (예: 2024, 2025)
+  role         String // 역할 코드 (Role.code 참조)
+  roleId       String? // 새 역할 테이블 참조
+  roleRef      Role?       @relation("YearRole", fields: [roleId], references: [id])
+  departmentId String? // 소속 부서 FK (팀장인 경우)
+  department   Department? @relation(fields: [departmentId], references: [id])
 
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@unique([userId, year, departmentId, role])    // 사용자+연도+부서+역할 조합으로 유니크 (다중 역할 허용)
+  @@unique([userId, year, departmentId, role]) // 사용자+연도+부서+역할 조합으로 유니크 (다중 역할 허용)
   @@index([year])
   @@index([role])
   @@index([roleId])
@@ -624,17 +631,17 @@ model UserYearRole {
 
 // 사용자 서명/도장
 model UserSignature {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  type        String   // "signature" | "stamp"
-  name        String   // "기본 서명", "도장 1" 등
-  imageData   String   @db.Text  // base64 인코딩 이미지 (PNG)
-  isDefault   Boolean  @default(false)  // 기본 서명/도장 여부
+  type      String // "signature" | "stamp"
+  name      String // "기본 서명", "도장 1" 등
+  imageData String  @db.Text // base64 인코딩 이미지 (PNG)
+  isDefault Boolean @default(false) // 기본 서명/도장 여부
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([userId, type])
@@ -646,27 +653,27 @@ model UserSignature {
 
 // 사용자 연도별 역할 변경 이력
 model UserYearRoleHistory {
-  id              String    @id @default(cuid())
+  id String @id @default(cuid())
 
-  userYearRoleId  String?   // 삭제된 경우 null일 수 있음
-  userId          String    // 대상 사용자
-  year            Int       // 적용 연도
+  userYearRoleId String? // 삭제된 경우 null일 수 있음
+  userId         String // 대상 사용자
+  year           Int // 적용 연도
 
   // 변경 정보
-  action          String    // CREATE, UPDATE, DELETE
-  changedBy       String    // 변경 수행자 이름
-  changedById     String?   // 변경 수행자 ID
+  action      String // CREATE, UPDATE, DELETE
+  changedBy   String // 변경 수행자 이름
+  changedById String? // 변경 수행자 ID
 
   // 변경 전 값
-  previousRole    String?   // 이전 역할
-  previousDept    String?   // 이전 소속 부서
+  previousRole String? // 이전 역할
+  previousDept String? // 이전 소속 부서
 
   // 변경 후 값
-  newRole         String?   // 새 역할
-  newDept         String?   // 새 소속 부서
+  newRole String? // 새 역할
+  newDept String? // 새 소속 부서
 
   // 메타
-  changedAt       DateTime  @default(now())
+  changedAt DateTime @default(now())
 
   @@index([userId])
   @@index([year])
@@ -676,30 +683,30 @@ model UserYearRoleHistory {
 
 // 예산 세목 연도별 설정 변경 이력
 model BudgetDetailYearHistory {
-  id                  String    @id @default(cuid())
+  id String @id @default(cuid())
 
-  budgetDetailYearId  String?   // 삭제된 경우 null일 수 있음
-  budgetDetailId      String    // 대상 세목
-  budgetDetailName    String?   // 세목명 (조회 편의용)
-  year                Int       // 적용 연도
+  budgetDetailYearId String? // 삭제된 경우 null일 수 있음
+  budgetDetailId     String // 대상 세목
+  budgetDetailName   String? // 세목명 (조회 편의용)
+  year               Int // 적용 연도
 
   // 변경 정보
-  action              String    // CREATE, UPDATE, DELETE
-  changedBy           String    // 변경 수행자 이름
-  changedById         String?   // 변경 수행자 ID
+  action      String // CREATE, UPDATE, DELETE
+  changedBy   String // 변경 수행자 이름
+  changedById String? // 변경 수행자 ID
 
   // 변경 전 값
-  previousManagerId   String?   // 이전 담당자 ID
-  previousManagerName String?   // 이전 담당자 이름
-  previousBudgetAmt   Int?      // 이전 예산금액
+  previousManagerId   String? // 이전 담당자 ID
+  previousManagerName String? // 이전 담당자 이름
+  previousBudgetAmt   Int? // 이전 예산금액
 
   // 변경 후 값
-  newManagerId        String?   // 새 담당자 ID
-  newManagerName      String?   // 새 담당자 이름
-  newBudgetAmt        Int?      // 새 예산금액
+  newManagerId   String? // 새 담당자 ID
+  newManagerName String? // 새 담당자 이름
+  newBudgetAmt   Int? // 새 예산금액
 
   // 메타
-  changedAt           DateTime  @default(now())
+  changedAt DateTime @default(now())
 
   @@index([budgetDetailId])
   @@index([year])
@@ -709,33 +716,33 @@ model BudgetDetailYearHistory {
 
 // 감사 로그 (모든 결재 액션 기록)
 model ApprovalLog {
-  id              String          @id @default(cuid())
-  expenseId       String
+  id        String @id @default(cuid())
+  expenseId String
 
   // 액션 정보
-  action          ApprovalAction  // 액션 타입
-  actorName       String          // 액션 수행자 이름
-  actorEmail      String?         // 액션 수행자 이메일
-  actorRole       String?         // 액션 수행자 역할
+  action     ApprovalAction // 액션 타입
+  actorName  String // 액션 수행자 이름
+  actorEmail String? // 액션 수행자 이메일
+  actorRole  String? // 액션 수행자 역할
 
   // 결재 단계 정보 (승인/반려인 경우)
-  stepNumber      Int?            // 몇 차 결재인지
-  stepName        String?         // 결재자 역할명
+  stepNumber Int? // 몇 차 결재인지
+  stepName   String? // 결재자 역할명
 
   // 상태 변화
-  previousStatus  String?         // 변경 전 상태
-  newStatus       String          // 변경 후 상태
+  previousStatus String? // 변경 전 상태
+  newStatus      String // 변경 후 상태
 
   // 상세 정보
-  comment         String?         // 의견/사유
-  metadata        Json?           // 추가 메타데이터 (IP, User Agent 등)
+  comment  String? // 의견/사유
+  metadata Json? // 추가 메타데이터 (IP, User Agent 등)
 
   // 스냅샷 (결재선 수정인 경우)
-  beforeSnapshot  Json?           // 변경 전 결재선 스냅샷
-  afterSnapshot   Json?           // 변경 후 결재선 스냅샷
+  beforeSnapshot Json? // 변경 전 결재선 스냅샷
+  afterSnapshot  Json? // 변경 후 결재선 스냅샷
 
   // 메타
-  createdAt       DateTime        @default(now())
+  createdAt DateTime @default(now())
 
   @@index([expenseId])
   @@index([action])
@@ -751,73 +758,73 @@ model ApprovalLog {
 enum NotificationChannel {
   SMS
   KAKAO
-  WEB_PUSH  // 웹 푸시 알림
+  WEB_PUSH // 웹 푸시 알림
 }
 
 // 알림 이벤트 타입
 enum NotificationEventType {
-  SUBMIT           // 결재 요청
-  APPROVE          // 승인
-  REJECT           // 반려
-  WITHDRAW         // 회수
+  SUBMIT // 결재 요청
+  APPROVE // 승인
+  REJECT // 반려
+  WITHDRAW // 회수
   PAYMENT_COMPLETE // 지급 완료
 }
 
 // 알림 상태
 enum NotificationStatus {
-  PENDING   // 대기
-  SENT      // 발송 완료
-  FAILED    // 발송 실패
+  PENDING // 대기
+  SENT // 발송 완료
+  FAILED // 발송 실패
 }
 
 // 알림 설정 (사용자별)
 model NotificationPreference {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // 채널 활성화
-  smsEnabled      Boolean  @default(true)   // SMS 알림 활성화
-  kakaoEnabled    Boolean  @default(true)   // 카카오톡 알림 활성화
-  webPushEnabled  Boolean  @default(true)   // 웹 푸시 알림 활성화
+  smsEnabled     Boolean @default(true) // SMS 알림 활성화
+  kakaoEnabled   Boolean @default(true) // 카카오톡 알림 활성화
+  webPushEnabled Boolean @default(true) // 웹 푸시 알림 활성화
 
   // 이벤트별 알림 설정
-  onSubmit           Boolean  @default(true)   // 결재 요청 시
-  onApprove          Boolean  @default(true)   // 승인 시
-  onReject           Boolean  @default(true)   // 반려 시
-  onPaymentComplete  Boolean  @default(true)   // 지급 완료 시
+  onSubmit          Boolean @default(true) // 결재 요청 시
+  onApprove         Boolean @default(true) // 승인 시
+  onReject          Boolean @default(true) // 반려 시
+  onPaymentComplete Boolean @default(true) // 지급 완료 시
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
 }
 
 // 알림 발송 로그
 model NotificationLog {
-  id               String               @id @default(cuid())
+  id String @id @default(cuid())
 
   // 수신자 정보
-  recipientName    String               // 수신자 이름
-  recipientPhone   String               // 수신 번호
+  recipientName  String // 수신자 이름
+  recipientPhone String // 수신 번호
 
   // 관련 지출결의서
-  expenseId        String?              // Expense ID (선택)
+  expenseId String? // Expense ID (선택)
 
   // 발송 정보
-  channel          NotificationChannel  // SMS, KAKAO
-  eventType        NotificationEventType// 이벤트 타입
-  message          String               // 발송 메시지
+  channel   NotificationChannel // SMS, KAKAO
+  eventType NotificationEventType // 이벤트 타입
+  message   String // 발송 메시지
 
   // 발송 결과
-  status           NotificationStatus   @default(PENDING)
-  providerMessageId String?             // 외부 서비스 메시지 ID
-  errorMessage     String?              // 에러 메시지
+  status            NotificationStatus @default(PENDING)
+  providerMessageId String? // 외부 서비스 메시지 ID
+  errorMessage      String? // 에러 메시지
 
   // 발송 시간
-  sentAt           DateTime?            // 발송 완료 시각
+  sentAt DateTime? // 발송 완료 시각
 
-  createdAt        DateTime             @default(now())
+  createdAt DateTime @default(now())
 
   @@index([expenseId])
   @@index([status])
@@ -827,50 +834,103 @@ model NotificationLog {
 
 // 웹 푸시 구독 정보
 model PushSubscription {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // 구독 정보 (Web Push Protocol)
-  endpoint    String   @db.Text    // 푸시 서버 엔드포인트 URL
-  p256dh      String   @db.Text    // 공개키 (Base64)
-  auth        String   @db.Text    // 인증 시크릿 (Base64)
+  endpoint String @db.Text // 푸시 서버 엔드포인트 URL
+  p256dh   String @db.Text // 공개키 (Base64)
+  auth     String @db.Text // 인증 시크릿 (Base64)
 
   // 디바이스 정보
-  userAgent   String?  @db.Text    // 브라우저/디바이스 정보
-  deviceName  String?              // 사용자 지정 디바이스 이름
+  userAgent  String? @db.Text // 브라우저/디바이스 정보
+  deviceName String? // 사용자 지정 디바이스 이름
 
   // 상태
-  isActive    Boolean  @default(true)   // 활성 상태
-  failedCount Int      @default(0)      // 연속 실패 횟수
+  isActive    Boolean @default(true) // 활성 상태
+  failedCount Int     @default(0) // 연속 실패 횟수
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@unique([userId, endpoint])   // 사용자당 엔드포인트 고유
+  @@unique([userId, endpoint]) // 사용자당 엔드포인트 고유
   @@index([userId])
   @@index([isActive])
 }
 
 // 웹 푸시 발송 로그
 model WebPushLog {
-  id               String               @id @default(cuid())
-  userId           String?              // 수신 사용자 ID
-  expenseId        String?              // 관련 지출결의서 ID
+  id        String  @id @default(cuid())
+  userId    String? // 수신 사용자 ID
+  expenseId String? // 관련 지출결의서 ID
 
   // 발송 정보
-  eventType        NotificationEventType // 이벤트 타입
-  title            String               // 알림 제목
-  body             String               // 알림 본문
-  url              String?              // 클릭 시 이동 URL
+  eventType NotificationEventType // 이벤트 타입
+  title     String // 알림 제목
+  body      String // 알림 본문
+  url       String? // 클릭 시 이동 URL
 
   // 발송 결과
-  status           NotificationStatus   @default(PENDING)
-  errorMessage     String?              // 에러 메시지
+  status       NotificationStatus @default(PENDING)
+  errorMessage String? // 에러 메시지
 
   // 시간
-  sentAt           DateTime?            // 발송 완료 시각
-  createdAt        DateTime             @default(now())
+  sentAt    DateTime? // 발송 완료 시각
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expenseId])
+  @@index([status])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+// FCM 토큰 (Capacitor 모바일 앱 푸시 알림용)
+model FcmToken {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 토큰 정보
+  token    String @unique @db.Text // FCM 등록 토큰
+  platform String // "android" | "ios"
+
+  // 디바이스 정보
+  deviceModel String? @db.Text // User-Agent 또는 기기 모델
+  appVersion  String? // 앱 버전
+
+  // 상태
+  isActive    Boolean   @default(true) // 활성 상태
+  failedCount Int       @default(0) // 연속 실패 횟수
+  lastUsedAt  DateTime? // 마지막 발송 성공 시각
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+// FCM 발송 로그
+model FcmLog {
+  id        String  @id @default(cuid())
+  userId    String? // 수신 사용자 ID
+  expenseId String? // 관련 지출결의서 ID
+
+  // 발송 정보
+  eventType NotificationEventType
+  title     String
+  body      String
+  url       String?
+
+  // 발송 결과
+  status       NotificationStatus @default(PENDING)
+  errorMessage String?            @db.Text
+
+  // 시간
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([userId])
   @@index([expenseId])
@@ -889,26 +949,26 @@ model WebPushLog {
 
 // 헌금 종류
 enum OfferingType {
-  TITHE           // 십일조
-  THANKSGIVING    // 감사헌금
-  SPECIAL         // 특별헌금
-  MISSION         // 선교헌금
-  BUILDING        // 건축헌금
-  RELIEF          // 구제헌금
-  OTHER           // 기타
+  TITHE // 십일조
+  THANKSGIVING // 감사헌금
+  SPECIAL // 특별헌금
+  MISSION // 선교헌금
+  BUILDING // 건축헌금
+  RELIEF // 구제헌금
+  OTHER // 기타
 }
 
 // 헌금 관리
 model Offering {
-  id        String       @id @default(cuid())
-  date      DateTime     @db.Date       // 헌금 날짜
-  name      String                      // 헌금자 이름
-  type      OfferingType                // 헌금 종류
-  amount    Int                         // 금액 (원)
-  memo      String?                     // 메모
+  id     String       @id @default(cuid())
+  date   DateTime     @db.Date // 헌금 날짜
+  name   String // 헌금자 이름
+  type   OfferingType // 헌금 종류
+  amount Int // 금액 (원)
+  memo   String? // 메모
 
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([date])
   @@index([name])
@@ -917,13 +977,13 @@ model Offering {
 
 // 시스템 설정 (키-값 형태)
 model SystemSetting {
-  id          String   @id @default(cuid())
-  key         String   @unique           // 설정 키 (예: "paymentSignatureRequired")
-  value       String                     // 설정 값 (JSON 문자열 또는 단순 값)
-  description String?                    // 설정 설명
+  id          String  @id @default(cuid())
+  key         String  @unique // 설정 키 (예: "paymentSignatureRequired")
+  value       String // 설정 값 (JSON 문자열 또는 단순 값)
+  description String? // 설정 설명
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([key])
 }
@@ -935,14 +995,14 @@ model SystemSetting {
 // 어드민이 발송한 알림 이력
 model AdminNotification {
   id          String   @id @default(cuid())
-  title       String                     // 알림 제목
-  message     String                     // 알림 내용
-  targetType  String                     // 대상 타입: 'ALL', 'ROLE', 'USER'
-  targetValue String?                    // 역할 코드 또는 사용자 ID (ALL일 경우 null)
-  sentCount   Int      @default(0)       // 발송 성공 건수
-  failedCount Int      @default(0)       // 발송 실패 건수
-  status      String   @default("SENT")  // 발송 상태: SENT, PARTIAL, FAILED
-  createdBy   String                     // 발송자 ID
+  title       String // 알림 제목
+  message     String // 알림 내용
+  targetType  String // 대상 타입: 'ALL', 'ROLE', 'USER'
+  targetValue String? // 역할 코드 또는 사용자 ID (ALL일 경우 null)
+  sentCount   Int      @default(0) // 발송 성공 건수
+  failedCount Int      @default(0) // 발송 실패 건수
+  status      String   @default("SENT") // 발송 상태: SENT, PARTIAL, FAILED
+  createdBy   String // 발송자 ID
   createdAt   DateTime @default(now())
 
   @@index([createdBy])
@@ -956,38 +1016,38 @@ model AdminNotification {
 
 // 재정보고서 타입
 enum AccountReportType {
-  CURRENT_YEAR    // 당해년도
-  PREVIOUS_YEAR   // 전년도
+  CURRENT_YEAR // 당해년도
+  PREVIOUS_YEAR // 전년도
 }
 
 // 재정보고서 메인
 model AccountReport {
-  id               String            @id @default(cuid())
+  id String @id @default(cuid())
 
   // 보고서 정보
-  year             Int                         // 연도 (2024, 2025 등)
-  quarter          Int                         // 분기 (1~4)
-  reportType       AccountReportType           // 당해/전년
+  year       Int // 연도 (2024, 2025 등)
+  quarter    Int // 분기 (1~4)
+  reportType AccountReportType // 당해/전년
 
   // 파일 정보
-  originalFileName String                      // 원본 파일명
-  uploadedAt       DateTime          @default(now())
-  uploadedBy       String?                     // 업로드한 사용자 ID
+  originalFileName String // 원본 파일명
+  uploadedAt       DateTime @default(now())
+  uploadedBy       String? // 업로드한 사용자 ID
 
   // 요약 정보 (1. 수지개황)
-  summaryData      Json?                       // 수지개황 JSON
+  summaryData Json? // 수지개황 JSON
 
   // 상세 데이터 관계
-  incomeItems      AccountReportIncome[]
-  expenseItems     AccountReportExpense[]
-  bankAccounts     AccountReportBankAccount[]      // 입출금 통장 현황
-  reserves         AccountReportReserve[]          // 적립금 현황
-  assets           AccountReportAsset[]            // 기타 자산
-  liabilities      AccountReportLiability[]        // 기타 부채
+  incomeItems       AccountReportIncome[]
+  expenseItems      AccountReportExpense[]
+  bankAccounts      AccountReportBankAccount[] // 입출금 통장 현황
+  reserves          AccountReportReserve[] // 적립금 현황
+  assets            AccountReportAsset[] // 기타 자산
+  liabilities       AccountReportLiability[] // 기타 부채
   committeeExpenses AccountReportCommitteeExpense[] // 위원회별 지출
 
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([year, quarter, reportType])
   @@index([year])
@@ -997,24 +1057,24 @@ model AccountReport {
 
 // 수입부 항목 (2. 수입부)
 model AccountReportIncome {
-  id               String        @id @default(cuid())
-  reportId         String
-  report           AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  reportId String
+  report   AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
   // 항목 정보
-  itemName         String                      // 항목명 (예: 주헌금, 십일조)
-  parentItemName   String?                     // 상위 항목명 (계층 구조용)
-  level            Int           @default(1)  // 계층 레벨 (1: 대분류, 2: 중분류)
+  itemName       String // 항목명 (예: 주헌금, 십일조)
+  parentItemName String? // 상위 항목명 (계층 구조용)
+  level          Int     @default(1) // 계층 레벨 (1: 대분류, 2: 중분류)
 
   // 금액 데이터
-  budgetAmount     Int           @default(0)  // 예산액
-  cumulativeAmount Int           @default(0)  // 누계
-  currentAmount    Int           @default(0)  // 당기
-  executionRate    Float         @default(0)  // 대비(%) = (누계/예산액)*100
+  budgetAmount     Int   @default(0) // 예산액
+  cumulativeAmount Int   @default(0) // 누계
+  currentAmount    Int   @default(0) // 당기
+  executionRate    Float @default(0) // 대비(%) = (누계/예산액)*100
 
-  sortOrder        Int           @default(0)  // 정렬 순서
+  sortOrder Int @default(0) // 정렬 순서
 
-  createdAt        DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@index([reportId])
   @@index([itemName])
@@ -1023,24 +1083,24 @@ model AccountReportIncome {
 
 // 지출부 항목 (3. 지출부)
 model AccountReportExpense {
-  id               String        @id @default(cuid())
-  reportId         String
-  report           AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  reportId String
+  report   AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
   // 항목 정보
-  itemName         String                      // 항목명 (예: 교역자사례비)
-  parentItemName   String?                     // 상위 항목명
-  level            Int           @default(1)  // 계층 레벨
+  itemName       String // 항목명 (예: 교역자사례비)
+  parentItemName String? // 상위 항목명
+  level          Int     @default(1) // 계층 레벨
 
   // 금액 데이터
-  budgetAmount     Int           @default(0)  // 예산액
-  cumulativeAmount Int           @default(0)  // 누계
-  currentAmount    Int           @default(0)  // 당기
-  executionRate    Float         @default(0)  // 대비(%)
+  budgetAmount     Int   @default(0) // 예산액
+  cumulativeAmount Int   @default(0) // 누계
+  currentAmount    Int   @default(0) // 당기
+  executionRate    Float @default(0) // 대비(%)
 
-  sortOrder        Int           @default(0)
+  sortOrder Int @default(0)
 
-  createdAt        DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@index([reportId])
   @@index([itemName])
@@ -1049,92 +1109,92 @@ model AccountReportExpense {
 
 // 입출금 통장 현황 (4. 입출금 통장)
 model AccountReportBankAccount {
-  id            String        @id @default(cuid())
-  reportId      String
-  report        AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  reportId String
+  report   AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
-  accountType   String        // 예금 종류 (보통예금 등)
-  balance       Int           // 예금잔액
-  accountNumber String?       // 계좌번호
-  note          String?       // 비고
-  sortOrder     Int           @default(0)
+  accountType   String // 예금 종류 (보통예금 등)
+  balance       Int // 예금잔액
+  accountNumber String? // 계좌번호
+  note          String? // 비고
+  sortOrder     Int     @default(0)
 
-  createdAt     DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@index([reportId])
 }
 
 // 적립금 현황 (5. 적립금)
 model AccountReportReserve {
-  id              String        @id @default(cuid())
-  reportId        String
-  report          AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  reportId String
+  report   AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
-  itemName        String        // 항목명 (이웃사랑적립금, 은급적립금 등)
-  previousBalance Int           // 전기이월
-  increase        Int           // 증가
-  decrease        Int           // 감소
-  currentBalance  Int           // 차기이월
-  note            String?       // 비고
-  sortOrder       Int           @default(0)
+  itemName        String // 항목명 (이웃사랑적립금, 은급적립금 등)
+  previousBalance Int // 전기이월
+  increase        Int // 증가
+  decrease        Int // 감소
+  currentBalance  Int // 차기이월
+  note            String? // 비고
+  sortOrder       Int     @default(0)
 
-  createdAt       DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@index([reportId])
 }
 
 // 기타 자산 (6. 기타 자산)
 model AccountReportAsset {
-  id           String        @id @default(cuid())
-  reportId     String
-  report       AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  reportId String
+  report   AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
-  assetType    String        // 자산 종류 (전세보증금 등)
-  amount       Int           // 금액
-  maturityDate DateTime?     // 만기일자
-  owner        String?       // 소유(계약)자
-  note         String?       // 비고
-  sortOrder    Int           @default(0)
+  assetType    String // 자산 종류 (전세보증금 등)
+  amount       Int // 금액
+  maturityDate DateTime? // 만기일자
+  owner        String? // 소유(계약)자
+  note         String? // 비고
+  sortOrder    Int       @default(0)
 
-  createdAt    DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@index([reportId])
 }
 
 // 기타 부채 (7. 기타 부채)
 model AccountReportLiability {
-  id              String        @id @default(cuid())
-  reportId        String
-  report          AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  reportId String
+  report   AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
-  itemName        String        // 항목명 (전세자금대출 등)
-  previousBalance Int           // 전기이월
-  increase        Int           // 증가
-  decrease        Int           // 감소
-  currentBalance  Int           // 차기이월
-  maturityDate    DateTime?     // 만기일자
-  debtor          String?       // 채무(계약)자
-  loanStartDate   DateTime?     // 대출실행일
-  interestRate    Float?        // 대출금리
-  note            String?       // 비고
-  sortOrder       Int           @default(0)
+  itemName        String // 항목명 (전세자금대출 등)
+  previousBalance Int // 전기이월
+  increase        Int // 증가
+  decrease        Int // 감소
+  currentBalance  Int // 차기이월
+  maturityDate    DateTime? // 만기일자
+  debtor          String? // 채무(계약)자
+  loanStartDate   DateTime? // 대출실행일
+  interestRate    Float? // 대출금리
+  note            String? // 비고
+  sortOrder       Int       @default(0)
 
-  createdAt       DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@index([reportId])
 }
 
 // 위원회별 지출 현황 (차트용)
 model AccountReportCommitteeExpense {
-  id         String        @id @default(cuid())
-  reportId   String
-  report     AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  reportId String
+  report   AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
-  committee  String        // 위원회명 (교육위원회, 기획위원회 등)
-  amount     Int           // 지출 금액
-  sortOrder  Int           @default(0)
+  committee String // 위원회명 (교육위원회, 기획위원회 등)
+  amount    Int // 지출 금액
+  sortOrder Int    @default(0)
 
-  createdAt  DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@index([reportId])
 }
@@ -1145,40 +1205,40 @@ model AccountReportCommitteeExpense {
 
 // 커리큘럼 타입
 enum CurriculumType {
-  FAMILY_WORSHIP  // 가정예배
-  YOUTH_NIGHT     // 청나잇
+  FAMILY_WORSHIP // 가정예배
+  YOUTH_NIGHT // 청나잇
 }
 
 // 연령 그룹
 enum AgeGroup {
-  KIDS        // 유아부 (3-6세)
-  ELEMENTARY  // 초등부 (7-12세)
-  MIDDLE      // 중등부 (13-15세)
-  HIGH        // 고등부 (16-18세)
+  KIDS // 유아부 (3-6세)
+  ELEMENTARY // 초등부 (7-12세)
+  MIDDLE // 중등부 (13-15세)
+  HIGH // 고등부 (16-18세)
   YOUNG_ADULT // 청년부 (19-29세)
 }
 
 // 커리큘럼 (교육과정)
 model Curriculum {
   id          String         @id @default(cuid())
-  title       String                        // 커리큘럼 제목 (예: "2024년 청나잇 말씀 시리즈")
-  description String?                       // 설명
-  type        CurriculumType                // 커리큘럼 타입
-  ageGroup    AgeGroup                      // 대상 연령 그룹
+  title       String // 커리큘럼 제목 (예: "2024년 청나잇 말씀 시리즈")
+  description String? // 설명
+  type        CurriculumType // 커리큘럼 타입
+  ageGroup    AgeGroup // 대상 연령 그룹
 
   // 기간 정보
-  startDate   DateTime?                     // 시작일
-  endDate     DateTime?                     // 종료일
+  startDate DateTime? // 시작일
+  endDate   DateTime? // 종료일
 
   // 상태
-  isActive    Boolean        @default(true) // 활성 상태
-  sortOrder   Int            @default(0)    // 정렬 순서
+  isActive  Boolean @default(true) // 활성 상태
+  sortOrder Int     @default(0) // 정렬 순서
 
   // 관계
-  lessons     Lesson[]                      // 레슨들
+  lessons Lesson[] // 레슨들
 
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([type])
   @@index([ageGroup])
@@ -1188,34 +1248,34 @@ model Curriculum {
 
 // 레슨 (개별 수업)
 model Lesson {
-  id             String     @id @default(cuid())
-  curriculumId   String
-  curriculum     Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  curriculumId String
+  curriculum   Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
 
   // 레슨 정보
-  title          String                      // 레슨 제목
-  description    String?                     // 레슨 설명
-  bibleVerse     String?                     // 성경 구절
-  keyPoint       String?                     // 핵심 포인트
+  title       String // 레슨 제목
+  description String? // 레슨 설명
+  bibleVerse  String? // 성경 구절
+  keyPoint    String? // 핵심 포인트
 
   // 수업 자료
-  content        String?    @db.Text         // 레슨 내용 (마크다운)
-  videoUrl       String?                     // 영상 URL
-  materialUrl    String?                    // 교재 URL (PDF 등)
+  content     String? @db.Text // 레슨 내용 (마크다운)
+  videoUrl    String? // 영상 URL
+  materialUrl String? // 교재 URL (PDF 등)
 
   // 순서 및 상태
-  lessonNumber   Int                         // 레슨 번호 (1, 2, 3...)
-  isActive       Boolean    @default(true)   // 활성 상태
-  publishedAt    DateTime?                   // 공개 일시
+  lessonNumber Int // 레슨 번호 (1, 2, 3...)
+  isActive     Boolean   @default(true) // 활성 상태
+  publishedAt  DateTime? // 공개 일시
 
   // 관계
-  questions      Question[]                  // 퀴즈 질문들
-  attendances    Attendance[]                // 출석 기록들
-  studentPoints  StudentPoints[]             // 포인트 기록들
-  recitations    RecitationSubmission[]      // 암송 제출들
+  questions     Question[] // 퀴즈 질문들
+  attendances   Attendance[] // 출석 기록들
+  studentPoints StudentPoints[] // 포인트 기록들
+  recitations   RecitationSubmission[] // 암송 제출들
 
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([curriculumId, lessonNumber])
   @@index([curriculumId])
@@ -1226,32 +1286,32 @@ model Lesson {
 
 // 퀴즈 질문
 model Question {
-  id              String   @id @default(cuid())
-  lessonId        String
-  lesson          Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   // 질문 정보
-  questionText    String                     // 질문 내용
-  questionType    String   @default("MULTIPLE_CHOICE") // 질문 타입: MULTIPLE_CHOICE, TRUE_FALSE, SHORT_ANSWER
+  questionText String // 질문 내용
+  questionType String @default("MULTIPLE_CHOICE") // 질문 타입: MULTIPLE_CHOICE, TRUE_FALSE, SHORT_ANSWER
 
   // 선택지 (객관식용)
-  option1         String?                    // 선택지 1
-  option2         String?                    // 선택지 2
-  option3         String?                    // 선택지 3
-  option4         String?                    // 선택지 4
+  option1 String? // 선택지 1
+  option2 String? // 선택지 2
+  option3 String? // 선택지 3
+  option4 String? // 선택지 4
 
   // 정답
-  correctAnswer   String                     // 정답 (1,2,3,4 또는 텍스트)
-  explanation     String?                    // 정답 설명
+  correctAnswer String // 정답 (1,2,3,4 또는 텍스트)
+  explanation   String? // 정답 설명
 
   // 순서
-  questionNumber  Int                        // 질문 번호
+  questionNumber Int // 질문 번호
 
   // 관계
-  responses       QuizResponse[]             // 퀴즈 응답들
+  responses QuizResponse[] // 퀴즈 응답들
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([lessonId, questionNumber])
   @@index([lessonId])
@@ -1264,19 +1324,19 @@ model Question {
 
 // 출석 기록
 model Attendance {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // 사용자 정보
-  userId    String
-  user      User     @relation("StudentAttendance", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("StudentAttendance", fields: [userId], references: [id], onDelete: Cascade)
 
   // 레슨 정보
-  lessonId  String
-  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   // 출석 정보
   attendedAt DateTime @default(now()) // 출석 체크 시간
-  isPresent  Boolean  @default(true)  // 출석 여부 (기본값: true, 미출석 시 false)
+  isPresent  Boolean  @default(true) // 출석 여부 (기본값: true, 미출석 시 false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1289,26 +1349,26 @@ model Attendance {
 
 // 퀴즈 응답 기록
 model QuizResponse {
-  id         String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // 사용자 정보
-  userId     String
-  user       User     @relation("StudentQuizResponse", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("StudentQuizResponse", fields: [userId], references: [id], onDelete: Cascade)
 
   // 퀴즈 정보
   questionId String
   question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   // 응답 정보
-  userAnswer String                    // 사용자가 선택한 답 (1,2,3,4 또는 텍스트)
-  isCorrect  Boolean                   // 정답 여부
-  score      Int      @default(0)      // 획득 점수 (보통 정답 시 10점)
+  userAnswer String // 사용자가 선택한 답 (1,2,3,4 또는 텍스트)
+  isCorrect  Boolean // 정답 여부
+  score      Int     @default(0) // 획득 점수 (보통 정답 시 10점)
 
   // 제출 시간
   submittedAt DateTime @default(now()) // 답안 제출 시간
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, questionId]) // 한 사용자가 동일 문제에 중복 응답 방지
   @@index([userId])
@@ -1319,26 +1379,26 @@ model QuizResponse {
 
 // 학생 포인트 시스템
 model StudentPoints {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // 사용자 정보
-  userId      String
-  user        User     @relation("StudentPoints", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("StudentPoints", fields: [userId], references: [id], onDelete: Cascade)
 
   // 포인트 정보
-  pointType   String                       // 포인트 타입: ATTENDANCE, QUIZ_PERFECT, QUIZ_GOOD, LESSON_COMPLETE
-  points      Int                          // 획득 포인트 (출석 5점, 퀴즈 완벽 15점, 퀴즈 좋음 10점, 레슨 완료 3점)
-  description String?                      // 포인트 획득 사유
+  pointType   String // 포인트 타입: ATTENDANCE, QUIZ_PERFECT, QUIZ_GOOD, LESSON_COMPLETE
+  points      Int // 획득 포인트 (출석 5점, 퀴즈 완벽 15점, 퀴즈 좋음 10점, 레슨 완료 3점)
+  description String? // 포인트 획득 사유
 
   // 관련 정보
-  lessonId    String?                      // 관련 레슨 ID (선택)
-  lesson      Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  lessonId String? // 관련 레슨 ID (선택)
+  lesson   Lesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
 
   // 시간 정보
-  earnedAt    DateTime @default(now())    // 포인트 획득 시간
+  earnedAt DateTime @default(now()) // 포인트 획득 시간
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([pointType])
@@ -1348,37 +1408,37 @@ model StudentPoints {
 
 // 암송 인증 시스템
 model RecitationSubmission {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // 사용자 정보
-  userId      String
-  user        User     @relation("StudentRecitation", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("StudentRecitation", fields: [userId], references: [id], onDelete: Cascade)
 
   // 레슨 정보
-  lessonId    String
-  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   // 암송 정보
-  bibleVerse  String                      // 암송할 성경 구절
-  audioUrl    String?                     // 녹음 파일 URL (Cloudinary 등)
-  videoUrl    String?                     // 영상 파일 URL (선택사항)
-  textContent String?  @db.Text          // 텍스트로 제출한 암송 내용
+  bibleVerse  String // 암송할 성경 구절
+  audioUrl    String? // 녹음 파일 URL (Cloudinary 등)
+  videoUrl    String? // 영상 파일 URL (선택사항)
+  textContent String? @db.Text // 텍스트로 제출한 암송 내용
 
   // 승인 정보
-  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
-  approvedBy  String?                     // 승인한 교사 ID
-  approver    User?    @relation("RecitationApprover", fields: [approvedBy], references: [id])
-  approvedAt  DateTime?                   // 승인 일시
-  rejectionReason String?                 // 반려 사유
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedBy      String? // 승인한 교사 ID
+  approver        User?     @relation("RecitationApprover", fields: [approvedBy], references: [id])
+  approvedAt      DateTime? // 승인 일시
+  rejectionReason String? // 반려 사유
 
   // 점수 (승인 시 포인트로 변환)
-  score       Int      @default(0)       // 암송 점수 (0-100)
+  score Int @default(0) // 암송 점수 (0-100)
 
   // 시간 정보
-  submittedAt DateTime @default(now())   // 제출 시간
+  submittedAt DateTime @default(now()) // 제출 시간
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, lessonId]) // 한 사용자가 동일 레슨에 대해 하나의 암송만 제출 가능
   @@index([userId])
@@ -1386,4 +1446,122 @@ model RecitationSubmission {
   @@index([status])
   @@index([submittedAt])
   @@index([approvedBy])
+}
+
+// ========================================
+// 지출결의서 템플릿 (Expense Template)
+// ========================================
+
+// 자주 사용하는 지출 패턴 저장
+model ExpenseTemplate {
+  id String @id @default(cuid())
+
+  // 소유자
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 템플릿 정보
+  name String // 템플릿 이름 (예: "월례 회의비", "출장 교통비")
+
+  // 예산 항목
+  budgetCategory    String // 예산(항)
+  budgetSubcategory String // 예산(목)
+  budgetDetail      String // 예산(세목)
+
+  // 기본값
+  description   String? // 기본 적요
+  defaultAmount Int? // 기본 금액
+
+  // 사용 통계
+  usageCount Int @default(0) // 사용 횟수 (정렬용)
+
+  // 메타
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, usageCount])
+  @@index([budgetDetail])
+}
+
+// ========================================
+// 자동이체 지출결의서 (Recurring Expense)
+// ========================================
+
+// 반복 주기 열거형
+enum RecurringFrequency {
+  MONTHLY // 매월
+  QUARTERLY // 분기별 (3개월)
+  SEMI_ANNUAL // 반기별 (6개월)
+  ANNUAL // 연간
+}
+
+// 자동이체 상태
+enum RecurringExpenseStatus {
+  ACTIVE // 활성 (정상 실행)
+  PAUSED // 일시 중지
+  COMPLETED // 완료 (종료일 도달)
+  CANCELLED // 취소
+}
+
+// 정기적으로 자동이체되는 지출결의서 템플릿
+model RecurringExpense {
+  id String @id @default(cuid())
+
+  // 등록자 (관리자 또는 재정팀)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 기본 정보
+  name        String // 자동이체 이름 (예: "월세", "보험료", "전기요금")
+  description String? // 상세 설명
+
+  // 조직 정보 (지출결의서 생성 시 사용)
+  committee  String // 위원회
+  department String // 부서
+
+  // 예산 항목 (기존 예산체계 사용)
+  budgetCategory    String // 예산(항)
+  budgetSubcategory String // 예산(목)
+  budgetDetail      String? // 예산(세목) - 세목이 없는 예산 항목도 있음
+
+  // 수취인 정보
+  recipientName String // 수취인 이름
+  bankName      String // 은행명
+  accountNumber String // 계좌번호
+
+  // 금액 정보
+  baseAmount Int // 기본 금액 (변동 가능하므로 기본값)
+
+  // 스케줄 설정
+  frequency  RecurringFrequency // 반복 주기
+  dayOfMonth Int // 매월 몇 일 (1-28, 29-31은 말일 처리)
+  startDate  DateTime // 시작일
+  endDate    DateTime? // 종료일 (null이면 무기한)
+
+  // 생성 설정
+  advanceDays Int @default(7) // 이체일 N일 전 생성 (결재 시간 확보)
+
+  // 상태 관리
+  status RecurringExpenseStatus @default(ACTIVE)
+
+  // 실행 추적
+  lastGeneratedDate  DateTime? // 마지막으로 지출결의서 생성한 날짜
+  nextGenerationDate DateTime? // 다음 지출결의서 생성 예정일
+
+  // 생성된 지출결의서와의 관계
+  generatedExpenses Expense[] @relation("RecurringToExpense")
+
+  // 소프트 삭제 시각 (status=CANCELLED와 동시 세팅)
+  deletedAt DateTime?
+
+  // 메타
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([nextGenerationDate])
+  @@index([status, nextGenerationDate])
+  @@index([deletedAt])
 }

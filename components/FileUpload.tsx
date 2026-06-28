@@ -105,7 +105,8 @@ export default function FileUpload({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': FILE_VALIDATION.ALLOWED_EXTENSIONS,
+      'image/*': ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
+      'application/pdf': ['.pdf'],
     },
     maxSize: FILE_VALIDATION.MAX_FILE_SIZE,
     disabled: disabled || uploading || files.length >= maxFiles,
@@ -176,7 +177,7 @@ export default function FileUpload({
                 파일을 드래그하여 놓거나 클릭하여 선택하세요
               </p>
               <p className="text-sm text-gray-500">
-                이미지 파일만 업로드 가능 (최대 {FILE_VALIDATION.MAX_FILE_SIZE / 1024 / 1024}MB, {maxFiles}개까지)
+                이미지 또는 PDF 파일 업로드 가능 (최대 {FILE_VALIDATION.MAX_FILE_SIZE / 1024 / 1024}MB, {maxFiles}개까지)
               </p>
             </>
           )}
@@ -215,7 +216,7 @@ export default function FileUpload({
       {/* 안내 문구 */}
       {files.length === 0 && !uploading && (
         <p className="text-sm text-gray-500 text-center">
-          영수증 이미지를 업로드해주세요
+          영수증 이미지 또는 PDF를 업로드해주세요
           <span className="text-amber-600 font-medium"> (제출 시 필수)</span>
         </p>
       )}

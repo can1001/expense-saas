@@ -1,5 +1,18 @@
 import { z } from 'zod';
 
+// CUID 형식 검증 (Prisma에서 사용하는 ID 형식)
+// CUID 형식: 'c' + 24자리 영숫자 (예: clh5asn7z0000qw5vx2e4t5h7)
+const CUID_REGEX = /^c[a-z0-9]{20,32}$/;
+
+/**
+ * CUID 형식 검증
+ * @param id 검증할 ID 문자열
+ * @returns 유효한 CUID 형식이면 true
+ */
+export function isValidCuid(id: string): boolean {
+  return CUID_REGEX.test(id);
+}
+
 // 중앙화된 계산 함수 및 스키마 re-export
 export {
   calculateAmount,

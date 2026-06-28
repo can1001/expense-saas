@@ -4,26 +4,53 @@ import {
   canModifyApprovalLine,
   createApprovalSnapshot,
 } from '@/lib/approval-engine';
-import { getUsedAmountByDetail } from '@/lib/services/budget-service';
+import {
+  getUsedAmountByDetail,
+  makeBudgetDetailKey,
+  type BudgetDetailKey,
+} from '@/lib/services/budget-service';
+
+interface BudgetItem {
+  budgetCategory: string;
+  budgetSubcategory: string;
+  budgetDetail: string;
+  amount: number;
+}
 
 /**
  * 세목별 예산 정보 조회 (결재자용)
+ * - 동일한 세목명이 여러 부서에 존재할 수 있으므로
+ *   항(budgetCategory), 목(budgetSubcategory)을 함께 사용하여 정확한 세목을 조회
  */
 async function getBudgetInfoForItems(
-  items: { budgetDetail: string; amount: number }[],
+  items: BudgetItem[],
   year: number,
-  excludeExpenseId?: string
+  excludeExpenseId?: string,
+  committee?: string | null,
+  department?: string | null
 ) {
-  // 세목 이름 목록 추출 (중복 제거)
+  // 항/목/세목 조합으로 고유 키 생성 (중복 제거)
+  const uniqueKeys = new Set(
+    items.map((item) => `${item.budgetCategory}|${item.budgetSubcategory}|${item.budgetDetail}`)
+  );
   const budgetDetailNames = [...new Set(items.map((item) => item.budgetDetail))];
+  const detailKeys: BudgetDetailKey[] = Array.from(uniqueKeys).map((k) => {
+    const [budgetCategory, budgetSubcategory, budgetDetail] = k.split('|');
+    return { budgetCategory, budgetSubcategory, budgetDetail };
+  });
 
-  // BudgetDetail + BudgetDetailYear 조회
+  // BudgetDetail + BudgetDetailYear 조회 (항/목 계층 포함)
   const budgetDetails = await prisma.budgetDetail.findMany({
     where: {
       name: { in: budgetDetailNames },
       isActive: true,
     },
     include: {
+      subcategory: {
+        include: {
+          category: true,
+        },
+      },
       yearSettings: {
         where: { year },
       },
@@ -31,27 +58,62 @@ async function getBudgetInfoForItems(
   });
 
   // 실시간 사용금액 조회 (1차 승인 이상, 현재 지출결의서 제외)
-  const usedAmountMap = await getUsedAmountByDetail(budgetDetailNames, year, excludeExpenseId);
+  // 동일명 세목이 다른 목 아래에 있을 수 있으므로 항/목/세목 3-튜플로 식별한다.
+  const usedAmountMap = await getUsedAmountByDetail(detailKeys, year, excludeExpenseId);
 
-  // 세목별 청구금액 합산
-  const requestAmountByDetail: Record<string, number> = {};
-  for (const item of items) {
-    requestAmountByDetail[item.budgetDetail] =
-      (requestAmountByDetail[item.budgetDetail] || 0) + item.amount;
-  }
+  // 항/목/세목 조합별 청구금액 합산 및 결과 생성
+  const results: {
+    committee?: string;
+    department?: string;
+    budgetCategory: string;
+    budgetSubcategory: string;
+    budgetDetailName: string;
+    budgetAmount: number;
+    usedAmount: number;
+    remainingAmount: number;
+    requestAmount: number;
+    afterApproval: number;
+    isOverBudget: boolean;
+  }[] = [];
 
-  // 예산 정보 매핑
-  return budgetDetailNames.map((detailName) => {
-    const detail = budgetDetails.find((d) => d.name === detailName);
+  for (const key of uniqueKeys) {
+    const [category, subcategory, detailName] = key.split('|');
+
+    // 항/목 정보를 사용하여 정확한 BudgetDetail 찾기
+    const detail = budgetDetails.find(
+      (d) =>
+        d.name === detailName &&
+        d.subcategory.name === subcategory &&
+        d.subcategory.category.name === category
+    );
     const yearSetting = detail?.yearSettings?.[0];
 
+    // 해당 조합의 청구금액 합산
+    const requestAmount = items
+      .filter(
+        (item) =>
+          item.budgetCategory === category &&
+          item.budgetSubcategory === subcategory &&
+          item.budgetDetail === detailName
+      )
+      .reduce((sum, item) => sum + item.amount, 0);
+
     const budgetAmount = yearSetting?.budgetAmount ?? 0;
-    const usedAmount = usedAmountMap.get(detailName) ?? 0;
+    const usedAmount = usedAmountMap.get(
+      makeBudgetDetailKey({
+        budgetCategory: category,
+        budgetSubcategory: subcategory,
+        budgetDetail: detailName,
+      })
+    ) ?? 0;
     const remainingAmount = budgetAmount - usedAmount;
-    const requestAmount = requestAmountByDetail[detailName] || 0;
     const afterApproval = remainingAmount - requestAmount;
 
-    return {
+    results.push({
+      committee: committee ?? undefined,
+      department: department ?? undefined,
+      budgetCategory: category,
+      budgetSubcategory: subcategory,
       budgetDetailName: detailName,
       budgetAmount,
       usedAmount,
@@ -59,8 +121,10 @@ async function getBudgetInfoForItems(
       requestAmount,
       afterApproval,
       isOverBudget: afterApproval < 0,
-    };
-  });
+    });
+  }
+
+  return results;
 }
 
 /**
@@ -89,8 +153,12 @@ export async function GET(
         submittedAt: true,
         approvedAt: true,
         rejectedAt: true,
+        committee: true,
+        department: true,
         items: {
           select: {
+            budgetCategory: true,
+            budgetSubcategory: true,
             budgetDetail: true,
             amount: true,
           },
@@ -135,7 +203,13 @@ export async function GET(
       const year = expense.requestDate
         ? new Date(expense.requestDate).getFullYear()
         : new Date().getFullYear();
-      budgetInfo = await getBudgetInfoForItems(expense.items, year, id);
+      budgetInfo = await getBudgetInfoForItems(
+        expense.items,
+        year,
+        id,
+        expense.committee,
+        expense.department
+      );
     }
 
     return NextResponse.json({

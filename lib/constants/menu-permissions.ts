@@ -4,7 +4,7 @@
  */
 
 // 역할 코드 타입 (Role.code와 동일)
-type UserRole = 'admin' | 'finance_head' | 'accountant' | 'finance_member' | 'team_leader' | 'admin_assistant' | 'user';
+export type UserRole = 'admin' | 'finance_head' | 'accountant' | 'finance_member' | 'team_leader' | 'admin_assistant' | 'user';
 
 // 역할 한글명 (클라이언트 안전)
 export const ROLE_NAMES: Record<string, string> = {
@@ -36,6 +36,24 @@ export const APPROVAL_MENU_ROLES: UserRole[] = [
 
 // 관리 메뉴 접근 가능 역할
 export const ADMIN_MENU_ROLES: UserRole[] = [
+  'admin',
+  'finance_head',
+  'accountant',
+  'finance_member',
+  'admin_assistant',
+];
+
+// 자동이체 메뉴 접근 가능 역할 (재정팀 + 행정간사)
+export const RECURRING_EXPENSE_MENU_ROLES: UserRole[] = [
+  'admin',
+  'finance_head',
+  'accountant',
+  'finance_member',
+  'admin_assistant',
+];
+
+// 자동이체 전체 관리 가능 역할 (본인 소유 외 모든 자동이체 조회/수정/삭제/생성)
+export const RECURRING_EXPENSE_FULL_ACCESS_ROLES: UserRole[] = [
   'admin',
   'finance_head',
   'accountant',
@@ -79,6 +97,7 @@ export const ROLE_ADMIN_MENU_PATHS: Record<string, string[] | 'all'> = {
     '/admin/cumulative-report',
     '/admin/account-report',       // 재정보고서
     '/admin/offerings',
+    '/admin/expense-upload',       // 지출결의서 일괄 업로드
   ],
   finance_head: [
     '/admin',
@@ -136,6 +155,39 @@ export function canAccessAdminMenu(role: string): boolean {
  */
 export function canAccessAdminMenuWithRoles(roles: string[]): boolean {
   return roles.some(role => ADMIN_MENU_ROLES.includes(role as UserRole));
+}
+
+/**
+ * 자동이체 메뉴 접근 권한 체크
+ */
+export function canAccessRecurringExpenseMenu(role: string): boolean {
+  return RECURRING_EXPENSE_MENU_ROLES.includes(role as UserRole);
+}
+
+/**
+ * 자동이체 전체 관리 권한 체크 (본인 소유 외 데이터 접근)
+ */
+export function canManageAllRecurringExpenses(role: string): boolean {
+  return RECURRING_EXPENSE_FULL_ACCESS_ROLES.includes(role as UserRole);
+}
+
+/**
+ * 자동이체 메뉴 접근 권한 체크 (다중 역할 지원)
+ */
+export function canAccessRecurringExpenseMenuWithRoles(roles: string[]): boolean {
+  return roles.some(role => RECURRING_EXPENSE_MENU_ROLES.includes(role as UserRole));
+}
+
+/**
+ * 자동이체 API 접근 권한 확인
+ * 권한이 없으면 에러 객체 반환, 있으면 null 반환
+ * (ApiError를 직접 throw하지 않음 - 순환 의존성 방지)
+ */
+export function checkRecurringExpenseAccess(userRole: string): { error: string; status: 403 } | null {
+  if (!canAccessRecurringExpenseMenu(userRole)) {
+    return { error: '자동이체 접근 권한이 없습니다.', status: 403 };
+  }
+  return null;
 }
 
 /**

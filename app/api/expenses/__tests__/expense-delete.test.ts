@@ -24,9 +24,16 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-// Mock auth
+// Mock auth — getSessionUserId + getCurrentUser (소유권 우회 경로에서 사용)
 vi.mock('@/lib/auth', () => ({
   getSessionUserId: vi.fn(),
+  getCurrentUser: vi.fn(),
+}));
+
+// Mock user-service for effective role lookup (소유권 우회 경로)
+vi.mock('@/lib/services/user-service', () => ({
+  getEffectiveRole: vi.fn(),
+  CURRENT_YEAR: 2026,
 }));
 
 // Mock cloudinary
@@ -37,11 +44,14 @@ vi.mock('@/lib/cloudinary', () => ({
 // Import after mocking
 import { DELETE } from '../[id]/route';
 import { prisma } from '@/lib/prisma';
-import { getSessionUserId } from '@/lib/auth';
+import { getSessionUserId, getCurrentUser } from '@/lib/auth';
+import { getEffectiveRole } from '@/lib/services/user-service';
 
 describe('DELETE /api/expenses/[id]', () => {
   const mockPrisma = prisma as any;
   const mockGetSessionUserId = getSessionUserId as ReturnType<typeof vi.fn>;
+  const mockGetCurrentUser = getCurrentUser as ReturnType<typeof vi.fn>;
+  const mockGetEffectiveRole = getEffectiveRole as ReturnType<typeof vi.fn>;
 
   const createMockExpense = (overrides = {}) => ({
     id: 'test-expense-id',
@@ -81,8 +91,10 @@ describe('DELETE /api/expenses/[id]', () => {
   });
 
   describe('소유권 검증 테스트', () => {
-    it('타인의 지출결의서 삭제 시도 시 403 에러', async () => {
+    it('일반 사용자가 타인 지출결의서 삭제 시도 시 403', async () => {
       mockGetSessionUserId.mockResolvedValue('other-user-id');
+      mockGetCurrentUser.mockResolvedValue({ id: 'other-user-id', username: '일반' });
+      mockGetEffectiveRole.mockResolvedValue({ role: 'user', departmentId: null });
       mockPrisma.expense.findUnique.mockResolvedValue(
         createMockExpense({ userId: 'owner-user-id' })
       );
@@ -105,6 +117,36 @@ describe('DELETE /api/expenses/[id]', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
+    });
+
+    it('관리 역할(admin_assistant)은 타인 DRAFT 삭제 가능 (소유권 우회)', async () => {
+      mockGetSessionUserId.mockResolvedValue('admin-asst-id');
+      mockGetCurrentUser.mockResolvedValue({ id: 'admin-asst-id', username: '행정간사' });
+      mockGetEffectiveRole.mockResolvedValue({ role: 'admin_assistant', departmentId: null });
+      mockPrisma.expense.findUnique.mockResolvedValue(
+        createMockExpense({ userId: 'owner-user-id', status: 'DRAFT' })
+      );
+
+      const response = await DELETE(createDeleteRequest(), { params: createParams() });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+    });
+
+    it('관리 역할도 EDITABLE_STATUSES 아니면 삭제 불가 (제출/승인 건은 보호)', async () => {
+      mockGetSessionUserId.mockResolvedValue('admin-asst-id');
+      mockGetCurrentUser.mockResolvedValue({ id: 'admin-asst-id', username: '행정간사' });
+      mockGetEffectiveRole.mockResolvedValue({ role: 'admin_assistant', departmentId: null });
+      mockPrisma.expense.findUnique.mockResolvedValue(
+        createMockExpense({ userId: 'owner-user-id', status: 'PENDING' })
+      );
+
+      const response = await DELETE(createDeleteRequest(), { params: createParams() });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('제출된 지출결의서는 삭제할 수 없습니다.');
     });
   });
 

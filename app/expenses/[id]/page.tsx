@@ -69,13 +69,6 @@ export default function ExpenseDetailPage() {
     fetchCurrentUser();
   }, []);
 
-  useEffect(() => {
-    if (id && currentUser) {
-      fetchData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, currentUser?.username]);
-
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -110,6 +103,13 @@ export default function ExpenseDetailPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (id && currentUser) {
+      fetchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, currentUser?.username]);
 
   // 현재 결재자 이름 가져오기
   const getCurrentApproverName = () => {
