@@ -50,21 +50,11 @@ export function useFcmRegistration(options?: {
         '@capacitor/push-notifications'
       );
 
-      const perm = await PushNotifications.checkPermissions();
-      let receive = perm.receive;
-
-      if (receive === 'prompt' || receive === 'prompt-with-rationale') {
-        const requested = await PushNotifications.requestPermissions();
-        receive = requested.receive;
-      }
-
-      if (receive !== 'granted') {
-        setStatus('denied');
-        setError('알림 권한이 거부되었습니다. 설정에서 허용해주세요.');
-        return false;
-      }
-
-      // 리스너는 register() 호출 전 등록되어야 함
+      // 리스너를 권한 prompt 이전에 등록한다.
+      // Why: Android 의 일부 OEM/Capacitor 8.x 조합에서 권한 grant 응답 직후 native plugin 이
+      // 자체적으로 register 를 trigger 해 `registration` 이벤트가 일찍 발사되는 경우가 있음.
+      // listener 등록을 권한 prompt 이후로 미루면 그 이벤트를 놓쳐 토큰을 잃고 timeout 됨
+      // (에뮬레이터 Pixel_2 + API 34 에서 재현 확인됨 2026-06-29).
       await PushNotifications.removeAllListeners();
 
       const tokenPromise = new Promise<string>((resolve, reject) => {
@@ -97,6 +87,20 @@ export function useFcmRegistration(options?: {
           }
         }
       });
+
+      const perm = await PushNotifications.checkPermissions();
+      let receive = perm.receive;
+
+      if (receive === 'prompt' || receive === 'prompt-with-rationale') {
+        const requested = await PushNotifications.requestPermissions();
+        receive = requested.receive;
+      }
+
+      if (receive !== 'granted') {
+        setStatus('denied');
+        setError('알림 권한이 거부되었습니다. 설정에서 허용해주세요.');
+        return false;
+      }
 
       setStatus('registering');
       await PushNotifications.register();
