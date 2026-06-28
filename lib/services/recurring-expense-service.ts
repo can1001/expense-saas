@@ -62,6 +62,37 @@ export async function generateExpenseFromRecurring(
       return { success: false, error: '자동이체 종료일이 지났습니다.' };
     }
 
+    // 중복 생성 방지: 같은 월에 이미 생성된 지출결의서가 있는지 확인
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const existingExpenseThisMonth = await prisma.expense.findFirst({
+      where: {
+        recurringExpenseId: recurringExpenseId,
+        createdAt: {
+          gte: startOfMonth,
+          lte: endOfMonth,
+        },
+      },
+      select: { id: true, createdAt: true },
+    });
+
+    if (existingExpenseThisMonth) {
+      console.log(`[RecurringExpense] 이번 달 이미 생성됨 (id: ${recurringExpenseId}, expenseId: ${existingExpenseThisMonth.id})`);
+      // nextGenerationDate를 다음 달로 업데이트
+      const nextGenerationDate = calculateNextGenerationDate(
+        recurring.frequency as RecurringFrequency,
+        recurring.dayOfMonth,
+        recurring.advanceDays
+      );
+      await prisma.recurringExpense.update({
+        where: { id: recurringExpenseId },
+        data: { nextGenerationDate },
+      });
+      return { success: false, error: '이번 달 이미 생성된 지출결의서가 있습니다.' };
+    }
+
     // 요청 팀 계산
     const requestTeam = deriveRequestTeam(
       recurring.committee,
