@@ -50,6 +50,25 @@ export function useFcmRegistration(options?: {
         '@capacitor/push-notifications'
       );
 
+      // 알림 채널 명시 생성 (heads-up + 진동 + 소리). 채널이 없으면 Android 가 fcm_fallback 채널
+      // (importance=DEFAULT, 무음/무진동) 으로 떨어뜨려서 status bar 아이콘만 뜸. 서버는
+      // notification.channelId='expense-default' 로 보내므로 동일 id 로 미리 생성해야 함.
+      // createChannel 은 idempotent.
+      try {
+        await PushNotifications.createChannel({
+          id: 'expense-default',
+          name: '지출결의서 알림',
+          description: '결재 / 지급 알림',
+          importance: 5,     // HIGH (heads-up 표시)
+          visibility: 1,     // PUBLIC (잠금화면 표시)
+          lights: true,
+          vibration: true,
+          sound: 'default',
+        });
+      } catch (e) {
+        console.warn('[useFcmRegistration] createChannel 실패 (계속 진행):', e);
+      }
+
       // 리스너를 권한 prompt 이전에 등록한다.
       // Why: Android 의 일부 OEM/Capacitor 8.x 조합에서 권한 grant 응답 직후 native plugin 이
       // 자체적으로 register 를 trigger 해 `registration` 이벤트가 일찍 발사되는 경우가 있음.
