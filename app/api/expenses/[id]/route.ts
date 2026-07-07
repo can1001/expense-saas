@@ -4,18 +4,15 @@ import { updateExpenseSchema, calculateAmount, calculateTotal } from '@/lib/vali
 import { deleteImages } from '@/lib/cloudinary';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { deriveRequestTeam } from '@/lib/domain/request-team';
-import { getSessionUserId, getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler, UserSession } from '@/lib/auth/user';
 import { maskAccountNumber } from '@/lib/utils';
 import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
 import { APPROVED_EDIT_ROLES } from '@/lib/constants/menu-permissions';
 
 // GET /api/expenses/[id] - 지출결의서 상세 조회
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleGet: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
     const expense = await prisma.expense.findUnique({
       where: { id },
       include: {
@@ -37,16 +34,15 @@ export async function GET(
     }
 
     // 현재 로그인한 사용자 확인
-    const currentUserId = await getSessionUserId();
-    const isOwner = currentUserId && expense.userId === currentUserId;
+    const isOwner = expense.userId === user.id;
 
     // 계좌번호 열람 권한이 있는 역할 (프린트 시 계좌번호 전체 표시 필요)
     const ACCOUNT_VIEW_ROLES = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
 
     // 계좌번호 열람 권한 확인 (연도별 유효 역할 기준)
     let canViewAccount = isOwner;
-    if (currentUserId && !canViewAccount) {
-      const { role: effectiveRole } = await getEffectiveRole(currentUserId, CURRENT_YEAR);
+    if (!canViewAccount) {
+      const { role: effectiveRole } = await getEffectiveRole(user.id, CURRENT_YEAR);
       canViewAccount = ACCOUNT_VIEW_ROLES.includes(effectiveRole);
     }
 
@@ -62,25 +58,16 @@ export async function GET(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 // PUT /api/expenses/[id] - 지출결의서 수정
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePut: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
     const body = await request.json();
 
     // 유효성 검증
     const validatedData = updateExpenseSchema.parse(body);
-
-    // 현재 사용자 확인
-    const currentUserId = await getSessionUserId();
-    if (!currentUserId) {
-      throw new ApiError('로그인이 필요합니다.', 401);
-    }
 
     // 현재 데이터 조회 (상태 확인 및 청구팀 자동 생성/검증을 위해)
     const existing = await prisma.expense.findUnique({
@@ -98,16 +85,16 @@ export async function PUT(
                               existing.paymentStatus === 'PENDING';
 
     // 소유권 검증 (기본 수정 가능 상태에서는 소유자만 수정 가능)
-    const isOwner = existing.userId === currentUserId;
+    const isOwner = existing.userId === user.id;
 
     // 관리 역할 우회 (소유자 아닐 때 또는 최종승인+지급대기 상태에서 역할 확인 필요)
     let canBypassOwnership = false;
-    let currentUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
+    let currentUser: UserSession | null = null;
     if (!isOwner || isApprovedPending) {
-      currentUser = await getCurrentUser();
-      if (currentUser) {
-        const { role: effectiveRole } = await getEffectiveRole(currentUser.id, CURRENT_YEAR);
-        canBypassOwnership = APPROVED_EDIT_ROLES.includes(effectiveRole as typeof APPROVED_EDIT_ROLES[number]);
+      const { role: effectiveRole } = await getEffectiveRole(user.id, CURRENT_YEAR);
+      canBypassOwnership = APPROVED_EDIT_ROLES.includes(effectiveRole as typeof APPROVED_EDIT_ROLES[number]);
+      if (canBypassOwnership) {
+        currentUser = user;
       }
     }
 
@@ -247,24 +234,15 @@ export async function PUT(
     }
     return handleApiError(error);
   }
-}
+};
 
 // 수정/삭제 가능한 상태
 const EDITABLE_STATUSES = ['DRAFT', 'REJECTED', 'WITHDRAWN'];
 
 // DELETE /api/expenses/[id] - 지출결의서 삭제
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleDelete: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
-
-    // 현재 사용자 확인
-    const currentUserId = await getSessionUserId();
-    if (!currentUserId) {
-      throw new ApiError('로그인이 필요합니다.', 401);
-    }
+    const { id } = await params!;
 
     // 상태 및 소유자 확인
     const expense = await prisma.expense.findUnique({
@@ -283,14 +261,11 @@ export async function DELETE(
 
     // 소유권 검증 — 관리 역할(admin/finance_head/accountant/admin_assistant)은 우회 가능
     // (PUT의 APPROVED_FINAL+PENDING 우회 패턴과 동일한 역할 집합 사용)
-    const isOwner = expense.userId === currentUserId;
+    const isOwner = expense.userId === user.id;
     let canBypassOwnership = false;
     if (!isOwner) {
-      const currentUser = await getCurrentUser();
-      if (currentUser) {
-        const { role: effectiveRole } = await getEffectiveRole(currentUser.id, CURRENT_YEAR);
-        canBypassOwnership = APPROVED_EDIT_ROLES.includes(effectiveRole as typeof APPROVED_EDIT_ROLES[number]);
-      }
+      const { role: effectiveRole } = await getEffectiveRole(user.id, CURRENT_YEAR);
+      canBypassOwnership = APPROVED_EDIT_ROLES.includes(effectiveRole as typeof APPROVED_EDIT_ROLES[number]);
     }
     if (!isOwner && !canBypassOwnership) {
       throw new ApiError('삭제 권한이 없습니다.', 403);
@@ -322,4 +297,9 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+// Export handlers with auth wrapper
+export const GET = withAuth(handleGet);
+export const PUT = withAuth(handlePut);
+export const DELETE = withAuth(handleDelete);

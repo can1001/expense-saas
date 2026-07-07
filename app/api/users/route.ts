@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import {
   findUsers,
   createUser,
@@ -7,9 +7,10 @@ import {
   getRoleByCode,
   UserRole,
 } from '@/lib/services/user-service';
+import { withAuth, withAdmin, UserApiHandler } from '@/lib/auth/user';
 
-// GET /api/users - 사용자 목록 조회
-export async function GET(request: NextRequest) {
+// GET /api/users - 사용자 목록 조회 (인증 필요)
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') ?? '1');
@@ -48,10 +49,10 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
 
-// POST /api/users - 사용자 생성
-export async function POST(request: NextRequest) {
+// POST /api/users - 사용자 생성 (관리자 권한 필요)
+const handlePost: UserApiHandler = async (request) => {
   try {
     const body = await request.json();
     const { userid, username, role, roleId, department, password, phoneNumber } = body;
@@ -121,4 +122,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAdmin(handlePost);

@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * 관리자 대시보드 KPI 데이터 API
@@ -13,7 +14,7 @@ import { prisma } from '@/lib/prisma';
  * - pendingPayments: 지급 대기 건수
  * - recentExpenses: 최근 제출된 지출결의서 5건
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
@@ -143,4 +144,6 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAdmin(handleGet);

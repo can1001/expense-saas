@@ -1,31 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withPermission, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/approvals
  * 결재 대기 목록 조회
  *
  * Query params:
- * - approverName: 결재자 이름 (필수)
  * - status: 필터 (pending, completed, all) - 기본값: pending
  * - page: 페이지 번호 (기본값: 1)
  * - limit: 페이지 크기 (기본값: 10)
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const approverName = searchParams.get('approverName');
+    const approverName = user.username; // 인증된 사용자의 이름 사용
     const status = searchParams.get('status') || 'pending';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
-
-    if (!approverName) {
-      return NextResponse.json(
-        { error: '결재자 이름이 필요합니다. (approverName)' },
-        { status: 400 }
-      );
-    }
 
     // 결재자가 포함된 결재선 찾기
     const whereCondition: any = {
@@ -168,4 +161,6 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withPermission('canApprove', handleGet);
