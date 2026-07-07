@@ -1,7 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { prismaBase } from '@/lib/prisma';
+import { handleApiError } from '@/lib/api/error-handler';
+import {
+  createUserToken,
+  createUserTokenCookie,
+  getRolePermissions,
+  UserSession,
+} from '@/lib/auth/user';
+import { findTenantBySubdomain } from '@/lib/tenant';
 import bcrypt from 'bcryptjs';
-import { createSession } from '@/lib/auth';
-import { findUserByUserid } from '@/lib/services/user-service';
+import { z } from 'zod';
 import {
   checkLoginRateLimit,
   recordLoginFailure,
@@ -10,40 +18,21 @@ import {
   getRateLimitKey,
 } from '@/lib/rate-limit';
 
-export async function POST(request: Request) {
+const loginSchema = z.object({
+  userid: z.string().min(1, '아이디를 입력하세요'),
+  password: z.string().min(1, '비밀번호를 입력하세요'),
+});
+
+// POST /api/auth/login - 사용자 로그인
+export async function POST(request: NextRequest) {
   try {
     const clientIp = getClientIp(request);
+    const body = await request.json();
 
-    // 먼저 요청 바디 파싱 (userid 기반 Rate Limit을 위해)
-    let userid: string | undefined;
-    let password: string | undefined;
+    // 유효성 검사
+    const { userid, password } = loginSchema.parse(body);
 
-    try {
-      const body = await request.json();
-      userid = body.userid;
-      password = body.password;
-    } catch {
-      return NextResponse.json(
-        { error: '잘못된 요청 형식입니다.' },
-        { status: 400 }
-      );
-    }
-
-    if (!userid || typeof userid !== 'string') {
-      return NextResponse.json(
-        { error: '아이디를 입력해주세요.' },
-        { status: 400 }
-      );
-    }
-
-    if (!password || typeof password !== 'string') {
-      return NextResponse.json(
-        { error: '비밀번호를 입력해주세요.' },
-        { status: 400 }
-      );
-    }
-
-    // Rate limit 확인 (IP + userid 조합으로 IP 스푸핑 방지)
+    // Rate limit 확인
     const rateLimitKey = getRateLimitKey(clientIp, userid);
     const rateLimitResult = checkLoginRateLimit(rateLimitKey);
 
@@ -61,8 +50,54 @@ export async function POST(request: Request) {
       );
     }
 
-    // DB에서 사용자 조회
-    const user = await findUserByUserid(userid);
+    // 테넌트 확인 (헤더 또는 쿼리에서)
+    const subdomain = request.headers.get('x-tenant-subdomain');
+    const tenantParam = request.headers.get('x-tenant-param');
+    const tenantIdentifier = subdomain || tenantParam;
+
+    let tenant = null;
+
+    // 테넌트 식별자가 있는 경우 (멀티테넌트 모드)
+    if (tenantIdentifier) {
+      tenant = await findTenantBySubdomain(tenantIdentifier);
+
+      // findTenantBySubdomain은 비활성 테넌트도 null 반환
+      if (!tenant) {
+        return NextResponse.json(
+          { error: '존재하지 않거나 비활성화된 조직입니다.' },
+          { status: 404 }
+        );
+      }
+    }
+
+    // 사용자 조회
+    const user = await prismaBase.user.findFirst({
+      where: {
+        ...(tenant ? { tenantId: tenant.tenantId } : {}),
+        userid,
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        userid: true,
+        username: true,
+        password: true,
+        role: true,
+        roleId: true,
+        department: true,
+        isActive: true,
+        canRegisterUsers: true,
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            subdomain: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+
     if (!user) {
       recordLoginFailure(rateLimitKey);
       return NextResponse.json(
@@ -71,16 +106,25 @@ export async function POST(request: Request) {
       );
     }
 
-    // 비활성화된 사용자 체크
-    if (!user.isActive) {
+    // 테넌트 활성 상태 확인
+    if (user.tenant && !user.tenant.isActive) {
       recordLoginFailure(rateLimitKey);
       return NextResponse.json(
-        { error: '비활성화된 사용자입니다.' },
-        { status: 401 }
+        { error: '이 조직은 현재 이용할 수 없습니다.' },
+        { status: 403 }
       );
     }
 
-    // 비밀번호가 설정되지 않은 경우
+    // 활성 상태 확인
+    if (!user.isActive) {
+      recordLoginFailure(rateLimitKey);
+      return NextResponse.json(
+        { error: '계정이 비활성화되어 있습니다. 관리자에게 문의하세요.' },
+        { status: 403 }
+      );
+    }
+
+    // 비밀번호 확인
     if (!user.password) {
       recordLoginFailure(rateLimitKey);
       return NextResponse.json(
@@ -89,9 +133,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 비밀번호 검증
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
       recordLoginFailure(rateLimitKey);
       return NextResponse.json(
         { error: '아이디 또는 비밀번호가 올바르지 않습니다.' },
@@ -99,25 +142,65 @@ export async function POST(request: Request) {
       );
     }
 
-    await createSession(user.id);
-
-    // 로그인 성공 시 시도 기록 초기화
+    // 로그인 성공 - Rate limit 초기화
     clearLoginAttempts(rateLimitKey);
 
-    return NextResponse.json({
+    // 역할 권한 가져오기
+    const permissions = await getRolePermissions(user.roleId, user.role);
+
+    // 세션 생성
+    const session: UserSession = {
+      id: user.id,
+      tenantId: user.tenantId || '',
+      userid: user.userid,
+      username: user.username,
+      role: user.role,
+      roleId: user.roleId,
+      department: user.department,
+      ...permissions,
+      canRegisterUsers: user.canRegisterUsers || permissions.canRegisterUsers,
+    };
+
+    // JWT 토큰 생성
+    const token = await createUserToken(session);
+
+    // 응답 생성
+    const response = NextResponse.json({
       success: true,
+      message: '로그인 성공',
       user: {
         id: user.id,
         userid: user.userid,
         username: user.username,
         role: user.role,
         department: user.department,
+        permissions: {
+          canApprove: session.canApprove,
+          canManageExpense: session.canManageExpense,
+          canAccessAdmin: session.canAccessAdmin,
+          canExportData: session.canExportData,
+          canRegisterUsers: session.canRegisterUsers,
+        },
       },
+      tenant: user.tenant ? {
+        id: user.tenant.id,
+        name: user.tenant.name,
+        subdomain: user.tenant.subdomain,
+      } : null,
+      token,
     });
-  } catch {
-    return NextResponse.json(
-      { error: '로그인 처리 중 오류가 발생했습니다.' },
-      { status: 500 }
-    );
+
+    // 쿠키 설정
+    response.headers.set('Set-Cookie', createUserTokenCookie(token));
+
+    return response;
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: '아이디와 비밀번호를 입력해주세요.' },
+        { status: 400 }
+      );
+    }
+    return handleApiError(error);
   }
 }
