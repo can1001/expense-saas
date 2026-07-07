@@ -10,9 +10,104 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ========================================
+// 멀티테넌시 (Multi-tenancy)
+// ========================================
+
+// 조직 유형
+enum OrgType {
+  CHURCH    // 교회
+  NONPROFIT // 비영리 단체
+  SCHOOL    // 학교
+  COMPANY   // 기업
+  OTHER     // 기타
+}
+
+// 요금제 유형
+enum PlanType {
+  FREE       // 무료 (10명, 1GB)
+  BASIC      // 기본 (50명, 10GB)
+  PRO        // 프로 (200명, 50GB)
+  ENTERPRISE // 기업 (무제한)
+}
+
+// 테넌트 (조직)
+model Tenant {
+  id          String   @id @default(cuid())
+
+  // 기본 정보
+  name        String   // "청연교회", "소망교회"
+  subdomain   String   @unique // "chungyeon" → chungyeon.expense-saas.com
+  customDomain String? @unique // "expense.chungyeon.org" (선택)
+
+  // 조직 정보
+  orgType     OrgType  @default(CHURCH)
+  description String?
+  logoUrl     String?
+
+  // 요금제
+  plan        PlanType @default(FREE)
+  planStartAt DateTime?
+  planEndAt   DateTime?
+
+  // 사용량 제한
+  maxUsers       Int @default(10)
+  maxStorageMB   Int @default(1024)
+  currentUsers   Int @default(0)
+  currentStorage Int @default(0)
+
+  // 설정 (JSON)
+  settings    Json?
+
+  // 상태
+  isActive    Boolean   @default(true)
+  suspendedAt DateTime?
+  suspendReason String?
+
+  // 관계 - 테넌트 소속 모델들
+  users              User[]
+  roles              Role[]
+  committees         Committee[]
+  budgetCategories   BudgetCategory[]
+  expenses           Expense[]
+  simpleExpenses     SimpleExpense[]
+  recurringExpenses  RecurringExpense[]
+  offerings          Offering[]
+  accountReports     AccountReport[]
+  curriculums        Curriculum[]
+  systemSettings     SystemSetting[]
+  adminNotifications AdminNotification[]
+
+  // 메타
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([subdomain])
+  @@index([isActive])
+  @@index([plan])
+}
+
+// 슈퍼 관리자 (플랫폼 전체 관리)
+model SuperAdmin {
+  id        String  @id @default(cuid())
+  email     String  @unique
+  password  String
+  name      String
+  isActive  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
 // 지출결의서 메인 테이블
 model Expense {
   id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   // 작성자
   userId String
@@ -80,6 +175,7 @@ model Expense {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([tenantId])
   @@index([userId])
   @@index([committee])
   @@index([department])
@@ -142,7 +238,12 @@ model ExpenseAttachment {
 // 위원회
 model Committee {
   id        String  @id @default(cuid())
-  name      String  @unique // "기획위원회", "선교위원회"
+
+  // 테넌트
+  tenantId  String?
+  tenant    Tenant? @relation(fields: [tenantId], references: [id])
+
+  name      String  // "기획위원회", "선교위원회" - 테넌트 내 유니크로 변경
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
 
@@ -186,7 +287,12 @@ model Department {
 // 예산(항)
 model BudgetCategory {
   id        String  @id @default(cuid())
-  name      String  @unique // "사무행정비", "비전사역비"
+
+  // 테넌트
+  tenantId  String?
+  tenant    Tenant? @relation(fields: [tenantId], references: [id])
+
+  name      String  // "사무행정비", "비전사역비" - 테넌트 내 유니크로 변경
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
 
@@ -325,6 +431,10 @@ model SavedBankAccount {
 // 간편 지출결의서 (Ver.4.1.4) - 항목별 예산 선택
 model SimpleExpense {
   id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   // 지출일자
   expenseDate DateTime?
@@ -533,7 +643,12 @@ enum ApprovalAction {
 // 역할 마스터 테이블
 model Role {
   id          String  @id @default(cuid())
-  code        String  @unique // admin, finance_head, accountant, team_leader, admin_assistant, user
+
+  // 테넌트
+  tenantId    String?
+  tenant      Tenant? @relation(fields: [tenantId], references: [id])
+
+  code        String  // admin, finance_head 등 - 테넌트 내 유니크로 변경
   name        String // 관리자, 재정팀장, 회계, 팀장, 행정간사, 사용자
   description String? // 역할 설명
   stepNumber  Int? // 결재 단계 (1, 2, 3, null)
@@ -562,7 +677,12 @@ model Role {
 // 사용자 테이블
 model User {
   id         String  @id @default(cuid())
-  userid     String  @unique // 로그인 아이디 (예: 청연정혜종)
+
+  // 테넌트
+  tenantId   String?
+  tenant     Tenant? @relation(fields: [tenantId], references: [id])
+
+  userid     String  // 로그인 아이디 (예: 청연정혜종) - 테넌트 내 유니크로 변경
   username   String // 표시 이름 (예: 정혜종)
   password   String? // 해시된 비밀번호 (향후 인증용)
   role       String  @default("user") // 역할 코드 (Role.code 참조)
@@ -598,6 +718,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([tenantId, userid]) // 테넌트 내 유니크
+  @@index([tenantId])
   @@index([role])
   @@index([roleId])
   @@index([department])
@@ -960,7 +1082,12 @@ enum OfferingType {
 
 // 헌금 관리
 model Offering {
-  id     String       @id @default(cuid())
+  id       String       @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
   date   DateTime     @db.Date // 헌금 날짜
   name   String // 헌금자 이름
   type   OfferingType // 헌금 종류
@@ -978,7 +1105,12 @@ model Offering {
 // 시스템 설정 (키-값 형태)
 model SystemSetting {
   id          String  @id @default(cuid())
-  key         String  @unique // 설정 키 (예: "paymentSignatureRequired")
+
+  // 테넌트
+  tenantId    String?
+  tenant      Tenant? @relation(fields: [tenantId], references: [id])
+
+  key         String  // 설정 키 - 테넌트 내 유니크로 변경
   value       String // 설정 값 (JSON 문자열 또는 단순 값)
   description String? // 설정 설명
 
@@ -995,6 +1127,11 @@ model SystemSetting {
 // 어드민이 발송한 알림 이력
 model AdminNotification {
   id          String   @id @default(cuid())
+
+  // 테넌트
+  tenantId    String?
+  tenant      Tenant? @relation(fields: [tenantId], references: [id])
+
   title       String // 알림 제목
   message     String // 알림 내용
   targetType  String // 대상 타입: 'ALL', 'ROLE', 'USER'
@@ -1023,6 +1160,10 @@ enum AccountReportType {
 // 재정보고서 메인
 model AccountReport {
   id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   // 보고서 정보
   year       Int // 연도 (2024, 2025 등)
@@ -1221,6 +1362,11 @@ enum AgeGroup {
 // 커리큘럼 (교육과정)
 model Curriculum {
   id          String         @id @default(cuid())
+
+  // 테넌트
+  tenantId    String?
+  tenant      Tenant? @relation(fields: [tenantId], references: [id])
+
   title       String // 커리큘럼 제목 (예: "2024년 청나잇 말씀 시리즈")
   description String? // 설명
   type        CurriculumType // 커리큘럼 타입
@@ -1507,6 +1653,10 @@ enum RecurringExpenseStatus {
 // 정기적으로 자동이체되는 지출결의서 템플릿
 model RecurringExpense {
   id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   // 등록자 (관리자 또는 재정팀)
   userId String
