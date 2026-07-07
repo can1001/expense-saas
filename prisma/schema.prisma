@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // Prisma 7: URL은 prisma.config.ts와 PrismaClient adapter에서 관리
 }
 
 // ========================================
@@ -16,37 +16,37 @@ datasource db {
 
 // 조직 유형
 enum OrgType {
-  CHURCH    // 교회
+  CHURCH // 교회
   NONPROFIT // 비영리 단체
-  SCHOOL    // 학교
-  COMPANY   // 기업
-  OTHER     // 기타
+  SCHOOL // 학교
+  COMPANY // 기업
+  OTHER // 기타
 }
 
 // 요금제 유형
 enum PlanType {
-  FREE       // 무료 (10명, 1GB)
-  BASIC      // 기본 (50명, 10GB)
-  PRO        // 프로 (200명, 50GB)
+  FREE // 무료 (10명, 1GB)
+  BASIC // 기본 (50명, 10GB)
+  PRO // 프로 (200명, 50GB)
   ENTERPRISE // 기업 (무제한)
 }
 
 // 테넌트 (조직)
 model Tenant {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // 기본 정보
-  name        String   // "청연교회", "소망교회"
-  subdomain   String   @unique // "chungyeon" → chungyeon.expense-saas.com
+  name         String // "청연교회", "소망교회"
+  subdomain    String  @unique // "chungyeon" → chungyeon.expense-saas.com
   customDomain String? @unique // "expense.chungyeon.org" (선택)
 
   // 조직 정보
-  orgType     OrgType  @default(CHURCH)
+  orgType     OrgType @default(CHURCH)
   description String?
   logoUrl     String?
 
   // 요금제
-  plan        PlanType @default(FREE)
+  plan        PlanType  @default(FREE)
   planStartAt DateTime?
   planEndAt   DateTime?
 
@@ -57,11 +57,11 @@ model Tenant {
   currentStorage Int @default(0)
 
   // 설정 (JSON)
-  settings    Json?
+  settings Json?
 
   // 상태
-  isActive    Boolean   @default(true)
-  suspendedAt DateTime?
+  isActive      Boolean   @default(true)
+  suspendedAt   DateTime?
   suspendReason String?
 
   // 관계 - 테넌트 소속 모델들
@@ -79,8 +79,8 @@ model Tenant {
   adminNotifications AdminNotification[]
 
   // 메타
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([subdomain])
   @@index([isActive])
@@ -89,11 +89,11 @@ model Tenant {
 
 // 슈퍼 관리자 (플랫폼 전체 관리)
 model SuperAdmin {
-  id        String  @id @default(cuid())
-  email     String  @unique
-  password  String
-  name      String
-  isActive  Boolean @default(true)
+  id       String  @id @default(cuid())
+  email    String  @unique
+  password String
+  name     String
+  isActive Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -188,10 +188,10 @@ model Expense {
 
 // 지출 세부 항목
 model ExpenseItem {
-  id        String  @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
-  tenantId  String?
+  tenantId String?
 
   expenseId String
   expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
@@ -213,10 +213,10 @@ model ExpenseItem {
 
 // 첨부파일 (영수증 이미지 등)
 model ExpenseAttachment {
-  id        String  @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
-  tenantId  String?
+  tenantId String?
 
   expenseId String
   expense   Expense @relation("ExpenseAttachments", fields: [expenseId], references: [id], onDelete: Cascade)
@@ -245,13 +245,13 @@ model ExpenseAttachment {
 
 // 위원회
 model Committee {
-  id        String  @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트
-  tenantId  String?
-  tenant    Tenant? @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
-  name      String  // "기획위원회", "선교위원회" - 테넌트 내 유니크로 변경
+  name      String // "기획위원회", "선교위원회" - 테넌트 내 유니크로 변경
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
 
@@ -271,10 +271,10 @@ model Committee {
 
 // 사역팀(부)
 model Department {
-  id          String    @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
-  tenantId    String?
+  tenantId String?
 
   committeeId String
   committee   Committee @relation(fields: [committeeId], references: [id])
@@ -298,13 +298,13 @@ model Department {
 
 // 예산(항)
 model BudgetCategory {
-  id        String  @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트
-  tenantId  String?
-  tenant    Tenant? @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
-  name      String  // "사무행정비", "비전사역비" - 테넌트 내 유니크로 변경
+  name      String // "사무행정비", "비전사역비" - 테넌트 내 유니크로 변경
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
 
@@ -319,10 +319,10 @@ model BudgetCategory {
 
 // 예산(목)
 model BudgetSubcategory {
-  id         String         @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
-  tenantId   String?
+  tenantId String?
 
   categoryId String
   category   BudgetCategory @relation(fields: [categoryId], references: [id])
@@ -344,10 +344,10 @@ model BudgetSubcategory {
 
 // 예산(세목)
 model BudgetDetail {
-  id            String            @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
-  tenantId      String?
+  tenantId String?
 
   subcategoryId String
   subcategory   BudgetSubcategory @relation(fields: [subcategoryId], references: [id])
@@ -376,7 +376,7 @@ model BudgetDetailYear {
   id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
-  tenantId       String?
+  tenantId String?
 
   budgetDetailId String
   budgetDetail   BudgetDetail @relation(fields: [budgetDetailId], references: [id], onDelete: Cascade)
@@ -407,7 +407,7 @@ model DepartmentBudgetDetail {
   id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
-  tenantId     String?
+  tenantId String?
 
   departmentId String
   department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
@@ -497,10 +497,10 @@ model SimpleExpense {
 
 // 간편 지출결의서 세부 항목
 model SimpleExpenseItem {
-  id        String        @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
-  tenantId  String?
+  tenantId String?
 
   expenseId String
   expense   SimpleExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
@@ -526,10 +526,10 @@ model SimpleExpenseItem {
 
 // 간편 지출결의서 첨부파일
 model SimpleExpenseAttachment {
-  id        String        @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
-  tenantId  String?
+  tenantId String?
 
   expenseId String
   expense   SimpleExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
@@ -679,13 +679,13 @@ enum ApprovalAction {
 
 // 역할 마스터 테이블
 model Role {
-  id          String  @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트
-  tenantId    String?
-  tenant      Tenant? @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
-  code        String  // admin, finance_head 등 - 테넌트 내 유니크로 변경
+  code        String // admin, finance_head 등 - 테넌트 내 유니크로 변경
   name        String // 관리자, 재정팀장, 회계, 팀장, 행정간사, 사용자
   description String? // 역할 설명
   stepNumber  Int? // 결재 단계 (1, 2, 3, null)
@@ -713,13 +713,13 @@ model Role {
 
 // 사용자 테이블
 model User {
-  id         String  @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트
-  tenantId   String?
-  tenant     Tenant? @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
-  userid     String  // 로그인 아이디 (예: 청연정혜종) - 테넌트 내 유니크로 변경
+  userid     String // 로그인 아이디 (예: 청연정혜종) - 테넌트 내 유니크로 변경
   username   String // 표시 이름 (예: 정혜종)
   password   String? // 해시된 비밀번호 (향후 인증용)
   role       String  @default("user") // 역할 코드 (Role.code 참조)
@@ -766,7 +766,7 @@ model User {
 
 // 연도별 사용자 역할 (finance_head, accountant, team_leader, admin_assistant)
 model UserYearRole {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -794,7 +794,7 @@ model UserYearRole {
 
 // 사용자 서명/도장
 model UserSignature {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -889,7 +889,7 @@ model BudgetDetailYearHistory {
 
 // 감사 로그 (모든 결재 액션 기록)
 model ApprovalLog {
-  id        String @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -956,7 +956,7 @@ enum NotificationStatus {
 
 // 알림 설정 (사용자별)
 model NotificationPreference {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -1018,7 +1018,7 @@ model NotificationLog {
 
 // 웹 푸시 구독 정보
 model PushSubscription {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -1049,7 +1049,7 @@ model PushSubscription {
 
 // 웹 푸시 발송 로그
 model WebPushLog {
-  id        String  @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -1080,7 +1080,7 @@ model WebPushLog {
 
 // FCM 토큰 (Capacitor 모바일 앱 푸시 알림용)
 model FcmToken {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -1110,7 +1110,7 @@ model FcmToken {
 
 // FCM 발송 로그
 model FcmLog {
-  id        String  @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -1160,7 +1160,7 @@ enum OfferingType {
 
 // 헌금 관리
 model Offering {
-  id       String       @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트
   tenantId String?
@@ -1182,13 +1182,13 @@ model Offering {
 
 // 시스템 설정 (키-값 형태)
 model SystemSetting {
-  id          String  @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트
-  tenantId    String?
-  tenant      Tenant? @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
-  key         String  // 설정 키 - 테넌트 내 유니크로 변경
+  key         String // 설정 키 - 테넌트 내 유니크로 변경
   value       String // 설정 값 (JSON 문자열 또는 단순 값)
   description String? // 설정 설명
 
@@ -1204,11 +1204,11 @@ model SystemSetting {
 
 // 어드민이 발송한 알림 이력
 model AdminNotification {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트
-  tenantId    String?
-  tenant      Tenant? @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   title       String // 알림 제목
   message     String // 알림 내용
@@ -1276,7 +1276,7 @@ model AccountReport {
 
 // 수입부 항목 (2. 수입부)
 model AccountReportIncome {
-  id       String        @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -1306,7 +1306,7 @@ model AccountReportIncome {
 
 // 지출부 항목 (3. 지출부)
 model AccountReportExpense {
-  id       String        @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -1336,7 +1336,7 @@ model AccountReportExpense {
 
 // 입출금 통장 현황 (4. 입출금 통장)
 model AccountReportBankAccount {
-  id       String        @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -1357,7 +1357,7 @@ model AccountReportBankAccount {
 
 // 적립금 현황 (5. 적립금)
 model AccountReportReserve {
-  id       String        @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -1380,7 +1380,7 @@ model AccountReportReserve {
 
 // 기타 자산 (6. 기타 자산)
 model AccountReportAsset {
-  id       String        @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -1402,7 +1402,7 @@ model AccountReportAsset {
 
 // 기타 부채 (7. 기타 부채)
 model AccountReportLiability {
-  id       String        @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -1429,7 +1429,7 @@ model AccountReportLiability {
 
 // 위원회별 지출 현황 (차트용)
 model AccountReportCommitteeExpense {
-  id       String        @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -1467,11 +1467,11 @@ enum AgeGroup {
 
 // 커리큘럼 (교육과정)
 model Curriculum {
-  id          String         @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트
-  tenantId    String?
-  tenant      Tenant? @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   title       String // 커리큘럼 제목 (예: "2024년 청나잇 말씀 시리즈")
   description String? // 설명
@@ -1500,7 +1500,7 @@ model Curriculum {
 
 // 레슨 (개별 수업)
 model Lesson {
-  id           String     @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
@@ -1542,7 +1542,7 @@ model Lesson {
 
 // 퀴즈 질문
 model Question {
-  id       String @id @default(cuid())
+  id String @id @default(cuid())
 
   // 테넌트 (쿼리 최적화용)
   tenantId String?
