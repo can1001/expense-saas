@@ -3,16 +3,15 @@ import { prismaBase } from '@/lib/prisma';
 import { updateTenantSchema, planLimits } from '@/lib/validators/tenant';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { invalidateTenantCache } from '@/lib/tenant';
+import { withSuperAdmin } from '@/lib/auth/super-admin';
 
 // GET /api/platform/tenants/[id] - 테넌트 상세 조회
-export async function GET(
+export const GET = withSuperAdmin(async (
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }
+) => {
   try {
-    // TODO: SuperAdmin 인증 확인
-
-    const { id } = await params;
+    const { id } = await params!;
 
     const tenant = await prismaBase.tenant.findUnique({
       where: { id },
@@ -41,17 +40,15 @@ export async function GET(
   } catch (error) {
     return handleApiError(error);
   }
-}
+});
 
 // PUT /api/platform/tenants/[id] - 테넌트 수정
-export async function PUT(
+export const PUT = withSuperAdmin(async (
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }
+) => {
   try {
-    // TODO: SuperAdmin 인증 확인
-
-    const { id } = await params;
+    const { id } = await params!;
     const body = await request.json();
 
     // 유효성 검사
@@ -121,17 +118,15 @@ export async function PUT(
     }
     return handleApiError(error);
   }
-}
+});
 
 // DELETE /api/platform/tenants/[id] - 테넌트 삭제 (소프트 삭제)
-export async function DELETE(
+export const DELETE = withSuperAdmin(async (
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }
+) => {
   try {
-    // TODO: SuperAdmin 인증 확인
-
-    const { id } = await params;
+    const { id } = await params!;
     const url = new URL(request.url);
     const hardDelete = url.searchParams.get('hard') === 'true';
 
@@ -195,4 +190,4 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(error);
   }
-}
+});

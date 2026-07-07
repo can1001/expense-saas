@@ -6,17 +6,12 @@ import {
   planLimits,
 } from '@/lib/validators/tenant';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
+import { withSuperAdmin } from '@/lib/auth/super-admin';
 import bcrypt from 'bcryptjs';
 
 // GET /api/platform/tenants - 테넌트 목록 조회
-export async function GET(request: NextRequest) {
+export const GET = withSuperAdmin(async (request: NextRequest) => {
   try {
-    // TODO: SuperAdmin 인증 확인
-    // const superAdmin = await getSuperAdmin();
-    // if (!superAdmin) {
-    //   return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
-    // }
-
     const url = new URL(request.url);
     const queryParams = Object.fromEntries(url.searchParams.entries());
 
@@ -100,17 +95,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+});
 
 // POST /api/platform/tenants - 테넌트 생성
-export async function POST(request: NextRequest) {
+export const POST = withSuperAdmin(async (request: NextRequest) => {
   try {
-    // TODO: SuperAdmin 인증 확인
-    // const superAdmin = await getSuperAdmin();
-    // if (!superAdmin) {
-    //   return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
-    // }
-
     const body = await request.json();
 
     // 유효성 검사
@@ -252,4 +241,4 @@ export async function POST(request: NextRequest) {
     }
     return handleApiError(error);
   }
-}
+});

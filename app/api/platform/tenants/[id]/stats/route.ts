@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prismaBase } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
+import { withSuperAdmin } from '@/lib/auth/super-admin';
 
 // GET /api/platform/tenants/[id]/stats - 테넌트 사용량 통계
-export async function GET(
+export const GET = withSuperAdmin(async (
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }
+) => {
   try {
-    // TODO: SuperAdmin 인증 확인
-
-    const { id } = await params;
+    const { id } = await params!;
 
     // 테넌트 존재 확인
     const tenant = await prismaBase.tenant.findUnique({
@@ -38,7 +37,6 @@ export async function GET(
     // 통계 데이터 수집
     const now = new Date();
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const thisYear = new Date(now.getFullYear(), 0, 1);
 
     const [
@@ -175,4 +173,4 @@ export async function GET(
   } catch (error) {
     return handleApiError(error);
   }
-}
+});

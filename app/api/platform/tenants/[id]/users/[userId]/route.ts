@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prismaBase } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
+import { withSuperAdmin } from '@/lib/auth/super-admin';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 
@@ -15,14 +16,12 @@ const updateUserSchema = z.object({
 });
 
 // GET /api/platform/tenants/[id]/users/[userId] - 사용자 상세 조회
-export async function GET(
+export const GET = withSuperAdmin(async (
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; userId: string }> }
-) {
+  { params }
+) => {
   try {
-    // TODO: SuperAdmin 인증 확인
-
-    const { id: tenantId, userId } = await params;
+    const { id: tenantId, userId } = await params!;
 
     // 테넌트 확인
     const tenant = await prismaBase.tenant.findUnique({
@@ -87,17 +86,15 @@ export async function GET(
   } catch (error) {
     return handleApiError(error);
   }
-}
+});
 
 // PUT /api/platform/tenants/[id]/users/[userId] - 사용자 수정
-export async function PUT(
+export const PUT = withSuperAdmin(async (
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; userId: string }> }
-) {
+  { params }
+) => {
   try {
-    // TODO: SuperAdmin 인증 확인
-
-    const { id: tenantId, userId } = await params;
+    const { id: tenantId, userId } = await params!;
     const body = await request.json();
 
     // 유효성 검사
@@ -192,17 +189,15 @@ export async function PUT(
     }
     return handleApiError(error);
   }
-}
+});
 
 // DELETE /api/platform/tenants/[id]/users/[userId] - 사용자 삭제
-export async function DELETE(
+export const DELETE = withSuperAdmin(async (
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; userId: string }> }
-) {
+  { params }
+) => {
   try {
-    // TODO: SuperAdmin 인증 확인
-
-    const { id: tenantId, userId } = await params;
+    const { id: tenantId, userId } = await params!;
     const url = new URL(request.url);
     const hardDelete = url.searchParams.get('hard') === 'true';
 
@@ -279,4 +274,4 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(error);
   }
-}
+});
