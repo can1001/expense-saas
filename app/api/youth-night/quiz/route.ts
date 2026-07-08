@@ -1,15 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 // 퀴즈 제출 (POST)
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 });
-    }
-
     const body = await request.json();
     const { lessonId, answers } = body;
 
@@ -165,16 +160,11 @@ export async function POST(request: NextRequest) {
     console.error('퀴즈 제출 오류:', error);
     return NextResponse.json({ error: '퀴즈 제출 처리 중 오류가 발생했습니다' }, { status: 500 });
   }
-}
+};
 
 // 퀴즈 응답 조회 (GET)
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const lessonId = searchParams.get('lessonId');
 
@@ -235,4 +225,7 @@ export async function GET(request: NextRequest) {
     console.error('퀴즈 응답 조회 오류:', error);
     return NextResponse.json({ error: '퀴즈 응답 조회 중 오류가 발생했습니다' }, { status: 500 });
   }
-}
+};
+
+export const POST = withAuth(handlePost);
+export const GET = withAuth(handleGet);

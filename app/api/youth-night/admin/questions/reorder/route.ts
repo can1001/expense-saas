@@ -1,17 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
+
+// 관리자 권한 확인
+const ADMIN_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
 
 // POST - 퀴즈 문제 순서 변경
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
-    }
-
-    const adminRoles = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!adminRoles.includes(user.role)) {
+    if (!ADMIN_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
 
@@ -40,4 +37,6 @@ export async function POST(request: NextRequest) {
     console.error('퀴즈 순서 변경 오류:', error);
     return NextResponse.json({ error: '순서 변경에 실패했습니다.' }, { status: 500 });
   }
-}
+};
+
+export const POST = withAuth(handlePost);

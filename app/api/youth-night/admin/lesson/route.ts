@@ -1,15 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
+
+// 관리자/교사 권한 확인
+const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
 
 // 새 레슨 생성
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-
-    // 관리자/교사 권한 확인
-    const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!user || !ALLOWED_ROLES.includes(user.role)) {
+    if (!ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 
@@ -72,16 +71,12 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
 
 // 레슨 상세 조회
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-
-    // 관리자/교사 권한 확인
-    const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!user || !ALLOWED_ROLES.includes(user.role)) {
+    if (!ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 
@@ -117,16 +112,12 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
 
 // 레슨 수정 (공개/비공개 토글 및 내용 수정)
-export async function PUT(request: NextRequest) {
+const handlePut: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-
-    // 관리자/교사 권한 확인
-    const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!user || !ALLOWED_ROLES.includes(user.role)) {
+    if (!ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 
@@ -194,16 +185,12 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
 
 // 레슨 순서 변경 (드래그 앤 드랍)
-export async function PATCH(request: NextRequest) {
+const handlePatch: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-
-    // 관리자/교사 권한 확인
-    const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!user || !ALLOWED_ROLES.includes(user.role)) {
+    if (!ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 
@@ -257,16 +244,12 @@ export async function PATCH(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
 
 // 레슨 삭제
-export async function DELETE(request: NextRequest) {
+const handleDelete: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-
-    // 관리자/교사 권한 확인
-    const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!user || !ALLOWED_ROLES.includes(user.role)) {
+    if (!ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 
@@ -286,4 +269,10 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const POST = withAuth(handlePost);
+export const GET = withAuth(handleGet);
+export const PUT = withAuth(handlePut);
+export const PATCH = withAuth(handlePatch);
+export const DELETE = withAuth(handleDelete);
