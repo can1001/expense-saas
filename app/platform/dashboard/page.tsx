@@ -17,6 +17,7 @@ import {
   Plus,
   Settings,
   UserCog,
+  Download,
 } from 'lucide-react';
 
 interface PlatformStats {
@@ -339,7 +340,7 @@ export default function PlatformDashboard() {
       </div>
 
       {/* 빠른 작업 */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Link
           href="/platform/tenants/new"
           className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-200 hover:border-indigo-300 hover:shadow transition-all"
@@ -387,7 +388,17 @@ export default function PlatformDashboard() {
           <div className="p-2 bg-purple-100 rounded-lg">
             <Settings className="w-5 h-5 text-purple-600" />
           </div>
-          <span className="font-medium text-gray-900">플랫폼 설정</span>
+          <span className="font-medium text-gray-900">설정</span>
+        </Link>
+
+        <Link
+          href="/platform/export"
+          className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-200 hover:border-indigo-300 hover:shadow transition-all"
+        >
+          <div className="p-2 bg-cyan-100 rounded-lg">
+            <Download className="w-5 h-5 text-cyan-600" />
+          </div>
+          <span className="font-medium text-gray-900">내보내기</span>
         </Link>
       </div>
 
