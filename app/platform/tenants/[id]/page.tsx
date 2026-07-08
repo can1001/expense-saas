@@ -15,6 +15,7 @@ import {
   Play,
   Trash2,
   Pencil,
+  Settings,
 } from 'lucide-react';
 
 interface TenantDetail {
@@ -226,6 +227,13 @@ export default function TenantDetailPage() {
 
         <div className="flex items-center gap-2">
           <Link
+            href={`/platform/tenants/${tenantId}/settings`}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            <Settings className="w-4 h-4" />
+            설정
+          </Link>
+          <Link
             href={`/platform/tenants/${tenantId}/edit`}
             className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors"
           >
@@ -434,6 +442,25 @@ export default function TenantDetailPage() {
         </div>
         <p className="text-gray-500 mt-2">
           이 테넌트에 등록된 사용자 {tenant.currentUsers}명을 관리합니다.
+        </p>
+      </div>
+
+      {/* 설정 관리 링크 */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Settings className="w-5 h-5 text-gray-600" />
+            <h2 className="text-lg font-semibold text-gray-900">설정 관리</h2>
+          </div>
+          <Link
+            href={`/platform/tenants/${tenantId}/settings`}
+            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+          >
+            설정 보기 →
+          </Link>
+        </div>
+        <p className="text-gray-500 mt-2">
+          테마, 알림, 지출, 결재, 보안 등 테넌트 설정을 관리합니다.
         </p>
       </div>
     </div>
