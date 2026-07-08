@@ -110,7 +110,10 @@
       "Skill(agent-skills:plan)",
       "Skill(review)",
       "Skill(agent-skills:code-simplify)",
-      "Bash(openssl rand:*)"
+      "Bash(openssl rand:*)",
+      "Skill(agent-skills:spec)",
+      "Bash(PORT=1005 npm run dev:*)",
+      "Bash(kill:*)"
     ],
     "deny": [],
     "ask": []
