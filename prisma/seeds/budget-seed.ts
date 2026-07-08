@@ -4,8 +4,17 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { config } from 'dotenv';
 
-const prisma = new PrismaClient();
+// .env 파일 로드
+config();
+
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL!,
+});
+
+const prisma = new PrismaClient({ adapter });
 
 // Committee (6개)
 const committees = [

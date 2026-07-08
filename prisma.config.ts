@@ -1,4 +1,8 @@
 import { defineConfig } from 'prisma/config';
+import { config } from 'dotenv';
+
+// .env 파일 로드
+config();
 
 // Prisma 7 설정 파일
 // CLI 명령어 (migrate, db push, introspect 등)에서 사용하는 설정
