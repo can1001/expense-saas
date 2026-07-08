@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
 import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * PUT /api/expenses/bulk-payment-status
@@ -20,19 +20,11 @@ import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
  *   overwriteExisting?: boolean // 기존 지출일자도 덮어쓰기
  * }
  */
-export async function PUT(request: NextRequest) {
+const handlePut: UserApiHandler = async (request, { user }) => {
   try {
     const body = await request.json();
     const { ids, paymentStatus, note, signature, expenseDate, overwriteExisting } = body;
-
-    // 현재 사용자 확인
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
+    const currentUser = user;
 
     // 지급상태 변경 권한 (admin, finance_head, accountant, admin_assistant) - 연도별 유효 역할 기준
     const allowedRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
@@ -225,4 +217,6 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const PUT = withAuth(handlePut);

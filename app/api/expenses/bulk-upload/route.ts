@@ -15,8 +15,7 @@
  * 권한: admin, admin_assistant
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { getUserAllYearRoles } from '@/lib/services/user-service';
 import { canAccessAdminMenuPathWithRoles } from '@/lib/constants/menu-permissions';
 import {
@@ -24,6 +23,7 @@ import {
   executeBulkUpload,
   MAX_ROWS,
 } from '@/lib/services/bulk-expense-upload-service';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 // exceljs는 Node 전용 + 트랜잭션 wall-clock 여유 확보
 export const runtime = 'nodejs';
@@ -32,12 +32,8 @@ export const maxDuration = 60;
 const ROUTE_PATH = '/admin/expense-upload';
 const MAX_FILE_BYTES = 2 * 1024 * 1024; // 500행 분량은 보통 200KB 이하
 
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   // 권한 체크 — 다중 역할 지원 (UI의 AdminLayout과 동일 기준)
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
-  }
   const roles = await getUserAllYearRoles(user.id);
   if (!canAccessAdminMenuPathWithRoles(roles, ROUTE_PATH)) {
     return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
@@ -150,4 +146,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const POST = withAuth(handlePost);

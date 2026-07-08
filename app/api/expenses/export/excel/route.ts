@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
   generateExcelBuffer,
@@ -8,6 +8,7 @@ import {
   generateWooriBankFilename,
   ExpenseForWooriBank,
 } from '@/lib/excel-export';
+import { withPermission, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/expenses/export/excel
@@ -22,7 +23,7 @@ import {
  * - useSameDate: true면 모든 항목에 expenseDate 적용
  * - format: 엑셀 양식 (default: 웹교적, woori: 우리은행 대량이체)
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
 
@@ -143,4 +144,6 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withPermission('canExportData', handleGet);
