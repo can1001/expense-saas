@@ -120,6 +120,9 @@ export const PUT = withSuperAdmin(async (
   }
 });
 
+// PATCH는 PUT과 동일하게 처리
+export const PATCH = PUT;
+
 // DELETE /api/platform/tenants/[id] - 테넌트 삭제 (소프트 삭제)
 export const DELETE = withSuperAdmin(async (
   request: NextRequest,
