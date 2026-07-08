@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shield } from 'lucide-react';
 
@@ -10,6 +10,13 @@ export default function PlatformLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // 보안: 클라이언트 하이드레이션 완료 여부 (JS 로드 전 폼 제출 시 비밀번호 URL 노출 방지)
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // 보안: 클라이언트 하이드레이션 완료 감지
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +69,7 @@ export default function PlatformLoginPage() {
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit} method="post" action="#">
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -70,7 +77,7 @@ export default function PlatformLoginPage() {
               </label>
               <input
                 id="email"
-                name="email"
+                name={isHydrated ? "email" : undefined}
                 type="email"
                 autoComplete="email"
                 value={email}
@@ -85,7 +92,7 @@ export default function PlatformLoginPage() {
               </label>
               <input
                 id="password"
-                name="password"
+                name={isHydrated ? "password" : undefined}
                 type="password"
                 autoComplete="current-password"
                 value={password}

@@ -24,9 +24,16 @@ function LoginForm() {
   const [rememberUserId, setRememberUserId] = useState(false);
   const [tenant, setTenant] = useState<TenantInfo | null>(null);
   const [tenantLoading, setTenantLoading] = useState(true);
+  // 보안: 클라이언트 하이드레이션 완료 여부 (JS 로드 전 폼 제출 시 비밀번호 URL 노출 방지)
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const from = searchParams.get('from') || '/';
   const registered = searchParams.get('registered');
+
+  // 보안: 클라이언트 하이드레이션 완료 감지
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   // 테넌트 정보 가져오기
   useEffect(() => {
@@ -147,7 +154,7 @@ function LoginForm() {
         </p>
       </div>
 
-      <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+      <form className="mt-8 space-y-6" onSubmit={handleSubmit} method="post" action="#">
         <div className="space-y-4">
           <div>
             <label htmlFor="userid" className="block text-sm font-medium text-gray-700">
@@ -155,7 +162,7 @@ function LoginForm() {
             </label>
             <input
               id="userid"
-              name="userid"
+              name={isHydrated ? "userid" : undefined}
               type="text"
               autoComplete="username"
               value={userid}
@@ -170,7 +177,7 @@ function LoginForm() {
             </label>
             <input
               id="password"
-              name="password"
+              name={isHydrated ? "password" : undefined}
               type="password"
               autoComplete="current-password"
               value={password}
