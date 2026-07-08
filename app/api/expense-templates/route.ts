@@ -5,10 +5,10 @@
  * POST /api/expense-templates - 새 템플릿 생성
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError, successResponse, ApiError } from '@/lib/api/error-handler';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 import { z, ZodError } from 'zod';
 
 // 템플릿 생성 스키마
@@ -27,19 +27,10 @@ const MAX_TEMPLATES_PER_USER = 20;
 /**
  * GET /api/expense-templates - 현재 사용자의 템플릿 목록 조회
  */
-export async function GET() {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     const templates = await prisma.expenseTemplate.findMany({
-      where: { userId: currentUser.id },
+      where: { userId: user.id },
       orderBy: [
         { usageCount: 'desc' },
         { createdAt: 'desc' },
@@ -50,22 +41,13 @@ export async function GET() {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 /**
  * POST /api/expense-templates - 새 템플릿 생성
  */
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
 
     // 유효성 검증
@@ -73,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     // 최대 개수 확인
     const existingCount = await prisma.expenseTemplate.count({
-      where: { userId: currentUser.id },
+      where: { userId: user.id },
     });
 
     if (existingCount >= MAX_TEMPLATES_PER_USER) {
@@ -86,7 +68,7 @@ export async function POST(request: NextRequest) {
     // 새 템플릿 생성
     const template = await prisma.expenseTemplate.create({
       data: {
-        userId: currentUser.id,
+        userId: user.id,
         name: validatedData.name,
         budgetCategory: validatedData.budgetCategory,
         budgetSubcategory: validatedData.budgetSubcategory,
@@ -111,4 +93,7 @@ export async function POST(request: NextRequest) {
 
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAuth(handlePost);

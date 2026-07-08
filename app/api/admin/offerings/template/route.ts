@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
+
+// 헌금 관리 권한이 있는 역할
+const OFFERING_ALLOWED_ROLES = ['admin', 'admin_assistant', 'accountant', 'finance_head'];
 
 /**
  * GET /api/admin/offerings/template
  * CSV 템플릿 다운로드
  */
-export async function GET() {
+const handleGet: UserApiHandler = async (request, { user }) => {
+  if (!OFFERING_ALLOWED_ROLES.includes(user.role)) {
+    return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
+  }
   // BOM + CSV 헤더 + 예시 데이터
   const csvContent = `날짜,이름,헌금종류,금액,메모
 2024-03-31,홍길동,십일조,500000,
@@ -25,4 +32,6 @@ export async function GET() {
       'Content-Disposition': 'attachment; filename="헌금_업로드_템플릿.csv"',
     },
   });
-}
+};
+
+export const GET = withAuth(handleGet);

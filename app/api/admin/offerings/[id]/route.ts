@@ -1,22 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 import { OfferingType } from '@prisma/client';
 import { mapKoreanTypeToEnum } from '@/lib/constants/offering-types';
 
 // 헌금 관리 권한이 있는 역할
 const OFFERING_ALLOWED_ROLES = ['admin', 'admin_assistant', 'accountant', 'finance_head'];
 
-type RouteParams = { params: Promise<{ id: string }> };
-
 /**
  * GET /api/admin/offerings/[id]
  * 헌금 상세 조회
  */
-export async function GET(request: NextRequest, { params }: RouteParams) {
+const handleGet: UserApiHandler = async (request, { params, user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user || !OFFERING_ALLOWED_ROLES.includes(user.role)) {
+    if (!OFFERING_ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
@@ -44,16 +41,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       { status: 500 }
     );
   }
-}
+};
 
 /**
  * PUT /api/admin/offerings/[id]
  * 헌금 수정
  */
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+const handlePut: UserApiHandler = async (request, { params, user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user || !OFFERING_ALLOWED_ROLES.includes(user.role)) {
+    if (!OFFERING_ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
@@ -109,16 +105,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       { status: 500 }
     );
   }
-}
+};
 
 /**
  * DELETE /api/admin/offerings/[id]
  * 헌금 삭제
  */
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+const handleDelete: UserApiHandler = async (request, { params, user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user || !OFFERING_ALLOWED_ROLES.includes(user.role)) {
+    if (!OFFERING_ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
@@ -151,4 +146,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const PUT = withAuth(handlePut);
+export const DELETE = withAuth(handleDelete);

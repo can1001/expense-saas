@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 import { OfferingType } from '@prisma/client';
 import { mapKoreanTypeToEnum } from '@/lib/constants/offering-types';
 
@@ -11,10 +11,9 @@ const OFFERING_ALLOWED_ROLES = ['admin', 'admin_assistant', 'accountant', 'finan
  * GET /api/admin/offerings
  * 헌금 목록 조회 (필터링, 페이지네이션, 통계)
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user || !OFFERING_ALLOWED_ROLES.includes(user.role)) {
+    if (!OFFERING_ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
@@ -127,16 +126,15 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
 
 /**
  * POST /api/admin/offerings
  * 헌금 등록 (단건 또는 일괄)
  */
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user || !OFFERING_ALLOWED_ROLES.includes(user.role)) {
+    if (!OFFERING_ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
@@ -227,4 +225,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAuth(handlePost);

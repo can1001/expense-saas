@@ -1,20 +1,13 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { getSessionUserId } from '@/lib/auth';
 import { findUserById, updateUser } from '@/lib/services/user-service';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
-export async function POST(request: Request) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    // 1. 로그인 확인
-    const userId = await getSessionUserId();
-    if (!userId) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
+    const userId = user.id;
 
-    // 2. 요청 데이터 파싱
+    // 요청 데이터 파싱
     const { currentPassword, newPassword } = await request.json();
 
     if (!currentPassword || typeof currentPassword !== 'string') {
@@ -39,15 +32,15 @@ export async function POST(request: Request) {
     }
 
     // 3. 사용자 조회 (password 포함)
-    const user = await findUserById(userId);
-    if (!user) {
+    const dbUser = await findUserById(userId);
+    if (!dbUser) {
       return NextResponse.json(
         { error: '사용자를 찾을 수 없습니다.' },
         { status: 404 }
       );
     }
 
-    if (!user.password) {
+    if (!dbUser.password) {
       return NextResponse.json(
         { error: '비밀번호가 설정되지 않았습니다. 관리자에게 문의하세요.' },
         { status: 400 }
@@ -55,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     // 4. 현재 비밀번호 검증
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(currentPassword, dbUser.password);
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: '현재 비밀번호가 올바르지 않습니다.' },
@@ -77,4 +70,6 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+};
+
+export const POST = withAuth(handlePost);

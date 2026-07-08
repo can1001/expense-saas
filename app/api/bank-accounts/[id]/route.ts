@@ -6,7 +6,7 @@
  * DELETE /api/bank-accounts/[id] - 계좌 삭제
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { updateBankAccountSchema } from '@/lib/schemas/bank-account-schema';
 import {
@@ -15,25 +15,13 @@ import {
   successResponse,
   successMessageResponse,
 } from '@/lib/api/error-handler';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/bank-accounts/[id] - 계좌 상세 조회
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleGet: UserApiHandler = async (request, { params, user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
 
     const account = await prisma.savedBankAccount.findUnique({
@@ -45,7 +33,7 @@ export async function GET(
     }
 
     // 소유자 확인
-    if (account.userId !== currentUser.id) {
+    if (account.userId !== user.id) {
       return NextResponse.json(
         { error: '접근 권한이 없습니다.' },
         { status: 403 }
@@ -56,25 +44,13 @@ export async function GET(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 /**
  * PUT /api/bank-accounts/[id] - 계좌 수정
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePut: UserApiHandler = async (request, { params, user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
     const body = await request.json();
 
@@ -88,7 +64,7 @@ export async function PUT(
     }
 
     // 소유자 확인
-    if (existingAccount.userId !== currentUser.id) {
+    if (existingAccount.userId !== user.id) {
       return NextResponse.json(
         { error: '접근 권한이 없습니다.' },
         { status: 403 }
@@ -101,7 +77,7 @@ export async function PUT(
     // 기본 계좌로 설정하는 경우, 기존 기본 계좌 해제 (현재 사용자의 계좌만)
     if (validatedData.isDefault && !existingAccount.isDefault) {
       await prisma.savedBankAccount.updateMany({
-        where: { userId: currentUser.id, isDefault: true, id: { not: id } },
+        where: { userId: user.id, isDefault: true, id: { not: id } },
         data: { isDefault: false },
       });
     }
@@ -119,9 +95,9 @@ export async function PUT(
     });
 
     return successResponse(account);
-  } catch (error: any) {
+  } catch (error: unknown) {
     // 중복 계좌번호 에러 처리
-    if (error.code === 'P2002') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
       return NextResponse.json(
         { error: '이미 등록된 계좌번호입니다.' },
         { status: 409 }
@@ -129,9 +105,10 @@ export async function PUT(
     }
 
     // Zod 검증 에러 처리
-    if (error.name === 'ZodError' && error.errors) {
-      const errorMessages = error.errors
-        .map((err: any) => `${err.path.join('.')}: ${err.message}`)
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError' && 'errors' in error) {
+      const zodError = error as { errors: Array<{ path: string[]; message: string }> };
+      const errorMessages = zodError.errors
+        .map((err) => `${err.path.join('.')}: ${err.message}`)
         .join(', ');
       return NextResponse.json(
         { error: '입력 데이터가 유효하지 않습니다.', details: errorMessages },
@@ -141,25 +118,13 @@ export async function PUT(
 
     return handleApiError(error);
   }
-}
+};
 
 /**
  * DELETE /api/bank-accounts/[id] - 계좌 삭제
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleDelete: UserApiHandler = async (request, { params, user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
 
     // 계좌 존재 여부 확인
@@ -172,7 +137,7 @@ export async function DELETE(
     }
 
     // 소유자 확인
-    if (account.userId !== currentUser.id) {
+    if (account.userId !== user.id) {
       return NextResponse.json(
         { error: '접근 권한이 없습니다.' },
         { status: 403 }
@@ -188,4 +153,8 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const PUT = withAuth(handlePut);
+export const DELETE = withAuth(handleDelete);

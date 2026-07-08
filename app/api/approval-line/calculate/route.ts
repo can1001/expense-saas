@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import {
   calculateApprovalLine,
   calculateApprovalLineForExpense,
 } from '@/lib/services/approval-line-service';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/approval-line/calculate
@@ -15,7 +16,7 @@ import {
  * - budgetDetail: 예산(세목) 이름 (선택)
  * - year: 연도 (기본: 현재 연도)
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const { searchParams } = new URL(request.url);
     const budgetDetailId = searchParams.get('budgetDetailId');
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
     const message = error instanceof Error ? error.message : '결재선 조회 실패';
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+};
 
 /**
  * POST /api/approval-line/calculate
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
  * - items: [{ budgetDetail: string }]
  * - requestDate: 청구일자
  */
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request) => {
   try {
     const body = await request.json();
     const { budgetCategory, budgetSubcategory, items, requestDate } = body;
@@ -94,4 +95,7 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : '결재선 산출 실패';
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAuth(handlePost);
