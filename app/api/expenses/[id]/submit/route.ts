@@ -1,11 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
   calculateApprovalLineForExpense,
   ApprovalLineInfo,
 } from '@/lib/services/approval-line-service';
 import { notificationService } from '@/lib/services/notification';
-import { getCurrentUser } from '@/lib/auth';
+import { handleApiError } from '@/lib/api/error-handler';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * POST /api/expenses/[id]/submit
@@ -18,15 +19,12 @@ import { getCurrentUser } from '@/lib/auth';
  * 담당자는 정규화된 BudgetDetailYear 테이블에서 조회
  * 회계/재정팀장은 UserYearRole 테이블에서 조회
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePost: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
 
     // 현재 로그인 사용자 (제출 행위자 기록용)
-    const currentUser = await getCurrentUser();
+    const currentUser = user;
 
     // 지출결의서 조회
     const expense = await prisma.expense.findUnique({
@@ -260,9 +258,8 @@ export async function POST(
       });
 
       // 3. 감사 로그 생성 - 제출
-      const submitterName = currentUser?.username || expense.applicantName;
-      const isProxySubmit =
-        currentUser !== null && currentUser.id !== expense.userId;
+      const submitterName = currentUser.username;
+      const isProxySubmit = currentUser.id !== expense.userId;
       await tx.approvalLog.create({
         data: {
           expenseId: id,
@@ -373,9 +370,8 @@ export async function POST(
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json(
-      { error: '지출결의서 제출 중 오류가 발생했습니다.', details: error.message },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-}
+};
+
+export const POST = withAuth(handlePost);

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
   canModifyApprovalLine,
@@ -9,6 +9,8 @@ import {
   makeBudgetDetailKey,
   type BudgetDetailKey,
 } from '@/lib/services/budget-service';
+import { handleApiError } from '@/lib/api/error-handler';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 interface BudgetItem {
   budgetCategory: string;
@@ -133,14 +135,11 @@ async function getBudgetInfoForItems(
  * Query params:
  *   - approverName: 현재 사용자 이름 (결재자인 경우 예산 정보 포함)
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleGet: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
-    const { searchParams } = new URL(request.url);
-    const approverName = searchParams.get('approverName');
+    const { id } = await params!;
+    // 인증된 사용자 이름 사용
+    const approverName = user.username;
 
     const expense = await prisma.expense.findUnique({
       where: { id },
@@ -226,39 +225,25 @@ export async function GET(
       logs,
       budgetInfo, // 결재자 또는 신청자인 경우에만 포함
     });
-  } catch (error: any) {
-    console.error('Get approval error:', error);
-    return NextResponse.json(
-      { error: '결재선 조회 중 오류가 발생했습니다.', details: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
-}
+};
 
 /**
  * PUT /api/expenses/[id]/approval
  * 결재선 수정 (제출 전만 가능)
  *
  * Body: {
- *   actorName: string,
  *   steps: ApprovalStepInput[]
  * }
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePut: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
     const body = await request.json();
-    const { actorName, steps } = body;
-
-    if (!actorName) {
-      return NextResponse.json(
-        { error: '수정자 이름이 필요합니다.' },
-        { status: 400 }
-      );
-    }
+    const { steps } = body;
+    const actorName = user.username;
 
     if (!steps || !Array.isArray(steps) || steps.length === 0) {
       return NextResponse.json(
@@ -375,11 +360,10 @@ export async function PUT(
       message: '결재선이 수정되었습니다.',
       data: result,
     });
-  } catch (error: any) {
-    console.error('Update approval error:', error);
-    return NextResponse.json(
-      { error: '결재선 수정 중 오류가 발생했습니다.', details: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const PUT = withAuth(handlePut);
