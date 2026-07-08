@@ -4,6 +4,7 @@ import { updateTenantSchema, planLimits } from '@/lib/validators/tenant';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { invalidateTenantCache } from '@/lib/tenant';
 import { withSuperAdmin } from '@/lib/auth/super-admin';
+import { logPlatformActivity, ActivityAction } from '@/lib/platform/activity-log';
 
 // GET /api/platform/tenants/[id] - 테넌트 상세 조회
 export const GET = withSuperAdmin(async (
@@ -45,7 +46,7 @@ export const GET = withSuperAdmin(async (
 // PUT /api/platform/tenants/[id] - 테넌트 수정
 export const PUT = withSuperAdmin(async (
   request: NextRequest,
-  { params }
+  { params, superAdmin }
 ) => {
   try {
     const { id } = await params!;
@@ -87,12 +88,15 @@ export const PUT = withSuperAdmin(async (
       updateData.planStartAt = new Date();
     }
 
-    // 정지 처리
+    // 정지/활성화 처리 및 액션 결정
+    let action: ActivityAction = 'UPDATE_TENANT';
     if (data.isActive === false && existingTenant.isActive === true) {
       updateData.suspendedAt = new Date();
+      action = 'SUSPEND_TENANT';
     } else if (data.isActive === true && existingTenant.isActive === false) {
       updateData.suspendedAt = null;
       updateData.suspendReason = null;
+      action = 'ACTIVATE_TENANT';
     }
 
     // 업데이트 실행
@@ -103,6 +107,30 @@ export const PUT = withSuperAdmin(async (
 
     // 캐시 무효화
     invalidateTenantCache(id, existingTenant.subdomain);
+
+    // 활동 로그 기록
+    await logPlatformActivity({
+      superAdminId: superAdmin.id,
+      superAdminEmail: superAdmin.email,
+      action,
+      entityType: 'tenant',
+      entityId: id,
+      tenantId: id,
+      tenantName: tenant.name,
+      details: {
+        changes: data,
+        before: {
+          name: existingTenant.name,
+          plan: existingTenant.plan,
+          isActive: existingTenant.isActive,
+        },
+        after: {
+          name: tenant.name,
+          plan: tenant.plan,
+          isActive: tenant.isActive,
+        },
+      },
+    });
 
     return NextResponse.json(tenant);
   } catch (error: unknown) {
@@ -126,7 +154,7 @@ export const PATCH = PUT;
 // DELETE /api/platform/tenants/[id] - 테넌트 삭제 (소프트 삭제)
 export const DELETE = withSuperAdmin(async (
   request: NextRequest,
-  { params }
+  { params, superAdmin }
 ) => {
   try {
     const { id } = await params!;
@@ -170,6 +198,24 @@ export const DELETE = withSuperAdmin(async (
       // 캐시 무효화
       invalidateTenantCache(id, existingTenant.subdomain);
 
+      // 활동 로그 기록
+      await logPlatformActivity({
+        superAdminId: superAdmin.id,
+        superAdminEmail: superAdmin.email,
+        action: 'DELETE_TENANT',
+        entityType: 'tenant',
+        entityId: id,
+        tenantName: existingTenant.name,
+        details: {
+          deleteType: 'hard',
+          tenantInfo: {
+            name: existingTenant.name,
+            subdomain: existingTenant.subdomain,
+            plan: existingTenant.plan,
+          },
+        },
+      });
+
       return NextResponse.json({ message: '테넌트가 완전히 삭제되었습니다.' });
     } else {
       // 소프트 삭제 (비활성화)
@@ -184,6 +230,25 @@ export const DELETE = withSuperAdmin(async (
 
       // 캐시 무효화
       invalidateTenantCache(id, existingTenant.subdomain);
+
+      // 활동 로그 기록
+      await logPlatformActivity({
+        superAdminId: superAdmin.id,
+        superAdminEmail: superAdmin.email,
+        action: 'DELETE_TENANT',
+        entityType: 'tenant',
+        entityId: id,
+        tenantId: id,
+        tenantName: tenant.name,
+        details: {
+          deleteType: 'soft',
+          tenantInfo: {
+            name: tenant.name,
+            subdomain: tenant.subdomain,
+            plan: tenant.plan,
+          },
+        },
+      });
 
       return NextResponse.json({
         message: '테넌트가 비활성화되었습니다.',

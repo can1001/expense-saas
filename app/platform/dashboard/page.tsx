@@ -13,6 +13,9 @@ import {
   Receipt,
   AlertTriangle,
   Calendar,
+  Activity,
+  Plus,
+  Settings,
 } from 'lucide-react';
 
 interface PlatformStats {
@@ -332,6 +335,49 @@ export default function PlatformDashboard() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* 빠른 작업 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Link
+          href="/platform/tenants/new"
+          className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-200 hover:border-indigo-300 hover:shadow transition-all"
+        >
+          <div className="p-2 bg-indigo-100 rounded-lg">
+            <Plus className="w-5 h-5 text-indigo-600" />
+          </div>
+          <span className="font-medium text-gray-900">테넌트 생성</span>
+        </Link>
+
+        <Link
+          href="/platform/tenants"
+          className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-200 hover:border-indigo-300 hover:shadow transition-all"
+        >
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <Building2 className="w-5 h-5 text-blue-600" />
+          </div>
+          <span className="font-medium text-gray-900">테넌트 관리</span>
+        </Link>
+
+        <Link
+          href="/platform/activity-logs"
+          className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-200 hover:border-indigo-300 hover:shadow transition-all"
+        >
+          <div className="p-2 bg-green-100 rounded-lg">
+            <Activity className="w-5 h-5 text-green-600" />
+          </div>
+          <span className="font-medium text-gray-900">활동 로그</span>
+        </Link>
+
+        <Link
+          href="/platform/settings"
+          className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-200 hover:border-indigo-300 hover:shadow transition-all"
+        >
+          <div className="p-2 bg-purple-100 rounded-lg">
+            <Settings className="w-5 h-5 text-purple-600" />
+          </div>
+          <span className="font-medium text-gray-900">플랫폼 설정</span>
+        </Link>
       </div>
 
       {/* 최근 테넌트 */}

@@ -101,6 +101,36 @@ model SuperAdmin {
   @@index([email])
 }
 
+// 플랫폼 활동 로그 (SuperAdmin 활동 추적)
+model PlatformActivityLog {
+  id String @id @default(cuid())
+
+  // 수행자
+  superAdminId String
+  superAdminEmail String // 조회 편의를 위해 저장
+
+  // 대상 테넌트 (선택적)
+  tenantId   String?
+  tenantName String? // 조회 편의를 위해 저장
+
+  // 활동 정보
+  action     String // CREATE_TENANT, UPDATE_TENANT, DELETE_TENANT, UPDATE_SETTINGS, etc.
+  entityType String // tenant, user, settings, etc.
+  entityId   String?
+
+  // 상세 정보
+  details   Json?   // 변경 전/후 데이터 등
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([superAdminId])
+  @@index([tenantId])
+  @@index([action])
+  @@index([createdAt])
+}
+
 // 지출결의서 메인 테이블
 model Expense {
   id String @id @default(cuid())

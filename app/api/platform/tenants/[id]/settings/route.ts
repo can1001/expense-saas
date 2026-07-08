@@ -3,6 +3,7 @@ import { prismaBase } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
 import { withSuperAdmin } from '@/lib/auth/super-admin';
 import { invalidateTenantCache } from '@/lib/tenant';
+import { logPlatformActivity } from '@/lib/platform/activity-log';
 import { z } from 'zod';
 
 // 테넌트 설정 스키마
@@ -137,7 +138,7 @@ export const GET = withSuperAdmin(async (
 // PUT /api/platform/tenants/[id]/settings - 테넌트 설정 업데이트
 export const PUT = withSuperAdmin(async (
   request: NextRequest,
-  { params }
+  { params, superAdmin }
 ) => {
   try {
     const { id } = await params!;
@@ -149,7 +150,7 @@ export const PUT = withSuperAdmin(async (
     // 테넌트 존재 확인
     const existingTenant = await prismaBase.tenant.findUnique({
       where: { id },
-      select: { id: true, subdomain: true, settings: true },
+      select: { id: true, name: true, subdomain: true, settings: true },
     });
 
     if (!existingTenant) {
@@ -177,6 +178,21 @@ export const PUT = withSuperAdmin(async (
 
     // 캐시 무효화
     invalidateTenantCache(id, existingTenant.subdomain);
+
+    // 활동 로그 기록
+    await logPlatformActivity({
+      superAdminId: superAdmin.id,
+      superAdminEmail: superAdmin.email,
+      action: 'UPDATE_TENANT_SETTINGS',
+      entityType: 'settings',
+      entityId: id,
+      tenantId: id,
+      tenantName: tenant.name,
+      details: {
+        changes: validatedSettings,
+        changedSections: Object.keys(validatedSettings),
+      },
+    });
 
     return NextResponse.json({
       message: '설정이 저장되었습니다.',

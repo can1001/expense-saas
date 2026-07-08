@@ -7,6 +7,7 @@ import {
 } from '@/lib/validators/tenant';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { withSuperAdmin } from '@/lib/auth/super-admin';
+import { logPlatformActivity } from '@/lib/platform/activity-log';
 import bcrypt from 'bcryptjs';
 
 // GET /api/platform/tenants - 테넌트 목록 조회
@@ -98,7 +99,7 @@ export const GET = withSuperAdmin(async (request: NextRequest) => {
 });
 
 // POST /api/platform/tenants - 테넌트 생성
-export const POST = withSuperAdmin(async (request: NextRequest) => {
+export const POST = withSuperAdmin(async (request: NextRequest, { superAdmin }) => {
   try {
     const body = await request.json();
 
@@ -225,6 +226,24 @@ export const POST = withSuperAdmin(async (request: NextRequest) => {
       }
 
       return newTenant;
+    });
+
+    // 활동 로그 기록
+    await logPlatformActivity({
+      superAdminId: superAdmin.id,
+      superAdminEmail: superAdmin.email,
+      action: 'CREATE_TENANT',
+      entityType: 'tenant',
+      entityId: tenant.id,
+      tenantId: tenant.id,
+      tenantName: tenant.name,
+      details: {
+        name: tenant.name,
+        subdomain: tenant.subdomain,
+        plan: tenant.plan,
+        orgType: tenant.orgType,
+        hasInitialAdmin: !!(data.adminEmail),
+      },
     });
 
     return NextResponse.json(tenant, { status: 201 });
