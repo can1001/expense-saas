@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
   createSimpleExpenseSchema,
@@ -6,7 +6,7 @@ import {
   calculateTotalAmount,
 } from '@/lib/schemas/simple-expense-schema';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 import { lookupBudgetHierarchy, getManagerIdForDetail } from '@/lib/services/budget-lookup-service';
 import { deriveRequestTeam } from '@/lib/domain/request-team';
 import {
@@ -16,9 +16,7 @@ import {
 import type { ApprovalStatus } from '@/lib/types';
 
 // GET /api/simple-expenses - 간편 지출결의서 목록 조회
-// Note: 간편 지출결의서는 이제 Expense 테이블에 저장되므로,
-// /api/expenses를 사용하여 목록을 조회해야 합니다.
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
@@ -63,22 +61,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 // POST /api/simple-expenses - 간편 지출결의서 생성
-// 이제 Expense 테이블에 저장됩니다.
-// 첫 번째 항목의 담당자와 같은 담당자의 세목만 등록 가능합니다.
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
 
     // 유효성 검증
@@ -218,7 +205,7 @@ export async function POST(request: NextRequest) {
       // 1. Expense 생성 (budgetCategory, budgetSubcategory는 items에만 저장)
       const createdExpense = await tx.expense.create({
         data: {
-          userId: currentUser.id,
+          userId: user.id,
           committee: budgetHierarchy.committee,
           department: budgetHierarchy.department,
           expenseDate: validatedData.expenseDate,
@@ -356,4 +343,7 @@ export async function POST(request: NextRequest) {
     }
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAuth(handlePost);

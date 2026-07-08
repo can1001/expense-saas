@@ -5,28 +5,19 @@
  * POST /api/bank-accounts - 새 계좌 저장
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { savedBankAccountSchema } from '@/lib/schemas/bank-account-schema';
 import { handleApiError, successResponse } from '@/lib/api/error-handler';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/bank-accounts - 현재 사용자의 저장된 계좌 목록 조회
  */
-export async function GET() {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     const accounts = await prisma.savedBankAccount.findMany({
-      where: { userId: currentUser.id },
+      where: { userId: user.id },
       orderBy: [
         { isDefault: 'desc' },
         { createdAt: 'desc' },
@@ -37,22 +28,13 @@ export async function GET() {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 /**
  * POST /api/bank-accounts - 새 계좌 저장
  */
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
 
     // 유효성 검증
@@ -60,14 +42,14 @@ export async function POST(request: NextRequest) {
 
     // 첫 번째 계좌인 경우 자동으로 기본 계좌로 설정
     const existingCount = await prisma.savedBankAccount.count({
-      where: { userId: currentUser.id },
+      where: { userId: user.id },
     });
     const shouldBeDefault = existingCount === 0 ? true : validatedData.isDefault || false;
 
     // 기본 계좌로 설정하는 경우, 기존 기본 계좌 해제 (현재 사용자의 계좌만)
     if (shouldBeDefault) {
       await prisma.savedBankAccount.updateMany({
-        where: { userId: currentUser.id, isDefault: true },
+        where: { userId: user.id, isDefault: true },
         data: { isDefault: false },
       });
     }
@@ -75,7 +57,7 @@ export async function POST(request: NextRequest) {
     // 새 계좌 생성
     const account = await prisma.savedBankAccount.create({
       data: {
-        userId: currentUser.id,
+        userId: user.id,
         bankName: validatedData.bankName,
         accountNumber: validatedData.accountNumber,
         accountHolder: validatedData.accountHolder,
@@ -107,4 +89,7 @@ export async function POST(request: NextRequest) {
 
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAuth(handlePost);
