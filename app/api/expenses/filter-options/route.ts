@@ -5,21 +5,17 @@
  * 권한 범위 내에서 실제로 사용된 committee / department / budgetCategory 의 unique 값을 반환한다.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma, Prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
 import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
 import { handleApiError } from '@/lib/api/error-handler';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 const FULL_ACCESS_ROLES = ['admin', 'finance_head', 'accountant', 'finance_member', 'admin_assistant'];
 
-export async function GET(_request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
-    }
+    const currentUser = user;
 
     const { role: effectiveRole, departmentId: effectiveDepartmentId } =
       await getEffectiveRole(currentUser.id, CURRENT_YEAR);
@@ -75,4 +71,6 @@ export async function GET(_request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAuth(handleGet);

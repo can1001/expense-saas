@@ -1,12 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/admin/roles
  * 역할 목록 조회
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const includeInactive = searchParams.get('includeInactive') === 'true';
@@ -28,13 +29,13 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 /**
  * POST /api/admin/roles
  * 역할 생성
  */
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request) => {
   try {
     const body = await request.json();
 
@@ -59,8 +60,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 중복 코드 검사
-    const existingRole = await prisma.role.findUnique({
+    // 중복 코드 검사 - findFirst 사용 (unique constraint 대신)
+    const existingRole = await prisma.role.findFirst({
       where: { code },
     });
 
@@ -90,4 +91,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAdmin(handleGet);
+export const POST = withAdmin(handlePost);

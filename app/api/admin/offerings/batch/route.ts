@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 // 헌금 관리 권한이 있는 역할
 const OFFERING_ALLOWED_ROLES = ['admin', 'admin_assistant', 'accountant', 'finance_head'];
@@ -9,10 +9,9 @@ const OFFERING_ALLOWED_ROLES = ['admin', 'admin_assistant', 'accountant', 'finan
  * GET /api/admin/offerings/batch
  * 날짜별 그룹화된 헌금 목록 조회
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user || !OFFERING_ALLOWED_ROLES.includes(user.role)) {
+    if (!OFFERING_ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
@@ -94,16 +93,15 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
 
 /**
  * DELETE /api/admin/offerings/batch
  * 특정 날짜의 모든 헌금 일괄 삭제
  */
-export async function DELETE(request: NextRequest) {
+const handleDelete: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user || !OFFERING_ALLOWED_ROLES.includes(user.role)) {
+    if (!OFFERING_ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
@@ -160,4 +158,7 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const DELETE = withAuth(handleDelete);

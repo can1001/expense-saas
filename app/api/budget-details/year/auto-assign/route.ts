@@ -1,15 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * POST /api/budget-details/year/auto-assign
- * 부서별 팀장을 해당 세목의 담당자로 자동 설정
+ * 부서별 팀장을 해당 세목의 담당자로 자동 설정 (관리자 전용)
  *
  * Body:
  * - year: 연도
  * - overwrite: 기존 담당자 덮어쓰기 여부 (기본: false)
  */
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request) => {
   try {
     const body = await request.json();
     const { year, overwrite = false } = body as {
@@ -179,4 +180,6 @@ export async function POST(request: NextRequest) {
     console.error('담당자 자동 설정 오류:', error);
     return NextResponse.json({ error: '담당자 자동 설정 실패' }, { status: 500 });
   }
-}
+};
+
+export const POST = withAdmin(handlePost);

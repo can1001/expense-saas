@@ -1,21 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 // 퀴즈 통계 조회 (GET)
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const curriculumId = searchParams.get('curriculumId');
     const ageGroup = searchParams.get('ageGroup');
     const lessonId = searchParams.get('lessonId');
 
     // 기본 where 조건
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const baseWhere: any = {
       userId: user.id,
     };
@@ -29,6 +25,7 @@ export async function GET(request: NextRequest) {
     } else if (ageGroup) {
       baseWhere.question = {
         lesson: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           curriculum: { ageGroup: ageGroup as any },
         },
       };
@@ -59,7 +56,8 @@ export async function GET(request: NextRequest) {
     });
 
     // 레슨별 그룹화
-    const lessonStats = responses.reduce((acc, response) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const lessonStats = responses.reduce((acc: any, response) => {
       const lessonId = response.question.lesson.id;
       if (!acc[lessonId]) {
         acc[lessonId] = {
@@ -80,7 +78,7 @@ export async function GET(request: NextRequest) {
       }
 
       return acc;
-    }, {} as any);
+    }, {} as Record<string, unknown>);
 
     // 각 레슨의 백분율 계산
     Object.keys(lessonStats).forEach(lessonId => {
@@ -135,4 +133,6 @@ export async function GET(request: NextRequest) {
     console.error('퀴즈 통계 조회 오류:', error);
     return NextResponse.json({ error: '퀴즈 통계 조회 중 오류가 발생했습니다' }, { status: 500 });
   }
-}
+};
+
+export const GET = withAuth(handleGet);

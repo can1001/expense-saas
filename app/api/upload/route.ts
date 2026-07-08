@@ -4,7 +4,6 @@
  * POST /api/upload - Cloudinary에 이미지 업로드
  */
 
-import { NextRequest } from 'next/server';
 import { uploadImage } from '@/lib/cloudinary';
 import {
   handleApiError,
@@ -18,6 +17,7 @@ import {
   isValidFileSize,
 } from '@/lib/constants/file-validation';
 import { ERROR_MESSAGES } from '@/lib/constants/error-messages';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,7 +25,7 @@ export const dynamic = 'force-dynamic';
 /**
  * POST /api/upload - 파일 업로드
  */
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request) => {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -104,4 +104,6 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     return handleApiError(error);
   }
-}
+};
+
+export const POST = withAuth(handlePost);

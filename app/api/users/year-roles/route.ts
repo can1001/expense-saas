@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import {
   getYearRoles,
   setYearRole,
@@ -8,9 +8,10 @@ import {
   UserRole,
 } from '@/lib/services/user-service';
 import { prisma } from '@/lib/prisma';
+import { withAuth, withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 // GET /api/users/year-roles - 연도별 역할 목록 조회
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const year = parseInt(searchParams.get('year') ?? String(CURRENT_YEAR));
@@ -42,10 +43,10 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
 
 // POST /api/users/year-roles - 연도별 역할 설정
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request) => {
   try {
     const body = await request.json();
     const { userId, userid, year, role, departmentId } = body;
@@ -90,10 +91,10 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
 
 // DELETE /api/users/year-roles - 연도별 역할 삭제
-export async function DELETE(request: NextRequest) {
+const handleDelete: UserApiHandler = async (request) => {
   try {
     const body = await request.json();
     const { userId, year, departmentId } = body;
@@ -123,4 +124,8 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAdmin(handlePost);
+export const DELETE = withAdmin(handleDelete);

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import ExcelJS from 'exceljs';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 // 재정보고서 Excel 내보내기 접근 권한이 있는 역할
 const QUARTERLY_REPORT_EXPORT_ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'finance_member'];
@@ -29,10 +29,9 @@ function getYearDateRange(year: number) {
  * GET /api/admin/quarterly-report/export
  * 분기별 회계보고 Excel 내보내기
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user || !QUARTERLY_REPORT_EXPORT_ALLOWED_ROLES.includes(user.role)) {
+    if (!QUARTERLY_REPORT_EXPORT_ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
@@ -459,4 +458,6 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAuth(handleGet);

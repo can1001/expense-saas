@@ -1,16 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
-
-type RouteParams = { params: Promise<{ id: string }> };
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/admin/roles/[id]
  * 역할 상세 조회
  */
-export async function GET(request: NextRequest, { params }: RouteParams) {
+const handleGet: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
 
     const role = await prisma.role.findUnique({
       where: { id },
@@ -35,15 +34,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 /**
  * PUT /api/admin/roles/[id]
  * 역할 수정
  */
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+const handlePut: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
     const body = await request.json();
 
     const {
@@ -74,7 +73,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // 코드 변경 시 중복 검사
     if (code && code !== existingRole.code) {
-      const duplicateRole = await prisma.role.findUnique({
+      const duplicateRole = await prisma.role.findFirst({
         where: { code },
       });
 
@@ -107,15 +106,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 /**
  * DELETE /api/admin/roles/[id]
  * 역할 삭제 (비활성화)
  */
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+const handleDelete: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
 
     // 역할 존재 확인
     const existingRole = await prisma.role.findUnique({
@@ -172,4 +171,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAdmin(handleGet);
+export const PUT = withAdmin(handlePut);
+export const DELETE = withAdmin(handleDelete);

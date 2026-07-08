@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
   updateSimpleExpenseSchema,
@@ -7,13 +7,11 @@ import {
 } from '@/lib/schemas/simple-expense-schema';
 import { deleteImages } from '@/lib/cloudinary';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 // GET /api/simple-expenses/[id] - 간편 지출결의서 상세 조회
 // 간편 지출결의서는 Expense 테이블에 version: '4.1.4'로 저장됨
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleGet: UserApiHandler = async (request, { params }) => {
   try {
     const { id } = await params;
     const expense = await prisma.expense.findUnique({
@@ -40,13 +38,10 @@ export async function GET(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 // PUT /api/simple-expenses/[id] - 간편 지출결의서 수정
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePut: UserApiHandler = async (request, { params }) => {
   try {
     const { id } = await params;
     const body = await request.json();
@@ -126,13 +121,10 @@ export async function PUT(
     }
     return handleApiError(error);
   }
-}
+};
 
 // DELETE /api/simple-expenses/[id] - 간편 지출결의서 삭제
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleDelete: UserApiHandler = async (request, { params }) => {
   try {
     const { id } = await params;
 
@@ -172,4 +164,8 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const PUT = withAuth(handlePut);
+export const DELETE = withAuth(handleDelete);

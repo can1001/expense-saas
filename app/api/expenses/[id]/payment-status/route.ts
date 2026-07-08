@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
 import { notificationService } from '@/lib/services/notification';
 import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * PUT /api/expenses/[id]/payment-status
@@ -20,23 +20,12 @@ import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
  *   expenseDate?: string   // COMPLETED일 때 지출일자 (YYYY-MM-DD)
  * }
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePut: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
     const body = await request.json();
     const { paymentStatus, note, reason, signature, expenseDate } = body;
-
-    // 현재 사용자 확인
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
+    const currentUser = user;
 
     // 지급상태 변경 권한 (admin, finance_head, accountant, admin_assistant) - 연도별 유효 역할 기준
     const allowedRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
@@ -265,18 +254,15 @@ export async function PUT(
       { status: 500 }
     );
   }
-}
+};
 
 /**
  * GET /api/expenses/[id]/payment-status
  * 지출 상태 조회
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleGet: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
 
     const expense = await prisma.expense.findUnique({
       where: { id },
@@ -305,4 +291,7 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+};
+
+export const PUT = withAuth(handlePut);
+export const GET = withAuth(handleGet);

@@ -1,20 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 // 포인트 조회 (GET)
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
     const pointType = searchParams.get('pointType');
 
     // 포인트 기록 조회
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pointsWhere: any = { userId: user.id };
     if (pointType) {
       pointsWhere.pointType = pointType;
@@ -73,16 +69,11 @@ export async function GET(request: NextRequest) {
     console.error('포인트 조회 오류:', error);
     return NextResponse.json({ error: '포인트 조회 중 오류가 발생했습니다' }, { status: 500 });
   }
-}
+};
 
 // 포인트 부여 (POST) - 내부 시스템용
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 });
-    }
-
     const body = await request.json();
     const { pointType, points, description, lessonId } = body;
 
@@ -153,4 +144,7 @@ export async function POST(request: NextRequest) {
     console.error('포인트 부여 오류:', error);
     return NextResponse.json({ error: '포인트 부여 처리 중 오류가 발생했습니다' }, { status: 500 });
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAuth(handlePost);

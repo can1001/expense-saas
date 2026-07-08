@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from '@/lib/api/error-handler';
+import { withAuth, withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 // GET /api/departments - 사역팀 목록 조회
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const committeeId = searchParams.get('committeeId');
@@ -50,16 +52,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ departments: formattedDepartments });
   } catch (error) {
-    console.error('Error fetching departments:', error);
-    return NextResponse.json(
-      { error: '사역팀 목록을 불러오는데 실패했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-}
+};
 
-// POST /api/departments - 사역팀 추가
-export async function POST(request: NextRequest) {
+// POST /api/departments - 사역팀 추가 (관리자 전용)
+const handlePost: UserApiHandler = async (request) => {
   try {
     const body = await request.json();
     const { name, committeeId } = body;
@@ -91,12 +89,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 중복 확인 (같은 위원회 내에서)
-    const existing = await prisma.department.findUnique({
+    const existing = await prisma.department.findFirst({
       where: {
-        committeeId_name: {
-          committeeId,
-          name: name.trim(),
-        },
+        committeeId,
+        name: name.trim(),
       },
     });
 
@@ -123,10 +119,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(department, { status: 201 });
   } catch (error) {
-    console.error('Error creating department:', error);
-    return NextResponse.json(
-      { error: '사역팀 추가에 실패했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAdmin(handlePost);

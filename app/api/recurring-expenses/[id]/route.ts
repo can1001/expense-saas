@@ -1,17 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 import { calculateNextGenerationDate, RecurringFrequency } from '@/lib/recurring-expense';
 import {
   checkRecurringExpenseAccess,
   canManageAllRecurringExpenses,
 } from '@/lib/constants/menu-permissions';
 import { z } from 'zod';
-
-interface RouteParams {
-  params: Promise<{ id: string }>;
-}
 
 // 업데이트 스키마
 const updateRecurringExpenseSchema = z.object({
@@ -29,17 +25,12 @@ const updateRecurringExpenseSchema = z.object({
 });
 
 // GET /api/recurring-expenses/[id] - 자동이체 상세 조회
-export async function GET(request: NextRequest, { params }: RouteParams) {
+const handleGet: UserApiHandler = async (request, { params, user }) => {
   try {
-    const currentUser = await getCurrentUser();
     const { id } = await params;
 
-    if (!currentUser) {
-      throw new ApiError('로그인이 필요합니다.', 401);
-    }
-
     // 역할 기반 접근 권한 확인
-    const accessError = checkRecurringExpenseAccess(currentUser.role);
+    const accessError = checkRecurringExpenseAccess(user.role);
     if (accessError) {
       throw new ApiError(accessError.error, accessError.status);
     }
@@ -71,8 +62,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // 소유권 확인 (전체 관리 권한자는 우회)
     if (
-      !canManageAllRecurringExpenses(currentUser.role) &&
-      recurringExpense.userId !== currentUser.id
+      !canManageAllRecurringExpenses(user.role) &&
+      recurringExpense.userId !== user.id
     ) {
       throw new ApiError('조회 권한이 없습니다.', 403);
     }
@@ -81,20 +72,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 // PUT /api/recurring-expenses/[id] - 자동이체 수정
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+const handlePut: UserApiHandler = async (request, { params, user }) => {
   try {
-    const currentUser = await getCurrentUser();
     const { id } = await params;
 
-    if (!currentUser) {
-      throw new ApiError('로그인이 필요합니다.', 401);
-    }
-
     // 역할 기반 접근 권한 확인
-    const accessError = checkRecurringExpenseAccess(currentUser.role);
+    const accessError = checkRecurringExpenseAccess(user.role);
     if (accessError) {
       throw new ApiError(accessError.error, accessError.status);
     }
@@ -116,8 +102,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // 소유권 확인 (전체 관리 권한자는 우회)
     if (
-      !canManageAllRecurringExpenses(currentUser.role) &&
-      recurringExpense.userId !== currentUser.id
+      !canManageAllRecurringExpenses(user.role) &&
+      recurringExpense.userId !== user.id
     ) {
       throw new ApiError('수정 권한이 없습니다.', 403);
     }
@@ -157,20 +143,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 // DELETE /api/recurring-expenses/[id] - 자동이체 삭제 (취소)
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+const handleDelete: UserApiHandler = async (request, { params, user }) => {
   try {
-    const currentUser = await getCurrentUser();
     const { id } = await params;
 
-    if (!currentUser) {
-      throw new ApiError('로그인이 필요합니다.', 401);
-    }
-
     // 역할 기반 접근 권한 확인
-    const accessError = checkRecurringExpenseAccess(currentUser.role);
+    const accessError = checkRecurringExpenseAccess(user.role);
     if (accessError) {
       throw new ApiError(accessError.error, accessError.status);
     }
@@ -189,8 +170,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // 소유권 확인 (전체 관리 권한자는 우회)
     if (
-      !canManageAllRecurringExpenses(currentUser.role) &&
-      recurringExpense.userId !== currentUser.id
+      !canManageAllRecurringExpenses(user.role) &&
+      recurringExpense.userId !== user.id
     ) {
       throw new ApiError('삭제 권한이 없습니다.', 403);
     }
@@ -213,4 +194,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const PUT = withAuth(handlePut);
+export const DELETE = withAuth(handleDelete);

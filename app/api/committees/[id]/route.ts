@@ -1,13 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from '@/lib/api/error-handler';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
-// PATCH /api/committees/[id] - 위원회 수정
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// PATCH /api/committees/[id] - 위원회 수정 (관리자 전용)
+const handlePatch: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
     const body = await request.json();
     const { name, isActive, sortOrder, leaderId } = body;
 
@@ -25,7 +24,7 @@ export async function PATCH(
 
     // 이름 변경 시 중복 확인
     if (name && name.trim() !== existing.name) {
-      const duplicate = await prisma.committee.findUnique({
+      const duplicate = await prisma.committee.findFirst({
         where: { name: name.trim() },
       });
 
@@ -55,21 +54,14 @@ export async function PATCH(
 
     return NextResponse.json(committee);
   } catch (error) {
-    console.error('Error updating committee:', error);
-    return NextResponse.json(
-      { error: '위원회 수정에 실패했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-}
+};
 
-// DELETE /api/committees/[id] - 위원회 삭제
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// DELETE /api/committees/[id] - 위원회 삭제 (관리자 전용)
+const handleDelete: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
 
     // 하위 사역팀 확인
     const departmentCount = await prisma.department.count({
@@ -89,10 +81,9 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting committee:', error);
-    return NextResponse.json(
-      { error: '위원회 삭제에 실패했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-}
+};
+
+export const PATCH = withAdmin(handlePatch);
+export const DELETE = withAdmin(handleDelete);

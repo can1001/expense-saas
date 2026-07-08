@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from '@/lib/api/error-handler';
+import { withAuth, withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 // GET /api/committees - 위원회 목록 조회
-export async function GET() {
+const handleGet: UserApiHandler = async () => {
   try {
     const committees = await prisma.committee.findMany({
       orderBy: { sortOrder: 'asc' },
@@ -18,16 +20,12 @@ export async function GET() {
 
     return NextResponse.json({ committees });
   } catch (error) {
-    console.error('Error fetching committees:', error);
-    return NextResponse.json(
-      { error: '위원회 목록을 불러오는데 실패했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-}
+};
 
-// POST /api/committees - 위원회 추가
-export async function POST(request: NextRequest) {
+// POST /api/committees - 위원회 추가 (관리자 전용)
+const handlePost: UserApiHandler = async (request) => {
   try {
     const body = await request.json();
     const { name, leaderId } = body;
@@ -39,8 +37,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 중복 확인
-    const existing = await prisma.committee.findUnique({
+    // 중복 확인 (findFirst 사용 - name은 unique constraint가 아닐 수 있음)
+    const existing = await prisma.committee.findFirst({
       where: { name: name.trim() },
     });
 
@@ -71,10 +69,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(committee, { status: 201 });
   } catch (error) {
-    console.error('Error creating committee:', error);
-    return NextResponse.json(
-      { error: '위원회 추가에 실패했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAdmin(handlePost);

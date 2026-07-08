@@ -8,7 +8,7 @@ import {
   ApprovalLineInfo,
 } from '@/lib/services/approval-line-service';
 import type { ApprovalStatus } from '@/lib/types';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
 
 // 전체 조회 권한이 있는 역할
@@ -34,17 +34,8 @@ function isSortableKey(value: string): value is SortableKey {
 }
 
 // GET /api/expenses - 지출결의서 목록 조회 (역할 기반 필터링 + 사용자 필터 + 서버 정렬/페이지네이션 + 합계)
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     const searchParams = request.nextUrl.searchParams;
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
     const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '50')));
@@ -52,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     // 연도별 유효 역할 조회 (UserYearRole 테이블 기준)
     const { role: effectiveRole, departmentId: effectiveDepartmentId } =
-      await getEffectiveRole(currentUser.id, CURRENT_YEAR);
+      await getEffectiveRole(user.id, CURRENT_YEAR);
 
     // departmentId가 있으면 해당 부서 경로 조회
     let effectiveDepartment: string | null = null;
@@ -72,14 +63,14 @@ export async function GET(request: NextRequest) {
     if (FULL_ACCESS_ROLES.includes(effectiveRole)) {
       // 전체 조회 권한: 필터 없음
     } else if (effectiveRole === 'team_leader') {
-      const department = effectiveDepartment ?? currentUser.department;
+      const department = effectiveDepartment ?? user.department;
       if (department) {
         permissionWhere.department = department;
       } else {
-        permissionWhere.userId = currentUser.id;
+        permissionWhere.userId = user.id;
       }
     } else {
-      permissionWhere.userId = currentUser.id;
+      permissionWhere.userId = user.id;
     }
 
     // 사용자 필터 (쿼리스트링)
@@ -205,20 +196,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 // POST /api/expenses - 지출결의서 생성
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
 
     // 유효성 검증
@@ -331,7 +313,7 @@ export async function POST(request: NextRequest) {
       // 1. 지출결의서 생성 (budgetCategory, budgetSubcategory는 items에만 저장)
       const createdExpense = await tx.expense.create({
         data: {
-          userId: currentUser.id,
+          userId: user.id,
           committee: validatedData.committee,
           department: validatedData.department,
           expenseDate: validatedData.expenseDate,
@@ -467,4 +449,8 @@ export async function POST(request: NextRequest) {
     }
     return handleApiError(error);
   }
-}
+};
+
+// Export handlers with auth wrapper
+export const GET = withAuth(handleGet);
+export const POST = withAuth(handlePost);

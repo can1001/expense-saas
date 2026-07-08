@@ -7,7 +7,7 @@
  * POST   /api/expense-templates/[id]/use - 템플릿 사용 (usageCount 증가)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
   handleApiError,
@@ -15,7 +15,7 @@ import {
   successResponse,
   successMessageResponse,
 } from '@/lib/api/error-handler';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 import { z, ZodError } from 'zod';
 
 // 템플릿 수정 스키마
@@ -31,20 +31,8 @@ const updateTemplateSchema = z.object({
 /**
  * GET /api/expense-templates/[id] - 템플릿 상세 조회
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleGet: UserApiHandler = async (request, { params, user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
 
     const template = await prisma.expenseTemplate.findUnique({
@@ -56,7 +44,7 @@ export async function GET(
     }
 
     // 소유자 확인
-    if (template.userId !== currentUser.id) {
+    if (template.userId !== user.id) {
       return NextResponse.json(
         { error: '접근 권한이 없습니다.' },
         { status: 403 }
@@ -67,25 +55,13 @@ export async function GET(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 /**
  * PUT /api/expense-templates/[id] - 템플릿 수정
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePut: UserApiHandler = async (request, { params, user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
     const body = await request.json();
 
@@ -99,7 +75,7 @@ export async function PUT(
     }
 
     // 소유자 확인
-    if (existingTemplate.userId !== currentUser.id) {
+    if (existingTemplate.userId !== user.id) {
       return NextResponse.json(
         { error: '접근 권한이 없습니다.' },
         { status: 403 }
@@ -137,25 +113,13 @@ export async function PUT(
 
     return handleApiError(error);
   }
-}
+};
 
 /**
  * DELETE /api/expense-templates/[id] - 템플릿 삭제
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleDelete: UserApiHandler = async (request, { params, user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
 
     // 템플릿 존재 여부 확인
@@ -168,7 +132,7 @@ export async function DELETE(
     }
 
     // 소유자 확인
-    if (template.userId !== currentUser.id) {
+    if (template.userId !== user.id) {
       return NextResponse.json(
         { error: '접근 권한이 없습니다.' },
         { status: 403 }
@@ -184,25 +148,13 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 /**
  * POST /api/expense-templates/[id] - 템플릿 사용 (usageCount 증가)
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePost: UserApiHandler = async (request, { params, user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
 
     // 템플릿 존재 여부 확인
@@ -215,7 +167,7 @@ export async function POST(
     }
 
     // 소유자 확인
-    if (existingTemplate.userId !== currentUser.id) {
+    if (existingTemplate.userId !== user.id) {
       return NextResponse.json(
         { error: '접근 권한이 없습니다.' },
         { status: 403 }
@@ -234,4 +186,9 @@ export async function POST(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const PUT = withAuth(handlePut);
+export const DELETE = withAuth(handleDelete);
+export const POST = withAuth(handlePost);

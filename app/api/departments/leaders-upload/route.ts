@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import { prisma } from '@/lib/prisma';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 interface ExcelRow {
   committee: string;
@@ -16,7 +17,7 @@ interface UploadSummary {
 }
 
 // GET: 템플릿 다운로드 (현재 사역팀장 목록 포함)
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
@@ -110,10 +111,10 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
 
 // POST: 엑셀 업로드 처리 (UserYearRole 생성/업데이트)
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request) => {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -233,7 +234,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 역할 ID 조회
-    const teamLeaderRole = await prisma.role.findUnique({
+    const teamLeaderRole = await prisma.role.findFirst({
       where: { code: 'team_leader' },
     });
 
@@ -384,4 +385,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAdmin(handleGet);
+export const POST = withAdmin(handlePost);

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
-import { getCurrentUser } from '@/lib/auth';
 import { deriveRequestTeam } from '@/lib/domain/request-team';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * POST /api/expenses/[id]/duplicate - 지출결의서 복제
@@ -22,18 +22,10 @@ import { deriveRequestTeam } from '@/lib/domain/request-team';
  * - 지출일자 → null로 초기화
  * - 결재선/결재 상태 → 생성하지 않음
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePost: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
-
-    // 현재 로그인 사용자 확인
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      throw new ApiError('로그인이 필요합니다.', 401);
-    }
+    const { id } = await params!;
+    const currentUser = user;
 
     // 원본 지출결의서 조회
     const original = await prisma.expense.findUnique({
@@ -144,4 +136,6 @@ export async function POST(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const POST = withAuth(handlePost);

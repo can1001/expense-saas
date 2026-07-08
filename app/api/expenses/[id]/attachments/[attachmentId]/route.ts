@@ -4,7 +4,6 @@
  * DELETE /api/expenses/[id]/attachments/[attachmentId] - 첨부파일 삭제
  */
 
-import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { deleteImage } from '@/lib/cloudinary';
 import {
@@ -14,16 +13,14 @@ import {
 } from '@/lib/api/error-handler';
 import { validateExpenseId, validateAttachmentId } from '@/lib/validators/id-validator';
 import { ERROR_MESSAGES } from '@/lib/constants/error-messages';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * DELETE /api/expenses/[id]/attachments/[attachmentId] - 첨부파일 삭제
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string; attachmentId: string }> }
-) {
+const handleDelete: UserApiHandler = async (request, { params }) => {
   try {
-    const { id, attachmentId } = await params;
+    const { id, attachmentId } = await params! as { id: string; attachmentId: string };
 
     // ID 검증
     validateExpenseId(id);
@@ -77,4 +74,6 @@ export async function DELETE(
   } catch (error: any) {
     return handleApiError(error);
   }
-}
+};
+
+export const DELETE = withAuth(handleDelete);

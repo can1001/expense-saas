@@ -1,13 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 // PATCH /api/budget-categories/[id] - 예산(항) 수정
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePatch: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
     const body = await request.json();
     const { name, isActive, sortOrder } = body;
 
@@ -25,7 +23,7 @@ export async function PATCH(
 
     // 이름 변경 시 중복 확인
     if (name && name.trim() !== existing.name) {
-      const duplicate = await prisma.budgetCategory.findUnique({
+      const duplicate = await prisma.budgetCategory.findFirst({
         where: { name: name.trim() },
       });
 
@@ -55,4 +53,6 @@ export async function PATCH(
       { status: 500 }
     );
   }
-}
+};
+
+export const PATCH = withAdmin(handlePatch);

@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/budget - 예산 계층 데이터 조회 (정규화된 테이블 기반)
@@ -12,7 +13,7 @@ import { handleApiError } from '@/lib/api/error-handler';
  * - 예산(목) (BudgetSubcategory)
  * - 예산(세목) (BudgetDetail)
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const committee = searchParams.get('committee');
@@ -133,14 +134,14 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 /**
  * POST /api/budget - 계층적 드롭다운용 다음 레벨 옵션 반환
  *
  * 정규화된 테이블 기반으로 동작
  */
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request) => {
   try {
     // 빈 body 처리
     let body: Record<string, string | undefined> = {};
@@ -290,4 +291,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAuth(handlePost);

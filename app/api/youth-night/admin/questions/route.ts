@@ -1,18 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
+
+// 관리자 권한 확인
+const ADMIN_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
 
 // GET - 레슨별 퀴즈 문제 목록 조회
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
-    }
-
-    // 관리자 권한 확인
-    const adminRoles = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!adminRoles.includes(user.role)) {
+    if (!ADMIN_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
 
@@ -33,18 +29,12 @@ export async function GET(request: NextRequest) {
     console.error('퀴즈 조회 오류:', error);
     return NextResponse.json({ error: '퀴즈를 불러오는데 실패했습니다.' }, { status: 500 });
   }
-}
+};
 
 // POST - 새 퀴즈 문제 추가
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
-    }
-
-    const adminRoles = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!adminRoles.includes(user.role)) {
+    if (!ADMIN_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
 
@@ -97,18 +87,12 @@ export async function POST(request: NextRequest) {
     console.error('퀴즈 생성 오류:', error);
     return NextResponse.json({ error: '퀴즈 생성에 실패했습니다.' }, { status: 500 });
   }
-}
+};
 
 // PUT - 퀴즈 문제 수정
-export async function PUT(request: NextRequest) {
+const handlePut: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
-    }
-
-    const adminRoles = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!adminRoles.includes(user.role)) {
+    if (!ADMIN_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
 
@@ -148,18 +132,12 @@ export async function PUT(request: NextRequest) {
     console.error('퀴즈 수정 오류:', error);
     return NextResponse.json({ error: '퀴즈 수정에 실패했습니다.' }, { status: 500 });
   }
-}
+};
 
 // DELETE - 퀴즈 문제 삭제
-export async function DELETE(request: NextRequest) {
+const handleDelete: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
-    }
-
-    const adminRoles = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!adminRoles.includes(user.role)) {
+    if (!ADMIN_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
 
@@ -179,4 +157,9 @@ export async function DELETE(request: NextRequest) {
     console.error('퀴즈 삭제 오류:', error);
     return NextResponse.json({ error: '퀴즈 삭제에 실패했습니다.' }, { status: 500 });
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAuth(handlePost);
+export const PUT = withAuth(handlePut);
+export const DELETE = withAuth(handleDelete);

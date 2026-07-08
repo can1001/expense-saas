@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import {
   findUserById,
   updateUser,
@@ -6,14 +6,12 @@ import {
   getRoleByCode,
   UserRole,
 } from '@/lib/services/user-service';
+import { withAuth, withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 // GET /api/users/[id] - 사용자 상세 조회
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleGet: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
     const searchParams = request.nextUrl.searchParams;
     const includeRoleRef = searchParams.get('includeRoleRef') === 'true';
 
@@ -34,15 +32,12 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+};
 
 // PUT /api/users/[id] - 사용자 정보 수정
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePut: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
     const body = await request.json();
     const { username, role, roleId, department, password, phoneNumber, isActive, canRegisterUsers } = body;
 
@@ -95,15 +90,12 @@ export async function PUT(
       { status: 500 }
     );
   }
-}
+};
 
 // DELETE /api/users/[id] - 사용자 비활성화 (soft delete)
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleDelete: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
 
     // 사용자 존재 확인
     const existingUser = await findUserById(id);
@@ -127,4 +119,8 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const PUT = withAdmin(handlePut);
+export const DELETE = withAdmin(handleDelete);

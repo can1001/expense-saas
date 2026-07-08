@@ -1,12 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/admin/budget-execution
  * 사역비 예산 집행 현황 조회 (위원회별/부서별)
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
@@ -102,12 +103,9 @@ export async function GET(request: NextRequest) {
     });
 
     // 4. 부서 ID → 부서명 매핑 생성
-    const deptIdToName = new Map<string, string>();
-    const deptNameToId = new Map<string, string>();
     committees.forEach((comm) => {
       comm.departments.forEach((dept) => {
-        deptIdToName.set(dept.id, dept.name);
-        deptNameToId.set(dept.name, dept.id);
+        // Maps not needed for this logic but keeping for consistency
       });
     });
 
@@ -191,4 +189,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAdmin(handleGet);

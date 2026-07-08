@@ -4,7 +4,7 @@ async function deleteTestUser() {
   const userid = 'TestTest';
 
   // 1. 사용자 찾기
-  const user = await prisma.user.findUnique({
+  const user = await prisma.user.findFirst({
     where: { userid },
     include: { expenses: true }
   });

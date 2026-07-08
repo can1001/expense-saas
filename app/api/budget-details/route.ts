@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 interface BudgetDetailInput {
   name: string;
@@ -10,7 +11,7 @@ interface BudgetDetailInput {
 }
 
 // POST /api/budget-details - 예산 세목 일괄 등록 (마법사용)
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request) => {
   try {
     const body = await request.json();
     const { departmentId, subcategoryId, details, year } = body as {
@@ -144,4 +145,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const POST = withAdmin(handlePost);

@@ -1,13 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from '@/lib/api/error-handler';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
-// PATCH /api/departments/[id] - 사역팀 수정 (팀장은 UserYearRole로 관리)
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// PATCH /api/departments/[id] - 사역팀 수정 (관리자 전용)
+const handlePatch: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
     const body = await request.json();
     const { name, isActive, sortOrder, committeeId } = body;
 
@@ -26,12 +25,10 @@ export async function PATCH(
     // 이름 변경 시 중복 확인 (같은 위원회 내에서)
     if (name && name.trim() !== existing.name) {
       const targetCommitteeId = committeeId || existing.committeeId;
-      const duplicate = await prisma.department.findUnique({
+      const duplicate = await prisma.department.findFirst({
         where: {
-          committeeId_name: {
-            committeeId: targetCommitteeId,
-            name: name.trim(),
-          },
+          committeeId: targetCommitteeId,
+          name: name.trim(),
         },
       });
 
@@ -56,21 +53,14 @@ export async function PATCH(
 
     return NextResponse.json(department);
   } catch (error) {
-    console.error('Error updating department:', error);
-    return NextResponse.json(
-      { error: '사역팀 수정에 실패했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-}
+};
 
-// DELETE /api/departments/[id] - 사역팀 삭제
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// DELETE /api/departments/[id] - 사역팀 삭제 (관리자 전용)
+const handleDelete: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
 
     // 연결된 예산 세목 확인
     const budgetDetailCount = await prisma.departmentBudgetDetail.count({
@@ -102,10 +92,9 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting department:', error);
-    return NextResponse.json(
-      { error: '사역팀 삭제에 실패했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-}
+};
+
+export const PATCH = withAdmin(handlePatch);
+export const DELETE = withAdmin(handleDelete);

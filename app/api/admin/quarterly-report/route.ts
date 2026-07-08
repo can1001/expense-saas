@@ -1,10 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
-import { getCurrentUser } from '@/lib/auth';
-
-// 재정보고서 접근 권한이 있는 역할
-const QUARTERLY_REPORT_ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'finance_member'];
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * 분기별 날짜 범위 계산
@@ -29,13 +26,8 @@ function getYearDateRange(year: number) {
  * GET /api/admin/quarterly-report
  * 분기별 회계보고 데이터 조회
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
-    const user = await getCurrentUser();
-    if (!user || !QUARTERLY_REPORT_ALLOWED_ROLES.includes(user.role)) {
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
-    }
-
     const searchParams = request.nextUrl.searchParams;
     // 이전 분기를 기본값으로 설정 (2분기에는 1분기, 3분기에는 2분기 조회)
     const actualQuarter = Math.floor(new Date().getMonth() / 3) + 1;
@@ -679,4 +671,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAdmin(handleGet);

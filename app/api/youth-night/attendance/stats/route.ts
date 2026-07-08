@@ -1,15 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 // 출석 통계 조회 (GET)
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const curriculumId = searchParams.get('curriculumId');
     const ageGroup = searchParams.get('ageGroup');
@@ -26,6 +21,7 @@ export async function GET(request: NextRequest) {
         ...(ageGroup && {
           lesson: {
             curriculum: {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ageGroup: ageGroup as any,
             },
           },
@@ -49,6 +45,7 @@ export async function GET(request: NextRequest) {
         ...(ageGroup && {
           lesson: {
             curriculum: {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ageGroup: ageGroup as any,
             },
           },
@@ -74,6 +71,7 @@ export async function GET(request: NextRequest) {
           ...(ageGroup && {
             lesson: {
               curriculum: {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 ageGroup: ageGroup as any,
               },
             },
@@ -89,6 +87,7 @@ export async function GET(request: NextRequest) {
           }),
           ...(ageGroup && {
             curriculum: {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ageGroup: ageGroup as any,
             },
           }),
@@ -115,4 +114,6 @@ export async function GET(request: NextRequest) {
     console.error('출석 통계 조회 오류:', error);
     return NextResponse.json({ error: '출석 통계 조회 중 오류가 발생했습니다' }, { status: 500 });
   }
-}
+};
+
+export const GET = withAuth(handleGet);

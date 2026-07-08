@@ -1,17 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/admin/year-config/[year]
  * 특정 연도의 설정 데이터 조회
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ year: string }> }
-) {
+const handleGet: UserApiHandler = async (request, { params }) => {
   try {
-    const { year: yearStr } = await params;
+    const { year: yearStr } = await params!;
     const year = parseInt(yearStr);
 
     if (isNaN(year) || year < 2020 || year > 2100) {
@@ -33,7 +31,7 @@ export async function GET(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 /**
  * DELETE /api/admin/year-config/[year]
@@ -42,12 +40,9 @@ export async function GET(
  * Query params:
  * - target: 'all' | 'roles' | 'budgets' (default: 'all')
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ year: string }> }
-) {
+const handleDelete: UserApiHandler = async (request, { params }) => {
   try {
-    const { year: yearStr } = await params;
+    const { year: yearStr } = await params!;
     const year = parseInt(yearStr);
 
     if (isNaN(year) || year < 2020 || year > 2100) {
@@ -90,4 +85,7 @@ export async function DELETE(
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAdmin(handleGet);
+export const DELETE = withAdmin(handleDelete);

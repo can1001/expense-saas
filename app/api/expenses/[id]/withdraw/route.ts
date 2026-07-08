@@ -1,31 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { notificationService } from '@/lib/services/notification';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * POST /api/expenses/[id]/withdraw
  * 지출결의서 회수 (작성자가 제출한 문서를 철회)
  *
  * Body: {
- *   applicantName: string,
  *   comment?: string
  * }
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePost: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
     const body = await request.json();
-    const { applicantName, comment } = body;
-
-    if (!applicantName) {
-      return NextResponse.json(
-        { error: '작성자 이름이 필요합니다.' },
-        { status: 400 }
-      );
-    }
+    const { comment } = body;
+    const applicantName = user.username;
 
     // 지출결의서 조회
     const expense = await prisma.expense.findUnique({
@@ -190,4 +181,6 @@ export async function POST(
       { status: 500 }
     );
   }
-}
+};
+
+export const POST = withAuth(handlePost);

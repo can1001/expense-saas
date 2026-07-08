@@ -1,24 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { webPushProvider } from '@/lib/services/notification/web-push-provider';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * POST /api/push/test
  * 테스트 푸시 알림 발송
  */
-export async function POST(_request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    // 사용자 인증 확인
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
-    const userId = currentUser.id;
+    const userId = user.id;
 
     // 웹 푸시 활성화 확인
     if (!webPushProvider.isEnabled()) {
@@ -82,4 +72,6 @@ export async function POST(_request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const POST = withAuth(handlePost);

@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 // 역할 코드 타입 (Role.code와 동일)
 type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
@@ -45,7 +46,7 @@ interface UploadSummary {
 type UploadMode = 'merge' | 'append';
 
 // GET: 템플릿 다운로드 (현재 사용자 목록 포함)
-export async function GET() {
+const handleGet: UserApiHandler = async () => {
   try {
     // 현재 모든 사용자 조회
     const users = await prisma.user.findMany({
@@ -141,10 +142,10 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+};
 
 // POST: 엑셀 업로드 처리
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request) => {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -300,18 +301,19 @@ export async function POST(request: NextRequest) {
 
     // 기존 사용자 조회
     const existingUsers = await prisma.user.findMany({
-      select: { userid: true },
+      select: { id: true, userid: true },
     });
-    const existingUserIds = new Set(existingUsers.map((u) => u.userid));
+    const existingUserMap = new Map(existingUsers.map((u) => [u.userid, u.id]));
 
     // 처리 대상 분류
     const toCreate: ExcelRow[] = [];
-    const toUpdate: ExcelRow[] = [];
+    const toUpdate: Array<ExcelRow & { existingId: string }> = [];
 
     validRows.forEach((row) => {
-      if (existingUserIds.has(row.userid)) {
+      const existingId = existingUserMap.get(row.userid);
+      if (existingId) {
         if (mode === 'merge') {
-          toUpdate.push(row);
+          toUpdate.push({ ...row, existingId });
         }
         // append 모드에서는 기존 사용자 건너뜀
       } else {
@@ -361,7 +363,7 @@ export async function POST(request: NextRequest) {
     // 업데이트
     for (const row of toUpdate) {
       await prisma.user.update({
-        where: { userid: row.userid },
+        where: { id: row.existingId },
         data: {
           username: row.username,
           role: row.role as UserRole,
@@ -393,4 +395,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAdmin(handleGet);
+export const POST = withAdmin(handlePost);

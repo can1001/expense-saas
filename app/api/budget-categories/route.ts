@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAuth, withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 // GET /api/budget-categories - 예산(항) 목록 조회
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const includeInactive = searchParams.get('includeInactive') === 'true';
@@ -34,10 +35,10 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
 
 // POST /api/budget-categories - 예산(항) 추가
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request) => {
   try {
     const body = await request.json();
     const { name } = body;
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 중복 확인
-    const existing = await prisma.budgetCategory.findUnique({
+    const existing = await prisma.budgetCategory.findFirst({
       where: { name: name.trim() },
     });
 
@@ -81,4 +82,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAdmin(handlePost);

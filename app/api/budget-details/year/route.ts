@@ -1,12 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAllUsedAmounts, makeBudgetDetailKey } from '@/lib/services/budget-service';
+import { withAuth, withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/budget-details/year?year=2026&includeInactive=true
  * 연도별 예산 세목 설정 조회 (담당자 + 예산금액)
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const { searchParams } = new URL(request.url);
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
@@ -115,13 +116,13 @@ export async function GET(request: NextRequest) {
     console.error('예산 세목 조회 오류:', error);
     return NextResponse.json({ error: '예산 세목 조회 실패' }, { status: 500 });
   }
-}
+};
 
 /**
  * POST /api/budget-details/year
  * 연도별 세목 설정 생성/수정 (일괄)
  */
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request) => {
   try {
     const body = await request.json();
     const { year, settings } = body as {
@@ -183,4 +184,7 @@ export async function POST(request: NextRequest) {
     console.error('예산 세목 설정 저장 오류:', error);
     return NextResponse.json({ error: '예산 세목 설정 저장 실패' }, { status: 500 });
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAdmin(handlePost);

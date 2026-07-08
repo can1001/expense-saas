@@ -1,32 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { canApprove } from '@/lib/approval-engine';
 import { notificationService } from '@/lib/services/notification';
+import { handleApiError } from '@/lib/api/error-handler';
+import { withPermission, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * POST /api/expenses/[id]/reject
  * 지출결의서 반려
  *
  * Body: {
- *   approverName: string,
  *   comment: string (반려 사유 필수)
  * }
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePost: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
     const body = await request.json();
-    const { approverName, comment } = body;
-
-    if (!approverName) {
-      return NextResponse.json(
-        { error: '결재자 이름이 필요합니다.' },
-        { status: 400 }
-      );
-    }
+    const { comment } = body;
+    const approverName = user.username;
 
     if (!comment || comment.trim() === '') {
       return NextResponse.json(
@@ -195,11 +187,9 @@ export async function POST(
       message: '지출결의서가 반려되었습니다.',
       data: result,
     });
-  } catch (error: any) {
-    console.error('Reject error:', error);
-    return NextResponse.json(
-      { error: '반려 처리 중 오류가 발생했습니다.', details: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
-}
+};
+
+export const POST = withPermission('canApprove', handlePost);

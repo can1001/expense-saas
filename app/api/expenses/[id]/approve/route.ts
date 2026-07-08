@@ -1,17 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
   canApprove,
   calculateApprovalStatus,
 } from '@/lib/approval-engine';
 import { notificationService } from '@/lib/services/notification';
+import { handleApiError } from '@/lib/api/error-handler';
+import { withPermission, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * POST /api/expenses/[id]/approve
  * 지출결의서 승인
  *
  * Body: {
- *   approverName: string,
  *   comment?: string,
  *   signature?: {
  *     type: "signature" | "stamp" | "realtime",
@@ -20,14 +21,12 @@ import { notificationService } from '@/lib/services/notification';
  *   }
  * }
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePost: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
     const body = await request.json();
-    const { approverName, comment, signature } = body;
+    const { comment, signature } = body;
+    const approverName = user.username;
 
     // 서명 데이터 처리
     let signatureType: string | null = null;
@@ -48,13 +47,6 @@ export async function POST(
         signatureType = signature.type;
         signatureData = signature.data;
       }
-    }
-
-    if (!approverName) {
-      return NextResponse.json(
-        { error: '결재자 이름이 필요합니다.' },
-        { status: 400 }
-      );
     }
 
     // 지출결의서 및 결재선 조회
@@ -367,11 +359,9 @@ export async function POST(
       data: result,
       isComplete,
     });
-  } catch (error: any) {
-    console.error('Approve error:', error);
-    return NextResponse.json(
-      { error: '승인 처리 중 오류가 발생했습니다.', details: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
-}
+};
+
+export const POST = withPermission('canApprove', handlePost);

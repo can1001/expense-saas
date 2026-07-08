@@ -1,22 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { handleApiError } from '@/lib/api/error-handler';
 import { webPushProvider } from '@/lib/services/notification/web-push-provider';
-
-// 알림 발송 권한이 있는 역할
-const NOTIFICATION_ALLOWED_ROLES = ['admin', 'admin_assistant', 'accountant', 'finance_head'];
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/admin/notifications
  * 어드민 알림 발송 이력 조회
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
-    const user = await getCurrentUser();
-    if (!user || !NOTIFICATION_ALLOWED_ROLES.includes(user.role)) {
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
-    }
-
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -40,26 +33,17 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(total / limit),
       },
     });
-  } catch (error: any) {
-    console.error('Get admin notifications error:', error);
-    return NextResponse.json(
-      { error: '알림 이력 조회 중 오류가 발생했습니다.' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
-}
+};
 
 /**
  * POST /api/admin/notifications
  * 어드민 알림 발송
  */
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user || !NOTIFICATION_ALLOWED_ROLES.includes(user.role)) {
-      return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
-    }
-
     const body = await request.json();
     const { title, message, targetType, targetValue } = body;
 
@@ -177,11 +161,10 @@ export async function POST(request: NextRequest) {
         failedCount,
       },
     });
-  } catch (error: any) {
-    console.error('Send admin notification error:', error);
-    return NextResponse.json(
-      { error: '알림 발송 중 오류가 발생했습니다.', details: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
-}
+};
+
+export const GET = withAdmin(handleGet);
+export const POST = withAdmin(handlePost);

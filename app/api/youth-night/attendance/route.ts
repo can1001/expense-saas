@@ -1,15 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 // 출석 체크 (POST)
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 });
-    }
-
     const body = await request.json();
     const { lessonId } = body;
 
@@ -112,16 +107,11 @@ export async function POST(request: NextRequest) {
     console.error('출석 체크 오류:', error);
     return NextResponse.json({ error: '출석 체크 처리 중 오류가 발생했습니다' }, { status: 500 });
   }
-}
+};
 
 // 출석 기록 조회 (GET)
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const lessonId = searchParams.get('lessonId');
     const curriculumId = searchParams.get('curriculumId');
@@ -155,6 +145,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 사용자의 전체 출석 기록 조회
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {
       userId: user.id,
     };
@@ -193,4 +184,7 @@ export async function GET(request: NextRequest) {
     console.error('출석 기록 조회 오류:', error);
     return NextResponse.json({ error: '출석 기록 조회 중 오류가 발생했습니다' }, { status: 500 });
   }
-}
+};
+
+export const POST = withAuth(handlePost);
+export const GET = withAuth(handleGet);

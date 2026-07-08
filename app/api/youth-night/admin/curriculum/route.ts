@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
+import { Prisma } from '@prisma/client';
+
+// 관리자/교사 권한 확인
+const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
 
 // 새 커리큘럼과 레슨들 생성
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-
-    // 관리자/교사 권한 확인
-    const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!user || !ALLOWED_ROLES.includes(user.role)) {
+    if (!ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 
@@ -62,16 +62,12 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
 
 // 커리큘럼 수정 (전체 필드 수정 지원)
-export async function PUT(request: NextRequest) {
+const handlePut: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-
-    // 관리자/교사 권한 확인
-    const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!user || !ALLOWED_ROLES.includes(user.role)) {
+    if (!ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 
@@ -88,7 +84,7 @@ export async function PUT(request: NextRequest) {
     } = body;
 
     // 업데이트할 데이터 객체 구성
-    const updateData: Record<string, unknown> = {};
+    const updateData: Prisma.CurriculumUpdateInput = {};
 
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description || null;
@@ -111,16 +107,12 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
 
 // 커리큘럼 삭제
-export async function DELETE(request: NextRequest) {
+const handleDelete: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-
-    // 관리자/교사 권한 확인
-    const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!user || !ALLOWED_ROLES.includes(user.role)) {
+    if (!ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 
@@ -140,4 +132,8 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const POST = withAuth(handlePost);
+export const PUT = withAuth(handlePut);
+export const DELETE = withAuth(handleDelete);

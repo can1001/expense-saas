@@ -5,7 +5,6 @@
  * GET /api/expenses/[id]/attachments - 첨부파일 목록 조회
  */
 
-import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
   handleApiError,
@@ -18,16 +17,14 @@ import {
 import { validateExpenseId } from '@/lib/validators/id-validator';
 import { isAllowedFormat, FILE_VALIDATION } from '@/lib/constants/file-validation';
 import { ERROR_MESSAGES } from '@/lib/constants/error-messages';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * POST /api/expenses/[id]/attachments - 첨부파일 추가
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePost: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
 
     // expenseId 검증
     validateExpenseId(id);
@@ -123,17 +120,14 @@ export async function POST(
   } catch (error: any) {
     return handleApiError(error);
   }
-}
+};
 
 /**
  * GET /api/expenses/[id]/attachments - 첨부파일 목록 조회
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleGet: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
 
     // expenseId 검증
     validateExpenseId(id);
@@ -158,4 +152,7 @@ export async function GET(
   } catch (error: any) {
     return handleApiError(error);
   }
-}
+};
+
+export const POST = withAuth(handlePost);
+export const GET = withAuth(handleGet);

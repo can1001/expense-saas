@@ -1,20 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 // 전체 통계 조회 (GET)
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const ageGroup = searchParams.get('ageGroup');
     const curriculumId = searchParams.get('curriculumId');
 
     // 기본 조건 설정
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const baseWhere: any = {};
 
     if (ageGroup && ageGroup !== 'all') {
@@ -44,6 +40,7 @@ export async function GET(request: NextRequest) {
           isActive: true,
           type: 'YOUTH_NIGHT',
           ...(ageGroup && ageGroup !== 'all' && {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ageGroup: ageGroup as any,
           }),
         },
@@ -200,4 +197,6 @@ export async function GET(request: NextRequest) {
     console.error('통계 조회 오류:', error);
     return NextResponse.json({ error: '통계 조회 중 오류가 발생했습니다' }, { status: 500 });
   }
-}
+};
+
+export const GET = withAuth(handleGet);

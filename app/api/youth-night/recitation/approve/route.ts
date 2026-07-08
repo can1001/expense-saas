@@ -1,18 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
+
+// 교사 권한 확인 (admin, finance_head, accountant, team_leader 권한 있는 사용자만 승인 가능)
+const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
 
 // 암송 승인/반려 (POST)
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 });
-    }
-
-    // 교사 권한 확인 (admin, finance_head, accountant, team_leader 권한 있는 사용자만 승인 가능)
-    const allowedRoles = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!allowedRoles.includes(user.role)) {
+    if (!ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '암송 승인 권한이 없습니다' }, { status: 403 });
     }
 
@@ -133,19 +129,12 @@ export async function POST(request: NextRequest) {
     console.error('암송 승인 처리 오류:', error);
     return NextResponse.json({ error: '암송 승인 처리 중 오류가 발생했습니다' }, { status: 500 });
   }
-}
+};
 
 // 승인 대기 중인 암송 목록 조회 (GET)
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 });
-    }
-
-    // 교사 권한 확인
-    const allowedRoles = ['admin', 'finance_head', 'accountant', 'team_leader'];
-    if (!allowedRoles.includes(user.role)) {
+    if (!ALLOWED_ROLES.includes(user.role)) {
       return NextResponse.json({ error: '암송 승인 권한이 없습니다' }, { status: 403 });
     }
 
@@ -153,11 +142,13 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || 'PENDING';
     const ageGroup = searchParams.get('ageGroup');
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = { status };
 
     if (ageGroup) {
       where.lesson = {
         curriculum: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ageGroup: ageGroup as any,
         },
       };
@@ -200,4 +191,7 @@ export async function GET(request: NextRequest) {
     console.error('암송 승인 목록 조회 오류:', error);
     return NextResponse.json({ error: '암송 승인 목록 조회 중 오류가 발생했습니다' }, { status: 500 });
   }
-}
+};
+
+export const POST = withAuth(handlePost);
+export const GET = withAuth(handleGet);

@@ -7,12 +7,137 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // Prisma 7: URL은 prisma.config.ts와 PrismaClient adapter에서 관리
+}
+
+// ========================================
+// 멀티테넌시 (Multi-tenancy)
+// ========================================
+
+// 조직 유형
+enum OrgType {
+  CHURCH // 교회
+  NONPROFIT // 비영리 단체
+  SCHOOL // 학교
+  COMPANY // 기업
+  OTHER // 기타
+}
+
+// 요금제 유형
+enum PlanType {
+  FREE // 무료 (10명, 1GB)
+  BASIC // 기본 (50명, 10GB)
+  PRO // 프로 (200명, 50GB)
+  ENTERPRISE // 기업 (무제한)
+}
+
+// 테넌트 (조직)
+model Tenant {
+  id String @id @default(cuid())
+
+  // 기본 정보
+  name         String // "청연교회", "소망교회"
+  subdomain    String  @unique // "chungyeon" → chungyeon.expense-saas.com
+  customDomain String? @unique // "expense.chungyeon.org" (선택)
+
+  // 조직 정보
+  orgType     OrgType @default(CHURCH)
+  description String?
+  logoUrl     String?
+
+  // 요금제
+  plan        PlanType  @default(FREE)
+  planStartAt DateTime?
+  planEndAt   DateTime?
+
+  // 사용량 제한
+  maxUsers       Int @default(10)
+  maxStorageMB   Int @default(1024)
+  currentUsers   Int @default(0)
+  currentStorage Int @default(0)
+
+  // 설정 (JSON)
+  settings Json?
+
+  // 상태
+  isActive      Boolean   @default(true)
+  suspendedAt   DateTime?
+  suspendReason String?
+
+  // 관계 - 테넌트 소속 모델들
+  users              User[]
+  roles              Role[]
+  committees         Committee[]
+  budgetCategories   BudgetCategory[]
+  expenses           Expense[]
+  simpleExpenses     SimpleExpense[]
+  recurringExpenses  RecurringExpense[]
+  offerings          Offering[]
+  accountReports     AccountReport[]
+  curriculums        Curriculum[]
+  systemSettings     SystemSetting[]
+  adminNotifications AdminNotification[]
+
+  // 메타
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subdomain])
+  @@index([isActive])
+  @@index([plan])
+}
+
+// 슈퍼 관리자 (플랫폼 전체 관리)
+model SuperAdmin {
+  id       String  @id @default(cuid())
+  email    String  @unique
+  password String
+  name     String
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+// 플랫폼 활동 로그 (SuperAdmin 활동 추적)
+model PlatformActivityLog {
+  id String @id @default(cuid())
+
+  // 수행자
+  superAdminId String
+  superAdminEmail String // 조회 편의를 위해 저장
+
+  // 대상 테넌트 (선택적)
+  tenantId   String?
+  tenantName String? // 조회 편의를 위해 저장
+
+  // 활동 정보
+  action     String // CREATE_TENANT, UPDATE_TENANT, DELETE_TENANT, UPDATE_SETTINGS, etc.
+  entityType String // tenant, user, settings, etc.
+  entityId   String?
+
+  // 상세 정보
+  details   Json?   // 변경 전/후 데이터 등
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([superAdminId])
+  @@index([tenantId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 // 지출결의서 메인 테이블
 model Expense {
   id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   // 작성자
   userId String
@@ -80,6 +205,7 @@ model Expense {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([tenantId])
   @@index([userId])
   @@index([committee])
   @@index([department])
@@ -92,7 +218,11 @@ model Expense {
 
 // 지출 세부 항목
 model ExpenseItem {
-  id        String  @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   expenseId String
   expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
 
@@ -113,7 +243,11 @@ model ExpenseItem {
 
 // 첨부파일 (영수증 이미지 등)
 model ExpenseAttachment {
-  id        String  @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   expenseId String
   expense   Expense @relation("ExpenseAttachments", fields: [expenseId], references: [id], onDelete: Cascade)
 
@@ -141,8 +275,13 @@ model ExpenseAttachment {
 
 // 위원회
 model Committee {
-  id        String  @id @default(cuid())
-  name      String  @unique // "기획위원회", "선교위원회"
+  id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
+  name      String // "기획위원회", "선교위원회" - 테넌트 내 유니크로 변경
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
 
@@ -162,7 +301,11 @@ model Committee {
 
 // 사역팀(부)
 model Department {
-  id          String    @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   committeeId String
   committee   Committee @relation(fields: [committeeId], references: [id])
 
@@ -185,8 +328,13 @@ model Department {
 
 // 예산(항)
 model BudgetCategory {
-  id        String  @id @default(cuid())
-  name      String  @unique // "사무행정비", "비전사역비"
+  id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
+  name      String // "사무행정비", "비전사역비" - 테넌트 내 유니크로 변경
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
 
@@ -201,7 +349,11 @@ model BudgetCategory {
 
 // 예산(목)
 model BudgetSubcategory {
-  id         String         @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   categoryId String
   category   BudgetCategory @relation(fields: [categoryId], references: [id])
 
@@ -222,7 +374,11 @@ model BudgetSubcategory {
 
 // 예산(세목)
 model BudgetDetail {
-  id            String            @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   subcategoryId String
   subcategory   BudgetSubcategory @relation(fields: [subcategoryId], references: [id])
 
@@ -248,6 +404,9 @@ model BudgetDetail {
 // 연도별 세목 설정 (담당자 + 예산금액)
 model BudgetDetailYear {
   id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
 
   budgetDetailId String
   budgetDetail   BudgetDetail @relation(fields: [budgetDetailId], references: [id], onDelete: Cascade)
@@ -277,6 +436,9 @@ model BudgetDetailYear {
 model DepartmentBudgetDetail {
   id String @id @default(cuid())
 
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   departmentId String
   department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
@@ -295,6 +457,9 @@ model DepartmentBudgetDetail {
 // 저장된 은행 계좌 (사용자별)
 model SavedBankAccount {
   id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
 
   // 소유자
   userId String
@@ -325,6 +490,10 @@ model SavedBankAccount {
 // 간편 지출결의서 (Ver.4.1.4) - 항목별 예산 선택
 model SimpleExpense {
   id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   // 지출일자
   expenseDate DateTime?
@@ -358,7 +527,11 @@ model SimpleExpense {
 
 // 간편 지출결의서 세부 항목
 model SimpleExpenseItem {
-  id        String        @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   expenseId String
   expense   SimpleExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
 
@@ -383,7 +556,11 @@ model SimpleExpenseItem {
 
 // 간편 지출결의서 첨부파일
 model SimpleExpenseAttachment {
-  id        String        @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   expenseId String
   expense   SimpleExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
 
@@ -532,8 +709,13 @@ enum ApprovalAction {
 
 // 역할 마스터 테이블
 model Role {
-  id          String  @id @default(cuid())
-  code        String  @unique // admin, finance_head, accountant, team_leader, admin_assistant, user
+  id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
+  code        String // admin, finance_head 등 - 테넌트 내 유니크로 변경
   name        String // 관리자, 재정팀장, 회계, 팀장, 행정간사, 사용자
   description String? // 역할 설명
   stepNumber  Int? // 결재 단계 (1, 2, 3, null)
@@ -561,8 +743,13 @@ model Role {
 
 // 사용자 테이블
 model User {
-  id         String  @id @default(cuid())
-  userid     String  @unique // 로그인 아이디 (예: 청연정혜종)
+  id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
+  userid     String // 로그인 아이디 (예: 청연정혜종) - 테넌트 내 유니크로 변경
   username   String // 표시 이름 (예: 정혜종)
   password   String? // 해시된 비밀번호 (향후 인증용)
   role       String  @default("user") // 역할 코드 (Role.code 참조)
@@ -598,6 +785,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([tenantId, userid]) // 테넌트 내 유니크
+  @@index([tenantId])
   @@index([role])
   @@index([roleId])
   @@index([department])
@@ -607,7 +796,11 @@ model User {
 
 // 연도별 사용자 역할 (finance_head, accountant, team_leader, admin_assistant)
 model UserYearRole {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -631,7 +824,11 @@ model UserYearRole {
 
 // 사용자 서명/도장
 model UserSignature {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -654,6 +851,9 @@ model UserSignature {
 // 사용자 연도별 역할 변경 이력
 model UserYearRoleHistory {
   id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
 
   userYearRoleId String? // 삭제된 경우 null일 수 있음
   userId         String // 대상 사용자
@@ -684,6 +884,9 @@ model UserYearRoleHistory {
 // 예산 세목 연도별 설정 변경 이력
 model BudgetDetailYearHistory {
   id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
 
   budgetDetailYearId String? // 삭제된 경우 null일 수 있음
   budgetDetailId     String // 대상 세목
@@ -716,7 +919,11 @@ model BudgetDetailYearHistory {
 
 // 감사 로그 (모든 결재 액션 기록)
 model ApprovalLog {
-  id        String @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   expenseId String
 
   // 액션 정보
@@ -779,7 +986,11 @@ enum NotificationStatus {
 
 // 알림 설정 (사용자별)
 model NotificationPreference {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -803,6 +1014,9 @@ model NotificationPreference {
 // 알림 발송 로그
 model NotificationLog {
   id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
 
   // 수신자 정보
   recipientName  String // 수신자 이름
@@ -834,7 +1048,11 @@ model NotificationLog {
 
 // 웹 푸시 구독 정보
 model PushSubscription {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -861,7 +1079,11 @@ model PushSubscription {
 
 // 웹 푸시 발송 로그
 model WebPushLog {
-  id        String  @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   userId    String? // 수신 사용자 ID
   expenseId String? // 관련 지출결의서 ID
 
@@ -888,7 +1110,11 @@ model WebPushLog {
 
 // FCM 토큰 (Capacitor 모바일 앱 푸시 알림용)
 model FcmToken {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -914,7 +1140,11 @@ model FcmToken {
 
 // FCM 발송 로그
 model FcmLog {
-  id        String  @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   userId    String? // 수신 사용자 ID
   expenseId String? // 관련 지출결의서 ID
 
@@ -960,7 +1190,12 @@ enum OfferingType {
 
 // 헌금 관리
 model Offering {
-  id     String       @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
   date   DateTime     @db.Date // 헌금 날짜
   name   String // 헌금자 이름
   type   OfferingType // 헌금 종류
@@ -977,8 +1212,13 @@ model Offering {
 
 // 시스템 설정 (키-값 형태)
 model SystemSetting {
-  id          String  @id @default(cuid())
-  key         String  @unique // 설정 키 (예: "paymentSignatureRequired")
+  id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
+  key         String // 설정 키 - 테넌트 내 유니크로 변경
   value       String // 설정 값 (JSON 문자열 또는 단순 값)
   description String? // 설정 설명
 
@@ -994,7 +1234,12 @@ model SystemSetting {
 
 // 어드민이 발송한 알림 이력
 model AdminNotification {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
   title       String // 알림 제목
   message     String // 알림 내용
   targetType  String // 대상 타입: 'ALL', 'ROLE', 'USER'
@@ -1023,6 +1268,10 @@ enum AccountReportType {
 // 재정보고서 메인
 model AccountReport {
   id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   // 보고서 정보
   year       Int // 연도 (2024, 2025 등)
@@ -1057,7 +1306,11 @@ model AccountReport {
 
 // 수입부 항목 (2. 수입부)
 model AccountReportIncome {
-  id       String        @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   reportId String
   report   AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
@@ -1083,7 +1336,11 @@ model AccountReportIncome {
 
 // 지출부 항목 (3. 지출부)
 model AccountReportExpense {
-  id       String        @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   reportId String
   report   AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
@@ -1109,7 +1366,11 @@ model AccountReportExpense {
 
 // 입출금 통장 현황 (4. 입출금 통장)
 model AccountReportBankAccount {
-  id       String        @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   reportId String
   report   AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
@@ -1126,7 +1387,11 @@ model AccountReportBankAccount {
 
 // 적립금 현황 (5. 적립금)
 model AccountReportReserve {
-  id       String        @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   reportId String
   report   AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
@@ -1145,7 +1410,11 @@ model AccountReportReserve {
 
 // 기타 자산 (6. 기타 자산)
 model AccountReportAsset {
-  id       String        @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   reportId String
   report   AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
@@ -1163,7 +1432,11 @@ model AccountReportAsset {
 
 // 기타 부채 (7. 기타 부채)
 model AccountReportLiability {
-  id       String        @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   reportId String
   report   AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
@@ -1186,7 +1459,11 @@ model AccountReportLiability {
 
 // 위원회별 지출 현황 (차트용)
 model AccountReportCommitteeExpense {
-  id       String        @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   reportId String
   report   AccountReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
@@ -1220,7 +1497,12 @@ enum AgeGroup {
 
 // 커리큘럼 (교육과정)
 model Curriculum {
-  id          String         @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
   title       String // 커리큘럼 제목 (예: "2024년 청나잇 말씀 시리즈")
   description String? // 설명
   type        CurriculumType // 커리큘럼 타입
@@ -1248,7 +1530,11 @@ model Curriculum {
 
 // 레슨 (개별 수업)
 model Lesson {
-  id           String     @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   curriculumId String
   curriculum   Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
 
@@ -1286,7 +1572,11 @@ model Lesson {
 
 // 퀴즈 질문
 model Question {
-  id       String @id @default(cuid())
+  id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   lessonId String
   lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
@@ -1326,6 +1616,9 @@ model Question {
 model Attendance {
   id String @id @default(cuid())
 
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   // 사용자 정보
   userId String
   user   User   @relation("StudentAttendance", fields: [userId], references: [id], onDelete: Cascade)
@@ -1350,6 +1643,9 @@ model Attendance {
 // 퀴즈 응답 기록
 model QuizResponse {
   id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
 
   // 사용자 정보
   userId String
@@ -1381,6 +1677,9 @@ model QuizResponse {
 model StudentPoints {
   id String @id @default(cuid())
 
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
+
   // 사용자 정보
   userId String
   user   User   @relation("StudentPoints", fields: [userId], references: [id], onDelete: Cascade)
@@ -1409,6 +1708,9 @@ model StudentPoints {
 // 암송 인증 시스템
 model RecitationSubmission {
   id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
 
   // 사용자 정보
   userId String
@@ -1455,6 +1757,9 @@ model RecitationSubmission {
 // 자주 사용하는 지출 패턴 저장
 model ExpenseTemplate {
   id String @id @default(cuid())
+
+  // 테넌트 (쿼리 최적화용)
+  tenantId String?
 
   // 소유자
   userId String
@@ -1507,6 +1812,10 @@ enum RecurringExpenseStatus {
 // 정기적으로 자동이체되는 지출결의서 템플릿
 model RecurringExpense {
   id String @id @default(cuid())
+
+  // 테넌트
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   // 등록자 (관리자 또는 재정팀)
   userId String

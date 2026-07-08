@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from '@/lib/api/error-handler';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * 분기별 누적 현황 API
@@ -16,7 +18,7 @@ function getQuarterDateRange(year: number, quarter: number): { start: Date; end:
   return { start, end };
 }
 
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
@@ -182,10 +184,8 @@ export async function GET(request: NextRequest) {
       byDepartment,
     });
   } catch (error) {
-    console.error('Cumulative report API error:', error);
-    return NextResponse.json(
-      { error: '누적 현황 데이터를 불러오는데 실패했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-}
+};
+
+export const GET = withAdmin(handleGet);

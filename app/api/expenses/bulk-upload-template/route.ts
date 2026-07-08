@@ -6,18 +6,14 @@
  */
 
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
 import { getUserAllYearRoles } from '@/lib/services/user-service';
 import { canAccessAdminMenuPathWithRoles } from '@/lib/constants/menu-permissions';
 import { buildExpenseTemplateWorkbook } from '@/lib/services/bulk-expense-template';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 const ROUTE_PATH = '/admin/expense-upload';
 
-export async function GET() {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
-  }
+const handleGet: UserApiHandler = async (request, { user }) => {
   const roles = await getUserAllYearRoles(user.id);
   if (!canAccessAdminMenuPathWithRoles(roles, ROUTE_PATH)) {
     return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
@@ -33,4 +29,6 @@ export async function GET() {
       'Content-Length': String(buffer.length),
     },
   });
-}
+};
+
+export const GET = withAuth(handleGet);

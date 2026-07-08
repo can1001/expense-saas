@@ -1,13 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { findUsersByRole, UserRole } from '@/lib/services/user-service';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 // GET /api/users/by-role/[role] - 역할별 사용자 목록 조회
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ role: string }> }
-) {
+const handleGet: UserApiHandler = async (request, { params }) => {
   try {
-    const { role } = await params;
+    const { role } = await params! as { role: string };
 
     // 역할 검증
     const validRoles: UserRole[] = ['admin', 'finance_head', 'accountant', 'finance_member', 'team_leader', 'admin_assistant', 'user'];
@@ -28,4 +26,6 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAuth(handleGet);

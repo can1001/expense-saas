@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * POST /api/expenses/bulk
@@ -8,7 +9,7 @@ import { prisma } from '@/lib/prisma';
  * Body: { ids: string[] }
  * Response: { expenses: ExpenseWithApproval[] }
  */
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request) => {
   try {
     const body = await request.json();
     const { ids } = body;
@@ -76,4 +77,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const POST = withAuth(handlePost);

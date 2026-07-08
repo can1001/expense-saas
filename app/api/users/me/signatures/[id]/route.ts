@@ -1,41 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getSessionUserId } from '@/lib/auth';
-
-/**
- * 현재 로그인한 사용자 조회 (세션 기반)
- */
-async function getCurrentUser() {
-  const userId = await getSessionUserId();
-
-  if (!userId) {
-    return null;
-  }
-
-  return prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, username: true },
-  });
-}
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/users/me/signatures/[id]
  * 특정 서명/도장 조회
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleGet: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
+    const { id } = await params!;
+    const currentUser = user;
 
     const signature = await prisma.userSignature.findFirst({
       where: {
@@ -59,7 +33,7 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+};
 
 /**
  * PUT /api/users/me/signatures/[id]
@@ -71,20 +45,10 @@ export async function GET(
  *   isDefault?: boolean
  * }
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePut: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
+    const { id } = await params!;
+    const currentUser = user;
 
     // 기존 서명/도장 확인
     const existing = await prisma.userSignature.findFirst({
@@ -157,26 +121,16 @@ export async function PUT(
       { status: 500 }
     );
   }
-}
+};
 
 /**
  * DELETE /api/users/me/signatures/[id]
  * 서명/도장 삭제
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handleDelete: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
+    const { id } = await params!;
+    const currentUser = user;
 
     // 기존 서명/도장 확인
     const existing = await prisma.userSignature.findFirst({
@@ -208,4 +162,8 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const PUT = withAuth(handlePut);
+export const DELETE = withAuth(handleDelete);

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma, Prisma } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
-import { getCurrentUser } from '@/lib/auth';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 import { createRecurringExpenseSchema, calculateNextGenerationDate, RecurringFrequency } from '@/lib/recurring-expense';
 import {
   checkRecurringExpenseAccess,
@@ -9,16 +9,10 @@ import {
 } from '@/lib/constants/menu-permissions';
 
 // GET /api/recurring-expenses - 자동이체 목록 조회
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      throw new ApiError('로그인이 필요합니다.', 401);
-    }
-
     // 역할 기반 접근 권한 확인
-    const accessError = checkRecurringExpenseAccess(currentUser.role);
+    const accessError = checkRecurringExpenseAccess(user.role);
     if (accessError) {
       throw new ApiError(accessError.error, accessError.status);
     }
@@ -31,9 +25,9 @@ export async function GET(request: NextRequest) {
 
     // 전체 관리 권한이 있으면 모든 자동이체 조회, 아니면 본인 것만
     const where: Prisma.RecurringExpenseWhereInput =
-      canManageAllRecurringExpenses(currentUser.role)
+      canManageAllRecurringExpenses(user.role)
         ? {}
-        : { userId: currentUser.id };
+        : { userId: user.id };
 
     // 상태 필터: CANCELLED 명시 시에만 노출, 그 외 기본 목록은 CANCELLED 제외 (soft delete)
     if (status === 'CANCELLED') {
@@ -84,19 +78,13 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 // POST /api/recurring-expenses - 자동이체 등록
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      throw new ApiError('로그인이 필요합니다.', 401);
-    }
-
     // 역할 기반 접근 권한 확인
-    const accessError = checkRecurringExpenseAccess(currentUser.role);
+    const accessError = checkRecurringExpenseAccess(user.role);
     if (accessError) {
       throw new ApiError(accessError.error, accessError.status);
     }
@@ -120,7 +108,7 @@ export async function POST(request: NextRequest) {
 
     const recurringExpense = await prisma.recurringExpense.create({
       data: {
-        userId: currentUser.id,
+        userId: user.id,
         name: validatedData.name,
         description: validatedData.description,
         committee: validatedData.committee,
@@ -146,4 +134,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAuth(handlePost);

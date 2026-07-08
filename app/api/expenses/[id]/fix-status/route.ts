@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * POST /api/expenses/[id]/fix-status
- * 결재 상태 자동 수정 API
+ * 결재 상태 자동 수정 API (관리자 전용)
  *
  * 완료된 결재 단계 수에 따라 올바른 상태로 수정합니다:
  * - 0단계 완료: PENDING (1차 팀장 결재 대기)
@@ -11,12 +12,9 @@ import { prisma } from '@/lib/prisma';
  * - 2단계 완료: APPROVED_STEP_2 (3차 재정팀장 결재 대기)
  * - 3단계 완료: APPROVED_FINAL (최종 승인)
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePost: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
 
     // 지출결의서 및 결재선 조회
     const expense = await prisma.expense.findUnique({
@@ -190,4 +188,6 @@ export async function POST(
       { status: 500 }
     );
   }
-}
+};
+
+export const POST = withAdmin(handlePost);
