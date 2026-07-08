@@ -1,13 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 // PATCH /api/budget-details/[id]/description - 적요 예제 수정
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePatch: UserApiHandler = async (request, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params!;
     const body = await request.json();
     const { description } = body as { description: string };
 
@@ -53,4 +51,6 @@ export async function PATCH(
       { status: 500 }
     );
   }
-}
+};
+
+export const PATCH = withAdmin(handlePatch);

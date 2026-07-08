@@ -1,11 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/budget/memo-examples?budgetDetailId=xxx
  * 세목의 적요 예제 목록 조회
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const budgetDetailId = searchParams.get('budgetDetailId');
@@ -73,4 +74,6 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAuth(handleGet);
