@@ -4,6 +4,15 @@ import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
+// 테넌트 정보 타입
+interface TenantInfo {
+  id: string;
+  name: string;
+  subdomain: string;
+  orgType: string;
+  logoUrl: string | null;
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -13,9 +22,30 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [rememberUserId, setRememberUserId] = useState(false);
+  const [tenant, setTenant] = useState<TenantInfo | null>(null);
+  const [tenantLoading, setTenantLoading] = useState(true);
 
   const from = searchParams.get('from') || '/';
   const registered = searchParams.get('registered');
+
+  // 테넌트 정보 가져오기
+  useEffect(() => {
+    const fetchTenantInfo = async () => {
+      try {
+        const response = await fetch('/api/tenant/info');
+        const data = await response.json();
+        if (data.tenant) {
+          setTenant(data.tenant);
+        }
+      } catch (err) {
+        console.error('테넌트 정보 조회 실패:', err);
+      } finally {
+        setTenantLoading(false);
+      }
+    };
+
+    fetchTenantInfo();
+  }, []);
 
   useEffect(() => {
     if (registered === 'true') {
@@ -79,9 +109,39 @@ function LoginForm() {
   return (
     <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
       <div>
-        <h1 className="text-center text-3xl font-bold text-gray-900">
-          지출결의서 시스템
-        </h1>
+        {/* 테넌트 로고 표시 */}
+        {tenant?.logoUrl && (
+          <div className="flex justify-center mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={tenant.logoUrl}
+              alt={`${tenant.name} 로고`}
+              className="h-16 w-auto object-contain"
+            />
+          </div>
+        )}
+
+        {/* 테넌트명 또는 기본 타이틀 */}
+        {tenantLoading ? (
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto mb-2" />
+            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto" />
+          </div>
+        ) : tenant ? (
+          <>
+            <h1 className="text-center text-2xl font-bold text-gray-900">
+              {tenant.name}
+            </h1>
+            <p className="mt-1 text-center text-lg text-blue-600 font-medium">
+              지출결의서 시스템
+            </p>
+          </>
+        ) : (
+          <h1 className="text-center text-3xl font-bold text-gray-900">
+            지출결의서 시스템
+          </h1>
+        )}
+
         <p className="mt-2 text-center text-sm text-gray-600">
           아이디와 비밀번호를 입력해주세요
         </p>

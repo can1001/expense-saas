@@ -20,6 +20,13 @@ interface UserInfo {
   roleRef?: { canRegisterUsers?: boolean } | null;
 }
 
+// 테넌트 정보 타입
+interface TenantInfo {
+  id: string;
+  name: string;
+  subdomain: string;
+}
+
 // 알림 발송 권한이 있는 역할
 const NOTIFICATION_ALLOWED_ROLES = ['admin', 'admin_assistant', 'accountant', 'finance_head'];
 
@@ -29,6 +36,7 @@ function MobileDrawer({
   onClose,
   navItems,
   user,
+  tenant,
   loading,
   onLogout,
   getRoleName,
@@ -39,6 +47,7 @@ function MobileDrawer({
   onClose: () => void;
   navItems: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; active: boolean }[];
   user: UserInfo | null;
+  tenant: TenantInfo | null;
   loading: boolean;
   onLogout: () => void;
   getRoleName: (code: string) => string;
@@ -83,7 +92,7 @@ function MobileDrawer({
         <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-200">
           <Link href="/" onClick={onClose} className="flex items-center gap-2 text-lg font-bold text-gray-900">
             <Home className="w-5 h-5" />
-            <span>지출결의서 관리</span>
+            <span>{tenant ? tenant.name : '지출결의서 관리'}</span>
           </Link>
           <button
             onClick={onClose}
@@ -268,6 +277,7 @@ export default function Header() {
   const isLoginPage = pathname === '/login';
 
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [tenant, setTenant] = useState<TenantInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -289,11 +299,16 @@ export default function Header() {
         const data = await response.json();
         if (response.ok && data.user) {
           setUser(data.user);
+          if (data.tenant) {
+            setTenant(data.tenant);
+          }
         } else {
           setUser(null);
+          setTenant(null);
         }
       } catch {
         setUser(null);
+        setTenant(null);
       } finally {
         setLoading(false);
       }
@@ -404,7 +419,9 @@ export default function Header() {
                 className="flex items-center gap-2 text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors"
               >
                 <Home className="w-6 h-6" />
-                <span className="hidden sm:inline">지출결의서 관리</span>
+                <span className="hidden sm:inline">
+                  {tenant ? `${tenant.name}` : '지출결의서 관리'}
+                </span>
               </Link>
 
               {/* 데스크톱 네비게이션 */}
@@ -558,6 +575,7 @@ export default function Header() {
         onClose={() => setIsDrawerOpen(false)}
         navItems={navItems}
         user={user}
+        tenant={tenant}
         loading={loading}
         onLogout={handleLogout}
         getRoleName={getRoleName}
