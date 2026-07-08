@@ -366,14 +366,17 @@ export async function uploadBudgetData(
         const row = rows[i];
 
         try {
-          // 1. Committee upsert
+          // 1. Committee find or create
           let committeeId = committeeCache.get(row.committee);
           if (!committeeId) {
-            const committee = await tx.committee.upsert({
+            let committee = await tx.committee.findFirst({
               where: { name: row.committee },
-              update: {},
-              create: { name: row.committee, isActive: true },
             });
+            if (!committee) {
+              committee = await tx.committee.create({
+                data: { name: row.committee, isActive: true },
+              });
+            }
             committeeId = committee.id;
             committeeCache.set(row.committee, committeeId);
           }
@@ -400,14 +403,17 @@ export async function uploadBudgetData(
             departmentCache.set(deptKey, departmentId);
           }
 
-          // 3. BudgetCategory upsert
+          // 3. BudgetCategory find or create
           let categoryId = categoryCache.get(row.category);
           if (!categoryId) {
-            const category = await tx.budgetCategory.upsert({
+            let category = await tx.budgetCategory.findFirst({
               where: { name: row.category },
-              update: {},
-              create: { name: row.category, isActive: true },
             });
+            if (!category) {
+              category = await tx.budgetCategory.create({
+                data: { name: row.category, isActive: true },
+              });
+            }
             categoryId = category.id;
             categoryCache.set(row.category, categoryId);
           }
@@ -511,7 +517,7 @@ export async function uploadBudgetData(
                 const userid = `청연${row.manager}`;
 
                 // userid 중복 확인
-                const existingByUserid = await tx.user.findUnique({
+                const existingByUserid = await tx.user.findFirst({
                   where: { userid },
                 });
 

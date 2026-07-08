@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // 새 커리큘럼과 레슨들 생성
 export async function POST(request: NextRequest) {
@@ -88,7 +89,7 @@ export async function PUT(request: NextRequest) {
     } = body;
 
     // 업데이트할 데이터 객체 구성
-    const updateData: Record<string, unknown> = {};
+    const updateData: Prisma.CurriculumUpdateInput = {};
 
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description || null;

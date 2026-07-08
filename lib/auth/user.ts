@@ -157,15 +157,18 @@ export async function getUserFromRequest(request: NextRequest): Promise<UserSess
 export type UserApiHandler = (
   request: NextRequest,
   context: {
-    params?: Promise<Record<string, string>>;
+    params: Promise<Record<string, string>>;
     user: UserSession;
   }
 ) => Promise<NextResponse>;
 
+// Next.js 16 Route Handler 타입과 호환을 위한 RouteContext 타입
+type RouteContext = { params: Promise<Record<string, string>> };
+
 export function withAuth(handler: UserApiHandler) {
   return async (
     request: NextRequest,
-    context?: { params?: Promise<Record<string, string>> }
+    context: RouteContext
   ): Promise<NextResponse> => {
     const user = await getUserFromRequest(request);
 
@@ -184,7 +187,7 @@ export function withAuth(handler: UserApiHandler) {
 
     return withTenantAsync(tenantContext, async () => {
       return handler(request, {
-        params: context?.params,
+        params: context.params,
         user,
       });
     });

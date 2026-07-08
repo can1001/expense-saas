@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 역할 ID 조회
-    const teamLeaderRole = await prisma.role.findUnique({
+    const teamLeaderRole = await prisma.role.findFirst({
       where: { code: 'team_leader' },
     });
 

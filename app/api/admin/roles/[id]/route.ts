@@ -73,7 +73,7 @@ const handlePut: UserApiHandler = async (request, { params }) => {
 
     // 코드 변경 시 중복 검사
     if (code && code !== existingRole.code) {
-      const duplicateRole = await prisma.role.findUnique({
+      const duplicateRole = await prisma.role.findFirst({
         where: { code },
       });
 

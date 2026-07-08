@@ -23,7 +23,7 @@ const handlePatch: UserApiHandler = async (request, { params }) => {
 
     // 이름 변경 시 중복 확인
     if (name && name.trim() !== existing.name) {
-      const duplicate = await prisma.budgetCategory.findUnique({
+      const duplicate = await prisma.budgetCategory.findFirst({
         where: { name: name.trim() },
       });
 

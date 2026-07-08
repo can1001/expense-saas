@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { createUser, findUserByUserid, checkCanRegisterUsers, DEFAULT_PASSWORD } from '@/lib/services/user-service';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 // 아이디 접두사
 const USERID_PREFIX = '청연';
@@ -9,16 +9,9 @@ const USERID_PREFIX = '청연';
  * POST /api/users/quick-register
  * 간편 사용자 등록 (이름만 입력하면 자동 등록)
  */
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    // 현재 사용자 확인
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
+    const currentUser = user;
 
     // 사용자 등록 권한 확인
     const hasPermission = await checkCanRegisterUsers(currentUser.id);
@@ -79,4 +72,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const POST = withAuth(handlePost);

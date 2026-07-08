@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/push/history
@@ -12,16 +12,9 @@ import { prisma } from '@/lib/prisma';
  *   page?: number (default: 1)
  *   limit?: number (default: 20, max: 100)
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
+    const currentUser = user;
 
     const searchParams = request.nextUrl.searchParams;
     const eventType = searchParams.get('eventType');
@@ -104,4 +97,6 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAuth(handleGet);

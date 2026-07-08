@@ -1,37 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getSessionUserId } from '@/lib/auth';
-
-/**
- * 현재 로그인한 사용자 조회 (세션 기반)
- */
-async function getCurrentUser() {
-  const userId = await getSessionUserId();
-
-  if (!userId) {
-    return null;
-  }
-
-  return prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, username: true },
-  });
-}
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/users/me/signatures
  * 내 서명/도장 목록 조회
  */
-export async function GET() {
+const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
+    const currentUser = user;
 
     const signatures = await prisma.userSignature.findMany({
       where: { userId: currentUser.id },
@@ -54,7 +31,7 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+};
 
 /**
  * POST /api/users/me/signatures
@@ -67,16 +44,9 @@ export async function GET() {
  *   isDefault?: boolean
  * }
  */
-export async function POST(request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
+    const currentUser = user;
 
     const body = await request.json();
     const { type, name, imageData, isDefault } = body;
@@ -148,4 +118,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const POST = withAuth(handlePost);

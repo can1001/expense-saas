@@ -51,7 +51,7 @@ const handlePost: UserApiHandler = async (request) => {
     }
 
     // 중복 확인
-    const existing = await prisma.budgetCategory.findUnique({
+    const existing = await prisma.budgetCategory.findFirst({
       where: { name: name.trim() },
     });
 

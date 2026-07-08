@@ -82,7 +82,7 @@ export const updateTenantSchema = z.object({
 
   suspendReason: z.string().max(500).optional().nullable(),
 
-  settings: z.record(z.unknown()).optional().nullable(),
+  settings: z.record(z.string(), z.unknown()).optional().nullable(),
 });
 
 export type UpdateTenantInput = z.infer<typeof updateTenantSchema>;

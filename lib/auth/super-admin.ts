@@ -114,15 +114,18 @@ export async function getSuperAdminFromRequest(request: NextRequest): Promise<Su
 export type SuperAdminApiHandler = (
   request: NextRequest,
   context: {
-    params?: Promise<Record<string, string>>;
+    params: Promise<Record<string, string>>;
     superAdmin: SuperAdminSession;
   }
 ) => Promise<NextResponse>;
 
+// Next.js 16 Route Handler 타입과 호환을 위한 RouteContext 타입
+type RouteContext = { params: Promise<Record<string, string>> };
+
 export function withSuperAdmin(handler: SuperAdminApiHandler) {
   return async (
     request: NextRequest,
-    context?: { params?: Promise<Record<string, string>> }
+    context: RouteContext
   ): Promise<NextResponse> => {
     const superAdmin = await getSuperAdminFromRequest(request);
 
@@ -134,7 +137,7 @@ export function withSuperAdmin(handler: SuperAdminApiHandler) {
     }
 
     return handler(request, {
-      params: context?.params,
+      params: context.params,
       superAdmin,
     });
   };

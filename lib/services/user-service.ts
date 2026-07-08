@@ -124,7 +124,7 @@ export async function findUserById(
  * 로그인 ID(userid)로 사용자 조회
  */
 export async function findUserByUserid(userid: string): Promise<User | null> {
-  return prisma.user.findUnique({
+  return prisma.user.findFirst({
     where: { userid },
   });
 }

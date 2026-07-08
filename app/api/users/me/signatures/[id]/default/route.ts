@@ -1,41 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getSessionUserId } from '@/lib/auth';
-
-/**
- * 현재 로그인한 사용자 조회 (세션 기반)
- */
-async function getCurrentUser() {
-  const userId = await getSessionUserId();
-
-  if (!userId) {
-    return null;
-  }
-
-  return prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, username: true },
-  });
-}
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * PUT /api/users/me/signatures/[id]/default
  * 기본 서명/도장으로 설정
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const handlePut: UserApiHandler = async (request, { params, user }) => {
   try {
-    const { id } = await params;
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
+    const { id } = await params!;
+    const currentUser = user;
 
     // 대상 서명/도장 확인
     const target = await prisma.userSignature.findFirst({
@@ -82,4 +56,6 @@ export async function PUT(
       { status: 500 }
     );
   }
-}
+};
+
+export const PUT = withAuth(handlePut);

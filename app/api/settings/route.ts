@@ -18,7 +18,7 @@ const handleGet: UserApiHandler = async (request) => {
 
     if (key) {
       // 단일 키 조회
-      const setting = await prisma.systemSetting.findUnique({
+      const setting = await prisma.systemSetting.findFirst({
         where: { key },
       });
 
@@ -115,18 +115,29 @@ const handlePut: UserApiHandler = async (request) => {
     // 값을 문자열로 변환 (JSON 직렬화)
     const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
 
-    const setting = await prisma.systemSetting.upsert({
+    // 기존 설정 확인
+    const existing = await prisma.systemSetting.findFirst({
       where: { key },
-      update: {
-        value: stringValue,
-        description: description || undefined,
-      },
-      create: {
-        key,
-        value: stringValue,
-        description: description || null,
-      },
     });
+
+    let setting;
+    if (existing) {
+      setting = await prisma.systemSetting.update({
+        where: { id: existing.id },
+        data: {
+          value: stringValue,
+          description: description || undefined,
+        },
+      });
+    } else {
+      setting = await prisma.systemSetting.create({
+        data: {
+          key,
+          value: stringValue,
+          description: description || null,
+        },
+      });
+    }
 
     // 응답 값 파싱
     let parsedValue = setting.value;

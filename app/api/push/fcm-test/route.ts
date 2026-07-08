@@ -1,21 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { fcmProvider } from '@/lib/services/notification/fcm-provider';
+import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * POST /api/push/fcm-test
  * 테스트 FCM 푸시 발송 (모바일 앱 디버깅용)
  */
-export async function POST(_request: NextRequest) {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
+    const currentUser = user;
 
     if (!fcmProvider.isEnabled()) {
       return NextResponse.json(
@@ -74,4 +67,6 @@ export async function POST(_request: NextRequest) {
       { status: 500 }
     );
   }
-}
+};
+
+export const POST = withAuth(handlePost);
