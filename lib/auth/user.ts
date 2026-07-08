@@ -3,6 +3,7 @@ import { prismaBase } from '@/lib/prisma';
 import { SignJWT, jwtVerify, JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
 import { TenantContext, withTenantAsync } from '@/lib/tenant-context';
+import { findTenantBySubdomain } from '@/lib/tenant';
 
 // JWT 설정
 const JWT_SECRET = new TextEncoder().encode(
@@ -179,10 +180,35 @@ export function withAuth(handler: UserApiHandler) {
       );
     }
 
+    // 요청 헤더에서 서브도메인/테넌트 파라미터 확인
+    const subdomain = request.headers.get('x-tenant-subdomain');
+    const tenantParam = request.headers.get('x-tenant-param');
+    const requestedTenant = subdomain || tenantParam;
+
+    // 서브도메인이 지정된 경우 사용자 테넌트와 일치하는지 검증
+    if (requestedTenant) {
+      const resolvedTenant = await findTenantBySubdomain(requestedTenant);
+
+      if (!resolvedTenant) {
+        return NextResponse.json(
+          { error: '존재하지 않거나 비활성화된 조직입니다.' },
+          { status: 404 }
+        );
+      }
+
+      // 사용자의 테넌트와 요청된 테넌트 불일치 확인
+      if (resolvedTenant.tenantId !== user.tenantId) {
+        return NextResponse.json(
+          { error: '이 조직에 대한 접근 권한이 없습니다.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // 테넌트 컨텍스트 설정 후 핸들러 실행
     const tenantContext: TenantContext = {
       tenantId: user.tenantId,
-      subdomain: '', // 토큰에서는 subdomain 정보가 없음
+      subdomain: requestedTenant || '',
     };
 
     return withTenantAsync(tenantContext, async () => {
