@@ -16,6 +16,7 @@ import {
   Activity,
   Plus,
   Settings,
+  UserCog,
 } from 'lucide-react';
 
 interface PlatformStats {
@@ -338,7 +339,7 @@ export default function PlatformDashboard() {
       </div>
 
       {/* 빠른 작업 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Link
           href="/platform/tenants/new"
           className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-200 hover:border-indigo-300 hover:shadow transition-all"
@@ -367,6 +368,16 @@ export default function PlatformDashboard() {
             <Activity className="w-5 h-5 text-green-600" />
           </div>
           <span className="font-medium text-gray-900">활동 로그</span>
+        </Link>
+
+        <Link
+          href="/platform/admins"
+          className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-200 hover:border-indigo-300 hover:shadow transition-all"
+        >
+          <div className="p-2 bg-orange-100 rounded-lg">
+            <UserCog className="w-5 h-5 text-orange-600" />
+          </div>
+          <span className="font-medium text-gray-900">관리자</span>
         </Link>
 
         <Link
