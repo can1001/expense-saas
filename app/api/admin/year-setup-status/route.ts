@@ -1,12 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/admin/year-setup-status
  * 연도별 설정 완료율 조회
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
@@ -193,4 +194,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAdmin(handleGet);

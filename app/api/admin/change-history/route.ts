@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/admin/change-history
@@ -12,7 +13,7 @@ import { handleApiError } from '@/lib/api/error-handler';
  * - limit: number (default: 50)
  * - offset: number (default: 0)
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type') || 'all';
@@ -83,4 +84,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
+
+export const GET = withAdmin(handleGet);

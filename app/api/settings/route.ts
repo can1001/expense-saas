@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { handleApiError } from '@/lib/api/error-handler';
+import { withAuth, withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/settings
@@ -9,7 +10,7 @@ import { getCurrentUser } from '@/lib/auth';
  * Query: ?key=paymentSignatureRequired (특정 키) or ?keys=key1,key2 (여러 키)
  * 키 없으면 전체 설정 반환
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const { searchParams } = new URL(request.url);
     const key = searchParams.get('key');
@@ -89,13 +90,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Get settings error:', error);
-    return NextResponse.json(
-      { error: '설정을 불러오는 중 오류가 발생했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-}
+};
 
 /**
  * PUT /api/settings
@@ -103,26 +100,8 @@ export async function GET(request: NextRequest) {
  *
  * Body: { key: string, value: any, description?: string }
  */
-export async function PUT(request: NextRequest) {
+const handlePut: UserApiHandler = async (request) => {
   try {
-    // 현재 사용자 확인
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: '로그인이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
-    // 관리자 권한 확인
-    const allowedRoles = ['admin', 'finance_head'];
-    if (!allowedRoles.includes(currentUser.role)) {
-      return NextResponse.json(
-        { error: '설정 변경 권한이 없습니다.' },
-        { status: 403 }
-      );
-    }
-
     const body = await request.json();
     const { key, value, description } = body;
 
@@ -166,10 +145,9 @@ export async function PUT(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Update settings error:', error);
-    return NextResponse.json(
-      { error: '설정을 저장하는 중 오류가 발생했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-}
+};
+
+export const GET = withAuth(handleGet);
+export const PUT = withAdmin(handlePut);

@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from '@/lib/api/error-handler';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * 담당자 예외 현황 API
@@ -8,7 +10,7 @@ import { prisma } from '@/lib/prisma';
  *
  * 세목별 담당자가 해당 사역팀장과 다른 케이스 목록 조회
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
@@ -140,10 +142,8 @@ export async function GET(request: NextRequest) {
       exceptions,
     });
   } catch (error) {
-    console.error('Manager exceptions API error:', error);
-    return NextResponse.json(
-      { error: '담당자 예외 현황을 불러오는데 실패했습니다.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
-}
+};
+
+export const GET = withAdmin(handleGet);

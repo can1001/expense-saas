@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
+import { withAdmin, UserApiHandler } from '@/lib/auth/user';
 
 interface BudgetItem {
   name: string;
@@ -24,7 +25,7 @@ interface BudgetGroup {
  * GET /api/admin/hr-admin-execution
  * 인사 및 행정비 예산 집행 현황 조회
  */
-export async function GET(request: NextRequest) {
+const handleGet: UserApiHandler = async (request) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
@@ -287,7 +288,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+};
 
 // 표시용 이름 포맷팅
 function formatDisplayName(name: string): string {
@@ -297,3 +298,5 @@ function formatDisplayName(name: string): string {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+export const GET = withAdmin(handleGet);
