@@ -328,18 +328,18 @@ describe('user-service', () => {
 
   describe('findUserByUserid', () => {
     it('returns user when found', async () => {
-      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser);
+      vi.mocked(prisma.user.findFirst).mockResolvedValue(mockUser);
 
       const result = await findUserByUserid('testuser');
 
       expect(result).toEqual(mockUser);
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
         where: { userid: 'testuser' },
       });
     });
 
     it('returns null when user not found', async () => {
-      vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.user.findFirst).mockResolvedValue(null);
 
       const result = await findUserByUserid('nonexistent');
 

@@ -132,7 +132,7 @@ describe('useTemplates', () => {
     });
   });
 
-  describe('useTemplate (usageCount 증가)', () => {
+  describe('applyTemplate (usageCount 증가)', () => {
     it('템플릿 사용 시 usageCount가 증가한다', async () => {
       mockFetch
         .mockResolvedValueOnce({
@@ -152,7 +152,7 @@ describe('useTemplates', () => {
 
       let updatedTemplate;
       await act(async () => {
-        updatedTemplate = await result.current.useTemplate('1');
+        updatedTemplate = await result.current.applyTemplate('1');
       });
 
       expect(updatedTemplate).toEqual({ ...mockTemplates[0], usageCount: 6 });
@@ -180,7 +180,7 @@ describe('useTemplates', () => {
 
       let updatedTemplate;
       await act(async () => {
-        updatedTemplate = await result.current.useTemplate('999');
+        updatedTemplate = await result.current.applyTemplate('999');
       });
 
       expect(updatedTemplate).toBeNull();

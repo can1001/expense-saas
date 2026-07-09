@@ -410,13 +410,15 @@ describe('budget-upload', () => {
     describe('actual upload', () => {
       const createMockTx = () => ({
         committee: {
-          upsert: vi.fn().mockResolvedValue({ id: 'committee-1' }),
+          findFirst: vi.fn().mockResolvedValue(null),
+          create: vi.fn().mockResolvedValue({ id: 'committee-1' }),
         },
         department: {
           upsert: vi.fn().mockResolvedValue({ id: 'department-1' }),
         },
         budgetCategory: {
-          upsert: vi.fn().mockResolvedValue({ id: 'category-1' }),
+          findFirst: vi.fn().mockResolvedValue(null),
+          create: vi.fn().mockResolvedValue({ id: 'category-1' }),
           deleteMany: vi.fn(),
         },
         budgetSubcategory: {
@@ -438,8 +440,7 @@ describe('budget-upload', () => {
           deleteMany: vi.fn(),
         },
         user: {
-          findFirst: vi.fn().mockResolvedValue(null), // User not found by username
-          findUnique: vi.fn().mockResolvedValue(null), // User not found by userid
+          findFirst: vi.fn().mockResolvedValue(null), // User not found by username or userid
           create: vi.fn().mockResolvedValue({ id: 'user-1', username: '김대현', userid: '청연김대현' }),
         },
       });
@@ -544,8 +545,10 @@ describe('budget-upload', () => {
       it('should handle userid collision when creating new user', async () => {
         const mockTx = createMockTx();
         // username으로 찾지 못하고, 생성하려는 userid가 이미 존재하는 경우
-        mockTx.user.findFirst.mockResolvedValue(null);
-        mockTx.user.findUnique.mockResolvedValue({ id: 'existing-user-id', username: '다른이름', userid: '청연김대현' } as any);
+        // findFirst는 2번 호출됨: 1) username으로 조회, 2) userid로 조회
+        mockTx.user.findFirst
+          .mockResolvedValueOnce(null) // username으로 찾지 못함
+          .mockResolvedValueOnce({ id: 'existing-user-id', username: '다른이름', userid: '청연김대현' } as any); // userid로 찾음
 
         vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(mockTx));
 
@@ -564,7 +567,7 @@ describe('budget-upload', () => {
 
       it('should use existing user when found by username', async () => {
         const mockTx = createMockTx();
-        // username으로 기존 사용자를 찾은 경우
+        // username으로 기존 사용자를 찾은 경우 - 첫 번째 findFirst가 사용자를 찾음
         mockTx.user.findFirst.mockResolvedValue({ id: 'found-by-username-id', username: '김대현', userid: '청연김대현' } as any);
 
         vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(mockTx));
@@ -572,7 +575,6 @@ describe('budget-upload', () => {
         const result = await uploadBudgetData(testRows, 'merge');
 
         expect(result.success).toBe(true);
-        expect(mockTx.user.findUnique).not.toHaveBeenCalled(); // userid 조회 불필요
         expect(mockTx.user.create).not.toHaveBeenCalled(); // 새로 생성하지 않음
         expect(mockTx.budgetDetailYear.upsert).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -585,7 +587,8 @@ describe('budget-upload', () => {
 
       it('should handle database errors during upload', async () => {
         const mockTx = createMockTx();
-        mockTx.committee.upsert.mockRejectedValue(new Error('Database connection failed'));
+        // committee.findFirst에서 에러 발생
+        mockTx.committee.findFirst.mockRejectedValue(new Error('Database connection failed'));
 
         vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(mockTx));
 
@@ -599,7 +602,8 @@ describe('budget-upload', () => {
 
       it('should handle non-Error exceptions during upload', async () => {
         const mockTx = createMockTx();
-        mockTx.committee.upsert.mockRejectedValue('Unknown error');
+        // committee.findFirst에서 에러 발생
+        mockTx.committee.findFirst.mockRejectedValue('Unknown error');
 
         vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(mockTx));
 

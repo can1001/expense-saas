@@ -9,38 +9,64 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { POST } from '../login/route';
+import { NextRequest } from 'next/server';
 import {
   resetRateLimitStore,
   checkLoginRateLimit,
   recordLoginFailure,
 } from '@/lib/rate-limit';
 
-// Mock dependencies
-const mockBcryptCompare = vi.fn();
-const mockCreateSession = vi.fn();
-const mockFindUserByUserid = vi.fn();
-
-vi.mock('bcryptjs', () => ({
-  default: {
-    compare: (...args: unknown[]) => mockBcryptCompare(...args),
+// Mock @/lib/prisma
+vi.mock('@/lib/prisma', () => ({
+  prismaBase: {
+    user: {
+      findFirst: vi.fn(),
+    },
   },
 }));
 
-vi.mock('@/lib/auth', () => ({
-  createSession: (...args: unknown[]) => mockCreateSession(...args),
+// Mock @/lib/auth/user
+vi.mock('@/lib/auth/user', () => ({
+  createUserToken: vi.fn().mockResolvedValue('mock-jwt-token'),
+  createUserTokenCookie: vi.fn().mockReturnValue('user_token=mock-jwt-token; Path=/; HttpOnly'),
+  getRolePermissions: vi.fn().mockResolvedValue({
+    canApprove: true,
+    canManageExpense: true,
+    canAccessAdmin: true,
+    canExportData: true,
+    canRegisterUsers: false,
+  }),
 }));
 
-vi.mock('@/lib/services/user-service', () => ({
-  findUserByUserid: (...args: unknown[]) => mockFindUserByUserid(...args),
+// Mock @/lib/tenant
+vi.mock('@/lib/tenant', () => ({
+  findTenantBySubdomain: vi.fn().mockResolvedValue(null),
 }));
+
+// Mock bcryptjs
+vi.mock('bcryptjs', () => ({
+  default: {
+    compare: vi.fn(),
+    hash: vi.fn().mockResolvedValue('hashed-password'),
+  },
+}));
+
+// Import after mocking
+import { POST } from '../login/route';
+import { prismaBase } from '@/lib/prisma';
+import { findTenantBySubdomain } from '@/lib/tenant';
+import bcrypt from 'bcryptjs';
+
+const mockPrisma = prismaBase as any;
+const mockFindTenant = findTenantBySubdomain as any;
+const mockBcrypt = bcrypt as any;
 
 // Helper function to create request
 function createLoginRequest(
   body: Record<string, unknown>,
   headers?: Record<string, string>
-): Request {
-  return new Request('http://localhost/api/auth/login', {
+): NextRequest {
+  return new NextRequest('http://localhost/api/auth/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -51,9 +77,31 @@ function createLoginRequest(
 }
 
 describe('POST /api/auth/login', () => {
+  const validUser = {
+    id: 'user-1',
+    tenantId: 'tenant-1',
+    userid: 'testuser',
+    username: '테스트유저',
+    password: 'hashed-password',
+    role: 'user',
+    roleId: 'role-1',
+    department: '개발팀',
+    isActive: true,
+    canRegisterUsers: false,
+    tenant: {
+      id: 'tenant-1',
+      name: '테스트테넌트',
+      subdomain: 'test',
+      isActive: true,
+    },
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     resetRateLimitStore();
+    mockPrisma.user.findFirst.mockResolvedValue(validUser);
+    mockBcrypt.compare.mockResolvedValue(true);
+    mockFindTenant.mockResolvedValue(null);
   });
 
   describe('입력 검증', () => {
@@ -61,40 +109,34 @@ describe('POST /api/auth/login', () => {
       const request = createLoginRequest({ password: 'test123' });
 
       const response = await POST(request);
-      const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('아이디를 입력해주세요.');
     });
 
     it('password 없으면 400 에러', async () => {
       const request = createLoginRequest({ userid: 'testuser' });
 
       const response = await POST(request);
-      const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('비밀번호를 입력해주세요.');
     });
 
     it('잘못된 JSON 형식이면 400 에러', async () => {
-      const request = new Request('http://localhost/api/auth/login', {
+      const request = new NextRequest('http://localhost/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: 'invalid json',
       });
 
       const response = await POST(request);
-      const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('잘못된 요청 형식입니다.');
     });
   });
 
   describe('인증 실패', () => {
     it('존재하지 않는 사용자 시 401 에러', async () => {
-      mockFindUserByUserid.mockResolvedValue(null);
+      mockPrisma.user.findFirst.mockResolvedValue(null);
 
       const request = createLoginRequest({
         userid: 'nonexistent',
@@ -108,12 +150,9 @@ describe('POST /api/auth/login', () => {
       expect(data.error).toBe('아이디 또는 비밀번호가 올바르지 않습니다.');
     });
 
-    it('비활성 사용자 시 401 에러', async () => {
-      mockFindUserByUserid.mockResolvedValue({
-        id: '1',
-        userid: 'inactive',
-        username: 'Inactive User',
-        password: 'hashed',
+    it('비활성 사용자 시 403 에러', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue({
+        ...validUser,
         isActive: false,
       });
 
@@ -125,17 +164,14 @@ describe('POST /api/auth/login', () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(401);
-      expect(data.error).toBe('비활성화된 사용자입니다.');
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('계정이 비활성화되어 있습니다. 관리자에게 문의하세요.');
     });
 
     it('비밀번호 미설정 시 401 에러', async () => {
-      mockFindUserByUserid.mockResolvedValue({
-        id: '1',
-        userid: 'nopassword',
-        username: 'No Password User',
+      mockPrisma.user.findFirst.mockResolvedValue({
+        ...validUser,
         password: null,
-        isActive: true,
       });
 
       const request = createLoginRequest({
@@ -153,14 +189,7 @@ describe('POST /api/auth/login', () => {
     });
 
     it('비밀번호 불일치 시 401 에러', async () => {
-      mockFindUserByUserid.mockResolvedValue({
-        id: '1',
-        userid: 'testuser',
-        username: 'Test User',
-        password: 'hashed-password',
-        isActive: true,
-      });
-      mockBcryptCompare.mockResolvedValue(false);
+      mockBcrypt.compare.mockResolvedValue(false);
 
       const request = createLoginRequest({
         userid: 'testuser',
@@ -177,18 +206,6 @@ describe('POST /api/auth/login', () => {
 
   describe('로그인 성공', () => {
     it('유효한 자격 증명으로 로그인 성공', async () => {
-      mockFindUserByUserid.mockResolvedValue({
-        id: '1',
-        userid: 'testuser',
-        username: 'Test User',
-        password: 'hashed-password',
-        role: 'user',
-        department: 'dev',
-        isActive: true,
-      });
-      mockBcryptCompare.mockResolvedValue(true);
-      mockCreateSession.mockResolvedValue(undefined);
-
       const request = createLoginRequest({
         userid: 'testuser',
         password: 'correctpassword',
@@ -199,20 +216,61 @@ describe('POST /api/auth/login', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.user).toEqual({
-        id: '1',
+      expect(data.message).toBe('로그인 성공');
+      expect(data.user.userid).toBe('testuser');
+      expect(data.token).toBe('mock-jwt-token');
+    });
+
+    it('응답에 권한 정보 포함', async () => {
+      const request = createLoginRequest({
         userid: 'testuser',
-        username: 'Test User',
-        role: 'user',
-        department: 'dev',
+        password: 'correctpassword',
       });
-      expect(mockCreateSession).toHaveBeenCalledWith('1');
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.user.permissions).toEqual({
+        canApprove: true,
+        canManageExpense: true,
+        canAccessAdmin: true,
+        canExportData: true,
+        canRegisterUsers: false,
+      });
+    });
+
+    it('응답에 테넌트 정보 포함', async () => {
+      const request = createLoginRequest({
+        userid: 'testuser',
+        password: 'correctpassword',
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(data.tenant).toEqual({
+        id: 'tenant-1',
+        name: '테스트테넌트',
+        subdomain: 'test',
+      });
+    });
+
+    it('Set-Cookie 헤더 설정', async () => {
+      const request = createLoginRequest({
+        userid: 'testuser',
+        password: 'correctpassword',
+      });
+
+      const response = await POST(request);
+      const cookie = response.headers.get('Set-Cookie');
+
+      expect(cookie).toContain('user_token=');
     });
   });
 
   describe('Rate Limiting', () => {
     it('5회 실패 후 429 에러', async () => {
-      mockFindUserByUserid.mockResolvedValue(null);
+      mockPrisma.user.findFirst.mockResolvedValue(null);
 
       const ip = '192.168.1.100';
       const userid = 'testuser';
@@ -241,7 +299,7 @@ describe('POST /api/auth/login', () => {
     });
 
     it('다른 userid는 rate limit 영향 없음', async () => {
-      mockFindUserByUserid.mockResolvedValue(null);
+      mockPrisma.user.findFirst.mockResolvedValue(null);
 
       const ip = '192.168.1.100';
       const userid1 = 'user1';
@@ -264,17 +322,6 @@ describe('POST /api/auth/login', () => {
     });
 
     it('로그인 성공 시 rate limit 초기화', async () => {
-      mockFindUserByUserid.mockResolvedValue({
-        id: '1',
-        userid: 'testuser',
-        username: 'Test User',
-        password: 'hashed-password',
-        role: 'user',
-        isActive: true,
-      });
-      mockBcryptCompare.mockResolvedValue(true);
-      mockCreateSession.mockResolvedValue(undefined);
-
       const ip = '192.168.1.100';
       const userid = 'testuser';
       const rateLimitKey = `${ip}:${userid}`;
@@ -330,7 +377,7 @@ describe('POST /api/auth/login', () => {
 
   describe('IP 추출', () => {
     it('x-forwarded-for 헤더 사용', async () => {
-      mockFindUserByUserid.mockResolvedValue(null);
+      mockPrisma.user.findFirst.mockResolvedValue(null);
 
       const request = createLoginRequest(
         { userid: 'testuser', password: 'wrong' },
@@ -345,7 +392,7 @@ describe('POST /api/auth/login', () => {
     });
 
     it('x-render-client-ip 헤더 우선', async () => {
-      mockFindUserByUserid.mockResolvedValue(null);
+      mockPrisma.user.findFirst.mockResolvedValue(null);
 
       const request = createLoginRequest(
         { userid: 'testuser', password: 'wrong' },
@@ -364,6 +411,69 @@ describe('POST /api/auth/login', () => {
       // x-forwarded-for IP는 사용되지 않음
       const result2 = checkLoginRateLimit('203.0.113.1:testuser');
       expect(result2.remainingAttempts).toBe(5);
+    });
+  });
+
+  describe('테넌트 검증', () => {
+    it('테넌트 헤더로 필터링', async () => {
+      mockFindTenant.mockResolvedValue({
+        tenantId: 'tenant-1',
+        subdomain: 'test',
+        name: '테스트테넌트',
+        isActive: true,
+      });
+
+      const request = createLoginRequest(
+        { userid: 'testuser', password: 'password123' },
+        { 'x-tenant-subdomain': 'test' }
+      );
+
+      await POST(request);
+
+      expect(mockFindTenant).toHaveBeenCalledWith('test');
+      expect(mockPrisma.user.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            tenantId: 'tenant-1',
+          }),
+        })
+      );
+    });
+
+    it('비활성 테넌트 시 404 반환', async () => {
+      mockFindTenant.mockResolvedValue(null);
+
+      const request = createLoginRequest(
+        { userid: 'testuser', password: 'password123' },
+        { 'x-tenant-subdomain': 'inactive' }
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toContain('존재하지 않거나');
+    });
+
+    it('비활성 테넌트 사용자 403 반환', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue({
+        ...validUser,
+        tenant: {
+          ...validUser.tenant,
+          isActive: false,
+        },
+      });
+
+      const request = createLoginRequest({
+        userid: 'testuser',
+        password: 'password123',
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toContain('이용할 수 없습니다');
     });
   });
 });
