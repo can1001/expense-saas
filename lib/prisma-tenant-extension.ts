@@ -75,20 +75,24 @@ export function isTenantScopedModel(model: string): model is TenantScopedModel {
 
 /**
  * where 절에 tenantId 조건 추가
+ * Object.create(null)로 프로토타입 오염 방지
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function addTenantFilter(where: any, tenantId: string): any {
-  return {
-    ...where,
-    tenantId,
-  };
+  // 프로토타입 오염 방지: null 프로토타입 객체 사용
+  const safeWhere = where && typeof where === 'object' ? where : {};
+  return Object.assign(Object.create(null), safeWhere, { tenantId });
 }
 
 /**
- * data에 tenantId 추가 (중첩 생성 포함)
+ * data에 tenantId 추가 (중첩 생성/수정 포함)
  * Prisma nested writes 패턴 지원:
  * - { items: { create: [...] } }
  * - { items: { createMany: { data: [...] } } }
+ * - { items: { connectOrCreate: { where, create } } }
+ * - { items: { update: { where, data } } }
+ * - { items: { upsert: { where, create, update } } }
+ * - { items: { updateMany: { where, data } } }
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function addTenantToData(data: any, tenantId: string): any {
@@ -128,7 +132,7 @@ export function addTenantToData(data: any, tenantId: string): any {
           },
         };
       }
-      // connectOrCreate 중첩 처리
+      // connectOrCreate 중첩 처리 (where와 create 모두에 tenantId 적용)
       if (value.connectOrCreate !== undefined) {
         const connectOrCreate = value.connectOrCreate;
         // 배열 또는 단일 객체 처리
@@ -138,6 +142,7 @@ export function addTenantToData(data: any, tenantId: string): any {
             connectOrCreate: connectOrCreate.map(
               (item: { where: unknown; create: unknown }) => ({
                 ...item,
+                where: addTenantFilter(item.where, tenantId),
                 create: addTenantToData(item.create, tenantId),
               })
             ),
@@ -147,8 +152,101 @@ export function addTenantToData(data: any, tenantId: string): any {
             ...value,
             connectOrCreate: {
               ...connectOrCreate,
+              where: addTenantFilter(connectOrCreate.where, tenantId),
               create: addTenantToData(connectOrCreate.create, tenantId),
             },
+          };
+        }
+      }
+      // update 중첩 처리 (where와 data 모두에 tenantId 적용)
+      if (value.update !== undefined) {
+        const update = value.update;
+        if (Array.isArray(update)) {
+          result[key] = {
+            ...value,
+            update: update.map((item: { where: unknown; data: unknown }) => ({
+              ...item,
+              where: addTenantFilter(item.where, tenantId),
+              data: addTenantToData(item.data, tenantId),
+            })),
+          };
+        } else if (update.where !== undefined && update.data !== undefined) {
+          result[key] = {
+            ...value,
+            update: {
+              ...update,
+              where: addTenantFilter(update.where, tenantId),
+              data: addTenantToData(update.data, tenantId),
+            },
+          };
+        }
+      }
+      // upsert 중첩 처리 (where, create, update 모두에 tenantId 적용)
+      if (value.upsert !== undefined) {
+        const upsert = value.upsert;
+        if (Array.isArray(upsert)) {
+          result[key] = {
+            ...value,
+            upsert: upsert.map(
+              (item: { where: unknown; create: unknown; update: unknown }) => ({
+                ...item,
+                where: addTenantFilter(item.where, tenantId),
+                create: addTenantToData(item.create, tenantId),
+                update: addTenantToData(item.update, tenantId),
+              })
+            ),
+          };
+        } else {
+          result[key] = {
+            ...value,
+            upsert: {
+              ...upsert,
+              where: addTenantFilter(upsert.where, tenantId),
+              create: addTenantToData(upsert.create, tenantId),
+              update: addTenantToData(upsert.update, tenantId),
+            },
+          };
+        }
+      }
+      // updateMany 중첩 처리 (where와 data에 tenantId 적용)
+      if (value.updateMany !== undefined) {
+        const updateMany = value.updateMany;
+        if (Array.isArray(updateMany)) {
+          result[key] = {
+            ...value,
+            updateMany: updateMany.map(
+              (item: { where: unknown; data: unknown }) => ({
+                ...item,
+                where: addTenantFilter(item.where, tenantId),
+                data: addTenantToData(item.data, tenantId),
+              })
+            ),
+          };
+        } else {
+          result[key] = {
+            ...value,
+            updateMany: {
+              ...updateMany,
+              where: addTenantFilter(updateMany.where, tenantId),
+              data: addTenantToData(updateMany.data, tenantId),
+            },
+          };
+        }
+      }
+      // deleteMany 중첩 처리 (where에 tenantId 적용)
+      if (value.deleteMany !== undefined) {
+        const deleteMany = value.deleteMany;
+        if (Array.isArray(deleteMany)) {
+          result[key] = {
+            ...value,
+            deleteMany: deleteMany.map((item: unknown) =>
+              addTenantFilter(item, tenantId)
+            ),
+          };
+        } else if (typeof deleteMany === 'object') {
+          result[key] = {
+            ...value,
+            deleteMany: addTenantFilter(deleteMany, tenantId),
           };
         }
       }

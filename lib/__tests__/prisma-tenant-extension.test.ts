@@ -182,6 +182,25 @@ describe('prisma-tenant-extension', () => {
       expect(result.OR).toEqual(where.OR);
       expect(result.tenantId).toBe('tenant-123');
     });
+
+    it('should prevent prototype pollution via __proto__', () => {
+      // 프로토타입 오염 공격 시도
+      const maliciousWhere = JSON.parse('{"__proto__": {"polluted": true}, "status": "ACTIVE"}');
+      const result = addTenantFilter(maliciousWhere, tenantId);
+
+      // 결과 객체가 prototype pollution에 안전해야 함
+      expect(result.tenantId).toBe('tenant-123');
+      expect(result.status).toBe('ACTIVE');
+      // null 프로토타입 객체이므로 Object.prototype이 오염되지 않음
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    });
+
+    it('should handle non-object where input safely', () => {
+      // 문자열이나 숫자 등 비객체 입력 처리
+      expect(addTenantFilter('invalid' as unknown, tenantId)).toEqual({ tenantId: 'tenant-123' });
+      expect(addTenantFilter(123 as unknown, tenantId)).toEqual({ tenantId: 'tenant-123' });
+      expect(addTenantFilter(true as unknown, tenantId)).toEqual({ tenantId: 'tenant-123' });
+    });
   });
 
   describe('addTenantToData', () => {
@@ -700,7 +719,7 @@ describe('prisma-tenant-extension', () => {
     });
 
     describe('connectOrCreate pattern', () => {
-      it('should add tenantId to single connectOrCreate create', () => {
+      it('should add tenantId to single connectOrCreate where and create', () => {
         const tenantId = 'tenant-connectOrCreate';
         const data = {
           name: 'Expense',
@@ -716,11 +735,12 @@ describe('prisma-tenant-extension', () => {
 
         expect(result.tenantId).toBe(tenantId);
         expect(result.category.connectOrCreate.create.tenantId).toBe(tenantId);
-        // where는 수정하지 않음 (connectOrCreate의 where는 기존 레코드 찾기용)
-        expect(result.category.connectOrCreate.where).toEqual({ id: 'cat-1' });
+        // where에도 tenantId 추가되어 크로스 테넌트 connect 방지
+        expect(result.category.connectOrCreate.where.tenantId).toBe(tenantId);
+        expect(result.category.connectOrCreate.where.id).toBe('cat-1');
       });
 
-      it('should add tenantId to array connectOrCreate creates', () => {
+      it('should add tenantId to array connectOrCreate where and creates', () => {
         const tenantId = 'tenant-array-connectOrCreate';
         const data = {
           name: 'Expense',
@@ -743,9 +763,9 @@ describe('prisma-tenant-extension', () => {
         expect(result.tenantId).toBe(tenantId);
         expect(result.items.connectOrCreate[0].create.tenantId).toBe(tenantId);
         expect(result.items.connectOrCreate[1].create.tenantId).toBe(tenantId);
-        // where는 변경되지 않음
-        expect(result.items.connectOrCreate[0].where).toEqual({ id: 'item-1' });
-        expect(result.items.connectOrCreate[1].where).toEqual({ id: 'item-2' });
+        // where에도 tenantId 추가
+        expect(result.items.connectOrCreate[0].where.tenantId).toBe(tenantId);
+        expect(result.items.connectOrCreate[1].where.tenantId).toBe(tenantId);
       });
 
       it('should handle deeply nested connectOrCreate in create', () => {
@@ -770,6 +790,211 @@ describe('prisma-tenant-extension', () => {
         expect(result.tenantId).toBe(tenantId);
         expect(result.children.create.tenantId).toBe(tenantId);
         expect(result.children.create.category.connectOrCreate.create.tenantId).toBe(tenantId);
+        expect(result.children.create.category.connectOrCreate.where.tenantId).toBe(tenantId);
+      });
+
+      it('should prevent cross-tenant connect by adding tenantId to where', () => {
+        const tenantId = 'tenant-a';
+        // 공격자가 다른 테넌트의 레코드를 connect 시도
+        const maliciousData = {
+          name: 'Expense',
+          category: {
+            connectOrCreate: {
+              where: { id: 'category-from-tenant-b' },
+              create: { name: 'New Category' },
+            },
+          },
+        };
+
+        const result = addTenantToData(maliciousData, tenantId);
+
+        // where에 tenant-a 필터가 추가되어 tenant-b 레코드 connect 불가
+        expect(result.category.connectOrCreate.where.tenantId).toBe('tenant-a');
+      });
+    });
+
+    describe('nested update pattern', () => {
+      it('should add tenantId to nested update where and data', () => {
+        const tenantId = 'tenant-nested-update';
+        const data = {
+          name: 'Expense',
+          items: {
+            update: {
+              where: { id: 'item-1' },
+              data: { amount: 200 },
+            },
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.tenantId).toBe(tenantId);
+        expect(result.items.update.where.tenantId).toBe(tenantId);
+        expect(result.items.update.data.tenantId).toBe(tenantId);
+      });
+
+      it('should add tenantId to array nested updates', () => {
+        const tenantId = 'tenant-array-update';
+        const data = {
+          name: 'Expense',
+          items: {
+            update: [
+              { where: { id: 'item-1' }, data: { amount: 100 } },
+              { where: { id: 'item-2' }, data: { amount: 200 } },
+            ],
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.items.update[0].where.tenantId).toBe(tenantId);
+        expect(result.items.update[0].data.tenantId).toBe(tenantId);
+        expect(result.items.update[1].where.tenantId).toBe(tenantId);
+        expect(result.items.update[1].data.tenantId).toBe(tenantId);
+      });
+    });
+
+    describe('nested upsert pattern', () => {
+      it('should add tenantId to nested upsert where, create, and update', () => {
+        const tenantId = 'tenant-nested-upsert';
+        const data = {
+          name: 'Expense',
+          items: {
+            upsert: {
+              where: { id: 'item-1' },
+              create: { id: 'item-1', amount: 100 },
+              update: { amount: 200 },
+            },
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.tenantId).toBe(tenantId);
+        expect(result.items.upsert.where.tenantId).toBe(tenantId);
+        expect(result.items.upsert.create.tenantId).toBe(tenantId);
+        expect(result.items.upsert.update.tenantId).toBe(tenantId);
+      });
+
+      it('should add tenantId to array nested upserts', () => {
+        const tenantId = 'tenant-array-upsert';
+        const data = {
+          items: {
+            upsert: [
+              { where: { id: '1' }, create: { amount: 100 }, update: { amount: 150 } },
+              { where: { id: '2' }, create: { amount: 200 }, update: { amount: 250 } },
+            ],
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.items.upsert[0].where.tenantId).toBe(tenantId);
+        expect(result.items.upsert[0].create.tenantId).toBe(tenantId);
+        expect(result.items.upsert[0].update.tenantId).toBe(tenantId);
+        expect(result.items.upsert[1].where.tenantId).toBe(tenantId);
+      });
+    });
+
+    describe('nested updateMany pattern', () => {
+      it('should add tenantId to nested updateMany where and data', () => {
+        const tenantId = 'tenant-updateMany';
+        const data = {
+          name: 'Expense',
+          items: {
+            updateMany: {
+              where: { status: 'PENDING' },
+              data: { status: 'APPROVED' },
+            },
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.tenantId).toBe(tenantId);
+        expect(result.items.updateMany.where.tenantId).toBe(tenantId);
+        expect(result.items.updateMany.data.tenantId).toBe(tenantId);
+      });
+
+      it('should prevent cross-tenant updateMany via where filtering', () => {
+        const tenantId = 'tenant-a';
+        // 공격자가 다른 테넌트의 레코드를 일괄 수정 시도
+        const maliciousData = {
+          items: {
+            updateMany: {
+              where: { tenantId: 'tenant-b' }, // 악의적 tenantId 주입
+              data: { amount: 0 },
+            },
+          },
+        };
+
+        const result = addTenantToData(maliciousData, tenantId);
+
+        // tenantId가 tenant-a로 강제 덮어쓰기
+        expect(result.items.updateMany.where.tenantId).toBe('tenant-a');
+      });
+
+      it('should handle array updateMany', () => {
+        const tenantId = 'tenant-array-updateMany';
+        const data = {
+          items: {
+            updateMany: [
+              { where: { type: 'A' }, data: { status: 'DONE' } },
+              { where: { type: 'B' }, data: { status: 'DONE' } },
+            ],
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.items.updateMany[0].where.tenantId).toBe(tenantId);
+        expect(result.items.updateMany[1].where.tenantId).toBe(tenantId);
+      });
+    });
+
+    describe('nested deleteMany pattern', () => {
+      it('should add tenantId to nested deleteMany where', () => {
+        const tenantId = 'tenant-deleteMany';
+        const data = {
+          name: 'Expense',
+          items: {
+            deleteMany: { status: 'CANCELLED' },
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.tenantId).toBe(tenantId);
+        expect(result.items.deleteMany.tenantId).toBe(tenantId);
+      });
+
+      it('should prevent cross-tenant deleteMany via where filtering', () => {
+        const tenantId = 'tenant-a';
+        // 공격자가 다른 테넌트의 레코드를 일괄 삭제 시도
+        const maliciousData = {
+          items: {
+            deleteMany: { tenantId: 'tenant-b' },
+          },
+        };
+
+        const result = addTenantToData(maliciousData, tenantId);
+
+        // tenantId가 tenant-a로 강제 덮어쓰기
+        expect(result.items.deleteMany.tenantId).toBe('tenant-a');
+      });
+
+      it('should handle array deleteMany', () => {
+        const tenantId = 'tenant-array-deleteMany';
+        const data = {
+          items: {
+            deleteMany: [{ type: 'A' }, { type: 'B' }],
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.items.deleteMany[0].tenantId).toBe(tenantId);
+        expect(result.items.deleteMany[1].tenantId).toBe(tenantId);
       });
     });
   });
