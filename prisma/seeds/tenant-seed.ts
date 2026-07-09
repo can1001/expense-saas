@@ -12,6 +12,7 @@ import { PrismaClient, OrgType, PlanType } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 import { config } from 'dotenv';
+import { getDefaultDataForOrgType } from '../../lib/tenant/default-chart-of-accounts';
 
 // .env 파일 로드
 config();
@@ -230,6 +231,86 @@ async function main() {
       where: { id: tenant.id },
       data: { currentUsers: 2 },
     });
+
+    // 기본 계정과목 생성 (조직 유형에 따라)
+    console.log(`  - 기본 계정과목 생성 중 (${tenantData.orgType})...`);
+    const defaultData = getDefaultDataForOrgType(tenantData.orgType);
+
+    let committeesCreated = 0;
+    let departmentsCreated = 0;
+    let categoriesCreated = 0;
+    let subcategoriesCreated = 0;
+    let detailsCreated = 0;
+
+    // 위원회 및 부서 생성
+    for (const committeeData of defaultData.committees) {
+      const committee = await prisma.committee.create({
+        data: {
+          tenantId: tenant.id,
+          name: committeeData.name,
+          sortOrder: committeeData.sortOrder,
+          isActive: true,
+        },
+      });
+      committeesCreated++;
+
+      for (const deptData of committeeData.departments) {
+        await prisma.department.create({
+          data: {
+            tenantId: tenant.id,
+            committeeId: committee.id,
+            name: deptData.name,
+            sortOrder: deptData.sortOrder,
+            isActive: true,
+          },
+        });
+        departmentsCreated++;
+      }
+    }
+
+    // 예산 항목 생성
+    for (const categoryData of defaultData.budgetCategories) {
+      const category = await prisma.budgetCategory.create({
+        data: {
+          tenantId: tenant.id,
+          name: categoryData.name,
+          sortOrder: categoryData.sortOrder,
+          isActive: true,
+        },
+      });
+      categoriesCreated++;
+
+      for (const subcategoryData of categoryData.subcategories) {
+        const subcategory = await prisma.budgetSubcategory.create({
+          data: {
+            tenantId: tenant.id,
+            categoryId: category.id,
+            name: subcategoryData.name,
+            sortOrder: subcategoryData.sortOrder,
+            isActive: true,
+          },
+        });
+        subcategoriesCreated++;
+
+        for (const detailData of subcategoryData.details) {
+          await prisma.budgetDetail.create({
+            data: {
+              tenantId: tenant.id,
+              subcategoryId: subcategory.id,
+              name: detailData.name,
+              accountCode: detailData.accountCode,
+              description: detailData.description,
+              sortOrder: detailData.sortOrder,
+              isActive: true,
+            },
+          });
+          detailsCreated++;
+        }
+      }
+    }
+
+    console.log(`    위원회 ${committeesCreated}개, 부서 ${departmentsCreated}개 생성`);
+    console.log(`    예산항목: 항 ${categoriesCreated}개, 목 ${subcategoriesCreated}개, 세목 ${detailsCreated}개 생성`);
 
     console.log('');
   }

@@ -8,6 +8,7 @@ import {
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { withSuperAdmin } from '@/lib/auth/super-admin';
 import { logPlatformActivity } from '@/lib/platform/activity-log';
+import { seedDefaultData } from '@/lib/tenant/seed-default-data';
 import bcrypt from 'bcryptjs';
 
 // GET /api/platform/tenants - 테넌트 목록 조회
@@ -129,8 +130,8 @@ export const POST = withSuperAdmin(async (request: NextRequest, { superAdmin }) 
     // 요금제에 따른 기본 제한 설정
     const limits = planLimits[data.plan];
 
-    // 트랜잭션으로 테넌트 및 초기 관리자 생성
-    const tenant = await prismaBase.$transaction(async (tx) => {
+    // 트랜잭션으로 테넌트, 초기 관리자, 기본 계정과목 생성
+    const result = await prismaBase.$transaction(async (tx) => {
       // 1. 테넌트 생성
       const newTenant = await tx.tenant.create({
         data: {
@@ -203,7 +204,14 @@ export const POST = withSuperAdmin(async (request: NextRequest, { superAdmin }) 
 
       await tx.role.createMany({ data: roles });
 
-      // 3. 초기 관리자 계정 생성 (제공된 경우)
+      // 3. 조직 유형에 따른 기본 계정과목 생성
+      const seedResult = await seedDefaultData({
+        tenantId: newTenant.id,
+        orgType: data.orgType,
+        tx,
+      });
+
+      // 4. 초기 관리자 계정 생성 (제공된 경우)
       if (data.adminEmail && data.adminName && data.adminPassword) {
         const hashedPassword = await bcrypt.hash(data.adminPassword, 10);
 
@@ -225,7 +233,7 @@ export const POST = withSuperAdmin(async (request: NextRequest, { superAdmin }) 
         });
       }
 
-      return newTenant;
+      return { tenant: newTenant, seedResult };
     });
 
     // 활동 로그 기록
@@ -234,19 +242,20 @@ export const POST = withSuperAdmin(async (request: NextRequest, { superAdmin }) 
       superAdminEmail: superAdmin.email,
       action: 'CREATE_TENANT',
       entityType: 'tenant',
-      entityId: tenant.id,
-      tenantId: tenant.id,
-      tenantName: tenant.name,
+      entityId: result.tenant.id,
+      tenantId: result.tenant.id,
+      tenantName: result.tenant.name,
       details: {
-        name: tenant.name,
-        subdomain: tenant.subdomain,
-        plan: tenant.plan,
-        orgType: tenant.orgType,
+        name: result.tenant.name,
+        subdomain: result.tenant.subdomain,
+        plan: result.tenant.plan,
+        orgType: result.tenant.orgType,
         hasInitialAdmin: !!(data.adminEmail),
+        defaultDataSeeded: result.seedResult,
       },
     });
 
-    return NextResponse.json(tenant, { status: 201 });
+    return NextResponse.json(result.tenant, { status: 201 });
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'ZodError') {
       const zodError = error as { errors?: Array<{ path: string[]; message: string }> };
