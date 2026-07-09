@@ -1,11 +1,17 @@
 /**
- * 테넌트 격리 통합 테스트
+ * 테넌트 격리 로직 테스트
  *
  * 테스트 대상:
- * - 테넌트 간 데이터 격리
- * - Prisma Extension의 자동 필터링
- * - 크로스 테넌트 접근 방지
- * - 테넌트 컨텍스트 전파
+ * - 테넌트 간 데이터 격리 로직
+ * - Prisma Extension의 자동 필터링 동작
+ * - 크로스 테넌트 접근 방지 시나리오
+ * - 테넌트 컨텍스트 전파 로직
+ *
+ * 테스트 전략:
+ * 실제 Prisma Extension은 데이터베이스 연결이 필요하므로,
+ * Extension의 로직을 시뮬레이션하여 격리 시나리오를 검증합니다.
+ *
+ * 실제 DB 연동 테스트는 E2E 테스트에서 수행합니다.
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';

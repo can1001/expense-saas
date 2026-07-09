@@ -87,10 +87,11 @@ const handleGet: UserApiHandler = async (request, { user }) => {
       _count: true,
     });
 
-    // 사용 가능한 월 목록
+    // 사용 가능한 월 목록 (테넌트 필터링 적용)
     const months = await prisma.$queryRaw<{ month: string }[]>`
       SELECT DISTINCT TO_CHAR(date, 'YYYY-MM') as month
       FROM "Offering"
+      WHERE tenant_id = ${user.tenantId}
       ORDER BY month DESC
     `;
 

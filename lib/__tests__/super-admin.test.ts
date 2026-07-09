@@ -7,8 +7,20 @@
  * - createTokenCookie
  * - createLogoutCookie
  *
- * Note: JWT 토큰 생성/검증은 jose 라이브러리에 의존하므로
- * 유닛 테스트에서는 mock/시뮬레이션을 사용
+ * 테스트 전략:
+ * lib/auth/super-admin.ts의 함수들은 다음 외부 의존성을 가짐:
+ * - jose 라이브러리 (JWT 생성/검증)
+ * - Prisma 클라이언트 (DB 조회)
+ * - Next.js cookies() 함수 (서버 컨텍스트)
+ *
+ * 따라서 두 가지 방식으로 테스트:
+ * 1. 로직 검증 (Logic Verification):
+ *    - 세션 검증, 토큰 추출, 쿠키 생성 등의 로직을 시뮬레이션
+ *    - 실제 구현과 동일한 로직을 검증
+ *
+ * 2. 구조 검증 (Structure Verification):
+ *    - SuperAdmin vs User 세션의 구조적 차이 검증
+ *    - 토큰 설정, 권한 범위 등의 차이점 확인
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';

@@ -38,8 +38,8 @@
 
 ## Phase 3: 통합 테스트 (P2) ✅
 
-- [x] **3.1** 테넌트 격리 통합 테스트 작성 (27 tests)
-  - 파일: `lib/__tests__/tenant-isolation.integration.test.ts`
+- [x] **3.1** 테넌트 격리 로직 테스트 작성 (27 tests)
+  - 파일: `lib/__tests__/tenant-isolation.test.ts`
   - 검증: `npm test -- tenant-isolation`
 
 - [x] **3.2** 플랫폼 API 테스트 작성 (23 tests)

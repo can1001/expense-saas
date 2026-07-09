@@ -206,50 +206,95 @@ describe('Platform Tenants API', () => {
       ENTERPRISE: { maxUsers: -1, maxStorageMB: -1 },
     };
 
-    const validateSubdomain = (subdomain: string): { valid: boolean; error?: string } => {
-      if (existingSubdomains.includes(subdomain)) {
-        return { valid: false, error: '이미 사용 중인 서브도메인입니다.' };
+    const VALID_PLANS = ['FREE', 'PRO', 'ENTERPRISE'] as const;
+    const SUBDOMAIN_REGEX = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+
+    type ValidationResult = { valid: true } | { valid: false; error: string; statusCode: number };
+
+    const isEmpty = (value: string | undefined): boolean => !value || value.trim() === '';
+
+    const REQUIRED_FIELDS = [
+      { key: 'name', label: '테넌트 이름' },
+      { key: 'subdomain', label: '서브도메인' },
+      { key: 'orgType', label: '조직 유형' },
+      { key: 'plan', label: '요금제' },
+    ] as const;
+
+    const validateRequiredFields = (input: Partial<CreateTenantInput>): ValidationResult => {
+      for (const { key, label } of REQUIRED_FIELDS) {
+        if (isEmpty(input[key as keyof CreateTenantInput] as string)) {
+          return { valid: false, error: `${label}은 필수입니다.`, statusCode: 400 };
+        }
       }
       return { valid: true };
     };
 
-    const validateCustomDomain = (domain: string | undefined): { valid: boolean; error?: string } => {
+    const validateSubdomain = (subdomain: string): ValidationResult => {
+      if (existingSubdomains.includes(subdomain)) {
+        return { valid: false, error: '이미 사용 중인 서브도메인입니다.', statusCode: 409 };
+      }
+      if (subdomain.length < 3) {
+        return { valid: false, error: '서브도메인은 최소 3자 이상이어야 합니다.', statusCode: 400 };
+      }
+      if (subdomain.length > 63) {
+        return { valid: false, error: '서브도메인은 63자를 초과할 수 없습니다.', statusCode: 400 };
+      }
+      if (!SUBDOMAIN_REGEX.test(subdomain)) {
+        return { valid: false, error: '서브도메인은 소문자, 숫자, 하이픈만 사용 가능하며 하이픈으로 시작/끝날 수 없습니다.', statusCode: 400 };
+      }
+      return { valid: true };
+    };
+
+    const validatePlan = (plan: string): ValidationResult => {
+      if (!VALID_PLANS.includes(plan as typeof VALID_PLANS[number])) {
+        return { valid: false, error: `유효하지 않은 요금제입니다. 사용 가능: ${VALID_PLANS.join(', ')}`, statusCode: 400 };
+      }
+      return { valid: true };
+    };
+
+    const validateCustomDomain = (domain: string | undefined): ValidationResult => {
       if (!domain) return { valid: true };
       if (existingDomains.includes(domain)) {
-        return { valid: false, error: '이미 사용 중인 커스텀 도메인입니다.' };
+        return { valid: false, error: '이미 사용 중인 커스텀 도메인입니다.', statusCode: 409 };
       }
       return { valid: true };
     };
 
-    const createTenant = (input: CreateTenantInput): {
-      success: boolean;
-      tenant?: any;
-      error?: string;
-      statusCode?: number;
-    } => {
-      // 서브도메인 중복 검사
-      const subdomainCheck = validateSubdomain(input.subdomain);
-      if (!subdomainCheck.valid) {
-        return { success: false, error: subdomainCheck.error, statusCode: 409 };
+    type CreateTenantResult =
+      | { success: true; tenant: any; statusCode: 201 }
+      | { success: false; error: string; statusCode: number };
+
+    const runValidations = (input: Partial<CreateTenantInput>): ValidationResult => {
+      const checks = [
+        () => validateRequiredFields(input),
+        () => validatePlan(input.plan!),
+        () => validateSubdomain(input.subdomain!),
+        () => validateCustomDomain(input.customDomain),
+      ];
+
+      for (const check of checks) {
+        const result = check();
+        if (!result.valid) return result;
+      }
+      return { valid: true };
+    };
+
+    const createTenant = (input: Partial<CreateTenantInput>): CreateTenantResult => {
+      const validation = runValidations(input);
+      if (!validation.valid) {
+        return { success: false, error: validation.error, statusCode: validation.statusCode };
       }
 
-      // 커스텀 도메인 중복 검사
-      const domainCheck = validateCustomDomain(input.customDomain);
-      if (!domainCheck.valid) {
-        return { success: false, error: domainCheck.error, statusCode: 409 };
-      }
-
-      // 요금제 제한 적용
-      const limits = planLimits[input.plan];
+      const limits = planLimits[input.plan!];
 
       // 테넌트 생성
       const newTenant = {
         id: `tenant-${Date.now()}`,
-        name: input.name,
-        subdomain: input.subdomain,
+        name: input.name!,
+        subdomain: input.subdomain!,
         customDomain: input.customDomain || null,
-        orgType: input.orgType,
-        plan: input.plan,
+        orgType: input.orgType!,
+        plan: input.plan!,
         description: input.description || null,
         maxUsers: limits.maxUsers,
         maxStorageMB: limits.maxStorageMB,
@@ -260,6 +305,241 @@ describe('Platform Tenants API', () => {
 
       return { success: true, tenant: newTenant, statusCode: 201 };
     };
+
+    // 필수 필드 검증 테스트
+    describe('Required field validation', () => {
+      it('should reject when name is missing', () => {
+        const result = createTenant({
+          subdomain: 'test',
+          orgType: 'church',
+          plan: 'FREE',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('테넌트 이름');
+        expect(result.statusCode).toBe(400);
+      });
+
+      it('should reject when name is empty', () => {
+        const result = createTenant({
+          name: '  ',
+          subdomain: 'test',
+          orgType: 'church',
+          plan: 'FREE',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('테넌트 이름');
+        expect(result.statusCode).toBe(400);
+      });
+
+      it('should reject when subdomain is missing', () => {
+        const result = createTenant({
+          name: 'Test Church',
+          orgType: 'church',
+          plan: 'FREE',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('서브도메인');
+        expect(result.statusCode).toBe(400);
+      });
+
+      it('should reject when orgType is missing', () => {
+        const result = createTenant({
+          name: 'Test Church',
+          subdomain: 'test',
+          plan: 'FREE',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('조직 유형');
+        expect(result.statusCode).toBe(400);
+      });
+
+      it('should reject when plan is missing', () => {
+        const result = createTenant({
+          name: 'Test Church',
+          subdomain: 'test',
+          orgType: 'church',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('요금제');
+        expect(result.statusCode).toBe(400);
+      });
+    });
+
+    // 서브도메인 형식 검증 테스트
+    describe('Subdomain format validation', () => {
+      it('should reject subdomain shorter than 3 characters', () => {
+        const result = createTenant({
+          name: 'Test',
+          subdomain: 'ab',
+          orgType: 'church',
+          plan: 'FREE',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('최소 3자');
+        expect(result.statusCode).toBe(400);
+      });
+
+      it('should reject subdomain with uppercase letters', () => {
+        const result = createTenant({
+          name: 'Test',
+          subdomain: 'TestChurch',
+          orgType: 'church',
+          plan: 'FREE',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('소문자');
+        expect(result.statusCode).toBe(400);
+      });
+
+      it('should reject subdomain starting with hyphen', () => {
+        const result = createTenant({
+          name: 'Test',
+          subdomain: '-testchurch',
+          orgType: 'church',
+          plan: 'FREE',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('하이픈으로 시작');
+        expect(result.statusCode).toBe(400);
+      });
+
+      it('should reject subdomain ending with hyphen', () => {
+        const result = createTenant({
+          name: 'Test',
+          subdomain: 'testchurch-',
+          orgType: 'church',
+          plan: 'FREE',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('하이픈');
+        expect(result.statusCode).toBe(400);
+      });
+
+      it('should reject subdomain with special characters', () => {
+        const result = createTenant({
+          name: 'Test',
+          subdomain: 'test_church',
+          orgType: 'church',
+          plan: 'FREE',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('소문자, 숫자, 하이픈');
+        expect(result.statusCode).toBe(400);
+      });
+
+      it('should accept valid subdomain with hyphen', () => {
+        const result = createTenant({
+          name: 'Test Church',
+          subdomain: 'test-church',
+          orgType: 'church',
+          plan: 'FREE',
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.tenant?.subdomain).toBe('test-church');
+      });
+
+      it('should accept valid subdomain with numbers', () => {
+        const result = createTenant({
+          name: 'Test Church',
+          subdomain: 'church123',
+          orgType: 'church',
+          plan: 'FREE',
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.tenant?.subdomain).toBe('church123');
+      });
+    });
+
+    // 요금제 검증 테스트
+    describe('Plan validation', () => {
+      it('should reject invalid plan type', () => {
+        const result = createTenant({
+          name: 'Test',
+          subdomain: 'validsubdomain',
+          orgType: 'church',
+          plan: 'INVALID_PLAN',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('유효하지 않은 요금제');
+        expect(result.statusCode).toBe(400);
+      });
+
+      it('should reject lowercase plan type', () => {
+        const result = createTenant({
+          name: 'Test',
+          subdomain: 'validsubdomain2',
+          orgType: 'church',
+          plan: 'free',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('유효하지 않은 요금제');
+        expect(result.statusCode).toBe(400);
+      });
+
+      it('should list valid plans in error message', () => {
+        const result = createTenant({
+          name: 'Test',
+          subdomain: 'validsubdomain3',
+          orgType: 'church',
+          plan: 'PREMIUM',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('FREE');
+        expect(result.error).toContain('PRO');
+        expect(result.error).toContain('ENTERPRISE');
+      });
+
+      it('should accept FREE plan', () => {
+        const result = createTenant({
+          name: 'Test',
+          subdomain: 'freeplan',
+          orgType: 'church',
+          plan: 'FREE',
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.tenant?.plan).toBe('FREE');
+      });
+
+      it('should accept PRO plan', () => {
+        const result = createTenant({
+          name: 'Test',
+          subdomain: 'proplan',
+          orgType: 'church',
+          plan: 'PRO',
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.tenant?.plan).toBe('PRO');
+      });
+
+      it('should accept ENTERPRISE plan', () => {
+        const result = createTenant({
+          name: 'Test',
+          subdomain: 'enterpriseplan',
+          orgType: 'church',
+          plan: 'ENTERPRISE',
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.tenant?.plan).toBe('ENTERPRISE');
+      });
+    });
 
     it('should create tenant successfully', () => {
       const result = createTenant({

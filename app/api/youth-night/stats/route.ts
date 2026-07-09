@@ -3,11 +3,12 @@ import { prisma } from '@/lib/prisma';
 import { withAuth, UserApiHandler } from '@/lib/auth/user';
 
 // 전체 통계 조회 (GET)
-const handleGet: UserApiHandler = async (request) => {
+const handleGet: UserApiHandler = async (request, context) => {
   try {
     const { searchParams } = new URL(request.url);
     const ageGroup = searchParams.get('ageGroup');
     const curriculumId = searchParams.get('curriculumId');
+    const tenantId = context.user.tenantId;
 
     // 기본 조건 설정
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -98,6 +99,7 @@ const handleGet: UserApiHandler = async (request) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+    // 테넌트 필터링 적용된 Raw SQL
     const dailyActivity = await prisma.$queryRaw`
       SELECT
         DATE(created_at) as date,
@@ -106,12 +108,15 @@ const handleGet: UserApiHandler = async (request) => {
         SELECT created_at FROM "Attendance"
         WHERE is_present = true
           AND created_at >= ${thirtyDaysAgo}
+          AND tenant_id = ${tenantId}
         UNION ALL
         SELECT submitted_at as created_at FROM "QuizResponse"
         WHERE submitted_at >= ${thirtyDaysAgo}
+          AND tenant_id = ${tenantId}
         UNION ALL
         SELECT created_at FROM "RecitationSubmission"
         WHERE created_at >= ${thirtyDaysAgo}
+          AND tenant_id = ${tenantId}
       ) as activities
       GROUP BY DATE(created_at)
       ORDER BY date DESC

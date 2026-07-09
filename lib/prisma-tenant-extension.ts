@@ -55,18 +55,29 @@ const TENANT_SCOPED_MODELS = [
 
 type TenantScopedModel = (typeof TENANT_SCOPED_MODELS)[number];
 
+// 테스트를 위해 export
+export { TENANT_SCOPED_MODELS };
+export type { TenantScopedModel };
+
+// 대소문자 무관 비교를 위해 소문자로 정규화된 Set (O(1) 룩업)
+const TENANT_SCOPED_MODELS_SET = new Set(
+  TENANT_SCOPED_MODELS.map((m) => m.toLowerCase())
+);
+
 /**
  * 모델이 테넌트 스코프인지 확인
+ * Prisma는 모델명을 PascalCase로 전달하므로 대소문자 무관하게 비교
+ * Set.has()를 사용하여 O(1) 성능 보장
  */
-function isTenantScopedModel(model: string): model is TenantScopedModel {
-  return TENANT_SCOPED_MODELS.includes(model.toLowerCase() as TenantScopedModel);
+export function isTenantScopedModel(model: string): model is TenantScopedModel {
+  return TENANT_SCOPED_MODELS_SET.has(model.toLowerCase());
 }
 
 /**
  * where 절에 tenantId 조건 추가
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function addTenantFilter(where: any, tenantId: string): any {
+export function addTenantFilter(where: any, tenantId: string): any {
   return {
     ...where,
     tenantId,
@@ -74,20 +85,53 @@ function addTenantFilter(where: any, tenantId: string): any {
 }
 
 /**
- * data에 tenantId 추가
+ * data에 tenantId 추가 (중첩 생성 포함)
+ * Prisma nested writes 패턴 지원:
+ * - { items: { create: [...] } }
+ * - { items: { createMany: { data: [...] } } }
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function addTenantToData(data: any, tenantId: string): any {
-  if (Array.isArray(data)) {
-    return data.map((item) => ({
-      ...item,
-      tenantId,
-    }));
+export function addTenantToData(data: any, tenantId: string): any {
+  if (data === null || data === undefined) {
+    return data;
   }
-  return {
-    ...data,
-    tenantId,
-  };
+
+  if (Array.isArray(data)) {
+    return data.map((item) => addTenantToData(item, tenantId));
+  }
+
+  if (typeof data !== 'object') {
+    return data;
+  }
+
+  // 최상위 객체에 tenantId 추가
+  const result = { ...data, tenantId };
+
+  // 중첩 관계 처리
+  for (const key of Object.keys(result)) {
+    const value = result[key];
+    if (value && typeof value === 'object') {
+      // create 중첩 처리
+      if (value.create !== undefined) {
+        result[key] = {
+          ...value,
+          create: addTenantToData(value.create, tenantId),
+        };
+      }
+      // createMany 중첩 처리
+      if (value.createMany?.data !== undefined) {
+        result[key] = {
+          ...value,
+          createMany: {
+            ...value.createMany,
+            data: addTenantToData(value.createMany.data, tenantId),
+          },
+        };
+      }
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -245,7 +289,7 @@ export const tenantExtension = Prisma.defineExtension({
         return query(newArgs);
       },
 
-      // 수정 작업에 tenantId 필터 추가
+      // 수정 작업에 tenantId 필터 추가 (사전 검증으로 TOCTOU 방지)
       async update({ model, args, query }) {
         const tenantId = getTenantIdOptional();
 
@@ -253,16 +297,14 @@ export const tenantExtension = Prisma.defineExtension({
           return query(args);
         }
 
-        // update의 경우 먼저 데이터 존재 및 권한 확인 필요
-        // 여기서는 간단히 결과 검증
-        const result = await query(args);
+        // TOCTOU 방지: where 절에 tenantId를 추가하여 사전 필터링
+        // 다른 테넌트의 레코드는 찾지 못하므로 수정 불가
+        const newArgs = {
+          ...args,
+          where: addTenantFilter(args.where, tenantId),
+        };
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (result && (result as any).tenantId !== tenantId) {
-          throw new Error('Unauthorized access to record');
-        }
-
-        return result;
+        return query(newArgs);
       },
 
       async updateMany({ model, args, query }) {
@@ -279,6 +321,7 @@ export const tenantExtension = Prisma.defineExtension({
         return query(newArgs);
       },
 
+      // upsert 작업에 tenantId 필터 추가 (TOCTOU 방지)
       async upsert({ model, args, query }) {
         const tenantId = getTenantIdOptional();
 
@@ -286,15 +329,21 @@ export const tenantExtension = Prisma.defineExtension({
           return query(args);
         }
 
+        // where, create, update 모두에 tenantId 적용
+        // where: 다른 테넌트 레코드 찾기 방지
+        // create: 새 레코드에 tenantId 설정
+        // update: 업데이트 데이터에 tenantId 유지 (변조 방지)
         const newArgs = {
           ...args,
+          where: addTenantFilter(args.where, tenantId),
           create: addTenantToData(args.create, tenantId),
+          update: addTenantToData(args.update, tenantId),
         };
 
         return query(newArgs);
       },
 
-      // 삭제 작업에 tenantId 필터 추가
+      // 삭제 작업에 tenantId 필터 추가 (사전 검증으로 TOCTOU 방지)
       async delete({ model, args, query }) {
         const tenantId = getTenantIdOptional();
 
@@ -302,15 +351,14 @@ export const tenantExtension = Prisma.defineExtension({
           return query(args);
         }
 
-        // delete의 경우 먼저 데이터 존재 및 권한 확인
-        const result = await query(args);
+        // TOCTOU 방지: where 절에 tenantId를 추가하여 사전 필터링
+        // 다른 테넌트의 레코드는 찾지 못하므로 삭제 불가
+        const newArgs = {
+          ...args,
+          where: addTenantFilter(args.where, tenantId),
+        };
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (result && (result as any).tenantId !== tenantId) {
-          throw new Error('Unauthorized access to record');
-        }
-
-        return result;
+        return query(newArgs);
       },
 
       async deleteMany({ model, args, query }) {

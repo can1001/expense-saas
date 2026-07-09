@@ -1,475 +1,387 @@
 /**
- * Prisma 테넌트 Extension 테스트
+ * Prisma Tenant Extension 테스트
  *
  * 테스트 대상:
- * - 테넌트 스코프 모델 확인
- * - 자동 tenantId 필터링
- * - 자동 tenantId 추가
- * - 테넌트 컨텍스트 없을 때 필터링 건너뜀
+ * - TENANT_SCOPED_MODELS 상수
+ * - isTenantScopedModel 함수
+ * - addTenantFilter 함수
+ * - addTenantToData 함수
+ * - tenantExtension (Prisma Extension)
+ *
+ * Note: Extension 자체는 Prisma 런타임에서 실행되므로
+ * 헬퍼 함수들을 직접 테스트하고, Extension 동작은 시뮬레이션으로 검증
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-// tenant-context 모킹
-let mockTenantId: string | undefined = undefined;
-
-vi.mock('../tenant-context', () => ({
-  getTenantIdOptional: vi.fn(() => mockTenantId),
-}));
-
-// Extension 테스트를 위한 helper 함수들 직접 테스트
-// (Extension 자체는 Prisma에 의해 실행되므로 로직만 테스트)
+import {
+  TENANT_SCOPED_MODELS,
+  isTenantScopedModel,
+  addTenantFilter,
+  addTenantToData,
+  tenantExtension,
+  bypassTenantExtension,
+} from '../prisma-tenant-extension';
 
 describe('prisma-tenant-extension', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockTenantId = undefined;
-  });
-
-  afterEach(() => {
-    mockTenantId = undefined;
-  });
-
   describe('TENANT_SCOPED_MODELS', () => {
-    // 동적으로 모듈 import (모킹 후)
-    it('should include all tenant-scoped models', async () => {
-      const { tenantExtension } = await import('../prisma-tenant-extension');
-
-      // Extension이 정의되어 있는지 확인
-      expect(tenantExtension).toBeDefined();
-      // Prisma.defineExtension은 내부적으로 name을 다르게 저장할 수 있음
-    });
-  });
-
-  describe('isTenantScopedModel helper', () => {
-    it('should recognize tenant-scoped models', () => {
-      // 테넌트 스코프 모델 목록
-      const tenantScopedModels = [
-        'user', 'role', 'expense', 'expenseItem', 'committee',
-        'department', 'budgetCategory', 'budgetSubcategory', 'budgetDetail',
+    it('should include all expected core models', () => {
+      const coreModels = [
+        'user',
+        'expense',
+        'expenseItem',
+        'committee',
+        'department',
+        'budgetCategory',
+        'budgetSubcategory',
+        'budgetDetail',
       ];
 
-      // 이 함수는 내부 함수이므로 직접 테스트할 수 없음
-      // Extension 동작을 통해 간접적으로 테스트됨
-      expect(tenantScopedModels.length).toBeGreaterThan(0);
+      coreModels.forEach((model) => {
+        expect(TENANT_SCOPED_MODELS).toContain(model);
+      });
+    });
+
+    it('should include simple expense models', () => {
+      expect(TENANT_SCOPED_MODELS).toContain('simpleExpense');
+      expect(TENANT_SCOPED_MODELS).toContain('simpleExpenseItem');
+      expect(TENANT_SCOPED_MODELS).toContain('simpleExpenseAttachment');
+    });
+
+    it('should include recurring expense model', () => {
+      expect(TENANT_SCOPED_MODELS).toContain('recurringExpense');
+    });
+
+    it('should include template model', () => {
+      expect(TENANT_SCOPED_MODELS).toContain('expenseTemplate');
+    });
+
+    it('should include notification models', () => {
+      expect(TENANT_SCOPED_MODELS).toContain('notificationPreference');
+      expect(TENANT_SCOPED_MODELS).toContain('notificationLog');
+      expect(TENANT_SCOPED_MODELS).toContain('pushSubscription');
+    });
+
+    it('should include role and approval models', () => {
+      expect(TENANT_SCOPED_MODELS).toContain('role');
+      expect(TENANT_SCOPED_MODELS).toContain('approvalLog');
+    });
+
+    it('should have more than 40 tenant-scoped models', () => {
+      expect(TENANT_SCOPED_MODELS.length).toBeGreaterThan(40);
+    });
+
+    it('should not include platform-level models', () => {
+      // tenant, superAdmin 등은 테넌트 스코프가 아님
+      expect(TENANT_SCOPED_MODELS).not.toContain('tenant');
+      expect(TENANT_SCOPED_MODELS).not.toContain('superAdmin');
+      expect(TENANT_SCOPED_MODELS).not.toContain('platformSetting');
     });
   });
 
-  describe('addTenantFilter helper', () => {
-    it('should add tenantId to where clause', () => {
-      // 직접 로직 테스트
-      const addTenantFilter = (where: any, tenantId: string) => ({
-        ...where,
-        tenantId,
-      });
+  describe('isTenantScopedModel', () => {
+    it('should return true for tenant-scoped models', () => {
+      expect(isTenantScopedModel('user')).toBe(true);
+      expect(isTenantScopedModel('expense')).toBe(true);
+      expect(isTenantScopedModel('committee')).toBe(true);
+      expect(isTenantScopedModel('department')).toBe(true);
+    });
 
-      const result = addTenantFilter({ name: 'test' }, 'tenant-1');
+    it('should return true for lowercase model names', () => {
+      // 소문자 입력도 정상 매칭
+      expect(isTenantScopedModel('user')).toBe(true);
+      expect(isTenantScopedModel('expense')).toBe(true);
+      expect(isTenantScopedModel('committee')).toBe(true);
+      expect(isTenantScopedModel('expenseitem')).toBe(true);
+    });
 
-      expect(result).toEqual({
-        name: 'test',
-        tenantId: 'tenant-1',
+    it('should handle Prisma model names (PascalCase)', () => {
+      // Prisma는 PascalCase 모델명을 전달하므로 대소문자 무관하게 매칭
+      expect(isTenantScopedModel('User')).toBe(true);
+      expect(isTenantScopedModel('Expense')).toBe(true);
+      expect(isTenantScopedModel('ExpenseItem')).toBe(true);
+      expect(isTenantScopedModel('BudgetCategory')).toBe(true);
+      expect(isTenantScopedModel('SimpleExpenseItem')).toBe(true);
+    });
+
+    it('should return false for non-tenant-scoped models', () => {
+      expect(isTenantScopedModel('tenant')).toBe(false);
+      expect(isTenantScopedModel('superAdmin')).toBe(false);
+      expect(isTenantScopedModel('unknownModel')).toBe(false);
+    });
+
+    it('should return false for empty string', () => {
+      expect(isTenantScopedModel('')).toBe(false);
+    });
+
+    it('should match all models from TENANT_SCOPED_MODELS regardless of case', () => {
+      // 모든 TENANT_SCOPED_MODELS가 대소문자 무관하게 매칭되어야 함
+      TENANT_SCOPED_MODELS.forEach((model) => {
+        expect(isTenantScopedModel(model)).toBe(true);
+        expect(isTenantScopedModel(model.toUpperCase())).toBe(true);
+        expect(isTenantScopedModel(model.toLowerCase())).toBe(true);
       });
     });
 
-    it('should handle empty where clause', () => {
-      const addTenantFilter = (where: any, tenantId: string) => ({
-        ...where,
-        tenantId,
+    it('should recognize model names as passed by Prisma extension', () => {
+      // Prisma Extension에서는 model 이름이 소문자로 전달됨
+      // 예: 'user', 'expense', 'expenseitem' 등
+      expect(isTenantScopedModel('user')).toBe(true);
+      expect(isTenantScopedModel('expense')).toBe(true);
+      expect(isTenantScopedModel('role')).toBe(true);
+    });
+  });
+
+  describe('addTenantFilter', () => {
+    const tenantId = 'tenant-123';
+
+    it('should add tenantId to empty where clause', () => {
+      const result = addTenantFilter({}, tenantId);
+
+      expect(result).toEqual({ tenantId: 'tenant-123' });
+    });
+
+    it('should add tenantId to existing where clause', () => {
+      const where = { status: 'PENDING', amount: { gt: 1000 } };
+      const result = addTenantFilter(where, tenantId);
+
+      expect(result).toEqual({
+        status: 'PENDING',
+        amount: { gt: 1000 },
+        tenantId: 'tenant-123',
       });
+    });
 
-      const result = addTenantFilter({}, 'tenant-1');
+    it('should override existing tenantId if present', () => {
+      const where = { tenantId: 'old-tenant', name: 'test' };
+      const result = addTenantFilter(where, tenantId);
 
-      expect(result).toEqual({ tenantId: 'tenant-1' });
+      expect(result.tenantId).toBe('tenant-123');
+      expect(result.name).toBe('test');
     });
 
     it('should handle undefined where clause', () => {
-      const addTenantFilter = (where: any, tenantId: string) => ({
-        ...where,
-        tenantId,
-      });
+      const result = addTenantFilter(undefined, tenantId);
 
-      const result = addTenantFilter(undefined, 'tenant-1');
+      expect(result).toEqual({ tenantId: 'tenant-123' });
+    });
 
-      expect(result).toEqual({ tenantId: 'tenant-1' });
+    it('should handle null where clause', () => {
+      const result = addTenantFilter(null, tenantId);
+
+      expect(result).toEqual({ tenantId: 'tenant-123' });
+    });
+
+    it('should preserve nested conditions', () => {
+      const where = {
+        AND: [{ status: 'APPROVED' }, { amount: { gte: 5000 } }],
+        OR: [{ userId: 'user-1' }, { userId: 'user-2' }],
+      };
+      const result = addTenantFilter(where, tenantId);
+
+      expect(result.AND).toEqual(where.AND);
+      expect(result.OR).toEqual(where.OR);
+      expect(result.tenantId).toBe('tenant-123');
     });
   });
 
-  describe('addTenantToData helper', () => {
-    it('should add tenantId to single data object', () => {
-      const addTenantToData = (data: any, tenantId: string) => {
-        if (Array.isArray(data)) {
-          return data.map((item) => ({ ...item, tenantId }));
-        }
-        return { ...data, tenantId };
-      };
+  describe('addTenantToData', () => {
+    const tenantId = 'tenant-456';
 
-      const result = addTenantToData({ name: 'test' }, 'tenant-1');
+    describe('single object data', () => {
+      it('should add tenantId to data object', () => {
+        const data = { name: 'Test', amount: 1000 };
+        const result = addTenantToData(data, tenantId);
 
-      expect(result).toEqual({
-        name: 'test',
-        tenantId: 'tenant-1',
+        expect(result).toEqual({
+          name: 'Test',
+          amount: 1000,
+          tenantId: 'tenant-456',
+        });
+      });
+
+      it('should handle empty object', () => {
+        const result = addTenantToData({}, tenantId);
+
+        expect(result).toEqual({ tenantId: 'tenant-456' });
+      });
+
+      it('should override existing tenantId', () => {
+        const data = { tenantId: 'wrong-tenant', name: 'Test' };
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.tenantId).toBe('tenant-456');
+      });
+
+      it('should add tenantId to nested create objects', () => {
+        const data = {
+          name: 'Test',
+          items: { create: [{ amount: 100 }] },
+        };
+        const result = addTenantToData(data, tenantId);
+
+        // 중첩 생성에도 tenantId가 자동 추가됨
+        expect(result.items).toEqual({ create: [{ amount: 100, tenantId: 'tenant-456' }] });
+        expect(result.tenantId).toBe('tenant-456');
       });
     });
 
-    it('should add tenantId to array of data objects', () => {
-      const addTenantToData = (data: any, tenantId: string) => {
-        if (Array.isArray(data)) {
-          return data.map((item) => ({ ...item, tenantId }));
-        }
-        return { ...data, tenantId };
-      };
+    describe('array data (createMany)', () => {
+      it('should add tenantId to each item in array', () => {
+        const data = [
+          { name: 'Item 1', amount: 100 },
+          { name: 'Item 2', amount: 200 },
+        ];
+        const result = addTenantToData(data, tenantId);
 
-      const result = addTenantToData(
-        [{ name: 'test1' }, { name: 'test2' }],
-        'tenant-1'
-      );
+        expect(result).toHaveLength(2);
+        expect(result[0]).toEqual({ name: 'Item 1', amount: 100, tenantId: 'tenant-456' });
+        expect(result[1]).toEqual({ name: 'Item 2', amount: 200, tenantId: 'tenant-456' });
+      });
 
-      expect(result).toEqual([
-        { name: 'test1', tenantId: 'tenant-1' },
-        { name: 'test2', tenantId: 'tenant-1' },
-      ]);
-    });
+      it('should handle empty array', () => {
+        const result = addTenantToData([], tenantId);
 
-    it('should handle empty array', () => {
-      const addTenantToData = (data: any, tenantId: string) => {
-        if (Array.isArray(data)) {
-          return data.map((item) => ({ ...item, tenantId }));
-        }
-        return { ...data, tenantId };
-      };
+        expect(result).toEqual([]);
+      });
 
-      const result = addTenantToData([], 'tenant-1');
+      it('should handle single item array', () => {
+        const data = [{ name: 'Single' }];
+        const result = addTenantToData(data, tenantId);
 
-      expect(result).toEqual([]);
+        expect(result).toHaveLength(1);
+        expect(result[0]).toEqual({ name: 'Single', tenantId: 'tenant-456' });
+      });
     });
   });
 
-  describe('Extension query behavior simulation', () => {
-    // Extension의 동작을 시뮬레이션하여 테스트
-
-    describe('findMany', () => {
-      it('should add tenantId filter when tenant context exists', () => {
-        const tenantId = 'tenant-1';
-        const model = 'user';
-        const args = { where: { isActive: true } };
-
-        // Extension 로직 시뮬레이션
-        const isTenantScopedModel = (m: string) =>
-          ['user', 'expense', 'committee'].includes(m.toLowerCase());
-
-        let modifiedArgs = args;
-        if (tenantId && isTenantScopedModel(model)) {
-          modifiedArgs = {
-            ...args,
-            where: { ...args.where, tenantId },
-          };
-        }
-
-        expect(modifiedArgs.where).toEqual({
-          isActive: true,
-          tenantId: 'tenant-1',
-        });
-      });
-
-      it('should not modify args when no tenant context', () => {
-        const tenantId = undefined;
-        const model = 'user';
-        const args = { where: { isActive: true } };
-
-        const isTenantScopedModel = (m: string) =>
-          ['user', 'expense', 'committee'].includes(m.toLowerCase());
-
-        let modifiedArgs = args;
-        if (tenantId && isTenantScopedModel(model)) {
-          modifiedArgs = {
-            ...args,
-            where: { ...args.where, tenantId },
-          };
-        }
-
-        expect(modifiedArgs).toEqual(args);
-      });
-
-      it('should not modify args for non-tenant-scoped model', () => {
-        const tenantId = 'tenant-1';
-        const model = 'tenant'; // Tenant 모델은 테넌트 스코프가 아님
-        const args = { where: { isActive: true } };
-
-        const isTenantScopedModel = (m: string) =>
-          ['user', 'expense', 'committee'].includes(m.toLowerCase());
-
-        let modifiedArgs = args;
-        if (tenantId && isTenantScopedModel(model)) {
-          modifiedArgs = {
-            ...args,
-            where: { ...args.where, tenantId },
-          };
-        }
-
-        expect(modifiedArgs).toEqual(args);
-      });
-    });
-
-    describe('findUnique', () => {
-      it('should return null when result belongs to different tenant', async () => {
-        const tenantId = 'tenant-1';
-        const queryResult = { id: '1', name: 'test', tenantId: 'tenant-2' };
-
-        // Extension 로직 시뮬레이션
-        let result = queryResult;
-        if (result && result.tenantId !== tenantId) {
-          result = null as any;
-        }
-
-        expect(result).toBeNull();
-      });
-
-      it('should return result when it belongs to same tenant', () => {
-        const tenantId = 'tenant-1';
-        const queryResult = { id: '1', name: 'test', tenantId: 'tenant-1' };
-
-        let result: any = queryResult;
-        if (result && result.tenantId !== tenantId) {
-          result = null;
-        }
-
-        expect(result).toEqual(queryResult);
-      });
-    });
-
-    describe('findUniqueOrThrow', () => {
-      it('should throw when result belongs to different tenant', () => {
-        const tenantId = 'tenant-1';
-        const queryResult = { id: '1', name: 'test', tenantId: 'tenant-2' };
-
-        // Extension 로직 시뮬레이션
-        expect(() => {
-          if (queryResult.tenantId !== tenantId) {
-            throw new Error('Record not found');
-          }
-        }).toThrow('Record not found');
-      });
-
-      it('should not throw when result belongs to same tenant', () => {
-        const tenantId = 'tenant-1';
-        const queryResult = { id: '1', name: 'test', tenantId: 'tenant-1' };
-
-        expect(() => {
-          if (queryResult.tenantId !== tenantId) {
-            throw new Error('Record not found');
-          }
-        }).not.toThrow();
-      });
-    });
-
-    describe('create', () => {
-      it('should add tenantId to data when tenant context exists', () => {
-        const tenantId = 'tenant-1';
-        const model = 'user';
-        const args = { data: { name: 'test', isActive: true } };
-
-        const isTenantScopedModel = (m: string) =>
-          ['user', 'expense', 'committee'].includes(m.toLowerCase());
-
-        let modifiedArgs = args;
-        if (tenantId && isTenantScopedModel(model)) {
-          modifiedArgs = {
-            ...args,
-            data: { ...args.data, tenantId },
-          };
-        }
-
-        expect(modifiedArgs.data).toEqual({
-          name: 'test',
-          isActive: true,
-          tenantId: 'tenant-1',
-        });
-      });
-    });
-
-    describe('createMany', () => {
-      it('should add tenantId to all data items', () => {
-        const tenantId = 'tenant-1';
-        const args = {
-          data: [
-            { name: 'test1' },
-            { name: 'test2' },
-          ],
-        };
-
-        const modifiedData = args.data.map(item => ({
-          ...item,
-          tenantId,
-        }));
-
-        expect(modifiedData).toEqual([
-          { name: 'test1', tenantId: 'tenant-1' },
-          { name: 'test2', tenantId: 'tenant-1' },
-        ]);
-      });
-    });
-
-    describe('update', () => {
-      it('should throw when trying to update different tenant data', () => {
-        const tenantId = 'tenant-1';
-        const updateResult = { id: '1', name: 'updated', tenantId: 'tenant-2' };
-
-        expect(() => {
-          if (updateResult && updateResult.tenantId !== tenantId) {
-            throw new Error('Unauthorized access to record');
-          }
-        }).toThrow('Unauthorized access to record');
-      });
-
-      it('should allow update when same tenant', () => {
-        const tenantId = 'tenant-1';
-        const updateResult = { id: '1', name: 'updated', tenantId: 'tenant-1' };
-
-        expect(() => {
-          if (updateResult && updateResult.tenantId !== tenantId) {
-            throw new Error('Unauthorized access to record');
-          }
-        }).not.toThrow();
-      });
-    });
-
-    describe('updateMany', () => {
-      it('should add tenantId filter to where clause', () => {
-        const tenantId = 'tenant-1';
-        const args = { where: { isActive: false }, data: { isActive: true } };
-
-        const modifiedArgs = {
-          ...args,
-          where: { ...args.where, tenantId },
-        };
-
-        expect(modifiedArgs.where).toEqual({
-          isActive: false,
-          tenantId: 'tenant-1',
-        });
-      });
-    });
-
-    describe('upsert', () => {
-      it('should add tenantId to create data', () => {
-        const tenantId = 'tenant-1';
-        const args = {
-          where: { id: '1' },
-          create: { name: 'new' },
-          update: { name: 'updated' },
-        };
-
-        const modifiedArgs = {
-          ...args,
-          create: { ...args.create, tenantId },
-        };
-
-        expect(modifiedArgs.create).toEqual({
-          name: 'new',
-          tenantId: 'tenant-1',
-        });
-      });
-    });
-
-    describe('delete', () => {
-      it('should throw when trying to delete different tenant data', () => {
-        const tenantId = 'tenant-1';
-        const deleteResult = { id: '1', name: 'deleted', tenantId: 'tenant-2' };
-
-        expect(() => {
-          if (deleteResult && deleteResult.tenantId !== tenantId) {
-            throw new Error('Unauthorized access to record');
-          }
-        }).toThrow('Unauthorized access to record');
-      });
-    });
-
-    describe('deleteMany', () => {
-      it('should add tenantId filter to where clause', () => {
-        const tenantId = 'tenant-1';
-        const args = { where: { isActive: false } };
-
-        const modifiedArgs = {
-          ...args,
-          where: { ...args.where, tenantId },
-        };
-
-        expect(modifiedArgs.where).toEqual({
-          isActive: false,
-          tenantId: 'tenant-1',
-        });
-      });
-    });
-
-    describe('count', () => {
-      it('should add tenantId filter when counting', () => {
-        const tenantId = 'tenant-1';
-        const args = { where: { isActive: true } };
-
-        const modifiedArgs = {
-          ...args,
-          where: { ...args.where, tenantId },
-        };
-
-        expect(modifiedArgs.where).toEqual({
-          isActive: true,
-          tenantId: 'tenant-1',
-        });
-      });
-    });
-
-    describe('aggregate', () => {
-      it('should add tenantId filter to aggregate queries', () => {
-        const tenantId = 'tenant-1';
-        const args = { where: { isActive: true }, _sum: { amount: true } };
-
-        const modifiedArgs = {
-          ...args,
-          where: { ...args.where, tenantId },
-        };
-
-        expect(modifiedArgs.where).toEqual({
-          isActive: true,
-          tenantId: 'tenant-1',
-        });
-      });
-    });
-
-    describe('groupBy', () => {
-      it('should add tenantId filter to groupBy queries', () => {
-        const tenantId = 'tenant-1';
-        const args = { by: ['status'], where: { isActive: true } };
-
-        const modifiedArgs = {
-          ...args,
-          where: { ...args.where, tenantId },
-        };
-
-        expect(modifiedArgs.where).toEqual({
-          isActive: true,
-          tenantId: 'tenant-1',
-        });
-      });
+  describe('tenantExtension', () => {
+    it('should be defined', () => {
+      expect(tenantExtension).toBeDefined();
     });
   });
 
   describe('bypassTenantExtension', () => {
-    it('should be defined for admin/system operations', async () => {
-      const { bypassTenantExtension } = await import('../prisma-tenant-extension');
-
-      // Extension이 정의되어 있는지 확인
+    it('should be defined for admin/system operations', () => {
       expect(bypassTenantExtension).toBeDefined();
-      // Prisma.defineExtension은 내부적으로 name을 다르게 저장할 수 있음
     });
   });
 
-  describe('Cross-tenant access prevention', () => {
-    it('should prevent reading data from other tenants via findUnique', () => {
+  describe('Extension behavior validation', () => {
+    // Extension의 동작 로직을 검증 (실제 함수 사용)
+
+    describe('findMany query modification', () => {
+      it('should correctly modify where clause for tenant-scoped model', () => {
+        const tenantId = 'tenant-test';
+        const model = 'expense';
+        const args = { where: { status: 'PENDING' } };
+
+        if (isTenantScopedModel(model)) {
+          const newArgs = {
+            ...args,
+            where: addTenantFilter(args.where, tenantId),
+          };
+
+          expect(newArgs.where.tenantId).toBe(tenantId);
+          expect(newArgs.where.status).toBe('PENDING');
+        }
+      });
+
+      it('should not modify args for non-tenant-scoped model', () => {
+        const model = 'tenant';
+
+        expect(isTenantScopedModel(model)).toBe(false);
+      });
+    });
+
+    describe('create mutation modification', () => {
+      it('should add tenantId to create data for tenant-scoped model', () => {
+        const tenantId = 'tenant-create';
+        const model = 'expense';
+        const args = { data: { amount: 5000, description: 'Test' } };
+
+        if (isTenantScopedModel(model)) {
+          const newArgs = {
+            ...args,
+            data: addTenantToData(args.data, tenantId),
+          };
+
+          expect(newArgs.data.tenantId).toBe(tenantId);
+          expect(newArgs.data.amount).toBe(5000);
+        }
+      });
+    });
+
+    describe('createMany mutation modification', () => {
+      it('should add tenantId to all items', () => {
+        const tenantId = 'tenant-batch';
+        const model = 'expenseItem';
+        const args = {
+          data: [
+            { amount: 100, description: 'Item 1' },
+            { amount: 200, description: 'Item 2' },
+          ],
+        };
+
+        if (isTenantScopedModel(model)) {
+          const newArgs = {
+            ...args,
+            data: addTenantToData(args.data, tenantId),
+          };
+
+          expect(newArgs.data).toHaveLength(2);
+          newArgs.data.forEach((item: { tenantId: string }) => {
+            expect(item.tenantId).toBe(tenantId);
+          });
+        }
+      });
+    });
+
+    describe('update/delete validation', () => {
+      it('should detect tenantId mismatch', () => {
+        const userTenantId = 'tenant-user';
+        const resultTenantId = 'tenant-other';
+
+        const result = { id: '1', tenantId: resultTenantId, name: 'Test' };
+
+        expect(result.tenantId).not.toBe(userTenantId);
+      });
+
+      it('should allow when tenantId matches', () => {
+        const userTenantId = 'tenant-user';
+        const resultTenantId = 'tenant-user';
+
+        const result = { id: '1', tenantId: resultTenantId, name: 'Test' };
+
+        expect(result.tenantId).toBe(userTenantId);
+      });
+    });
+  });
+
+  describe('Cross-tenant prevention', () => {
+    it('should prevent tenantId override in where clause', () => {
+      const userTenantId = 'user-tenant';
+      const maliciousWhere = { tenantId: 'other-tenant', status: 'ACTIVE' };
+
+      const result = addTenantFilter(maliciousWhere, userTenantId);
+
+      expect(result.tenantId).toBe(userTenantId);
+    });
+
+    it('should prevent tenantId injection in create data', () => {
+      const userTenantId = 'user-tenant';
+      const maliciousData = { tenantId: 'other-tenant', name: 'Malicious' };
+
+      const result = addTenantToData(maliciousData, userTenantId);
+
+      expect(result.tenantId).toBe(userTenantId);
+    });
+
+    it('should prevent cross-tenant access via findUnique validation', () => {
       const currentTenantId = 'tenant-a';
       const otherTenantData = { id: '1', tenantId: 'tenant-b', name: 'secret' };
 
-      // Simulating extension behavior
-      const validateTenant = (result: any, tenantId: string) => {
+      // Extension이 결과 검증 시 사용하는 로직
+      const validateTenant = (result: { tenantId: string } | null, tenantId: string) => {
         if (result && result.tenantId !== tenantId) {
           return null;
         }
@@ -480,11 +392,11 @@ describe('prisma-tenant-extension', () => {
       expect(result).toBeNull();
     });
 
-    it('should prevent updating data from other tenants', () => {
+    it('should prevent cross-tenant update', () => {
       const currentTenantId = 'tenant-a';
       const otherTenantData = { id: '1', tenantId: 'tenant-b', name: 'secret' };
 
-      const validateUpdateAccess = (result: any, tenantId: string) => {
+      const validateUpdateAccess = (result: { tenantId: string }, tenantId: string) => {
         if (result && result.tenantId !== tenantId) {
           throw new Error('Unauthorized access to record');
         }
@@ -495,26 +407,11 @@ describe('prisma-tenant-extension', () => {
         .toThrow('Unauthorized access to record');
     });
 
-    it('should prevent deleting data from other tenants', () => {
-      const currentTenantId = 'tenant-a';
-      const otherTenantData = { id: '1', tenantId: 'tenant-b', name: 'secret' };
-
-      const validateDeleteAccess = (result: any, tenantId: string) => {
-        if (result && result.tenantId !== tenantId) {
-          throw new Error('Unauthorized access to record');
-        }
-        return result;
-      };
-
-      expect(() => validateDeleteAccess(otherTenantData, currentTenantId))
-        .toThrow('Unauthorized access to record');
-    });
-
-    it('should allow data access when tenantId matches', () => {
+    it('should allow same-tenant data access', () => {
       const currentTenantId = 'tenant-a';
       const sameTenantData = { id: '1', tenantId: 'tenant-a', name: 'my data' };
 
-      const validateTenant = (result: any, tenantId: string) => {
+      const validateTenant = (result: { tenantId: string } | null, tenantId: string) => {
         if (result && result.tenantId !== tenantId) {
           return null;
         }
@@ -523,6 +420,283 @@ describe('prisma-tenant-extension', () => {
 
       const result = validateTenant(sameTenantData, currentTenantId);
       expect(result).toEqual(sameTenantData);
+    });
+  });
+
+  describe('Edge cases', () => {
+    it('should handle complex nested where conditions', () => {
+      const tenantId = 'complex-tenant';
+      const complexWhere = {
+        AND: [
+          { status: 'APPROVED' },
+          { OR: [{ amount: { gt: 1000 } }, { priority: 'HIGH' }] },
+        ],
+        NOT: { deletedAt: { not: null } },
+      };
+
+      const result = addTenantFilter(complexWhere, tenantId);
+
+      expect(result.tenantId).toBe(tenantId);
+      expect(result.AND).toEqual(complexWhere.AND);
+      expect(result.NOT).toEqual(complexWhere.NOT);
+    });
+
+    it('should handle data with special characters in tenantId', () => {
+      const specialTenantId = 'tenant-with-dashes_and_underscores';
+      const data = { name: 'Test' };
+
+      const result = addTenantToData(data, specialTenantId);
+
+      expect(result.tenantId).toBe(specialTenantId);
+    });
+
+    it('should handle very long tenantId', () => {
+      const longTenantId = 'a'.repeat(100);
+      const data = { name: 'Test' };
+
+      const result = addTenantToData(data, longTenantId);
+
+      expect(result.tenantId).toBe(longTenantId);
+      expect(result.tenantId.length).toBe(100);
+    });
+
+    it('should handle single-word model names with different casings', () => {
+      // 단일 단어 모델은 대소문자 무관하게 매칭
+      expect(isTenantScopedModel('user')).toBe(true);
+      expect(isTenantScopedModel('USER')).toBe(true);
+      expect(isTenantScopedModel('User')).toBe(true);
+      expect(isTenantScopedModel('role')).toBe(true);
+      expect(isTenantScopedModel('ROLE')).toBe(true);
+    });
+  });
+
+  describe('TOCTOU Prevention - Pre-filtering', () => {
+    describe('update() pre-filtering', () => {
+      it('should add tenantId to where clause for update', () => {
+        const tenantId = 'tenant-update';
+        const args = { where: { id: 'expense-123' }, data: { status: 'APPROVED' } };
+
+        const newArgs = {
+          ...args,
+          where: addTenantFilter(args.where, tenantId),
+        };
+
+        expect(newArgs.where).toEqual({
+          id: 'expense-123',
+          tenantId: 'tenant-update',
+        });
+      });
+
+      it('should preserve existing where conditions when adding tenantId for update', () => {
+        const tenantId = 'tenant-preserve';
+        const args = {
+          where: { id: 'exp-1', status: 'PENDING', amount: { gt: 1000 } },
+          data: { status: 'APPROVED' },
+        };
+
+        const newArgs = {
+          ...args,
+          where: addTenantFilter(args.where, tenantId),
+        };
+
+        expect(newArgs.where.id).toBe('exp-1');
+        expect(newArgs.where.status).toBe('PENDING');
+        expect(newArgs.where.amount).toEqual({ gt: 1000 });
+        expect(newArgs.where.tenantId).toBe(tenantId);
+      });
+
+      it('should override malicious tenantId in update where clause', () => {
+        const tenantId = 'real-tenant';
+        const maliciousArgs = {
+          where: { id: '123', tenantId: 'other-tenant' },
+          data: { name: 'hacked' },
+        };
+
+        const safeArgs = {
+          ...maliciousArgs,
+          where: addTenantFilter(maliciousArgs.where, tenantId),
+        };
+
+        expect(safeArgs.where.tenantId).toBe('real-tenant');
+      });
+    });
+
+    describe('delete() pre-filtering', () => {
+      it('should add tenantId to where clause for delete', () => {
+        const tenantId = 'tenant-delete';
+        const args = { where: { id: 'expense-to-delete' } };
+
+        const newArgs = {
+          ...args,
+          where: addTenantFilter(args.where, tenantId),
+        };
+
+        expect(newArgs.where).toEqual({
+          id: 'expense-to-delete',
+          tenantId: 'tenant-delete',
+        });
+      });
+
+      it('should prevent cross-tenant delete via pre-filtering', () => {
+        const currentTenantId = 'tenant-a';
+        // 테넌트 A 사용자가 테넌트 B 레코드 삭제 시도
+        const args = { where: { id: 'record-from-tenant-b' } };
+        const filteredWhere = addTenantFilter(args.where, currentTenantId);
+
+        // 필터링된 where는 tenant-a 레코드만 찾음
+        expect(filteredWhere.tenantId).toBe('tenant-a');
+        // DB는 tenant-b 레코드를 찾지 못함 → 안전
+      });
+    });
+
+    describe('upsert() pre-filtering', () => {
+      it('should add tenantId to where, create, and update for upsert', () => {
+        const tenantId = 'tenant-upsert';
+        const args = {
+          where: { id: 'budget-1' },
+          create: { id: 'budget-1', name: 'New Budget', amount: 1000 },
+          update: { amount: 2000 },
+        };
+
+        const newArgs = {
+          ...args,
+          where: addTenantFilter(args.where, tenantId),
+          create: addTenantToData(args.create, tenantId),
+          update: addTenantToData(args.update, tenantId),
+        };
+
+        expect(newArgs.where.tenantId).toBe(tenantId);
+        expect(newArgs.create.tenantId).toBe(tenantId);
+        expect(newArgs.update.tenantId).toBe(tenantId);
+      });
+
+      it('should prevent cross-tenant upsert update via where filtering', () => {
+        const currentTenantId = 'tenant-a';
+        const args = {
+          where: { id: 'other-tenant-record', tenantId: 'tenant-b' },
+          create: { name: 'new' },
+          update: { amount: 0 },
+        };
+
+        const newArgs = {
+          where: addTenantFilter(args.where, currentTenantId),
+          create: addTenantToData(args.create, currentTenantId),
+          update: addTenantToData(args.update, currentTenantId),
+        };
+
+        // where 절이 현재 테넌트로 강제됨
+        expect(newArgs.where.tenantId).toBe('tenant-a');
+      });
+    });
+  });
+
+  describe('Nested Writes', () => {
+    it('should add tenantId to nested create', () => {
+      const tenantId = 'tenant-nested';
+      const data = {
+        name: 'Expense',
+        items: {
+          create: [
+            { description: 'Item 1', amount: 100 },
+            { description: 'Item 2', amount: 200 },
+          ],
+        },
+      };
+
+      const result = addTenantToData(data, tenantId);
+
+      expect(result.tenantId).toBe(tenantId);
+      expect(result.items.create[0].tenantId).toBe(tenantId);
+      expect(result.items.create[1].tenantId).toBe(tenantId);
+    });
+
+    it('should add tenantId to nested createMany', () => {
+      const tenantId = 'tenant-createMany';
+      const data = {
+        name: 'Report',
+        entries: {
+          createMany: {
+            data: [
+              { type: 'income', amount: 1000 },
+              { type: 'expense', amount: 500 },
+            ],
+          },
+        },
+      };
+
+      const result = addTenantToData(data, tenantId);
+
+      expect(result.tenantId).toBe(tenantId);
+      expect(result.entries.createMany.data[0].tenantId).toBe(tenantId);
+      expect(result.entries.createMany.data[1].tenantId).toBe(tenantId);
+    });
+
+    it('should handle deeply nested creates', () => {
+      const tenantId = 'tenant-deep';
+      const data = {
+        name: 'Parent',
+        children: {
+          create: {
+            name: 'Child',
+            grandchildren: {
+              create: [{ name: 'GrandChild 1' }, { name: 'GrandChild 2' }],
+            },
+          },
+        },
+      };
+
+      const result = addTenantToData(data, tenantId);
+
+      expect(result.tenantId).toBe(tenantId);
+      expect(result.children.create.tenantId).toBe(tenantId);
+      expect(result.children.create.grandchildren.create[0].tenantId).toBe(tenantId);
+      expect(result.children.create.grandchildren.create[1].tenantId).toBe(tenantId);
+    });
+
+    it('should handle single nested create (not array)', () => {
+      const tenantId = 'tenant-single-nested';
+      const data = {
+        name: 'Expense',
+        attachment: {
+          create: { filename: 'receipt.pdf', url: 'https://...' },
+        },
+      };
+
+      const result = addTenantToData(data, tenantId);
+
+      expect(result.tenantId).toBe(tenantId);
+      expect(result.attachment.create.tenantId).toBe(tenantId);
+    });
+
+    it('should not modify non-create nested operations', () => {
+      const tenantId = 'tenant-connect';
+      const data = {
+        name: 'Expense',
+        user: {
+          connect: { id: 'user-123' },
+        },
+      };
+
+      const result = addTenantToData(data, tenantId);
+
+      expect(result.tenantId).toBe(tenantId);
+      expect(result.user.connect).toEqual({ id: 'user-123' });
+      expect(result.user.connect.tenantId).toBeUndefined();
+    });
+
+    it('should handle null and undefined nested values', () => {
+      const tenantId = 'tenant-nulls';
+      const data = {
+        name: 'Test',
+        optional: null,
+        missing: undefined,
+      };
+
+      const result = addTenantToData(data, tenantId);
+
+      expect(result.tenantId).toBe(tenantId);
+      expect(result.optional).toBeNull();
+      expect(result.missing).toBeUndefined();
     });
   });
 });

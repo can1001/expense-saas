@@ -8,8 +8,20 @@
  * - getRolePermissions
  * - Cookie 관련 함수
  *
- * Note: withAuth 등의 래퍼는 전역 mock을 통해 테스트하고,
- * 실제 로직 검증은 getRolePermissions, Cookie 함수에서 수행
+ * 테스트 전략:
+ * lib/auth/user.ts의 함수들은 다음 외부 의존성을 가짐:
+ * - jose 라이브러리 (JWT 생성/검증)
+ * - Prisma 클라이언트 (DB 조회)
+ * - Next.js cookies() 함수 (서버 컨텍스트)
+ *
+ * 따라서 두 가지 방식으로 테스트:
+ * 1. 로직 검증 (Logic Verification):
+ *    - 핵심 비즈니스 로직을 시뮬레이션 함수로 추출하여 단위 테스트
+ *    - 실제 구현과 동일한 로직을 검증
+ *
+ * 2. 래퍼 동작 테스트 (Wrapper Behavior):
+ *    - test/setup.ts의 전역 mock을 사용하여 withAuth, withPermission 등의 동작 검증
+ *    - API 핸들러에서 인증이 올바르게 처리되는지 확인
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
