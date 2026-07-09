@@ -9,6 +9,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { setMockUser, resetMockUser } from '@/test/setup';
 
 // Mock Prisma
 vi.mock('@/lib/prisma', () => ({
@@ -25,11 +26,6 @@ vi.mock('@/lib/prisma', () => ({
   Prisma: {},
 }));
 
-// Mock auth
-vi.mock('@/lib/auth', () => ({
-  getCurrentUser: vi.fn(),
-}));
-
 // Mock user-service for getEffectiveRole
 vi.mock('@/lib/services/user-service', () => ({
   getEffectiveRole: vi.fn(),
@@ -39,17 +35,31 @@ vi.mock('@/lib/services/user-service', () => ({
 // Import after mocking
 import { GET } from '../route';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
 import { getEffectiveRole } from '@/lib/services/user-service';
 
 describe('GET /api/expenses', () => {
   const mockPrisma = prisma as any;
-  const mockGetCurrentUser = getCurrentUser as ReturnType<typeof vi.fn>;
   const mockGetEffectiveRole = getEffectiveRole as ReturnType<typeof vi.fn>;
+
+  const mockUser = {
+    id: 'admin-1',
+    tenantId: 'test-tenant-id',
+    userid: 'admin',
+    username: '관리자',
+    role: 'admin',
+    roleId: 'test-role-id',
+    department: null,
+    canApprove: true,
+    canManageExpense: true,
+    canAccessAdmin: true,
+    canExportData: true,
+    canRegisterUsers: true,
+  };
 
   const mockExpenseWithAttachments = {
     id: 'expense-1',
     userId: 'user-1',
+    tenantId: 'test-tenant-id',
     committee: '선교위원회',
     department: '청년부',
     requestAmount: 100000,
@@ -89,15 +99,7 @@ describe('GET /api/expenses', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Default: admin user with full access
-    mockGetCurrentUser.mockResolvedValue({
-      id: 'admin-1',
-      userid: 'admin',
-      username: '관리자',
-      role: 'admin',
-      department: null,
-    });
+    setMockUser(mockUser);
 
     // Default: getEffectiveRole returns admin role
     mockGetEffectiveRole.mockResolvedValue({
@@ -112,7 +114,7 @@ describe('GET /api/expenses', () => {
   });
 
   afterEach(() => {
-    vi.resetAllMocks();
+    resetMockUser();
   });
 
   describe('첨부파일 포함 테스트', () => {
@@ -177,7 +179,7 @@ describe('GET /api/expenses', () => {
 
   describe('인증 테스트', () => {
     it('로그인하지 않은 경우 401 에러 반환', async () => {
-      mockGetCurrentUser.mockResolvedValue(null);
+      setMockUser(null);
 
       const request = new NextRequest('http://localhost:3000/api/expenses');
       const response = await GET(request);
@@ -190,13 +192,7 @@ describe('GET /api/expenses', () => {
 
   describe('역할 기반 필터링 테스트', () => {
     it('admin 역할은 전체 조회 가능', async () => {
-      mockGetCurrentUser.mockResolvedValue({
-        id: 'admin-1',
-        userid: 'admin',
-        username: '관리자',
-        role: 'admin',
-        department: null,
-      });
+      setMockUser(mockUser);
       mockGetEffectiveRole.mockResolvedValue({
         role: 'admin',
         departmentId: null,
@@ -217,7 +213,8 @@ describe('GET /api/expenses', () => {
     });
 
     it('일반 사용자는 본인 작성 지출결의서만 조회', async () => {
-      mockGetCurrentUser.mockResolvedValue({
+      setMockUser({
+        ...mockUser,
         id: 'user-1',
         userid: 'user',
         username: '일반사용자',
@@ -244,11 +241,12 @@ describe('GET /api/expenses', () => {
     });
 
     it('팀장은 본인 부서 지출결의서만 조회', async () => {
-      mockGetCurrentUser.mockResolvedValue({
+      setMockUser({
+        ...mockUser,
         id: 'leader-1',
         userid: 'leader',
         username: '팀장',
-        role: 'user',  // User.role은 user
+        role: 'user',
         department: '청년부',
       });
       mockGetEffectiveRole.mockResolvedValue({
@@ -284,11 +282,12 @@ describe('GET /api/expenses', () => {
   describe('연도별 역할(UserYearRole) 기반 필터링 테스트', () => {
     it('User.role이 user이지만 UserYearRole이 accountant면 전체 조회 가능', async () => {
       // 정혜종 시나리오: User.role = 'user', UserYearRole = 'accountant'
-      mockGetCurrentUser.mockResolvedValue({
+      setMockUser({
+        ...mockUser,
         id: 'accountant-1',
         userid: '청연정혜종',
         username: '정혜종',
-        role: 'user',  // User.role은 user
+        role: 'user',
         department: '재정팀',
       });
       mockGetEffectiveRole.mockResolvedValue({
@@ -315,11 +314,12 @@ describe('GET /api/expenses', () => {
 
     it('User.role이 user이지만 UserYearRole이 finance_head면 전체 조회 가능', async () => {
       // 윤운문 시나리오: User.role = 'user', UserYearRole = 'finance_head' (2026년)
-      mockGetCurrentUser.mockResolvedValue({
+      setMockUser({
+        ...mockUser,
         id: 'fh-1',
         userid: '청연윤운문',
         username: '윤운문',
-        role: 'user',  // User.role은 user
+        role: 'user',
         department: null,
       });
       mockGetEffectiveRole.mockResolvedValue({
@@ -343,7 +343,8 @@ describe('GET /api/expenses', () => {
 
     it('User.role이 user이고 UserYearRole도 없으면 본인 작성만 조회', async () => {
       // 일반 사용자 시나리오: User.role = 'user', UserYearRole 없음
-      mockGetCurrentUser.mockResolvedValue({
+      setMockUser({
+        ...mockUser,
         id: 'normal-user-1',
         userid: '일반사용자',
         username: '김철수',
@@ -361,7 +362,7 @@ describe('GET /api/expenses', () => {
       const request = new NextRequest('http://localhost:3000/api/expenses');
       await GET(request);
 
-      // user는 본인 작성��� 조회
+      // user는 본인 작성만 조회
       expect(mockPrisma.expense.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { userId: 'normal-user-1' },
@@ -371,7 +372,8 @@ describe('GET /api/expenses', () => {
 
     it('UserYearRole의 department를 사용하여 팀장 필터링', async () => {
       // 팀장 시나리오: User.department와 UserYearRole.departmentId가 다를 수 있음
-      mockGetCurrentUser.mockResolvedValue({
+      setMockUser({
+        ...mockUser,
         id: 'leader-2',
         userid: '팀장',
         username: '박팀장',
@@ -493,7 +495,8 @@ describe('GET /api/expenses', () => {
 
     it('aggregate 호출 시 권한+사용자 필터가 결합된 where 가 전달된다', async () => {
       // 일반 사용자
-      mockGetCurrentUser.mockResolvedValue({
+      setMockUser({
+        ...mockUser,
         id: 'user-1',
         userid: 'user',
         username: '일반사용자',

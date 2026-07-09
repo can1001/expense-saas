@@ -2,8 +2,9 @@
  * 지출결의서 복제 API 테스트
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { setMockUser, resetMockUser } from '@/test/setup';
 import { POST } from '../route';
 
 // Mock 모듈
@@ -16,10 +17,6 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-vi.mock('@/lib/auth', () => ({
-  getCurrentUser: vi.fn(),
-}));
-
 vi.mock('@/lib/domain/request-team', () => ({
   deriveRequestTeam: vi.fn((committee, department) =>
     [committee, department].filter(Boolean).join(' ').trim()
@@ -28,16 +25,31 @@ vi.mock('@/lib/domain/request-team', () => ({
 
 // Import mocked modules
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
 
 describe('POST /api/expenses/[id]/duplicate', () => {
   const mockUserId = 'user-123';
   const mockExpenseId = 'expense-456';
   const mockNewExpenseId = 'expense-789';
 
+  const mockUser = {
+    id: mockUserId,
+    tenantId: 'test-tenant-id',
+    userid: 'testuser',
+    username: '홍길동',
+    role: 'user',
+    roleId: 'test-role-id',
+    department: null,
+    canApprove: false,
+    canManageExpense: false,
+    canAccessAdmin: false,
+    canExportData: false,
+    canRegisterUsers: false,
+  };
+
   const mockOriginalExpense = {
     id: mockExpenseId,
     userId: mockUserId,
+    tenantId: 'test-tenant-id',
     committee: '기획위원회',
     department: '재정팀',
     expenseDate: new Date('2026-01-15'),
@@ -84,13 +96,6 @@ describe('POST /api/expenses/[id]/duplicate', () => {
     ],
   };
 
-  const mockCurrentUser = {
-    id: mockUserId,
-    name: '홍길동',
-    email: 'hong@example.com',
-    role: 'user',
-  };
-
   const mockDuplicatedExpense = {
     ...mockOriginalExpense,
     id: mockNewExpenseId,
@@ -111,11 +116,15 @@ describe('POST /api/expenses/[id]/duplicate', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setMockUser(mockUser);
+  });
+
+  afterEach(() => {
+    resetMockUser();
   });
 
   describe('성공 케이스', () => {
     it('본인의 지출결의서를 성공적으로 복제한다', async () => {
-      vi.mocked(getCurrentUser).mockResolvedValue(mockCurrentUser);
       vi.mocked(prisma.expense.findUnique)
         .mockResolvedValueOnce(mockOriginalExpense as any)
         .mockResolvedValueOnce(mockDuplicatedExpense as any);
@@ -136,7 +145,6 @@ describe('POST /api/expenses/[id]/duplicate', () => {
 
     it('DRAFT 상태의 지출결의서도 복제할 수 있다', async () => {
       const draftExpense = { ...mockOriginalExpense, status: 'DRAFT' };
-      vi.mocked(getCurrentUser).mockResolvedValue(mockCurrentUser);
       vi.mocked(prisma.expense.findUnique)
         .mockResolvedValueOnce(draftExpense as any)
         .mockResolvedValueOnce(mockDuplicatedExpense as any);
@@ -152,7 +160,6 @@ describe('POST /api/expenses/[id]/duplicate', () => {
 
     it('첨부파일이 없는 지출결의서도 복제할 수 있다', async () => {
       const noAttachmentsExpense = { ...mockOriginalExpense, attachments: [] };
-      vi.mocked(getCurrentUser).mockResolvedValue(mockCurrentUser);
       vi.mocked(prisma.expense.findUnique)
         .mockResolvedValueOnce(noAttachmentsExpense as any)
         .mockResolvedValueOnce({ ...mockDuplicatedExpense, attachments: [] } as any);
@@ -168,7 +175,6 @@ describe('POST /api/expenses/[id]/duplicate', () => {
 
     it('세부 항목이 없는 지출결의서도 복제할 수 있다', async () => {
       const noItemsExpense = { ...mockOriginalExpense, items: [] };
-      vi.mocked(getCurrentUser).mockResolvedValue(mockCurrentUser);
       vi.mocked(prisma.expense.findUnique)
         .mockResolvedValueOnce(noItemsExpense as any)
         .mockResolvedValueOnce({ ...mockDuplicatedExpense, items: [] } as any);
@@ -185,7 +191,7 @@ describe('POST /api/expenses/[id]/duplicate', () => {
 
   describe('인증 에러 (401)', () => {
     it('로그인하지 않은 사용자는 복제할 수 없다', async () => {
-      vi.mocked(getCurrentUser).mockResolvedValue(null);
+      setMockUser(null);
 
       const response = await POST(
         createRequest(mockExpenseId),
@@ -202,7 +208,6 @@ describe('POST /api/expenses/[id]/duplicate', () => {
   describe('권한 에러 (403)', () => {
     it('타인의 지출결의서는 복제할 수 없다', async () => {
       const otherUserExpense = { ...mockOriginalExpense, userId: 'other-user' };
-      vi.mocked(getCurrentUser).mockResolvedValue(mockCurrentUser);
       vi.mocked(prisma.expense.findUnique).mockResolvedValue(otherUserExpense as any);
 
       const response = await POST(
@@ -219,7 +224,6 @@ describe('POST /api/expenses/[id]/duplicate', () => {
 
   describe('리소스 미존재 에러 (404)', () => {
     it('존재하지 않는 지출결의서는 복제할 수 없다', async () => {
-      vi.mocked(getCurrentUser).mockResolvedValue(mockCurrentUser);
       vi.mocked(prisma.expense.findUnique).mockResolvedValue(null);
 
       const response = await POST(
@@ -241,7 +245,6 @@ describe('POST /api/expenses/[id]/duplicate', () => {
         committee: '',
         department: ''
       };
-      vi.mocked(getCurrentUser).mockResolvedValue(mockCurrentUser);
       vi.mocked(prisma.expense.findUnique).mockResolvedValue(noCommitteeExpense as any);
 
       const response = await POST(
@@ -258,15 +261,12 @@ describe('POST /api/expenses/[id]/duplicate', () => {
 
   describe('데이터 무결성', () => {
     it('트랜잭션이 올바른 데이터로 호출된다', async () => {
-      vi.mocked(getCurrentUser).mockResolvedValue(mockCurrentUser);
       vi.mocked(prisma.expense.findUnique)
         .mockResolvedValueOnce(mockOriginalExpense as any)
         .mockResolvedValueOnce(mockDuplicatedExpense as any);
 
       // 트랜잭션 콜백 캡처
-      let transactionCallback: any;
       vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
-        transactionCallback = callback;
         // Mock transaction context
         const mockTx = {
           expense: {

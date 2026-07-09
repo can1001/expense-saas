@@ -10,6 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { setMockUser, resetMockUser } from '@/test/setup';
 
 // Mock Prisma
 vi.mock('@/lib/prisma', () => ({
@@ -22,12 +23,6 @@ vi.mock('@/lib/prisma', () => ({
       findMany: vi.fn(),
     },
   },
-}));
-
-// Mock auth — getSessionUserId + getCurrentUser (소유권 우회 경로에서 사용)
-vi.mock('@/lib/auth', () => ({
-  getSessionUserId: vi.fn(),
-  getCurrentUser: vi.fn(),
 }));
 
 // Mock user-service for effective role lookup (소유권 우회 경로)
@@ -44,19 +39,32 @@ vi.mock('@/lib/cloudinary', () => ({
 // Import after mocking
 import { DELETE } from '../[id]/route';
 import { prisma } from '@/lib/prisma';
-import { getSessionUserId, getCurrentUser } from '@/lib/auth';
 import { getEffectiveRole } from '@/lib/services/user-service';
 
 describe('DELETE /api/expenses/[id]', () => {
   const mockPrisma = prisma as any;
-  const mockGetSessionUserId = getSessionUserId as ReturnType<typeof vi.fn>;
-  const mockGetCurrentUser = getCurrentUser as ReturnType<typeof vi.fn>;
   const mockGetEffectiveRole = getEffectiveRole as ReturnType<typeof vi.fn>;
+
+  const mockUser = {
+    id: 'owner-user-id',
+    tenantId: 'test-tenant-id',
+    userid: 'testuser',
+    username: '테스트유저',
+    role: 'user',
+    roleId: 'test-role-id',
+    department: null,
+    canApprove: false,
+    canManageExpense: false,
+    canAccessAdmin: false,
+    canExportData: false,
+    canRegisterUsers: false,
+  };
 
   const createMockExpense = (overrides = {}) => ({
     id: 'test-expense-id',
     status: 'DRAFT',
     userId: 'owner-user-id',
+    tenantId: 'test-tenant-id',
     ...overrides,
   });
 
@@ -70,17 +78,18 @@ describe('DELETE /api/expenses/[id]', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setMockUser(mockUser);
     mockPrisma.expenseAttachment.findMany.mockResolvedValue([]);
     mockPrisma.expense.delete.mockResolvedValue({});
   });
 
   afterEach(() => {
-    vi.resetAllMocks();
+    resetMockUser();
   });
 
   describe('인증 테스트', () => {
     it('비로그인 사용자 삭제 시도 시 401 에러', async () => {
-      mockGetSessionUserId.mockResolvedValue(null);
+      setMockUser(null);
 
       const response = await DELETE(createDeleteRequest(), { params: createParams() });
       const data = await response.json();
@@ -92,8 +101,7 @@ describe('DELETE /api/expenses/[id]', () => {
 
   describe('소유권 검증 테스트', () => {
     it('일반 사용자가 타인 지출결의서 삭제 시도 시 403', async () => {
-      mockGetSessionUserId.mockResolvedValue('other-user-id');
-      mockGetCurrentUser.mockResolvedValue({ id: 'other-user-id', username: '일반' });
+      setMockUser({ ...mockUser, id: 'other-user-id', username: '일반' });
       mockGetEffectiveRole.mockResolvedValue({ role: 'user', departmentId: null });
       mockPrisma.expense.findUnique.mockResolvedValue(
         createMockExpense({ userId: 'owner-user-id' })
@@ -107,7 +115,7 @@ describe('DELETE /api/expenses/[id]', () => {
     });
 
     it('본인 지출결의서는 삭제 가능', async () => {
-      mockGetSessionUserId.mockResolvedValue('owner-user-id');
+      setMockUser(mockUser);
       mockPrisma.expense.findUnique.mockResolvedValue(
         createMockExpense({ userId: 'owner-user-id', status: 'DRAFT' })
       );
@@ -120,8 +128,7 @@ describe('DELETE /api/expenses/[id]', () => {
     });
 
     it('관리 역할(admin_assistant)은 타인 DRAFT 삭제 가능 (소유권 우회)', async () => {
-      mockGetSessionUserId.mockResolvedValue('admin-asst-id');
-      mockGetCurrentUser.mockResolvedValue({ id: 'admin-asst-id', username: '행정간사' });
+      setMockUser({ ...mockUser, id: 'admin-asst-id', username: '행정간사', role: 'admin_assistant' });
       mockGetEffectiveRole.mockResolvedValue({ role: 'admin_assistant', departmentId: null });
       mockPrisma.expense.findUnique.mockResolvedValue(
         createMockExpense({ userId: 'owner-user-id', status: 'DRAFT' })
@@ -135,8 +142,7 @@ describe('DELETE /api/expenses/[id]', () => {
     });
 
     it('관리 역할도 EDITABLE_STATUSES 아니면 삭제 불가 (제출/승인 건은 보호)', async () => {
-      mockGetSessionUserId.mockResolvedValue('admin-asst-id');
-      mockGetCurrentUser.mockResolvedValue({ id: 'admin-asst-id', username: '행정간사' });
+      setMockUser({ ...mockUser, id: 'admin-asst-id', username: '행정간사', role: 'admin_assistant' });
       mockGetEffectiveRole.mockResolvedValue({ role: 'admin_assistant', departmentId: null });
       mockPrisma.expense.findUnique.mockResolvedValue(
         createMockExpense({ userId: 'owner-user-id', status: 'PENDING' })
@@ -152,7 +158,7 @@ describe('DELETE /api/expenses/[id]', () => {
 
   describe('상태 제한 테스트', () => {
     it('DRAFT 상태 삭제 성공', async () => {
-      mockGetSessionUserId.mockResolvedValue('owner-user-id');
+      setMockUser(mockUser);
       mockPrisma.expense.findUnique.mockResolvedValue(
         createMockExpense({ userId: 'owner-user-id', status: 'DRAFT' })
       );
@@ -168,7 +174,7 @@ describe('DELETE /api/expenses/[id]', () => {
     });
 
     it('REJECTED 상태 삭제 성공', async () => {
-      mockGetSessionUserId.mockResolvedValue('owner-user-id');
+      setMockUser(mockUser);
       mockPrisma.expense.findUnique.mockResolvedValue(
         createMockExpense({ userId: 'owner-user-id', status: 'REJECTED' })
       );
@@ -181,7 +187,7 @@ describe('DELETE /api/expenses/[id]', () => {
     });
 
     it('WITHDRAWN 상태 삭제 성공', async () => {
-      mockGetSessionUserId.mockResolvedValue('owner-user-id');
+      setMockUser(mockUser);
       mockPrisma.expense.findUnique.mockResolvedValue(
         createMockExpense({ userId: 'owner-user-id', status: 'WITHDRAWN' })
       );
@@ -194,7 +200,7 @@ describe('DELETE /api/expenses/[id]', () => {
     });
 
     it('PENDING 상태 삭제 시 403 에러', async () => {
-      mockGetSessionUserId.mockResolvedValue('owner-user-id');
+      setMockUser(mockUser);
       mockPrisma.expense.findUnique.mockResolvedValue(
         createMockExpense({ userId: 'owner-user-id', status: 'PENDING' })
       );
@@ -207,7 +213,7 @@ describe('DELETE /api/expenses/[id]', () => {
     });
 
     it('APPROVED_STEP_1 상태 삭제 시 403 에러', async () => {
-      mockGetSessionUserId.mockResolvedValue('owner-user-id');
+      setMockUser(mockUser);
       mockPrisma.expense.findUnique.mockResolvedValue(
         createMockExpense({ userId: 'owner-user-id', status: 'APPROVED_STEP_1' })
       );
@@ -220,7 +226,7 @@ describe('DELETE /api/expenses/[id]', () => {
     });
 
     it('APPROVED_FINAL 상태 삭제 시 403 에러', async () => {
-      mockGetSessionUserId.mockResolvedValue('owner-user-id');
+      setMockUser(mockUser);
       mockPrisma.expense.findUnique.mockResolvedValue(
         createMockExpense({ userId: 'owner-user-id', status: 'APPROVED_FINAL' })
       );
@@ -235,7 +241,7 @@ describe('DELETE /api/expenses/[id]', () => {
 
   describe('404 에러 테스트', () => {
     it('존재하지 않는 지출결의서 삭제 시 404 에러', async () => {
-      mockGetSessionUserId.mockResolvedValue('owner-user-id');
+      setMockUser(mockUser);
       mockPrisma.expense.findUnique.mockResolvedValue(null);
 
       const response = await DELETE(createDeleteRequest(), { params: createParams() });

@@ -7,8 +7,9 @@
  * DELETE /api/expense-templates/[id] - 템플릿 삭제
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { setMockUser, resetMockUser } from '@/test/setup';
 
 // Mock Prisma
 vi.mock('@/lib/prisma', () => ({
@@ -24,25 +25,35 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-// Mock auth
-vi.mock('@/lib/auth', () => ({
-  getCurrentUser: vi.fn(),
-}));
-
 // Import after mocking
 import { GET, POST } from '../route';
 import { GET as GET_ONE, PUT, DELETE, POST as USE_TEMPLATE } from '../[id]/route';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
 
 describe('지출 템플릿 API', () => {
-  const mockUser = { id: 'user-1', username: '테스트유저' };
+  const mockUser = {
+    id: 'user-1',
+    tenantId: 'test-tenant-id',
+    userid: 'testuser',
+    username: '테스트유저',
+    role: 'admin',
+    roleId: 'test-role-id',
+    department: null,
+    canApprove: true,
+    canManageExpense: true,
+    canAccessAdmin: true,
+    canExportData: true,
+    canRegisterUsers: true,
+  };
   const mockPrisma = prisma as any;
-  const mockGetCurrentUser = getCurrentUser as ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetCurrentUser.mockResolvedValue(mockUser);
+    setMockUser(mockUser);
+  });
+
+  afterEach(() => {
+    resetMockUser();
   });
 
   describe('GET /api/expense-templates', () => {
@@ -79,7 +90,7 @@ describe('지출 템플릿 API', () => {
     });
 
     it('로그인하지 않은 경우 401을 반환해야 함', async () => {
-      mockGetCurrentUser.mockResolvedValue(null);
+      setMockUser(null);
 
       const response = await GET();
       const data = await response.json();
@@ -236,7 +247,7 @@ describe('지출 템플릿 API', () => {
     });
 
     it('로그인하지 않은 경우 401을 반환해야 함', async () => {
-      mockGetCurrentUser.mockResolvedValue(null);
+      setMockUser(null);
 
       const request = new NextRequest('http://localhost:3000/api/expense-templates/template-1', {
         method: 'PUT',
@@ -304,7 +315,7 @@ describe('지출 템플릿 API', () => {
     });
 
     it('로그인하지 않은 경우 401을 반환해야 함', async () => {
-      mockGetCurrentUser.mockResolvedValue(null);
+      setMockUser(null);
 
       const request = new NextRequest('http://localhost:3000/api/expense-templates/template-1', {
         method: 'DELETE',
@@ -376,7 +387,7 @@ describe('지출 템플릿 API', () => {
     });
 
     it('로그인하지 않은 경우 401을 반환해야 함', async () => {
-      mockGetCurrentUser.mockResolvedValue(null);
+      setMockUser(null);
 
       const request = new NextRequest('http://localhost:3000/api/expense-templates/template-1', {
         method: 'POST',

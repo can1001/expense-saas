@@ -8,6 +8,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { setMockUser, resetMockUser } from '@/test/setup';
 
 // Mock Prisma
 vi.mock('@/lib/prisma', () => ({
@@ -28,11 +29,6 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-// Mock auth
-vi.mock('@/lib/auth', () => ({
-  getCurrentUser: vi.fn(),
-}));
-
 // Mock user-service for getEffectiveRole
 vi.mock('@/lib/services/user-service', () => ({
   getEffectiveRole: vi.fn(),
@@ -49,17 +45,31 @@ vi.mock('@/lib/services/notification', () => ({
 // Import after mocking
 import { PUT, GET } from '../[id]/payment-status/route';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
 import { getEffectiveRole } from '@/lib/services/user-service';
 
 describe('PUT /api/expenses/[id]/payment-status', () => {
   const mockPrisma = prisma as any;
-  const mockGetCurrentUser = getCurrentUser as ReturnType<typeof vi.fn>;
   const mockGetEffectiveRole = getEffectiveRole as ReturnType<typeof vi.fn>;
+
+  const mockUser = {
+    id: 'admin-1',
+    tenantId: 'test-tenant-id',
+    userid: 'admin',
+    username: '관리자',
+    role: 'admin',
+    roleId: 'test-role-id',
+    department: null,
+    canApprove: true,
+    canManageExpense: true,
+    canAccessAdmin: true,
+    canExportData: true,
+    canRegisterUsers: true,
+  };
 
   const mockExpense = {
     id: 'expense-1',
     userId: 'owner-1',
+    tenantId: 'test-tenant-id',
     status: 'APPROVED_FINAL',
     paymentStatus: 'PENDING',
     applicantName: '홍길동',
@@ -79,6 +89,7 @@ describe('PUT /api/expenses/[id]/payment-status', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setMockUser(mockUser);
     mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
     mockPrisma.expense.update.mockResolvedValue({
       ...mockExpense,
@@ -91,17 +102,12 @@ describe('PUT /api/expenses/[id]/payment-status', () => {
   });
 
   afterEach(() => {
-    vi.resetAllMocks();
+    resetMockUser();
   });
 
   describe('지급상태 변경 권한 테스트 (연도별 역할 기반)', () => {
     it('admin은 지급상태를 변경할 수 있다', async () => {
-      mockGetCurrentUser.mockResolvedValue({
-        id: 'admin-1',
-        userid: 'admin',
-        username: '관리자',
-        role: 'admin',
-      });
+      setMockUser(mockUser);
       mockGetEffectiveRole.mockResolvedValue({ role: 'admin', department: null });
 
       const request = createPutRequest({ paymentStatus: 'COMPLETED' });
@@ -114,11 +120,12 @@ describe('PUT /api/expenses/[id]/payment-status', () => {
 
     it('User.role이 user이지만 UserYearRole이 accountant면 지급상태를 변경할 수 있다', async () => {
       // 정혜종 시나리오: User.role = 'user', UserYearRole = 'accountant'
-      mockGetCurrentUser.mockResolvedValue({
+      setMockUser({
+        ...mockUser,
         id: 'accountant-1',
         userid: '청연정혜종',
         username: '정혜종',
-        role: 'user',  // User.role은 user
+        role: 'user',
       });
       mockGetEffectiveRole.mockResolvedValue({
         role: 'accountant',  // effectiveRole은 accountant
@@ -137,11 +144,12 @@ describe('PUT /api/expenses/[id]/payment-status', () => {
 
     it('User.role이 user이지만 UserYearRole이 finance_head면 지급상태를 변경할 수 있다', async () => {
       // 윤운문 시나리오: User.role = 'user', UserYearRole = 'finance_head'
-      mockGetCurrentUser.mockResolvedValue({
+      setMockUser({
+        ...mockUser,
         id: 'finance-head-1',
         userid: '청연윤운문',
         username: '윤운문',
-        role: 'user',  // User.role은 user
+        role: 'user',
       });
       mockGetEffectiveRole.mockResolvedValue({
         role: 'finance_head',  // effectiveRole은 finance_head
@@ -157,7 +165,8 @@ describe('PUT /api/expenses/[id]/payment-status', () => {
     });
 
     it('admin_assistant는 지급상태를 변경할 수 있다', async () => {
-      mockGetCurrentUser.mockResolvedValue({
+      setMockUser({
+        ...mockUser,
         id: 'assistant-1',
         userid: 'assistant',
         username: '행정보조',
@@ -177,7 +186,8 @@ describe('PUT /api/expenses/[id]/payment-status', () => {
     });
 
     it('일반 사용자(user)는 지급상태를 변경할 수 없다 - 403 에러', async () => {
-      mockGetCurrentUser.mockResolvedValue({
+      setMockUser({
+        ...mockUser,
         id: 'user-1',
         userid: 'normaluser',
         username: '일반사용자',
@@ -197,7 +207,8 @@ describe('PUT /api/expenses/[id]/payment-status', () => {
     });
 
     it('팀장(team_leader)은 지급상태를 변경할 수 없다 - 403 에러', async () => {
-      mockGetCurrentUser.mockResolvedValue({
+      setMockUser({
+        ...mockUser,
         id: 'leader-1',
         userid: 'teamleader',
         username: '팀장',
@@ -217,7 +228,7 @@ describe('PUT /api/expenses/[id]/payment-status', () => {
     });
 
     it('로그인하지 않은 사용자는 401 에러', async () => {
-      mockGetCurrentUser.mockResolvedValue(null);
+      setMockUser(null);
 
       const request = createPutRequest({ paymentStatus: 'COMPLETED' });
       const response = await PUT(request, { params: createParams() });
@@ -231,7 +242,8 @@ describe('PUT /api/expenses/[id]/payment-status', () => {
   describe('상태 전이 검증 테스트', () => {
     beforeEach(() => {
       // 권한이 있는 사용자로 설정
-      mockGetCurrentUser.mockResolvedValue({
+      setMockUser({
+        ...mockUser,
         id: 'accountant-1',
         username: '정혜종',
         role: 'user',
@@ -311,7 +323,8 @@ describe('PUT /api/expenses/[id]/payment-status', () => {
 
   describe('지급완료 처리 테스트', () => {
     beforeEach(() => {
-      mockGetCurrentUser.mockResolvedValue({
+      setMockUser({
+        ...mockUser,
         id: 'accountant-1',
         username: '정혜종',
         role: 'user',
@@ -395,13 +408,34 @@ describe('PUT /api/expenses/[id]/payment-status', () => {
 describe('GET /api/expenses/[id]/payment-status', () => {
   const mockPrisma = prisma as any;
 
+  const mockUser = {
+    id: 'user-1',
+    tenantId: 'test-tenant-id',
+    userid: 'testuser',
+    username: '테스트유저',
+    role: 'admin',
+    roleId: 'test-role-id',
+    department: null,
+    canApprove: true,
+    canManageExpense: true,
+    canAccessAdmin: true,
+    canExportData: true,
+    canRegisterUsers: true,
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
+    setMockUser(mockUser);
+  });
+
+  afterEach(() => {
+    resetMockUser();
   });
 
   it('지급상태 조회 성공', async () => {
     mockPrisma.expense.findUnique.mockResolvedValue({
       id: 'expense-1',
+      tenantId: 'test-tenant-id',
       status: 'APPROVED_FINAL',
       paymentStatus: 'PENDING',
       paymentCompletedAt: null,

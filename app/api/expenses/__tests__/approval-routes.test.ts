@@ -12,6 +12,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { setMockUser, resetMockUser } from '@/test/setup';
 
 // Mock Prisma - use factory function to avoid hoisting issues
 vi.mock('@/lib/prisma', () => ({
@@ -58,8 +59,24 @@ describe('Approval API Routes', () => {
   const mockPrisma = prisma as any;
   const mockCalculateApprovalLine = calculateApprovalLineForExpense as ReturnType<typeof vi.fn>;
 
+  const mockUser = {
+    id: 'user-1',
+    tenantId: 'test-tenant-id',
+    userid: 'testuser',
+    username: '테스트유저',
+    role: 'admin',
+    roleId: 'test-role-id',
+    department: null,
+    canApprove: true,
+    canManageExpense: true,
+    canAccessAdmin: true,
+    canExportData: true,
+    canRegisterUsers: true,
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
+    setMockUser(mockUser);
 
     // Default mock for calculateApprovalLineForExpense
     mockCalculateApprovalLine.mockResolvedValue({
@@ -90,7 +107,7 @@ describe('Approval API Routes', () => {
   });
 
   afterEach(() => {
-    vi.resetAllMocks();
+    resetMockUser();
   });
 
   // ========================================
@@ -109,6 +126,7 @@ describe('Approval API Routes', () => {
         requestAmount: 300000,
         applicantName: '홍길동',
         requestDate: new Date('2025-01-15'),
+        tenantId: 'test-tenant-id',
         items: [
           {
             id: 'item-1',
@@ -218,6 +236,7 @@ describe('Approval API Routes', () => {
         budgetSubcategory: '회의비',
         requestAmount: 300000,
         applicantName: '홍길동',
+        tenantId: 'test-tenant-id',
         items: [],
         approvalLine: null,
       };
@@ -252,6 +271,7 @@ describe('Approval API Routes', () => {
         requestAmount: 300000,
         applicantName: '신창국', // 재정팀장 (팀장도 본인)
         requestDate: new Date('2025-01-15'),
+        tenantId: 'test-tenant-id',
         items: [
           {
             id: 'item-1',
@@ -376,11 +396,23 @@ describe('Approval API Routes', () => {
   // POST /api/expenses/[id]/approve - 승인
   // ========================================
   describe('POST /api/expenses/[id]/approve', () => {
+    // 승인 테스트용 사용자 (결재선의 approverName과 일치해야 함)
+    const mockApprover = {
+      ...mockUser,
+      id: 'approver-1',
+      userid: 'approver',
+      username: '김재정', // 결재선의 1단계 승인자 이름과 일치
+    };
+
     it('should approve expense at current step successfully', async () => {
+      // 결재선의 1단계 승인자로 설정
+      setMockUser(mockApprover);
+
       const expenseId = 'test-expense-id';
       const mockExpense = {
         id: expenseId,
         status: 'PENDING',
+        tenantId: 'test-tenant-id',
         applicantSignatureType: 'signature',
         applicantSignatureData: 'data:image/png;base64,mock-signature-data',
         approvalLine: {
@@ -453,10 +485,14 @@ describe('Approval API Routes', () => {
     });
 
     it('should complete approval on final step', async () => {
+      // 3단계 승인자(이재무)로 설정
+      setMockUser({ ...mockApprover, username: '이재무' });
+
       const expenseId = 'test-expense-id';
       const mockExpense = {
         id: expenseId,
         status: 'APPROVED_STEP_2',
+        tenantId: 'test-tenant-id',
         applicantSignatureType: 'signature',
         applicantSignatureData: 'data:image/png;base64,mock-signature-data',
         approvalLine: {
@@ -532,7 +568,35 @@ describe('Approval API Routes', () => {
       expect(data.isComplete).toBe(true);
     });
 
-    it('should return 400 if approverName not provided', async () => {
+    it('should return 403 if user is not the designated approver', async () => {
+      // 결재선에 지정되지 않은 사용자로 설정
+      setMockUser({ ...mockApprover, username: '다른사용자' });
+
+      const expenseId = 'test-expense-id';
+      const mockExpense = {
+        id: expenseId,
+        status: 'PENDING',
+        tenantId: 'test-tenant-id',
+        applicantSignatureType: 'signature',
+        applicantSignatureData: 'data:image/png;base64,mock-signature-data',
+        approvalLine: {
+          id: 'approval-line-id',
+          currentStep: 1,
+          totalSteps: 2,
+          steps: [
+            {
+              id: 'step-1',
+              stepNumber: 1,
+              stepName: '팀장',
+              approverName: '김재정',
+              status: 'PENDING',
+            },
+          ],
+        },
+      };
+
+      mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
+
       const request = new NextRequest('http://localhost/api/expenses/test-id/approve', {
         method: 'POST',
         body: JSON.stringify({}),
@@ -542,8 +606,9 @@ describe('Approval API Routes', () => {
       const response = await approvePOST(request, { params });
       const data = await response.json();
 
-      expect(response.status).toBe(400);
-      expect(data.error).toContain('결재자 이름이 필요합니다');
+      // 결재선에 지정된 승인자가 아니므로 403 반환
+      expect(response.status).toBe(403);
+      expect(data.error).toBeDefined();
     });
 
     it('should return 404 if expense not found', async () => {
@@ -566,6 +631,7 @@ describe('Approval API Routes', () => {
       const mockExpense = {
         id: 'test-id',
         status: 'DRAFT',
+        tenantId: 'test-tenant-id',
         approvalLine: null,
       };
 
@@ -588,6 +654,7 @@ describe('Approval API Routes', () => {
       const mockExpense = {
         id: 'test-id',
         status: 'APPROVED',
+        tenantId: 'test-tenant-id',
         approvalLine: {
           id: 'approval-line-id',
           currentStep: 2,
@@ -612,9 +679,13 @@ describe('Approval API Routes', () => {
     });
 
     it('should return 403 if approver is not the designated person', async () => {
+      // 결재선에 지정되지 않은 사용자로 설정
+      setMockUser({ ...mockApprover, username: '홍길동' });
+
       const mockExpense = {
         id: 'test-id',
         status: 'PENDING',
+        tenantId: 'test-tenant-id',
         applicantSignatureType: 'signature',
         applicantSignatureData: 'data:image/png;base64,mock-signature-data',
         approvalLine: {
@@ -637,7 +708,7 @@ describe('Approval API Routes', () => {
 
       const request = new NextRequest('http://localhost/api/expenses/test-id/approve', {
         method: 'POST',
-        body: JSON.stringify({ approverName: '홍길동' }), // 잘못된 결재자
+        body: JSON.stringify({}),
       });
 
       const params = Promise.resolve({ id: 'test-id' });
@@ -653,11 +724,23 @@ describe('Approval API Routes', () => {
   // POST /api/expenses/[id]/reject - 반려
   // ========================================
   describe('POST /api/expenses/[id]/reject', () => {
+    // 반려 테스트용 사용자 (결재선의 approverName과 일치해야 함)
+    const mockRejecter = {
+      ...mockUser,
+      id: 'rejecter-1',
+      userid: 'rejecter',
+      username: '김재정', // 결재선의 1단계 승인자 이름과 일치
+    };
+
     it('should reject expense successfully', async () => {
+      // 결재선의 1단계 승인자로 설정
+      setMockUser(mockRejecter);
+
       const expenseId = 'test-expense-id';
       const mockExpense = {
         id: expenseId,
         status: 'PENDING',
+        tenantId: 'test-tenant-id',
         approvalLine: {
           id: 'approval-line-id',
           currentStep: 1,
@@ -713,7 +796,33 @@ describe('Approval API Routes', () => {
       expect(data.message).toContain('반려되었습니다');
     });
 
-    it('should return 400 if approverName not provided', async () => {
+    it('should return 403 if user is not the designated approver for rejection', async () => {
+      // 결재선에 지정되지 않은 사용자로 설정
+      setMockUser({ ...mockRejecter, username: '다른사용자' });
+
+      const expenseId = 'test-expense-id';
+      const mockExpense = {
+        id: expenseId,
+        status: 'PENDING',
+        tenantId: 'test-tenant-id',
+        approvalLine: {
+          id: 'approval-line-id',
+          currentStep: 1,
+          totalSteps: 2,
+          steps: [
+            {
+              id: 'step-1',
+              stepNumber: 1,
+              stepName: '팀장',
+              approverName: '김재정',
+              status: 'PENDING',
+            },
+          ],
+        },
+      };
+
+      mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
+
       const request = new NextRequest('http://localhost/api/expenses/test-id/reject', {
         method: 'POST',
         body: JSON.stringify({ comment: '반려 사유' }),
@@ -723,8 +832,9 @@ describe('Approval API Routes', () => {
       const response = await rejectPOST(request, { params });
       const data = await response.json();
 
-      expect(response.status).toBe(400);
-      expect(data.error).toContain('결재자 이름이 필요합니다');
+      // 결재선에 지정된 승인자가 아니므로 403 반환
+      expect(response.status).toBe(403);
+      expect(data.error).toBeDefined();
     });
 
     it('should return 400 if comment not provided', async () => {
@@ -760,12 +870,24 @@ describe('Approval API Routes', () => {
   // POST /api/expenses/[id]/withdraw - 회수
   // ========================================
   describe('POST /api/expenses/[id]/withdraw', () => {
+    // 회수 테스트용 사용자 (지출결의서의 applicantName과 일치해야 함)
+    const mockApplicant = {
+      ...mockUser,
+      id: 'applicant-1',
+      userid: 'applicant',
+      username: '홍길동', // 지출결의서의 작성자 이름과 일치
+    };
+
     it('should withdraw expense successfully from PENDING status', async () => {
+      // 작성자로 설정
+      setMockUser(mockApplicant);
+
       const expenseId = 'test-expense-id';
       const mockExpense = {
         id: expenseId,
         status: 'PENDING',
         applicantName: '홍길동',
+        tenantId: 'test-tenant-id',
         approvalLine: {
           id: 'approval-line-id',
           currentStep: 1,
@@ -822,11 +944,15 @@ describe('Approval API Routes', () => {
     });
 
     it('should withdraw expense successfully from APPROVED_STEP_1 status', async () => {
+      // 작성자로 설정
+      setMockUser(mockApplicant);
+
       const expenseId = 'test-expense-id';
       const mockExpense = {
         id: expenseId,
         status: 'APPROVED_STEP_1',
         applicantName: '홍길동',
+        tenantId: 'test-tenant-id',
         approvalLine: {
           id: 'approval-line-id',
           currentStep: 2,
@@ -872,7 +998,21 @@ describe('Approval API Routes', () => {
       expect(data.success).toBe(true);
     });
 
-    it('should return 400 if applicantName not provided', async () => {
+    it('should return 403 if user is not the applicant', async () => {
+      // 다른 사용자로 설정
+      setMockUser({ ...mockApplicant, username: '다른사용자' });
+
+      const expenseId = 'test-expense-id';
+      const mockExpense = {
+        id: expenseId,
+        status: 'PENDING',
+        applicantName: '홍길동',
+        tenantId: 'test-tenant-id',
+        approvalLine: { id: 'approval-line-id', steps: [] },
+      };
+
+      mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
+
       const request = new NextRequest('http://localhost/api/expenses/test-id/withdraw', {
         method: 'POST',
         body: JSON.stringify({}),
@@ -882,8 +1022,8 @@ describe('Approval API Routes', () => {
       const response = await withdrawPOST(request, { params });
       const data = await response.json();
 
-      expect(response.status).toBe(400);
-      expect(data.error).toContain('작성자 이름이 필요합니다');
+      expect(response.status).toBe(403);
+      expect(data.error).toContain('작성자만 회수할 수 있습니다');
     });
 
     it('should return 404 if expense not found', async () => {
@@ -902,34 +1042,14 @@ describe('Approval API Routes', () => {
       expect(data.error).toContain('찾을 수 없습니다');
     });
 
-    it('should return 403 if not the applicant', async () => {
-      const mockExpense = {
-        id: 'test-id',
-        status: 'PENDING',
-        applicantName: '홍길동',
-        approvalLine: { id: 'approval-line-id', steps: [] },
-      };
-
-      mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
-
-      const request = new NextRequest('http://localhost/api/expenses/test-id/withdraw', {
-        method: 'POST',
-        body: JSON.stringify({ applicantName: '김철수' }), // 다른 사람
-      });
-
-      const params = Promise.resolve({ id: 'test-id' });
-      const response = await withdrawPOST(request, { params });
-      const data = await response.json();
-
-      expect(response.status).toBe(403);
-      expect(data.error).toContain('작성자만 회수할 수 있습니다');
-    });
-
     it('should return 400 if expense status is not withdrawable', async () => {
+      // 작성자로 설정
+      setMockUser(mockApplicant);
       const mockExpense = {
         id: 'test-id',
         status: 'APPROVED', // 승인 완료된 문서는 회수 불가
         applicantName: '홍길동',
+        tenantId: 'test-tenant-id',
         approvalLine: { id: 'approval-line-id', steps: [] },
       };
 
@@ -963,6 +1083,7 @@ describe('Approval API Routes', () => {
         submittedAt: new Date(),
         approvedAt: null,
         rejectedAt: null,
+        tenantId: 'test-tenant-id',
         approvalLine: {
           id: 'approval-line-id',
           currentStep: 1,
@@ -1036,12 +1157,24 @@ describe('Approval API Routes', () => {
   // PUT /api/expenses/[id]/approval - 결재선 수정
   // ========================================
   describe('PUT /api/expenses/[id]/approval', () => {
+    // 결재선 수정 테스트용 사용자 (지출결의서의 applicantName과 일치해야 함)
+    const mockApprovalLineModifier = {
+      ...mockUser,
+      id: 'modifier-1',
+      userid: 'modifier',
+      username: '홍길동', // 지출결의서의 작성자 이름과 일치
+    };
+
     it('should modify approval line successfully in DRAFT status', async () => {
+      // 작성자로 설정
+      setMockUser(mockApprovalLineModifier);
+
       const expenseId = 'test-expense-id';
       const mockExpense = {
         id: expenseId,
         status: 'DRAFT',
         applicantName: '홍길동',
+        tenantId: 'test-tenant-id',
         approvalLine: null,
       };
 
@@ -1106,20 +1239,6 @@ describe('Approval API Routes', () => {
       expect(data.message).toContain('결재선이 수정되었습니다');
     });
 
-    it('should return 400 if actorName not provided', async () => {
-      const request = new NextRequest('http://localhost/api/expenses/test-id/approval', {
-        method: 'PUT',
-        body: JSON.stringify({ steps: [] }),
-      });
-
-      const params = Promise.resolve({ id: 'test-id' });
-      const response = await approvalPUT(request, { params });
-      const data = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(data.error).toContain('수정자 이름이 필요합니다');
-    });
-
     it('should return 400 if steps not provided', async () => {
       const request = new NextRequest('http://localhost/api/expenses/test-id/approval', {
         method: 'PUT',
@@ -1153,6 +1272,7 @@ describe('Approval API Routes', () => {
         id: 'test-id',
         status: 'PENDING',
         applicantName: '홍길동',
+        tenantId: 'test-tenant-id',
         approvalLine: { id: 'approval-line-id', steps: [] },
       };
 
@@ -1186,6 +1306,7 @@ describe('Approval API Routes', () => {
         id: 'test-id',
         status: 'DRAFT',
         applicantName: '홍길동',
+        tenantId: 'test-tenant-id',
         approvalLine: null,
       };
 

@@ -11,6 +11,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { setMockUser, resetMockUser } from '@/test/setup';
 
 // Mock Prisma
 vi.mock('@/lib/prisma', () => ({
@@ -26,12 +27,6 @@ vi.mock('@/lib/prisma', () => ({
       create: vi.fn(),
     },
   },
-}));
-
-// Mock auth
-vi.mock('@/lib/auth', () => ({
-  getCurrentUser: vi.fn(),
-  getSessionUserId: vi.fn(),
 }));
 
 // Mock user-service for getEffectiveRole
@@ -57,16 +52,28 @@ vi.mock('@/lib/domain/request-team', () => ({
 // Import after mocking
 import { PUT } from '../[id]/route';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser, getSessionUserId } from '@/lib/auth';
 import { getEffectiveRole } from '@/lib/services/user-service';
 
 describe('PUT /api/expenses/[id]', () => {
   const mockPrisma = prisma as any;
-  const mockGetCurrentUser = getCurrentUser as ReturnType<typeof vi.fn>;
-  const mockGetSessionUserId = getSessionUserId as ReturnType<typeof vi.fn>;
   const mockGetEffectiveRole = getEffectiveRole as ReturnType<typeof vi.fn>;
 
   const OWNER_USER_ID = 'owner-user-id';
+
+  const mockUser = {
+    id: OWNER_USER_ID,
+    tenantId: 'test-tenant-id',
+    userid: 'testuser',
+    username: '테스트유저',
+    role: 'user',
+    roleId: 'test-role-id',
+    department: null,
+    canApprove: false,
+    canManageExpense: false,
+    canAccessAdmin: false,
+    canExportData: false,
+    canRegisterUsers: false,
+  };
 
   const createMockExpense = (overrides = {}) => ({
     id: 'test-expense-id',
@@ -78,6 +85,7 @@ describe('PUT /api/expenses/[id]', () => {
     requestTeam: '선교위원회 청년부',
     requestAmount: 100000,
     userId: OWNER_USER_ID,
+    tenantId: 'test-tenant-id',
     items: [
       {
         id: 'item-1',
@@ -94,7 +102,8 @@ describe('PUT /api/expenses/[id]', () => {
     ...overrides,
   });
 
-  const createMockUser = (role: string) => ({
+  const createMockUserRole = (role: string) => ({
+    ...mockUser,
     id: `${role}-user-id`,
     userid: role,
     username: `${role} 사용자`,
@@ -113,19 +122,20 @@ describe('PUT /api/expenses/[id]', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setMockUser(mockUser);
     mockPrisma.expenseItem.deleteMany.mockResolvedValue({ count: 1 });
     mockPrisma.approvalLog.create.mockResolvedValue({});
-    // 기본적으로 소유자로 로그인된 상태
-    mockGetSessionUserId.mockResolvedValue(OWNER_USER_ID);
+    // 기본적으로 일반 사용자 역할 반환 (관리 권한 없음)
+    mockGetEffectiveRole.mockResolvedValue({ role: 'user', department: null });
   });
 
   afterEach(() => {
-    vi.resetAllMocks();
+    resetMockUser();
   });
 
   describe('인증 테스트', () => {
     it('비로그인 사용자 수정 시도 시 401 에러', async () => {
-      mockGetSessionUserId.mockResolvedValue(null);
+      setMockUser(null);
 
       const request = createPutRequest({
         committee: '선교위원회',
@@ -142,7 +152,7 @@ describe('PUT /api/expenses/[id]', () => {
 
   describe('소유권 검증 테스트', () => {
     it('타인의 지출결의서 수정 시도 시 403 에러', async () => {
-      mockGetSessionUserId.mockResolvedValue('other-user-id');
+      setMockUser({ ...mockUser, id: 'other-user-id' });
       const mockExpense = createMockExpense({ status: 'DRAFT', userId: OWNER_USER_ID });
       mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
 
@@ -160,7 +170,7 @@ describe('PUT /api/expenses/[id]', () => {
     });
 
     it('본인 지출결의서는 수정 가능', async () => {
-      mockGetSessionUserId.mockResolvedValue(OWNER_USER_ID);
+      setMockUser(mockUser);
       const mockExpense = createMockExpense({ status: 'DRAFT', userId: OWNER_USER_ID });
       mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
       mockPrisma.expense.update.mockResolvedValue(mockExpense);
@@ -177,7 +187,7 @@ describe('PUT /api/expenses/[id]', () => {
     });
 
     it('REJECTED 상태에서 타인 수정 시도 시 403 에러', async () => {
-      mockGetSessionUserId.mockResolvedValue('other-user-id');
+      setMockUser({ ...mockUser, id: 'other-user-id' });
       const mockExpense = createMockExpense({ status: 'REJECTED', userId: OWNER_USER_ID });
       mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
 
@@ -195,7 +205,7 @@ describe('PUT /api/expenses/[id]', () => {
     });
 
     it('WITHDRAWN 상태에서 타인 수정 시도 시 403 에러', async () => {
-      mockGetSessionUserId.mockResolvedValue('other-user-id');
+      setMockUser({ ...mockUser, id: 'other-user-id' });
       const mockExpense = createMockExpense({ status: 'WITHDRAWN', userId: OWNER_USER_ID });
       mockPrisma.expense.findUnique.mockResolvedValue(mockExpense);
 
@@ -275,9 +285,9 @@ describe('PUT /api/expenses/[id]', () => {
     });
 
     it('APPROVED_FINAL + PENDING 상태에서 admin 역할 수정 성공', async () => {
+      setMockUser(createMockUserRole('admin'));
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
       mockPrisma.expense.update.mockResolvedValue(approvedPendingExpense);
-      mockGetCurrentUser.mockResolvedValue(createMockUser('admin'));
       mockGetEffectiveRole.mockResolvedValue({ role: 'admin', department: null });
 
       const request = createPutRequest({
@@ -292,9 +302,9 @@ describe('PUT /api/expenses/[id]', () => {
     });
 
     it('APPROVED_FINAL + PENDING 상태에서 finance_head 역할 수정 성공', async () => {
+      setMockUser(createMockUserRole('finance_head'));
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
       mockPrisma.expense.update.mockResolvedValue(approvedPendingExpense);
-      mockGetCurrentUser.mockResolvedValue(createMockUser('finance_head'));
       mockGetEffectiveRole.mockResolvedValue({ role: 'finance_head', department: null });
 
       const request = createPutRequest({
@@ -309,9 +319,9 @@ describe('PUT /api/expenses/[id]', () => {
     });
 
     it('APPROVED_FINAL + PENDING 상태에서 accountant 역할 수정 성공', async () => {
+      setMockUser(createMockUserRole('accountant'));
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
       mockPrisma.expense.update.mockResolvedValue(approvedPendingExpense);
-      mockGetCurrentUser.mockResolvedValue(createMockUser('accountant'));
       mockGetEffectiveRole.mockResolvedValue({ role: 'accountant', department: '재정팀' });
 
       const request = createPutRequest({
@@ -326,9 +336,9 @@ describe('PUT /api/expenses/[id]', () => {
     });
 
     it('APPROVED_FINAL + PENDING 상태에서 admin_assistant 역할 수정 성공', async () => {
+      setMockUser(createMockUserRole('admin_assistant'));
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
       mockPrisma.expense.update.mockResolvedValue(approvedPendingExpense);
-      mockGetCurrentUser.mockResolvedValue(createMockUser('admin_assistant'));
       mockGetEffectiveRole.mockResolvedValue({ role: 'admin_assistant', department: null });
 
       const request = createPutRequest({
@@ -343,8 +353,8 @@ describe('PUT /api/expenses/[id]', () => {
     });
 
     it('APPROVED_FINAL + PENDING 상태에서 user 역할 수정 거부 (403)', async () => {
+      setMockUser(createMockUserRole('user'));
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
-      mockGetCurrentUser.mockResolvedValue(createMockUser('user'));
       mockGetEffectiveRole.mockResolvedValue({ role: 'user', department: '청년부' });
 
       const request = createPutRequest({
@@ -361,8 +371,8 @@ describe('PUT /api/expenses/[id]', () => {
     });
 
     it('APPROVED_FINAL + PENDING 상태에서 team_leader 역할 수정 거부 (403)', async () => {
+      setMockUser(createMockUserRole('team_leader'));
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
-      mockGetCurrentUser.mockResolvedValue(createMockUser('team_leader'));
       mockGetEffectiveRole.mockResolvedValue({ role: 'team_leader', department: '청년부' });
 
       const request = createPutRequest({
@@ -378,9 +388,9 @@ describe('PUT /api/expenses/[id]', () => {
       expect(data.error).toBe('이 상태에서는 수정할 수 없습니다.');
     });
 
-    it('APPROVED_FINAL + PENDING 상태에서 로그인하지 않은 사용자 수정 거부 (403)', async () => {
+    it('APPROVED_FINAL + PENDING 상태에서 로그인하지 않은 사용자 수정 거부 (401)', async () => {
+      setMockUser(null);
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
-      mockGetCurrentUser.mockResolvedValue(null);
 
       const request = createPutRequest({
         committee: '선교위원회',
@@ -391,8 +401,8 @@ describe('PUT /api/expenses/[id]', () => {
       const response = await PUT(request, { params: createParams() });
       const data = await response.json();
 
-      expect(response.status).toBe(403);
-      expect(data.error).toBe('이 상태에서는 수정할 수 없습니다.');
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('로그인이 필요합니다.');
     });
   });
 
@@ -478,9 +488,9 @@ describe('PUT /api/expenses/[id]', () => {
         status: 'APPROVED_FINAL',
         paymentStatus: 'PENDING',
       });
+      setMockUser(createMockUserRole('admin'));
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
       mockPrisma.expense.update.mockResolvedValue(approvedPendingExpense);
-      mockGetCurrentUser.mockResolvedValue(createMockUser('admin'));
       mockGetEffectiveRole.mockResolvedValue({ role: 'admin', department: null });
 
       const request = createPutRequest({
@@ -525,9 +535,9 @@ describe('PUT /api/expenses/[id]', () => {
         status: 'APPROVED_FINAL',
         paymentStatus: 'PENDING',
       });
+      setMockUser(createMockUserRole('admin'));
       mockPrisma.expense.findUnique.mockResolvedValue(approvedPendingExpense);
       mockPrisma.expense.update.mockResolvedValue(approvedPendingExpense);
-      mockGetCurrentUser.mockResolvedValue(createMockUser('admin'));
       mockGetEffectiveRole.mockResolvedValue({ role: 'admin', department: null });
 
       const request = createPutRequest({
