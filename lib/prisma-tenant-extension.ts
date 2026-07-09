@@ -128,6 +128,30 @@ export function addTenantToData(data: any, tenantId: string): any {
           },
         };
       }
+      // connectOrCreate 중첩 처리
+      if (value.connectOrCreate !== undefined) {
+        const connectOrCreate = value.connectOrCreate;
+        // 배열 또는 단일 객체 처리
+        if (Array.isArray(connectOrCreate)) {
+          result[key] = {
+            ...value,
+            connectOrCreate: connectOrCreate.map(
+              (item: { where: unknown; create: unknown }) => ({
+                ...item,
+                create: addTenantToData(item.create, tenantId),
+              })
+            ),
+          };
+        } else {
+          result[key] = {
+            ...value,
+            connectOrCreate: {
+              ...connectOrCreate,
+              create: addTenantToData(connectOrCreate.create, tenantId),
+            },
+          };
+        }
+      }
     }
   }
 
@@ -185,17 +209,14 @@ export const tenantExtension = Prisma.defineExtension({
           return query(args);
         }
 
-        // findUnique는 unique 필드 조건이 필요하므로
-        // 쿼리 후 결과에서 tenantId 검증
-        const result = await query(args);
+        // 사전 필터링: where 절에 tenantId 추가하여 타이밍 공격 방지
+        // Prisma findUnique는 compound unique가 아니어도 추가 필드를 where에 허용
+        const newArgs = {
+          ...args,
+          where: addTenantFilter(args.where, tenantId),
+        };
 
-        // 결과가 있는 경우 tenantId 검증
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (result && (result as any).tenantId !== tenantId) {
-          return null; // 다른 테넌트의 데이터는 null 반환
-        }
-
-        return result;
+        return query(newArgs);
       },
 
       async findUniqueOrThrow({ model, args, query }) {
@@ -205,14 +226,14 @@ export const tenantExtension = Prisma.defineExtension({
           return query(args);
         }
 
-        const result = await query(args);
+        // 사전 필터링: where 절에 tenantId 추가
+        // 다른 테넌트의 레코드는 찾지 못하므로 Prisma가 자동으로 에러 발생
+        const newArgs = {
+          ...args,
+          where: addTenantFilter(args.where, tenantId),
+        };
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if ((result as any).tenantId !== tenantId) {
-          throw new Error('Record not found');
-        }
-
-        return result;
+        return query(newArgs);
       },
 
       async count({ model, args, query }) {

@@ -698,5 +698,138 @@ describe('prisma-tenant-extension', () => {
       expect(result.optional).toBeNull();
       expect(result.missing).toBeUndefined();
     });
+
+    describe('connectOrCreate pattern', () => {
+      it('should add tenantId to single connectOrCreate create', () => {
+        const tenantId = 'tenant-connectOrCreate';
+        const data = {
+          name: 'Expense',
+          category: {
+            connectOrCreate: {
+              where: { id: 'cat-1' },
+              create: { id: 'cat-1', name: 'Office Supplies' },
+            },
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.tenantId).toBe(tenantId);
+        expect(result.category.connectOrCreate.create.tenantId).toBe(tenantId);
+        // where는 수정하지 않음 (connectOrCreate의 where는 기존 레코드 찾기용)
+        expect(result.category.connectOrCreate.where).toEqual({ id: 'cat-1' });
+      });
+
+      it('should add tenantId to array connectOrCreate creates', () => {
+        const tenantId = 'tenant-array-connectOrCreate';
+        const data = {
+          name: 'Expense',
+          items: {
+            connectOrCreate: [
+              {
+                where: { id: 'item-1' },
+                create: { id: 'item-1', name: 'Item 1', amount: 100 },
+              },
+              {
+                where: { id: 'item-2' },
+                create: { id: 'item-2', name: 'Item 2', amount: 200 },
+              },
+            ],
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.tenantId).toBe(tenantId);
+        expect(result.items.connectOrCreate[0].create.tenantId).toBe(tenantId);
+        expect(result.items.connectOrCreate[1].create.tenantId).toBe(tenantId);
+        // where는 변경되지 않음
+        expect(result.items.connectOrCreate[0].where).toEqual({ id: 'item-1' });
+        expect(result.items.connectOrCreate[1].where).toEqual({ id: 'item-2' });
+      });
+
+      it('should handle deeply nested connectOrCreate in create', () => {
+        const tenantId = 'tenant-deep-connectOrCreate';
+        const data = {
+          name: 'Parent',
+          children: {
+            create: {
+              name: 'Child',
+              category: {
+                connectOrCreate: {
+                  where: { name: 'Sub Category' },
+                  create: { name: 'Sub Category' },
+                },
+              },
+            },
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.tenantId).toBe(tenantId);
+        expect(result.children.create.tenantId).toBe(tenantId);
+        expect(result.children.create.category.connectOrCreate.create.tenantId).toBe(tenantId);
+      });
+    });
+  });
+
+  describe('findUnique pre-filtering', () => {
+    it('should add tenantId to findUnique where clause', () => {
+      const tenantId = 'tenant-findUnique';
+      const args = { where: { id: 'expense-123' } };
+
+      const newArgs = {
+        ...args,
+        where: addTenantFilter(args.where, tenantId),
+      };
+
+      expect(newArgs.where).toEqual({
+        id: 'expense-123',
+        tenantId: 'tenant-findUnique',
+      });
+    });
+
+    it('should prevent cross-tenant access via findUnique pre-filtering', () => {
+      const currentTenantId = 'tenant-a';
+      // 다른 테넌트의 레코드 ID로 findUnique 시도
+      const args = { where: { id: 'record-from-tenant-b' } };
+
+      const filteredWhere = addTenantFilter(args.where, currentTenantId);
+
+      // where에 tenant-a가 포함되므로 tenant-b 레코드는 찾을 수 없음
+      expect(filteredWhere.tenantId).toBe('tenant-a');
+    });
+
+    it('should override malicious tenantId in findUnique where', () => {
+      const realTenantId = 'real-tenant';
+      // 공격자가 where에 다른 tenantId 주입 시도
+      const maliciousArgs = {
+        where: { id: '123', tenantId: 'victim-tenant' },
+      };
+
+      const safeWhere = addTenantFilter(maliciousArgs.where, realTenantId);
+
+      expect(safeWhere.tenantId).toBe('real-tenant');
+    });
+
+    it('should work with compound unique constraints', () => {
+      const tenantId = 'tenant-compound';
+      // 복합 unique 조건
+      const args = {
+        where: {
+          email_tenantId: {
+            email: 'test@example.com',
+            tenantId: tenantId,
+          },
+        },
+      };
+
+      const filteredWhere = addTenantFilter(args.where, tenantId);
+
+      // 기존 복합 조건 유지 + tenantId 추가
+      expect(filteredWhere.email_tenantId).toBeDefined();
+      expect(filteredWhere.tenantId).toBe(tenantId);
+    });
   });
 });
