@@ -20,6 +20,7 @@
     "db:seed:tenants": "ts-node --project tsconfig.scripts.json prisma/seeds/tenant-seed.ts",
     "bulk-upload": "ts-node --project tsconfig.scripts.json scripts/bulk-upload.ts",
     "generate-template": "ts-node --project tsconfig.scripts.json scripts/generate-upload-template.ts",
+    "generate-users-template": "ts-node --project tsconfig.scripts.json scripts/generate-users-template.ts",
     "screenshots": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts",
     "screenshots:expense": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts expense",
     "screenshots:pwa": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts pwa",
