@@ -114,47 +114,38 @@ export function addTenantToData(data: any, tenantId: string): any {
   // 중첩 관계 처리
   for (const key of Object.keys(result)) {
     const value = result[key];
-    if (value && typeof value === 'object') {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      // 수정된 nested operations을 누적할 객체
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const modifiedValue: Record<string, any> = { ...value };
+
       // create 중첩 처리
       if (value.create !== undefined) {
-        result[key] = {
-          ...value,
-          create: addTenantToData(value.create, tenantId),
-        };
+        modifiedValue.create = addTenantToData(value.create, tenantId);
       }
       // createMany 중첩 처리
       if (value.createMany?.data !== undefined) {
-        result[key] = {
-          ...value,
-          createMany: {
-            ...value.createMany,
-            data: addTenantToData(value.createMany.data, tenantId),
-          },
+        modifiedValue.createMany = {
+          ...value.createMany,
+          data: addTenantToData(value.createMany.data, tenantId),
         };
       }
       // connectOrCreate 중첩 처리 (where와 create 모두에 tenantId 적용)
       if (value.connectOrCreate !== undefined) {
         const connectOrCreate = value.connectOrCreate;
-        // 배열 또는 단일 객체 처리
         if (Array.isArray(connectOrCreate)) {
-          result[key] = {
-            ...value,
-            connectOrCreate: connectOrCreate.map(
-              (item: { where: unknown; create: unknown }) => ({
-                ...item,
-                where: addTenantFilter(item.where, tenantId),
-                create: addTenantToData(item.create, tenantId),
-              })
-            ),
-          };
+          modifiedValue.connectOrCreate = connectOrCreate.map(
+            (item: { where: unknown; create: unknown }) => ({
+              ...item,
+              where: addTenantFilter(item.where, tenantId),
+              create: addTenantToData(item.create, tenantId),
+            })
+          );
         } else {
-          result[key] = {
-            ...value,
-            connectOrCreate: {
-              ...connectOrCreate,
-              where: addTenantFilter(connectOrCreate.where, tenantId),
-              create: addTenantToData(connectOrCreate.create, tenantId),
-            },
+          modifiedValue.connectOrCreate = {
+            ...connectOrCreate,
+            where: addTenantFilter(connectOrCreate.where, tenantId),
+            create: addTenantToData(connectOrCreate.create, tenantId),
           };
         }
       }
@@ -162,22 +153,18 @@ export function addTenantToData(data: any, tenantId: string): any {
       if (value.update !== undefined) {
         const update = value.update;
         if (Array.isArray(update)) {
-          result[key] = {
-            ...value,
-            update: update.map((item: { where: unknown; data: unknown }) => ({
+          modifiedValue.update = update.map(
+            (item: { where: unknown; data: unknown }) => ({
               ...item,
               where: addTenantFilter(item.where, tenantId),
               data: addTenantToData(item.data, tenantId),
-            })),
-          };
+            })
+          );
         } else if (update.where !== undefined && update.data !== undefined) {
-          result[key] = {
-            ...value,
-            update: {
-              ...update,
-              where: addTenantFilter(update.where, tenantId),
-              data: addTenantToData(update.data, tenantId),
-            },
+          modifiedValue.update = {
+            ...update,
+            where: addTenantFilter(update.where, tenantId),
+            data: addTenantToData(update.data, tenantId),
           };
         }
       }
@@ -185,26 +172,20 @@ export function addTenantToData(data: any, tenantId: string): any {
       if (value.upsert !== undefined) {
         const upsert = value.upsert;
         if (Array.isArray(upsert)) {
-          result[key] = {
-            ...value,
-            upsert: upsert.map(
-              (item: { where: unknown; create: unknown; update: unknown }) => ({
-                ...item,
-                where: addTenantFilter(item.where, tenantId),
-                create: addTenantToData(item.create, tenantId),
-                update: addTenantToData(item.update, tenantId),
-              })
-            ),
-          };
+          modifiedValue.upsert = upsert.map(
+            (item: { where: unknown; create: unknown; update: unknown }) => ({
+              ...item,
+              where: addTenantFilter(item.where, tenantId),
+              create: addTenantToData(item.create, tenantId),
+              update: addTenantToData(item.update, tenantId),
+            })
+          );
         } else {
-          result[key] = {
-            ...value,
-            upsert: {
-              ...upsert,
-              where: addTenantFilter(upsert.where, tenantId),
-              create: addTenantToData(upsert.create, tenantId),
-              update: addTenantToData(upsert.update, tenantId),
-            },
+          modifiedValue.upsert = {
+            ...upsert,
+            where: addTenantFilter(upsert.where, tenantId),
+            create: addTenantToData(upsert.create, tenantId),
+            update: addTenantToData(upsert.update, tenantId),
           };
         }
       }
@@ -212,24 +193,18 @@ export function addTenantToData(data: any, tenantId: string): any {
       if (value.updateMany !== undefined) {
         const updateMany = value.updateMany;
         if (Array.isArray(updateMany)) {
-          result[key] = {
-            ...value,
-            updateMany: updateMany.map(
-              (item: { where: unknown; data: unknown }) => ({
-                ...item,
-                where: addTenantFilter(item.where, tenantId),
-                data: addTenantToData(item.data, tenantId),
-              })
-            ),
-          };
+          modifiedValue.updateMany = updateMany.map(
+            (item: { where: unknown; data: unknown }) => ({
+              ...item,
+              where: addTenantFilter(item.where, tenantId),
+              data: addTenantToData(item.data, tenantId),
+            })
+          );
         } else {
-          result[key] = {
-            ...value,
-            updateMany: {
-              ...updateMany,
-              where: addTenantFilter(updateMany.where, tenantId),
-              data: addTenantToData(updateMany.data, tenantId),
-            },
+          modifiedValue.updateMany = {
+            ...updateMany,
+            where: addTenantFilter(updateMany.where, tenantId),
+            data: addTenantToData(updateMany.data, tenantId),
           };
         }
       }
@@ -237,19 +212,74 @@ export function addTenantToData(data: any, tenantId: string): any {
       if (value.deleteMany !== undefined) {
         const deleteMany = value.deleteMany;
         if (Array.isArray(deleteMany)) {
-          result[key] = {
-            ...value,
-            deleteMany: deleteMany.map((item: unknown) =>
-              addTenantFilter(item, tenantId)
-            ),
-          };
-        } else if (typeof deleteMany === 'object') {
-          result[key] = {
-            ...value,
-            deleteMany: addTenantFilter(deleteMany, tenantId),
-          };
+          modifiedValue.deleteMany = deleteMany.map((item: unknown) =>
+            addTenantFilter(item, tenantId)
+          );
+        } else if (
+          deleteMany &&
+          typeof deleteMany === 'object' &&
+          !Array.isArray(deleteMany)
+        ) {
+          modifiedValue.deleteMany = addTenantFilter(deleteMany, tenantId);
         }
       }
+      // delete 단일 중첩 처리 (where에 tenantId 적용)
+      if (value.delete !== undefined) {
+        const del = value.delete;
+        if (Array.isArray(del)) {
+          modifiedValue.delete = del.map((item: unknown) =>
+            addTenantFilter(item, tenantId)
+          );
+        } else if (del && typeof del === 'object' && !Array.isArray(del)) {
+          modifiedValue.delete = addTenantFilter(del, tenantId);
+        }
+      }
+      // connect 중첩 처리 (where에 tenantId 적용하여 크로스 테넌트 연결 방지)
+      if (value.connect !== undefined) {
+        const connect = value.connect;
+        if (Array.isArray(connect)) {
+          modifiedValue.connect = connect.map((item: unknown) =>
+            addTenantFilter(item, tenantId)
+          );
+        } else if (
+          connect &&
+          typeof connect === 'object' &&
+          !Array.isArray(connect)
+        ) {
+          modifiedValue.connect = addTenantFilter(connect, tenantId);
+        }
+      }
+      // disconnect 중첩 처리 (where에 tenantId 적용)
+      if (value.disconnect !== undefined) {
+        const disconnect = value.disconnect;
+        // disconnect: true인 경우는 수정하지 않음 (모든 연결 해제)
+        if (Array.isArray(disconnect)) {
+          modifiedValue.disconnect = disconnect.map((item: unknown) =>
+            addTenantFilter(item, tenantId)
+          );
+        } else if (
+          disconnect &&
+          typeof disconnect === 'object' &&
+          !Array.isArray(disconnect)
+        ) {
+          modifiedValue.disconnect = addTenantFilter(disconnect, tenantId);
+        }
+        // disconnect: true는 그대로 유지 (boolean이므로 위 조건에 해당 안 함)
+      }
+      // set 중첩 처리 (관계 전체 교체 시 tenantId 적용)
+      if (value.set !== undefined) {
+        const set = value.set;
+        if (Array.isArray(set)) {
+          modifiedValue.set = set.map((item: unknown) =>
+            addTenantFilter(item, tenantId)
+          );
+        } else if (set && typeof set === 'object' && !Array.isArray(set)) {
+          modifiedValue.set = addTenantFilter(set, tenantId);
+        }
+      }
+
+      // 누적된 수정 사항을 result에 반영
+      result[key] = modifiedValue;
     }
   }
 

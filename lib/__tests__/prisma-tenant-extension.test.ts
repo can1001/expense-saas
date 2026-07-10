@@ -687,7 +687,7 @@ describe('prisma-tenant-extension', () => {
       expect(result.attachment.create.tenantId).toBe(tenantId);
     });
 
-    it('should not modify non-create nested operations', () => {
+    it('should add tenantId to nested connect for cross-tenant protection', () => {
       const tenantId = 'tenant-connect';
       const data = {
         name: 'Expense',
@@ -699,8 +699,38 @@ describe('prisma-tenant-extension', () => {
       const result = addTenantToData(data, tenantId);
 
       expect(result.tenantId).toBe(tenantId);
-      expect(result.user.connect).toEqual({ id: 'user-123' });
-      expect(result.user.connect.tenantId).toBeUndefined();
+      // connect에도 tenantId가 추가되어 크로스 테넌트 연결 방지
+      expect(result.user.connect.tenantId).toBe(tenantId);
+      expect(result.user.connect.id).toBe('user-123');
+    });
+
+    it('should add tenantId to array connect', () => {
+      const tenantId = 'tenant-array-connect';
+      const data = {
+        tags: {
+          connect: [{ id: 'tag-1' }, { id: 'tag-2' }],
+        },
+      };
+
+      const result = addTenantToData(data, tenantId);
+
+      expect(result.tags.connect[0].tenantId).toBe(tenantId);
+      expect(result.tags.connect[1].tenantId).toBe(tenantId);
+    });
+
+    it('should prevent cross-tenant connect', () => {
+      const tenantId = 'tenant-a';
+      // 공격자가 다른 테넌트의 사용자를 연결 시도
+      const maliciousData = {
+        user: {
+          connect: { id: 'user-from-tenant-b', tenantId: 'tenant-b' },
+        },
+      };
+
+      const result = addTenantToData(maliciousData, tenantId);
+
+      // tenantId가 tenant-a로 덮어쓰기되어 tenant-b 레코드 연결 불가
+      expect(result.user.connect.tenantId).toBe('tenant-a');
     });
 
     it('should handle null and undefined nested values', () => {
@@ -995,6 +1025,242 @@ describe('prisma-tenant-extension', () => {
 
         expect(result.items.deleteMany[0].tenantId).toBe(tenantId);
         expect(result.items.deleteMany[1].tenantId).toBe(tenantId);
+      });
+    });
+
+    describe('nested delete (single) pattern', () => {
+      it('should add tenantId to nested delete where', () => {
+        const tenantId = 'tenant-delete';
+        const data = {
+          name: 'Expense',
+          items: {
+            delete: { id: 'item-1' },
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.tenantId).toBe(tenantId);
+        expect(result.items.delete.tenantId).toBe(tenantId);
+        expect(result.items.delete.id).toBe('item-1');
+      });
+
+      it('should add tenantId to array delete', () => {
+        const tenantId = 'tenant-array-delete';
+        const data = {
+          items: {
+            delete: [{ id: 'item-1' }, { id: 'item-2' }],
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.items.delete[0].tenantId).toBe(tenantId);
+        expect(result.items.delete[1].tenantId).toBe(tenantId);
+      });
+
+      it('should prevent cross-tenant delete via where filtering', () => {
+        const tenantId = 'tenant-a';
+        const maliciousData = {
+          items: {
+            delete: { id: 'item-from-tenant-b', tenantId: 'tenant-b' },
+          },
+        };
+
+        const result = addTenantToData(maliciousData, tenantId);
+
+        expect(result.items.delete.tenantId).toBe('tenant-a');
+      });
+    });
+
+    describe('nested disconnect pattern', () => {
+      it('should add tenantId to nested disconnect where', () => {
+        const tenantId = 'tenant-disconnect';
+        const data = {
+          user: {
+            disconnect: { id: 'user-1' },
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.tenantId).toBe(tenantId);
+        expect(result.user.disconnect.tenantId).toBe(tenantId);
+      });
+
+      it('should add tenantId to array disconnect', () => {
+        const tenantId = 'tenant-array-disconnect';
+        const data = {
+          tags: {
+            disconnect: [{ id: 'tag-1' }, { id: 'tag-2' }],
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.tags.disconnect[0].tenantId).toBe(tenantId);
+        expect(result.tags.disconnect[1].tenantId).toBe(tenantId);
+      });
+
+      it('should preserve disconnect: true without modification', () => {
+        const tenantId = 'tenant-disconnect-true';
+        const data = {
+          user: {
+            disconnect: true,
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        // disconnect: true는 boolean이므로 수정되지 않음
+        expect(result.user.disconnect).toBe(true);
+      });
+    });
+
+    describe('nested set pattern', () => {
+      it('should add tenantId to nested set', () => {
+        const tenantId = 'tenant-set';
+        const data = {
+          tags: {
+            set: [{ id: 'tag-1' }, { id: 'tag-2' }],
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.tenantId).toBe(tenantId);
+        expect(result.tags.set[0].tenantId).toBe(tenantId);
+        expect(result.tags.set[1].tenantId).toBe(tenantId);
+      });
+
+      it('should prevent cross-tenant set via where filtering', () => {
+        const tenantId = 'tenant-a';
+        const maliciousData = {
+          tags: {
+            set: [{ id: 'tag-from-tenant-b', tenantId: 'tenant-b' }],
+          },
+        };
+
+        const result = addTenantToData(maliciousData, tenantId);
+
+        expect(result.tags.set[0].tenantId).toBe('tenant-a');
+      });
+
+      it('should handle single set object', () => {
+        const tenantId = 'tenant-single-set';
+        const data = {
+          category: {
+            set: { id: 'cat-1' },
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.category.set.tenantId).toBe(tenantId);
+      });
+    });
+
+    describe('deeply nested patterns', () => {
+      it('should add tenantId to deeply nested update in create', () => {
+        const tenantId = 'tenant-deep-update';
+        const data = {
+          name: 'Parent',
+          children: {
+            create: {
+              name: 'Child',
+              items: {
+                update: { where: { id: 'item-1' }, data: { amount: 100 } },
+              },
+            },
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.tenantId).toBe(tenantId);
+        expect(result.children.create.tenantId).toBe(tenantId);
+        expect(result.children.create.items.update.where.tenantId).toBe(tenantId);
+        expect(result.children.create.items.update.data.tenantId).toBe(tenantId);
+      });
+
+      it('should add tenantId to deeply nested upsert in create', () => {
+        const tenantId = 'tenant-deep-upsert';
+        const data = {
+          expense: {
+            create: {
+              name: 'Expense',
+              items: {
+                upsert: {
+                  where: { id: 'item-1' },
+                  create: { amount: 100 },
+                  update: { amount: 200 },
+                },
+              },
+            },
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.expense.create.items.upsert.where.tenantId).toBe(tenantId);
+        expect(result.expense.create.items.upsert.create.tenantId).toBe(tenantId);
+        expect(result.expense.create.items.upsert.update.tenantId).toBe(tenantId);
+      });
+    });
+
+    describe('combined nested write patterns', () => {
+      it('should handle mixed nested write operations in single data', () => {
+        const tenantId = 'tenant-mixed';
+        const data = {
+          name: 'Expense',
+          items: {
+            create: [{ amount: 100 }],
+            update: [{ where: { id: '1' }, data: { amount: 200 } }],
+            deleteMany: { status: 'CANCELLED' },
+          },
+          user: {
+            connect: { id: 'user-1' },
+          },
+          tags: {
+            set: [{ id: 'tag-1' }],
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        // 모든 중첩 작업에 tenantId 적용 확인
+        expect(result.tenantId).toBe(tenantId);
+        expect(result.items.create[0].tenantId).toBe(tenantId);
+        expect(result.items.update[0].where.tenantId).toBe(tenantId);
+        expect(result.items.update[0].data.tenantId).toBe(tenantId);
+        expect(result.items.deleteMany.tenantId).toBe(tenantId);
+        expect(result.user.connect.tenantId).toBe(tenantId);
+        expect(result.tags.set[0].tenantId).toBe(tenantId);
+      });
+
+      it('should handle connectOrCreate with nested operations', () => {
+        const tenantId = 'tenant-complex';
+        const data = {
+          category: {
+            connectOrCreate: {
+              where: { name: 'Office' },
+              create: {
+                name: 'Office',
+                subCategories: {
+                  create: [{ name: 'Supplies' }],
+                },
+              },
+            },
+          },
+        };
+
+        const result = addTenantToData(data, tenantId);
+
+        expect(result.category.connectOrCreate.where.tenantId).toBe(tenantId);
+        expect(result.category.connectOrCreate.create.tenantId).toBe(tenantId);
+        expect(result.category.connectOrCreate.create.subCategories.create[0].tenantId).toBe(
+          tenantId
+        );
       });
     });
   });
