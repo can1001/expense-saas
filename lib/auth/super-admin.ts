@@ -4,9 +4,21 @@ import { SignJWT, jwtVerify, JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
 
 // JWT 설정
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.SUPER_ADMIN_JWT_SECRET || 'super-admin-secret-key-change-in-production'
-);
+const getJwtSecret = () => {
+  const secret = process.env.SUPER_ADMIN_JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      'SUPER_ADMIN_JWT_SECRET 환경변수가 설정되지 않았습니다. ' +
+      '프로덕션 환경에서는 반드시 강력한 비밀키를 설정하세요.'
+    );
+  }
+  return new TextEncoder().encode(secret);
+};
+
+// 런타임에 JWT_SECRET을 가져오는 함수 (테스트 환경에서는 더미 값 허용)
+const JWT_SECRET = process.env.NODE_ENV === 'test'
+  ? new TextEncoder().encode('test-secret-key-for-testing-only')
+  : getJwtSecret();
 const JWT_ISSUER = 'expense-saas-platform';
 const JWT_AUDIENCE = 'super-admin';
 const TOKEN_EXPIRY = '8h'; // 8시간

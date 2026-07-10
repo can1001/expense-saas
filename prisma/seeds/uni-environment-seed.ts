@@ -5,6 +5,10 @@
  *
  * 실행:
  * npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/seeds/uni-environment-seed.ts
+ *
+ * 환경변수 (필수):
+ * - TENANT_ADMIN_PASSWORD: 테넌트 관리자 비밀번호 (필수)
+ * - DATABASE_URL: 데이터베이스 연결 문자열 (필수)
  */
 
 import { PrismaClient, OrgType, PlanType } from '@prisma/client';
@@ -13,6 +17,35 @@ import bcrypt from 'bcryptjs';
 import { config } from 'dotenv';
 
 config();
+
+// 필수 환경변수 검증
+function validateEnvironment(): string {
+  const password = process.env.TENANT_ADMIN_PASSWORD;
+  if (!password) {
+    console.error('❌ 오류: TENANT_ADMIN_PASSWORD 환경변수가 설정되지 않았습니다.');
+    console.error('');
+    console.error('사용법:');
+    console.error('  TENANT_ADMIN_PASSWORD="YourSecurePassword123!" npx ts-node prisma/seeds/uni-environment-seed.ts');
+    console.error('');
+    console.error('또는 .env 파일에 추가:');
+    console.error('  TENANT_ADMIN_PASSWORD=YourSecurePassword123!');
+    process.exit(1);
+  }
+
+  if (password.length < 12) {
+    console.error('❌ 오류: 비밀번호는 최소 12자 이상이어야 합니다.');
+    process.exit(1);
+  }
+
+  if (!process.env.DATABASE_URL) {
+    console.error('❌ 오류: DATABASE_URL 환경변수가 설정되지 않았습니다.');
+    process.exit(1);
+  }
+
+  return password;
+}
+
+const defaultPassword = validateEnvironment();
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
@@ -659,7 +692,6 @@ const budgetCategories = [
 ];
 
 async function main() {
-  const defaultPassword = process.env.TENANT_ADMIN_PASSWORD || 'UniEnvAdmin123!';
   const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
   console.log('유앤아이환경기술(주) 테넌트 시드 시작...\n');
@@ -676,158 +708,161 @@ async function main() {
     return;
   }
 
-  // 1. 테넌트 생성
-  const tenant = await prisma.tenant.create({
-    data: {
-      name: tenantInfo.name,
-      subdomain: tenantInfo.subdomain,
-      orgType: tenantInfo.orgType,
-      plan: tenantInfo.plan,
-      description: tenantInfo.description,
-      maxUsers: tenantInfo.maxUsers,
-      maxStorageMB: tenantInfo.maxStorageMB,
-      isActive: true,
-      planStartAt: new Date(),
-    },
-  });
-
-  console.log(`[CREATE] 테넌트 '${tenant.name}' 생성 완료`);
-  console.log(`  - ID: ${tenant.id}`);
-  console.log(`  - Subdomain: ${tenant.subdomain}`);
-  console.log(`  - Plan: ${tenant.plan}`);
-
-  // 2. 기본 역할 생성
-  console.log(`  - 역할 생성 중...`);
-  const roleMap: Record<string, string> = {};
-
-  for (const roleData of defaultRoles) {
-    const role = await prisma.role.create({
+  // 트랜잭션으로 모든 데이터 생성
+  await prisma.$transaction(async (tx) => {
+    // 1. 테넌트 생성
+    const tenant = await tx.tenant.create({
       data: {
-        tenantId: tenant.id,
-        code: roleData.code,
-        name: roleData.name,
-        description: roleData.description,
-        stepNumber: roleData.stepNumber,
-        sortOrder: roleData.sortOrder,
-        canApprove: roleData.canApprove,
-        canManageExpense: roleData.canManageExpense,
-        canAccessAdmin: roleData.canAccessAdmin,
-        canExportData: roleData.canExportData,
-        canRegisterUsers: roleData.canRegisterUsers,
+        name: tenantInfo.name,
+        subdomain: tenantInfo.subdomain,
+        orgType: tenantInfo.orgType,
+        plan: tenantInfo.plan,
+        description: tenantInfo.description,
+        maxUsers: tenantInfo.maxUsers,
+        maxStorageMB: tenantInfo.maxStorageMB,
         isActive: true,
+        planStartAt: new Date(),
       },
     });
-    roleMap[roleData.code] = role.id;
-  }
-  console.log(`    ${defaultRoles.length}개 역할 생성 완료`);
 
-  // 3. 관리자 계정 생성
-  const adminUser = await prisma.user.create({
-    data: {
-      tenantId: tenant.id,
-      userid: 'uni-admin',
-      username: '관리자',
-      password: hashedPassword,
-      role: 'admin',
-      roleId: roleMap['admin'],
-      isActive: true,
-    },
-  });
+    console.log(`[CREATE] 테넌트 '${tenant.name}' 생성 완료`);
+    console.log(`  - ID: ${tenant.id}`);
+    console.log(`  - Subdomain: ${tenant.subdomain}`);
+    console.log(`  - Plan: ${tenant.plan}`);
 
-  console.log(`  - 관리자 계정 생성 완료`);
-  console.log(`    - 아이디: ${adminUser.userid}`);
-  console.log(`    - 비밀번호: ${defaultPassword}`);
+    // 2. 기본 역할 생성
+    console.log(`  - 역할 생성 중...`);
+    const roleMap: Record<string, string> = {};
 
-  // 사용자 수 업데이트
-  await prisma.tenant.update({
-    where: { id: tenant.id },
-    data: { currentUsers: 1 },
-  });
-
-  // 4. 위원회 및 부서 생성
-  console.log(`  - 위원회/부서 생성 중...`);
-  let committeesCreated = 0;
-  let departmentsCreated = 0;
-
-  for (const committeeData of committees) {
-    const committee = await prisma.committee.create({
-      data: {
-        tenantId: tenant.id,
-        name: committeeData.name,
-        sortOrder: committeeData.sortOrder,
-        isActive: true,
-      },
-    });
-    committeesCreated++;
-
-    for (const deptData of committeeData.departments) {
-      await prisma.department.create({
+    for (const roleData of defaultRoles) {
+      const role = await tx.role.create({
         data: {
           tenantId: tenant.id,
-          committeeId: committee.id,
-          name: deptData.name,
-          sortOrder: deptData.sortOrder,
+          code: roleData.code,
+          name: roleData.name,
+          description: roleData.description,
+          stepNumber: roleData.stepNumber,
+          sortOrder: roleData.sortOrder,
+          canApprove: roleData.canApprove,
+          canManageExpense: roleData.canManageExpense,
+          canAccessAdmin: roleData.canAccessAdmin,
+          canExportData: roleData.canExportData,
+          canRegisterUsers: roleData.canRegisterUsers,
           isActive: true,
         },
       });
-      departmentsCreated++;
+      roleMap[roleData.code] = role.id;
     }
-  }
-  console.log(`    위원회 ${committeesCreated}개, 부서 ${departmentsCreated}개 생성`);
+    console.log(`    ${defaultRoles.length}개 역할 생성 완료`);
 
-  // 5. 예산 계정과목 생성
-  console.log(`  - 예산 계정과목 생성 중...`);
-  let categoriesCreated = 0;
-  let subcategoriesCreated = 0;
-  let detailsCreated = 0;
-
-  for (const categoryData of budgetCategories) {
-    const category = await prisma.budgetCategory.create({
+    // 3. 관리자 계정 생성
+    const adminUser = await tx.user.create({
       data: {
         tenantId: tenant.id,
-        name: categoryData.name,
-        sortOrder: categoryData.sortOrder,
+        userid: 'uni-admin',
+        username: '관리자',
+        password: hashedPassword,
+        role: 'admin',
+        roleId: roleMap['admin'],
         isActive: true,
       },
     });
-    categoriesCreated++;
 
-    for (const subcategoryData of categoryData.subcategories) {
-      const subcategory = await prisma.budgetSubcategory.create({
+    console.log(`  - 관리자 계정 생성 완료`);
+    console.log(`    - 아이디: ${adminUser.userid}`);
+    console.log(`    - 비밀번호: [환경변수로 설정됨]`);
+
+    // 사용자 수 업데이트
+    await tx.tenant.update({
+      where: { id: tenant.id },
+      data: { currentUsers: 1 },
+    });
+
+    // 4. 위원회 및 부서 생성
+    console.log(`  - 위원회/부서 생성 중...`);
+    let committeesCreated = 0;
+    let departmentsCreated = 0;
+
+    for (const committeeData of committees) {
+      const committee = await tx.committee.create({
         data: {
           tenantId: tenant.id,
-          categoryId: category.id,
-          name: subcategoryData.name,
-          sortOrder: subcategoryData.sortOrder,
+          name: committeeData.name,
+          sortOrder: committeeData.sortOrder,
           isActive: true,
         },
       });
-      subcategoriesCreated++;
+      committeesCreated++;
 
-      for (const detailData of subcategoryData.details) {
-        await prisma.budgetDetail.create({
+      for (const deptData of committeeData.departments) {
+        await tx.department.create({
           data: {
             tenantId: tenant.id,
-            subcategoryId: subcategory.id,
-            name: detailData.name,
-            accountCode: detailData.accountCode,
-            sortOrder: detailData.sortOrder,
+            committeeId: committee.id,
+            name: deptData.name,
+            sortOrder: deptData.sortOrder,
             isActive: true,
           },
         });
-        detailsCreated++;
+        departmentsCreated++;
       }
     }
-  }
+    console.log(`    위원회 ${committeesCreated}개, 부서 ${departmentsCreated}개 생성`);
 
-  console.log(`    예산항목: 항 ${categoriesCreated}개, 목 ${subcategoriesCreated}개, 세목 ${detailsCreated}개 생성`);
+    // 5. 예산 계정과목 생성
+    console.log(`  - 예산 계정과목 생성 중...`);
+    let categoriesCreated = 0;
+    let subcategoriesCreated = 0;
+    let detailsCreated = 0;
+
+    for (const categoryData of budgetCategories) {
+      const category = await tx.budgetCategory.create({
+        data: {
+          tenantId: tenant.id,
+          name: categoryData.name,
+          sortOrder: categoryData.sortOrder,
+          isActive: true,
+        },
+      });
+      categoriesCreated++;
+
+      for (const subcategoryData of categoryData.subcategories) {
+        const subcategory = await tx.budgetSubcategory.create({
+          data: {
+            tenantId: tenant.id,
+            categoryId: category.id,
+            name: subcategoryData.name,
+            sortOrder: subcategoryData.sortOrder,
+            isActive: true,
+          },
+        });
+        subcategoriesCreated++;
+
+        for (const detailData of subcategoryData.details) {
+          await tx.budgetDetail.create({
+            data: {
+              tenantId: tenant.id,
+              subcategoryId: subcategory.id,
+              name: detailData.name,
+              accountCode: detailData.accountCode,
+              sortOrder: detailData.sortOrder,
+              isActive: true,
+            },
+          });
+          detailsCreated++;
+        }
+      }
+    }
+
+    console.log(`    예산항목: 항 ${categoriesCreated}개, 목 ${subcategoriesCreated}개, 세목 ${detailsCreated}개 생성`);
+  });
 
   console.log('\n유앤아이환경기술(주) 테넌트 시드 완료!');
   console.log('\n접속 방법:');
   console.log(`  - 로컬: http://localhost:3000?tenant=${tenantInfo.subdomain}`);
   console.log(`  - 프로덕션: https://${tenantInfo.subdomain}.expense-saas.com`);
   console.log('');
-  console.log('주의: 프로덕션에서는 기본 비밀번호를 반드시 변경하세요!');
+  console.log('⚠️  중요: 첫 로그인 후 비밀번호를 반드시 변경하세요!');
 }
 
 main()
