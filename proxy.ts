@@ -61,7 +61,7 @@ function extractSubdomain(host: string | null): string | null {
   return null;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const session = request.cookies.get('session');
   const { pathname } = request.nextUrl;
   const host = request.headers.get('host');
