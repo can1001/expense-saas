@@ -847,6 +847,10 @@ async function main() {
     }
 
     console.log(`    예산항목: 항 ${categoriesCreated}개, 목 ${subcategoriesCreated}개, 세목 ${detailsCreated}개 생성`);
+  }, {
+    // 원격 DB(Neon)에 다수의 순차 create가 발생하므로 기본 5초 타임아웃을 넉넉히 상향
+    maxWait: 20000,
+    timeout: 120000,
   });
 
   console.log('\n(주)청연컨설팅 테넌트 시드 완료!');
