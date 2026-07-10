@@ -4,7 +4,7 @@
  * 명단(2026년 기준):
  *   - 신창국: 재정팀장(재무팀) + 팀장(경영지원팀·재무팀·총무팀)
  *   - 정혜종: 회계(재무팀) + 팀장(기술지원팀)
- *   - 김홍래: 팀장(영업1팀·고객지원팀)
+ *   - 김흥래: 팀장(영업1팀·고객지원팀)
  *   - 김석현: 팀장(기술연구팀)  ← 컨설팅본부에 신규 부서로 생성
  *
  * 한 사람의 다부서 겸임은 UserYearRole(연도별 역할, year=2026) 다중 행으로 표현한다.
@@ -43,7 +43,7 @@ const NEW_DEPARTMENT = { committee: '컨설팅본부', name: '기술연구팀' }
 const users = [
   { userid: '신창국', username: '신창국', role: 'finance_head' },
   { userid: '정혜종', username: '정혜종', role: 'accountant' },
-  { userid: '김홍래', username: '김홍래', role: 'team_leader' },
+  { userid: '김흥래', username: '김흥래', role: 'team_leader' },
   { userid: '김석현', username: '김석현', role: 'team_leader' },
 ];
 
@@ -55,8 +55,8 @@ const yearRoleRows = [
   { userid: '신창국', role: 'team_leader', department: '총무팀' },
   { userid: '정혜종', role: 'accountant', department: '재무팀' },
   { userid: '정혜종', role: 'team_leader', department: '기술지원팀' },
-  { userid: '김홍래', role: 'team_leader', department: '영업1팀' },
-  { userid: '김홍래', role: 'team_leader', department: '고객지원팀' },
+  { userid: '김흥래', role: 'team_leader', department: '영업1팀' },
+  { userid: '김흥래', role: 'team_leader', department: '고객지원팀' },
   { userid: '김석현', role: 'team_leader', department: '기술연구팀' },
 ];
 
