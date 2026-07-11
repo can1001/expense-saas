@@ -41,6 +41,16 @@ describe('tenant-context', () => {
     it('should handle 4-part domains', () => {
       expect(extractSubdomain('chungyeon.app.expense-saas.com')).toBe('chungyeon');
     });
+
+    it('should return null for PaaS default domains (service name is not a tenant)', () => {
+      expect(extractSubdomain('zionyul-expense-saas.onrender.com')).toBeNull();
+      expect(extractSubdomain('myapp.vercel.app')).toBeNull();
+      expect(extractSubdomain('myapp.netlify.app')).toBeNull();
+    });
+
+    it('should ignore port when extracting subdomain', () => {
+      expect(extractSubdomain('chungyeon.expense-saas.com:3000')).toBe('chungyeon');
+    });
   });
 
   describe('getTenantContext / getTenantId / getTenantIdOptional', () => {

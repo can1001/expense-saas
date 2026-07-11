@@ -60,6 +60,10 @@ export async function withTenantAsync<T>(
   return tenantStorage.run(context, callback);
 }
 
+// 테넌트 서브도메인으로 취급하지 않는 PaaS/플랫폼 기본 도메인.
+// 이 도메인들의 첫 라벨은 배포 서비스명이지 테넌트가 아니다.
+export const PLATFORM_BASE_DOMAINS = ['onrender.com', 'vercel.app', 'netlify.app'];
+
 /**
  * 요청 헤더에서 subdomain 추출
  * @param host 호스트 헤더 (예: chungyeon.expense-saas.com)
@@ -68,14 +72,27 @@ export async function withTenantAsync<T>(
 export function extractSubdomain(host: string | null): string | null {
   if (!host) return null;
 
+  // 포트 제거 (예: chungyeon.expense-saas.com:3000)
+  const hostname = host.split(':')[0];
+
   // localhost 개발 환경 처리
-  if (host.includes('localhost') || host.includes('127.0.0.1')) {
+  if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
     // localhost:3000?tenant=chungyeon 형식 지원
     return null; // 개발 환경에서는 쿼리 파라미터로 처리
   }
 
+  // PaaS 기본 도메인(예: zionyul-expense-saas.onrender.com)의 첫 라벨은
+  // 서비스명이므로 테넌트 서브도메인으로 취급하지 않는다.
+  if (
+    PLATFORM_BASE_DOMAINS.some(
+      (base) => hostname === base || hostname.endsWith(`.${base}`)
+    )
+  ) {
+    return null;
+  }
+
   // subdomain.domain.com 형식에서 subdomain 추출
-  const parts = host.split('.');
+  const parts = hostname.split('.');
 
   // expense-saas.com (2 parts) - 기본 도메인
   // chungyeon.expense-saas.com (3 parts) - 테넌트 서브도메인
