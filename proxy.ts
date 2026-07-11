@@ -11,22 +11,22 @@ const authPaths = ['/login'];
 // tenant 설정이 불필요한 API 경로 (플랫폼 레벨)
 const platformApiPaths = ['/api/platform', '/api/super-admin'];
 
-// 세션 서명용 비밀키 (Edge Runtime에서 사용)
-function getSessionSecret(): Uint8Array {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('SESSION_SECRET 환경변수가 프로덕션에서 필수입니다.');
-    }
-    return new TextEncoder().encode('dev-only-secret-do-not-use-in-production');
-  }
-  return new TextEncoder().encode(secret);
+// 사용자 토큰(user_token) 서명용 비밀키 (Edge Runtime에서 사용)
+// 반드시 lib/auth/user.ts의 JWT_SECRET(서명 키)과 동일한 방식으로 해석해야
+// 검증이 성공한다. (env 미설정 시 기본값 동일 유지)
+function getUserJwtSecret(): Uint8Array {
+  return new TextEncoder().encode(
+    process.env.USER_JWT_SECRET || 'user-secret-key-change-in-production'
+  );
 }
 
-// JWT 토큰 검증
+// JWT 토큰 검증 (lib/auth/user.ts의 issuer/audience와 일치)
 async function verifySessionToken(token: string): Promise<boolean> {
   try {
-    await jwtVerify(token, getSessionSecret());
+    await jwtVerify(token, getUserJwtSecret(), {
+      issuer: 'expense-saas',
+      audience: 'tenant-user',
+    });
     return true;
   } catch {
     return false;
@@ -79,7 +79,7 @@ function extractSubdomain(host: string | null): string | null {
 }
 
 export async function proxy(request: NextRequest) {
-  const session = request.cookies.get('session');
+  const session = request.cookies.get('user_token');
   const { pathname } = request.nextUrl;
   const host = request.headers.get('host');
 
@@ -133,7 +133,7 @@ export async function proxy(request: NextRequest) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('from', pathname);
       const response = NextResponse.redirect(loginUrl);
-      response.cookies.delete('session');
+      response.cookies.delete('user_token');
       return response;
     }
   }

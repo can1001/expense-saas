@@ -151,6 +151,31 @@ export async function getUserFromRequest(request: NextRequest): Promise<UserSess
 }
 
 /**
+ * 서버 컴포넌트(페이지)에서 쿠키 기반으로 현재 사용자 세션 조회
+ * - NextRequest가 없는 RSC 환경에서 사용
+ * - 로그인 시 설정한 user_token 쿠키를 검증한다
+ */
+export async function getCurrentUserSession(): Promise<UserSession | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(COOKIE_NAME)?.value;
+  if (!token) return null;
+
+  const session = await verifyUserToken(token);
+  if (!session) return null;
+
+  // DB에서 활성 상태 확인
+  const user = await prismaBase.user.findUnique({
+    where: { id: session.id },
+    select: { isActive: true, tenantId: true },
+  });
+  if (user?.isActive && user.tenantId === session.tenantId) {
+    return session;
+  }
+
+  return null;
+}
+
+/**
  * 사용자 인증이 필요한 API 래퍼
  * - 인증된 사용자만 접근 가능
  * - 자동으로 테넌트 컨텍스트 설정
