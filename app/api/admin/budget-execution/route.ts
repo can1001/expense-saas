@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
-import { withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { withAdminMenu, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * GET /api/admin/budget-execution
@@ -191,4 +191,4 @@ const handleGet: UserApiHandler = async (request) => {
   }
 };
 
-export const GET = withAdmin(handleGet);
+export const GET = withAdminMenu('/admin/budget-execution', handleGet);

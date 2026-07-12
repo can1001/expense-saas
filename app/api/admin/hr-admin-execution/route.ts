@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
-import { withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { withAdminMenu, UserApiHandler } from '@/lib/auth/user';
 
 interface BudgetItem {
   name: string;
@@ -299,4 +299,4 @@ function formatDisplayName(name: string): string {
     .trim();
 }
 
-export const GET = withAdmin(handleGet);
+export const GET = withAdminMenu('/admin/hr-admin-execution', handleGet);

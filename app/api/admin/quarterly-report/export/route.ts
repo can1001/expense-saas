@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import ExcelJS from 'exceljs';
-import { withAuth, UserApiHandler } from '@/lib/auth/user';
+import { withAdminMenu, UserApiHandler } from '@/lib/auth/user';
 
 // 재정보고서 Excel 내보내기 접근 권한이 있는 역할
 const QUARTERLY_REPORT_EXPORT_ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'finance_member'];
@@ -460,4 +460,4 @@ const handleGet: UserApiHandler = async (request, { user }) => {
   }
 };
 
-export const GET = withAuth(handleGet);
+export const GET = withAdminMenu('/admin/quarterly-report', handleGet);

@@ -4,6 +4,7 @@ import { SignJWT, jwtVerify, JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
 import { TenantContext, withTenantAsync } from '@/lib/tenant-context';
 import { findTenantBySubdomain } from '@/lib/tenant';
+import { canAccessAdminMenuPathWithRoles } from '@/lib/constants/menu-permissions';
 
 // JWT 설정
 const JWT_SECRET = new TextEncoder().encode(
@@ -267,6 +268,28 @@ export function withPermission(permission: Permission, handler: UserApiHandler) 
  */
 export function withAdmin(handler: UserApiHandler) {
   return withPermission('canAccessAdmin', handler);
+}
+
+/**
+ * 특정 관리자 메뉴 경로 접근 권한이 필요한 API 래퍼
+ * - 클라이언트 메뉴 가드(ROLE_ADMIN_MENU_PATHS)와 동일한 기준으로 인가
+ * - canAccessAdmin 불리언 대신 역할 코드 기반 경로 권한을 사용하므로,
+ *   회계/행정간사/재정팀원처럼 canAccessAdmin=false이지만 해당 보고서 메뉴에
+ *   접근 가능한 역할도 API를 호출할 수 있다.
+ * - 민감한 관리 API(roles/settings/users 등)는 계속 withAdmin을 사용한다.
+ *
+ * @param menuPath ROLE_ADMIN_MENU_PATHS 기준 페이지 경로 (예: '/admin', '/admin/budget-execution')
+ */
+export function withAdminMenu(menuPath: string, handler: UserApiHandler) {
+  return withAuth(async (request, context) => {
+    if (!canAccessAdminMenuPathWithRoles([context.user.role], menuPath)) {
+      return NextResponse.json(
+        { error: '이 작업을 수행할 권한이 없습니다.' },
+        { status: 403 }
+      );
+    }
+    return handler(request, context);
+  });
 }
 
 /**

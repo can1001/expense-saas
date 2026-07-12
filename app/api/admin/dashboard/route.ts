@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { withAdminMenu, UserApiHandler } from '@/lib/auth/user';
 
 /**
  * 관리자 대시보드 KPI 데이터 API
@@ -146,4 +146,4 @@ const handleGet: UserApiHandler = async (request) => {
   }
 };
 
-export const GET = withAdmin(handleGet);
+export const GET = withAdminMenu('/admin', handleGet);
