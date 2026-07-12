@@ -16,6 +16,7 @@ import {
   TABLE_CELL,
   SPINNER_MD,
 } from '@/lib/constants/styles';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface Committee {
   id: string;
@@ -52,6 +53,7 @@ interface GroupedDetails {
 }
 
 export default function MemoExamplesPage() {
+  const terms = useOrgTerms();
   const currentYear = new Date().getFullYear();
   const [details, setDetails] = useState<BudgetDetail[]>([]);
   const [committees, setCommittees] = useState<Committee[]>([]);
@@ -308,7 +310,7 @@ export default function MemoExamplesPage() {
       <div className={SECTION_CARD}>
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">위원회:</label>
+            <label className="text-sm font-medium text-gray-700">{terms.committee}:</label>
             <select
               value={selectedCommittee}
               onChange={(e) => {

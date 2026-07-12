@@ -12,8 +12,10 @@ import { Expense } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { ArrowLeft, Building2, User, CreditCard, FileText, Clock } from 'lucide-react';
 import { MobileItemCard } from '@/components/ui/Accordion';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 export default function ApprovalDetailPage() {
+  const terms = useOrgTerms();
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -178,11 +180,11 @@ export default function ApprovalDetailPage() {
               </h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-500">위원회</label>
+                  <label className="block text-sm text-gray-500">{terms.committee}</label>
                   <p className="font-medium text-gray-900">{expense.committee}</p>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-500">사역팀(부)</label>
+                  <label className="block text-sm text-gray-500">{terms.departmentFull}</label>
                   <p className="font-medium text-gray-900">{expense.department}</p>
                 </div>
                 <div>

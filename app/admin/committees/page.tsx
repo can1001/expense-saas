@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, GripVertical, Check, X } from 'lucide-react';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 import {
   BTN_PRIMARY,
   BTN_SM,
@@ -34,6 +35,7 @@ interface Committee {
 }
 
 export default function CommitteesPage() {
+  const terms = useOrgTerms();
   const [committees, setCommittees] = useState<Committee[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +64,7 @@ export default function CommitteesPage() {
     try {
       setLoading(true);
       const response = await fetch('/api/committees');
-      if (!response.ok) throw new Error('위원회 목록을 불러오는데 실패했습니다.');
+      if (!response.ok) throw new Error(`${terms.committee} 목록을 불러오는데 실패했습니다.`);
       const data = await response.json();
       setCommittees(data.committees || []);
     } catch (err) {
@@ -169,8 +171,8 @@ export default function CommitteesPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">위원회 관리</h1>
-          <p className="text-gray-600 mt-1">위원회를 추가, 수정, 비활성화할 수 있습니다.</p>
+          <h1 className="text-2xl font-bold text-gray-900">{terms.committee} 관리</h1>
+          <p className="text-gray-600 mt-1">{`${terms.committee}를 추가, 수정, 비활성화할 수 있습니다.`}</p>
         </div>
         {!isAdding && (
           <button
@@ -178,7 +180,7 @@ export default function CommitteesPage() {
             className={`${BTN_PRIMARY} flex items-center gap-2`}
           >
             <Plus className="w-4 h-4" />
-            위원회 추가
+            {terms.committee} 추가
           </button>
         )}
       </div>
@@ -193,9 +195,9 @@ export default function CommitteesPage() {
           <thead className={TABLE_HEADER}>
             <tr>
               <th className={`${TABLE_HEADER_CELL} w-12`}></th>
-              <th className={TABLE_HEADER_CELL}>위원회명</th>
-              <th className={`${TABLE_HEADER_CELL} w-40`}>위원장</th>
-              <th className={`${TABLE_HEADER_CELL} w-24 text-center`}>사역팀 수</th>
+              <th className={TABLE_HEADER_CELL}>{terms.committee}명</th>
+              <th className={`${TABLE_HEADER_CELL} w-40`}>{terms.committeeLeader}</th>
+              <th className={`${TABLE_HEADER_CELL} w-24 text-center`}>{terms.department} 수</th>
               <th className={`${TABLE_HEADER_CELL} w-24 text-center`}>상태</th>
               <th className={`${TABLE_HEADER_CELL} w-24 text-center`}>관리</th>
             </tr>
@@ -210,7 +212,7 @@ export default function CommitteesPage() {
                     type="text"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    placeholder="위원회명 입력"
+                    placeholder={`${terms.committee}명 입력`}
                     className={`${INPUT_BASE} max-w-xs`}
                     autoFocus
                     onKeyDown={(e) => {
@@ -356,7 +358,7 @@ export default function CommitteesPage() {
             {committees.length === 0 && !isAdding && (
               <tr>
                 <td colSpan={6} className="text-center py-8 text-gray-500">
-                  등록된 위원회가 없습니다.
+                  {`등록된 ${terms.committee}가 없습니다.`}
                 </td>
               </tr>
             )}

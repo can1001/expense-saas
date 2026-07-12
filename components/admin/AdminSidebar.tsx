@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ADMIN_SIDEBAR_MENU, SidebarGroup } from '@/lib/constants/admin-menu';
+import { getAdminSidebarMenu } from '@/lib/constants/admin-menu';
 import { filterAdminMenuByRoles } from '@/lib/constants/menu-permissions';
+import { useTenant } from '@/lib/contexts/TenantContext';
 
 interface AdminSidebarProps {
   isOpen?: boolean;
@@ -15,8 +16,8 @@ interface AdminSidebarProps {
 
 export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
+  const { orgType } = useTenant();
   const [userRoles, setUserRoles] = useState<string[] | null>(null);
-  const [filteredMenu, setFilteredMenu] = useState<SidebarGroup[]>(ADMIN_SIDEBAR_MENU);
 
   // 사용자 역할 조회 (다중 역할 지원)
   useEffect(() => {
@@ -36,13 +37,14 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
     fetchUserRoles();
   }, []);
 
-  // 역할 기반 메뉴 필터링 (다중 역할 지원)
-  useEffect(() => {
+  // 조직 유형별 메뉴 + 역할 기반 필터링 (다중 역할 지원)
+  const filteredMenu = useMemo(() => {
+    const baseMenu = getAdminSidebarMenu(orgType);
     if (userRoles && userRoles.length > 0) {
-      const filtered = filterAdminMenuByRoles(ADMIN_SIDEBAR_MENU, userRoles);
-      setFilteredMenu(filtered);
+      return filterAdminMenuByRoles(baseMenu, userRoles);
     }
-  }, [userRoles]);
+    return baseMenu;
+  }, [orgType, userRoles]);
 
   // 현재 경로가 메뉴 항목과 일치하는지 확인 (하위 경로 포함)
   const isActive = (href: string) => {

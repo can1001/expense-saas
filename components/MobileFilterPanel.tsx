@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { X, Filter, RotateCcw } from 'lucide-react';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface FilterState {
   committee: string;
@@ -37,6 +38,8 @@ export default function MobileFilterPanel({
   uniqueDepartments,
   uniqueCategories,
 }: MobileFilterPanelProps) {
+  const terms = useOrgTerms();
+
   // ESC 키로 닫기
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -104,7 +107,7 @@ export default function MobileFilterPanel({
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
           {/* 위원회 */}
           <div>
-            <label className={labelClasses}>위원회</label>
+            <label className={labelClasses}>{terms.committee}</label>
             <select
               value={filters.committee}
               onChange={(e) => onFilterChange('committee', e.target.value)}
@@ -119,7 +122,7 @@ export default function MobileFilterPanel({
 
           {/* 사역팀 */}
           <div>
-            <label className={labelClasses}>사역팀(부)</label>
+            <label className={labelClasses}>{terms.departmentFull}</label>
             <select
               value={filters.department}
               onChange={(e) => onFilterChange('department', e.target.value)}

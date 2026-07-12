@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 import {
   SECTION_CARD,
   SECTION_TITLE,
@@ -41,6 +42,7 @@ interface UploadResult {
 }
 
 export default function LeadersUploadPage() {
+  const terms = useOrgTerms();
   const [file, setFile] = useState<File | null>(null);
   const [dryRun, setDryRun] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -109,12 +111,12 @@ export default function LeadersUploadPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">사역팀장 일괄 등록</h1>
+        <h1 className="text-2xl font-bold">{terms.department}장 일괄 등록</h1>
         <Link
           href="/admin/departments"
           className={BTN_OUTLINE}
         >
-          사역팀 목록
+          {terms.department} 목록
         </Link>
       </div>
 
@@ -122,7 +124,7 @@ export default function LeadersUploadPage() {
       <div className={`${SECTION_CARD} mb-6`}>
         <h2 className={SECTION_TITLE}>사용 안내</h2>
         <div className="text-sm text-gray-600 space-y-2">
-          <p>Excel 파일을 업로드하여 사역팀장을 일괄 설정할 수 있습니다.</p>
+          <p>Excel 파일을 업로드하여 {terms.department}장을 일괄 설정할 수 있습니다.</p>
           <p>
             <strong>열 구조:</strong> 위원회, 사역팀, 팀장
           </p>
@@ -130,7 +132,7 @@ export default function LeadersUploadPage() {
             <strong>팀장 매칭:</strong> 팀장 이름이 사용자 목록의 이름과 정확히 일치해야 합니다.
           </p>
           <p>
-            <strong>팀장 해제:</strong> 팀장 열을 비워두면 해당 사역팀의 팀장이 해제됩니다.
+            <strong>팀장 해제:</strong> 팀장 열을 비워두면 해당 {terms.department}의 팀장이 해제됩니다.
           </p>
         </div>
       </div>
@@ -146,10 +148,10 @@ export default function LeadersUploadPage() {
             onClick={handleDownloadTemplate}
             className={`${BTN_OUTLINE} text-sm`}
           >
-            현재 사역팀장 목록 다운로드 (템플릿)
+            현재 {terms.department}장 목록 다운로드 (템플릿)
           </button>
           <p className="mt-1 text-xs text-gray-500">
-            현재 사역팀장 데이터가 포함된 Excel 파일을 다운로드합니다. 이 파일을 수정하여 업로드하세요.
+            현재 {terms.department}장 데이터가 포함된 Excel 파일을 다운로드합니다. 이 파일을 수정하여 업로드하세요.
           </p>
         </div>
 
@@ -204,7 +206,7 @@ export default function LeadersUploadPage() {
             {result.data?.summary && (
               <div className="text-sm space-y-1">
                 <p>총 행: {result.data.summary.totalRows}개</p>
-                <p className="text-blue-600">설정 예정: {result.data.summary.updated}개 사역팀</p>
+                <p className="text-blue-600">설정 예정: {result.data.summary.updated}개 {terms.department}</p>
                 <p className="text-gray-600">건너뜀: {result.data.summary.skipped}개</p>
                 <p className="text-red-600">오류: {result.data.summary.errors}건</p>
               </div>

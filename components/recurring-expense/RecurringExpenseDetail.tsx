@@ -16,6 +16,7 @@ import {
 import { Edit, Pause, Play, Trash2, ArrowLeft, Zap } from 'lucide-react';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { GeneratedExpenseList } from './GeneratedExpenseList';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface RecurringExpenseDetailProps {
   recurringExpense: {
@@ -87,6 +88,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function RecurringExpenseDetail({ recurringExpense, onStatusChange, onGenerateNow }: RecurringExpenseDetailProps) {
+  const terms = useOrgTerms();
   const router = useRouter();
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
@@ -246,8 +248,8 @@ export function RecurringExpenseDetail({ recurringExpense, onStatusChange, onGen
       <div className={SECTION_CARD}>
         <h2 className={SECTION_TITLE}>기본 정보</h2>
         <div className="space-y-1">
-          <InfoRow label="위원회" value={recurringExpense.committee} />
-          <InfoRow label="사역팀/부" value={recurringExpense.department} />
+          <InfoRow label={terms.committee} value={recurringExpense.committee} />
+          <InfoRow label={terms.departmentSlash} value={recurringExpense.department} />
           <InfoRow label="예산(항)" value={recurringExpense.budgetCategory} />
           <InfoRow label="예산(목)" value={recurringExpense.budgetSubcategory} />
           {recurringExpense.budgetDetail && (

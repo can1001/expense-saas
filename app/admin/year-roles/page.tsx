@@ -21,6 +21,7 @@ import {
   ALERT_ERROR,
 } from '@/lib/constants/styles';
 import { useRoles, getYearRoleOptions } from '@/hooks/useRoles';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface User {
   id: string;
@@ -62,6 +63,7 @@ export default function YearRolesPage() {
 
   // Role 테이블에서 역할 정보 가져오기
   const { roles, getRoleName } = useRoles();
+  const terms = useOrgTerms();
 
   // 연도별 역할 옵션 (admin, user 제외)
   const yearRoleOptions = useMemo(() => {
@@ -505,7 +507,7 @@ export default function YearRolesPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">위원회</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{terms.committee}</label>
             <select
               value={bulkCommittee}
               onChange={(e) => setBulkCommittee(e.target.value)}
@@ -521,7 +523,7 @@ export default function YearRolesPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">사역팀(부)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{terms.departmentFull}</label>
             <select
               value={bulkDepartment}
               onChange={(e) => setBulkDepartment(e.target.value)}
@@ -595,8 +597,8 @@ export default function YearRolesPage() {
                   <th className={TABLE_HEADER_CELL}>이름</th>
                   <th className={TABLE_HEADER_CELL}>기본 역할</th>
                   <th className={TABLE_HEADER_CELL}>{selectedYear}년 역할</th>
-                  <th className={TABLE_HEADER_CELL}>위원회</th>
-                  <th className={TABLE_HEADER_CELL}>사역팀(부)</th>
+                  <th className={TABLE_HEADER_CELL}>{terms.committee}</th>
+                  <th className={TABLE_HEADER_CELL}>{terms.departmentFull}</th>
                 </tr>
               </thead>
               <tbody className={TABLE_BODY}>

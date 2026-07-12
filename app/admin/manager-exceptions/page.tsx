@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, RefreshCw, Download, ArrowRight, Info } from 'lucide-react';
 import { SECTION_CARD, BTN_OUTLINE, BTN_SM, SELECT_BASE } from '@/lib/constants/styles';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface User {
   id: string;
@@ -31,6 +32,7 @@ interface ExceptionData {
 }
 
 export default function ManagerExceptionsPage() {
+  const terms = useOrgTerms();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [data, setData] = useState<ExceptionData | null>(null);
@@ -112,7 +114,7 @@ export default function ManagerExceptionsPage() {
   const handleExport = () => {
     if (!data) return;
 
-    const headers = ['위원회', '사역팀', '예산(항)', '예산(목)', '세목', '팀장', '담당자'];
+    const headers = [terms.committee, terms.department, '예산(항)', '예산(목)', '세목', '팀장', '담당자'];
     const rows = data.exceptions.map((e) => [
       e.committee,
       e.department,
@@ -139,7 +141,7 @@ export default function ManagerExceptionsPage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">담당자 예외 현황</h1>
-          <p className="text-gray-600 mt-1">세목별 담당자가 해당 사역팀장과 다른 케이스 목록</p>
+          <p className="text-gray-600 mt-1">세목별 담당자가 해당 {terms.department}장과 다른 케이스 목록</p>
         </div>
         <div className="flex items-center gap-2">
           <select
@@ -204,7 +206,7 @@ export default function ManagerExceptionsPage() {
             <>
               {/* 필터 */}
               <div className="flex items-center gap-4">
-                <label className="text-sm text-gray-600">위원회 필터:</label>
+                <label className="text-sm text-gray-600">{terms.committee} 필터:</label>
                 <select
                   value={filterCommittee}
                   onChange={(e) => setFilterCommittee(e.target.value)}
@@ -231,8 +233,8 @@ export default function ManagerExceptionsPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b text-left text-gray-500">
-                        <th className="pb-3 font-medium">위원회</th>
-                        <th className="pb-3 font-medium">사역팀</th>
+                        <th className="pb-3 font-medium">{terms.committee}</th>
+                        <th className="pb-3 font-medium">{terms.department}</th>
                         <th className="pb-3 font-medium">세목</th>
                         <th className="pb-3 font-medium">팀장</th>
                         <th className="pb-3 font-medium"></th>
@@ -307,7 +309,7 @@ export default function ManagerExceptionsPage() {
               <div className="text-sm text-blue-800">
                 <p className="font-medium mb-1">담당자 예외 안내</p>
                 <ul className="list-disc list-inside space-y-1 text-blue-700">
-                  <li>예외 케이스는 세목의 담당자가 해당 사역팀의 팀장과 다른 경우입니다.</li>
+                  <li>예외 케이스는 세목의 담당자가 해당 {terms.department}의 팀장과 다른 경우입니다.</li>
                   <li>예: 공간사역팀 인건비의 담당자가 재정팀장인 경우</li>
                   <li>
                     <strong>팀장 미지정</strong> 시 드롭다운에서 팀장을 직접 지정할 수 있습니다.

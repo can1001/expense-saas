@@ -14,6 +14,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { SECTION_CARD, BTN_OUTLINE, BTN_SM } from '@/lib/constants/styles';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface DashboardData {
   year: number;
@@ -130,6 +131,7 @@ function KPICard({
 }
 
 export default function AdminPage() {
+  const terms = useOrgTerms();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -270,7 +272,7 @@ export default function AdminPage() {
               <thead>
                 <tr className="border-b text-left text-gray-500">
                   <th className="pb-2 font-medium">신청자</th>
-                  <th className="pb-2 font-medium">위원회</th>
+                  <th className="pb-2 font-medium">{terms.committee}</th>
                   <th className="pb-2 font-medium">부서</th>
                   <th className="pb-2 font-medium text-right">금액</th>
                   <th className="pb-2 font-medium text-center">상태</th>

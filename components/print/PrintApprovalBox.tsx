@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ApprovalLine } from './types';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface PrintApprovalBoxProps {
   approvalLine?: ApprovalLine | null;
@@ -15,6 +16,7 @@ function formatNameForPrint(name: string): string {
 }
 
 export default function PrintApprovalBox({ approvalLine, className }: PrintApprovalBoxProps) {
+  const terms = useOrgTerms();
   const steps = approvalLine?.steps || [];
   const hasApprovalLine = steps.length > 0;
 
@@ -27,7 +29,7 @@ export default function PrintApprovalBox({ approvalLine, className }: PrintAppro
               steps.map((step) => {
                 // 1차 결재 단계는 항상 사역팀(부)장으로 표시
                 const displayName = step.stepNumber === 1
-                  ? '사역팀(부)장'
+                  ? `${terms.departmentFull}장`
                   : step.stepName;
                 return (
                   <th key={`h-${step.id}`} className="approval-header">
@@ -37,7 +39,7 @@ export default function PrintApprovalBox({ approvalLine, className }: PrintAppro
               })
             ) : (
               <>
-                <th className="approval-header">사역팀(부)장</th>
+                <th className="approval-header">{`${terms.departmentFull}장`}</th>
                 <th className="approval-header">회계</th>
                 <th className="approval-header">재정팀장</th>
               </>

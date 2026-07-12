@@ -17,6 +17,7 @@ import {
   TABLE_CELL,
   SPINNER_MD,
 } from '@/lib/constants/styles';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface User {
   id: string;
@@ -62,6 +63,7 @@ interface TreeData {
 }
 
 export default function BudgetManagersPage() {
+  const terms = useOrgTerms();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [details, setDetails] = useState<BudgetDetail[]>([]);
@@ -429,7 +431,7 @@ export default function BudgetManagersPage() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="세목명, 위원회, 사역팀 검색..."
+              placeholder={`세목명, ${terms.committee}, ${terms.department} 검색...`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`${INPUT_BASE} pl-10`}
@@ -467,7 +469,7 @@ export default function BudgetManagersPage() {
           <table className={TABLE_BASE}>
             <thead className={TABLE_HEADER}>
               <tr>
-                <th className={`${TABLE_HEADER_CELL} w-80`}>위원회 / 사역팀 / 항 / 목 / 세목</th>
+                <th className={`${TABLE_HEADER_CELL} w-80`}>{`${terms.committee} / ${terms.department} / 항 / 목 / 세목`}</th>
                 <th className={`${TABLE_HEADER_CELL} w-40`}>담당자</th>
                 <th className={`${TABLE_HEADER_CELL} w-32 text-right`}>예산금액</th>
                 <th className={`${TABLE_HEADER_CELL} w-16 text-right`}>배분율</th>
