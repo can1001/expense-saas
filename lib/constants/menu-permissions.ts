@@ -82,7 +82,7 @@ export const ROLE_ADMIN_MENU_PATHS: Record<string, string[] | 'all'> = {
     '/admin/hr-admin-execution',   // 인사/행정비 현황
     '/admin/quarterly-report',     // 분기별 회계보고
     '/admin/cumulative-report',    // 분기별 누적 현황
-    '/admin/account-report',       // 재정보고서
+    '/reports/financial',          // 재정보고서(제직용, 정적 페이지)
     '/admin/offerings',            // 헌금 관리
   ],
   admin_assistant: [
@@ -95,7 +95,7 @@ export const ROLE_ADMIN_MENU_PATHS: Record<string, string[] | 'all'> = {
     '/admin/hr-admin-execution',
     '/admin/quarterly-report',
     '/admin/cumulative-report',
-    '/admin/account-report',       // 재정보고서
+    '/reports/financial',          // 재정보고서(제직용, 정적 페이지)
     '/admin/offerings',
     '/admin/expense-upload',       // 지출결의서 일괄 업로드
   ],
@@ -109,7 +109,7 @@ export const ROLE_ADMIN_MENU_PATHS: Record<string, string[] | 'all'> = {
     '/admin/hr-admin-execution',
     '/admin/quarterly-report',
     '/admin/cumulative-report',
-    '/admin/account-report',       // 재정보고서
+    '/reports/financial',          // 재정보고서(제직용, 정적 페이지)
     '/admin/offerings',
   ],
   finance_member: [
@@ -122,7 +122,7 @@ export const ROLE_ADMIN_MENU_PATHS: Record<string, string[] | 'all'> = {
     '/admin/hr-admin-execution',
     '/admin/quarterly-report',
     '/admin/cumulative-report',
-    '/admin/account-report',       // 재정보고서
+    '/reports/financial',          // 재정보고서(제직용, 정적 페이지)
     '/admin/offerings',
   ],
 };

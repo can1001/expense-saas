@@ -99,7 +99,10 @@ export function getAdminSidebarMenu(orgType?: string | null): SidebarGroup[] {
         { href: '/admin/hr-admin-execution', label: '인사/행정비 현황', icon: BarChart3 },
         { href: '/admin/quarterly-report', label: '분기별 회계보고', icon: BarChart3 },
         { href: '/admin/cumulative-report', label: '분기별 누적 현황', icon: TrendingUp },
-        { href: '/admin/account-report', label: '재정보고서', icon: Wallet },
+        // 재정보고서(제직용)는 정적 페이지 /reports/financial로 이전됨(교회 전용)
+        ...(isChurchOnlyFeatureVisible(orgType)
+          ? [{ href: '/reports/financial', label: '재정보고서', icon: Wallet }]
+          : []),
       ],
     },
     {
