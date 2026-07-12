@@ -60,3 +60,4 @@ next-env.d.ts
 **/public/fallback-*.js.map
 **/worker/worker-*.js
 **/worker/worker-*.js.map
+/_to_delete
