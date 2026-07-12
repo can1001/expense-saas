@@ -12,6 +12,8 @@ import {
   SPINNER_LG,
   FLEX_CENTER,
 } from '@/lib/constants/styles';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
+import type { OrgTerms } from '@/lib/org-terms';
 
 interface User {
   id: string;
@@ -54,9 +56,9 @@ interface BudgetDetailInput {
   budgetAmount: number;
 }
 
-const STEPS = [
-  { id: 1, title: '위원회 선택', description: '위원회를 선택하거나 신규 등록합니다' },
-  { id: 2, title: '사역팀 선택', description: '사역팀을 선택하거나 신규 등록합니다' },
+const getSteps = (terms: OrgTerms) => [
+  { id: 1, title: `${terms.committee} 선택`, description: `${terms.committee}를 선택하거나 신규 등록합니다` },
+  { id: 2, title: `${terms.department} 선택`, description: `${terms.department}을(를) 선택하거나 신규 등록합니다` },
   { id: 3, title: '예산(항) 선택', description: '예산 항목을 선택하거나 신규 등록합니다' },
   { id: 4, title: '예산(목) 선택', description: '예산 목을 선택하거나 신규 등록합니다' },
   { id: 5, title: '예산(세목) 등록', description: '세목 상세 정보를 입력합니다' },
@@ -64,6 +66,8 @@ const STEPS = [
 ];
 
 export default function BudgetWizardPage() {
+  const terms = useOrgTerms();
+  const STEPS = getSteps(terms);
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -387,7 +391,7 @@ export default function BudgetWizardPage() {
       {/* 헤더 */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">예산 등록 마법사</h1>
-        <p className="text-gray-600 mt-1">위원회 → 사역팀 → 예산항목 순서로 등록합니다.</p>
+        <p className="text-gray-600 mt-1">{terms.committee} → {terms.department} → 예산항목 순서로 등록합니다.</p>
       </div>
 
       {/* 스텝 인디케이터 */}
@@ -458,7 +462,7 @@ export default function BudgetWizardPage() {
                 className={`${BTN_OUTLINE} flex items-center gap-2`}
               >
                 <Plus className="w-4 h-4" />
-                신규 위원회 등록
+                신규 {terms.committee} 등록
               </button>
             ) : (
               <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
@@ -466,7 +470,7 @@ export default function BudgetWizardPage() {
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="위원회명"
+                  placeholder={`${terms.committee}명`}
                   className={`${INPUT_BASE} flex-1`}
                   autoFocus
                 />
@@ -508,7 +512,7 @@ export default function BudgetWizardPage() {
         {currentStep === 2 && (
           <div className="space-y-4">
             <div className="p-3 bg-gray-50 rounded-lg text-sm">
-              선택된 위원회: <span className="font-semibold">{selectedCommittee?.name}</span>
+              선택된 {terms.committee}: <span className="font-semibold">{selectedCommittee?.name}</span>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -533,7 +537,7 @@ export default function BudgetWizardPage() {
             </div>
 
             {departments.length === 0 && (
-              <p className="text-center text-gray-500 py-4">등록된 사역팀이 없습니다.</p>
+              <p className="text-center text-gray-500 py-4">등록된 {terms.department}이(가) 없습니다.</p>
             )}
 
             {!isAddingNew ? (
@@ -542,7 +546,7 @@ export default function BudgetWizardPage() {
                 className={`${BTN_OUTLINE} flex items-center gap-2`}
               >
                 <Plus className="w-4 h-4" />
-                신규 사역팀 등록
+                신규 {terms.department} 등록
               </button>
             ) : (
               <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
@@ -550,7 +554,7 @@ export default function BudgetWizardPage() {
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="사역팀명"
+                  placeholder={`${terms.department}명`}
                   className={`${INPUT_BASE} flex-1`}
                   autoFocus
                 />
@@ -742,8 +746,8 @@ export default function BudgetWizardPage() {
 
             <div className="p-4 bg-gray-50 rounded-lg text-sm space-y-1">
               <div>
-                위원회: <span className="font-semibold">{selectedCommittee?.name}</span> &gt;
-                사역팀: <span className="font-semibold">{selectedDepartment?.name}</span>
+                {terms.committee}: <span className="font-semibold">{selectedCommittee?.name}</span> &gt;
+                {terms.department}: <span className="font-semibold">{selectedDepartment?.name}</span>
               </div>
               <div>
                 예산(항): <span className="font-semibold">{selectedCategory?.name}</span> &gt;
@@ -874,8 +878,8 @@ export default function BudgetWizardPage() {
               <div className="bg-gray-50 rounded-lg p-4 text-sm text-left max-w-md mx-auto mb-6">
                 <div className="space-y-1">
                   <div className="text-blue-600 font-semibold">적용 연도: {selectedYear}년</div>
-                  <div>위원회: {selectedCommittee?.name}</div>
-                  <div>사역팀: {selectedDepartment?.name}</div>
+                  <div>{terms.committee}: {selectedCommittee?.name}</div>
+                  <div>{terms.department}: {selectedDepartment?.name}</div>
                   <div>예산(항): {selectedCategory?.name}</div>
                   <div>예산(목): {selectedSubcategory?.name}</div>
                   <div>등록된 세목: {result.createdCount}개</div>

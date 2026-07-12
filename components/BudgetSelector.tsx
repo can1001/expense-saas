@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { SELECT_BASE, INPUT_DISABLED, LABEL_BASE, LABEL_REQUIRED, SPINNER } from '@/lib/constants/styles';
 import { ChevronRight } from 'lucide-react';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface BudgetSelectorProps {
   value: {
@@ -36,6 +37,7 @@ export default function BudgetSelector({
   showDetail = true,
   onDetailsLoaded,
 }: BudgetSelectorProps) {
+  const terms = useOrgTerms();
   const [committees, setCommittees] = useState<string[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -253,7 +255,7 @@ export default function BudgetSelector({
       {/* 위원회 */}
       <div>
         <label htmlFor="committee" className={`${LABEL_BASE} ${LABEL_REQUIRED}`}>
-          위원회
+          {terms.committee}
         </label>
         <select
           id="committee"
@@ -276,7 +278,7 @@ export default function BudgetSelector({
       {value.committee && (
         <div>
           <label htmlFor="department" className={`${LABEL_BASE} ${LABEL_REQUIRED}`}>
-            사역팀(부)
+            {terms.departmentFull}
           </label>
           <select
             id="department"

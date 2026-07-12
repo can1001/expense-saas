@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 import {
   SECTION_CARD,
   SECTION_TITLE,
@@ -48,6 +49,7 @@ interface BulkUploadResult {
 }
 
 export default function ExpenseUploadPage() {
+  const terms = useOrgTerms();
   const [file, setFile] = useState<File | null>(null);
   const [validating, setValidating] = useState(false);
   const [committing, setCommitting] = useState(false);
@@ -252,8 +254,8 @@ export default function ExpenseUploadPage() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-3 py-2 text-left">그룹</th>
-                    <th className="px-3 py-2 text-left">위원회</th>
-                    <th className="px-3 py-2 text-left">사역팀</th>
+                    <th className="px-3 py-2 text-left">{terms.committee}</th>
+                    <th className="px-3 py-2 text-left">{terms.department}</th>
                     <th className="px-3 py-2 text-right">항목 수</th>
                     <th className="px-3 py-2 text-right">금액</th>
                   </tr>

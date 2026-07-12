@@ -16,6 +16,7 @@ import { LoadMoreIndicator } from '@/components/ui/LoadingIndicator';
 import { ExpenseListItem, ExpenseListResponse, UserRole } from '@/lib/types';
 import { BTN_PRIMARY, BTN_LG, BTN_PAGINATION, BTN_PAGE_ACTIVE, BTN_PAGE_INACTIVE, FLEX_CENTER } from '@/lib/constants/styles';
 import { formatCurrency, getExpenseEditPath } from '@/lib/utils';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface CurrentUser {
   id: string;
@@ -28,6 +29,7 @@ type SortKey = 'requestDate' | 'applicantName' | 'budgetCategory' | 'budgetSubca
 type SortDirection = 'asc' | 'desc';
 
 function ExpensesPageContent() {
+  const terms = useOrgTerms();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -678,7 +680,7 @@ function ExpensesPageContent() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="청구인, 위원회, 사역팀, 예산항목 검색..."
+                  placeholder={`청구인, ${terms.committee}, ${terms.department}, 예산항목 검색...`}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white placeholder-gray-400"
                 />
               </div>
@@ -723,7 +725,7 @@ function ExpensesPageContent() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      위원회
+                      {terms.committee}
                     </label>
                     <select
                       value={filters.committee}
@@ -739,7 +741,7 @@ function ExpensesPageContent() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      사역팀(부)
+                      {terms.departmentFull}
                     </label>
                     <select
                       value={filters.department}
@@ -1122,8 +1124,8 @@ function ExpensesPageContent() {
                     onClick={() => handleSort('committee')}
                   >
                     <div className="flex flex-col text-xs leading-tight">
-                      <span>위원회</span>
-                      <span>사역팀</span>
+                      <span>{terms.committee}</span>
+                      <span>{terms.department}</span>
                     </div>
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">

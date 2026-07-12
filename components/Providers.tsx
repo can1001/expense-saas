@@ -1,6 +1,7 @@
 'use client';
 
 import { ToastProvider } from '@/components/ui/Toast';
+import { TenantProvider } from '@/lib/contexts/TenantContext';
 import { useSafeArea } from '@/lib/hooks/useSafeArea';
 import { useFcmRegistration } from '@/lib/hooks/useFcmRegistration';
 
@@ -22,12 +23,14 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <SafeAreaInitializer>
-      <FcmAutoRegister>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
-      </FcmAutoRegister>
-    </SafeAreaInitializer>
+    <TenantProvider>
+      <SafeAreaInitializer>
+        <FcmAutoRegister>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </FcmAutoRegister>
+      </SafeAreaInitializer>
+    </TenantProvider>
   );
 }

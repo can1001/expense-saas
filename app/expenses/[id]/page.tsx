@@ -18,8 +18,10 @@ import { formatCurrency, getExpenseEditPath } from '@/lib/utils';
 import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_SECONDARY, BTN_DANGER, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 import { APPROVED_EDIT_ROLES } from '@/lib/constants/menu-permissions';
 import { ArrowLeft, Printer, FileSpreadsheet, Edit2, Trash2, Copy } from 'lucide-react';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 export default function ExpenseDetailPage() {
+  const terms = useOrgTerms();
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -512,8 +514,8 @@ export default function ExpenseDetailPage() {
           {/* 예산 정보 */}
           <Accordion title="예산 정보">
             <div className="pt-3 grid grid-cols-2 gap-x-4">
-              <InfoRow label="위원회" value={expense.committee} />
-              <InfoRow label="사역팀(부)" value={expense.department} />
+              <InfoRow label={terms.committee} value={expense.committee} />
+              <InfoRow label={terms.departmentFull} value={expense.department} />
               <InfoRow label="예산(항)" value={expense.items?.[0]?.budgetCategory || '-'} />
               <InfoRow label="예산(목)" value={expense.items?.[0]?.budgetSubcategory || '-'} />
             </div>
@@ -559,11 +561,11 @@ export default function ExpenseDetailPage() {
             <h2 className={SECTION_TITLE}>예산 정보</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">위원회</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{terms.committee}</label>
                 <p className="text-gray-900">{expense.committee}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">사역팀(부)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{terms.departmentFull}</label>
                 <p className="text-gray-900">{expense.department}</p>
               </div>
               <div>

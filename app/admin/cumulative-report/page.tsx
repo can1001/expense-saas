@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, RefreshCw, Download, ChevronDown, ChevronRight } from 'lucide-react';
 import { SECTION_CARD, BTN_PRIMARY, BTN_OUTLINE, BTN_SM, SELECT_BASE } from '@/lib/constants/styles';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface CumulativeReportData {
   year: number;
@@ -82,6 +83,7 @@ function QuarterlyBar({
 }
 
 export default function CumulativeReportPage() {
+  const terms = useOrgTerms();
   const currentYear = new Date().getFullYear();
   const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3);
 
@@ -149,7 +151,7 @@ export default function CumulativeReportPage() {
   const handleExport = () => {
     if (!data) return;
 
-    const headers = ['위원회', '부서', '예산', '누적지출', '잔액', '집행률'];
+    const headers = [terms.committee, '부서', '예산', '누적지출', '잔액', '집행률'];
     const rows = data.byDepartment.map((d) => [
       d.committee,
       d.department,
@@ -295,7 +297,7 @@ export default function CumulativeReportPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-gray-500">
-                    <th className="pb-3 font-medium">위원회 / 부서</th>
+                    <th className="pb-3 font-medium">{terms.committee} / 부서</th>
                     <th className="pb-3 font-medium text-right">예산</th>
                     <th className="pb-3 font-medium text-right">누적지출</th>
                     <th className="pb-3 font-medium text-right">잔액</th>

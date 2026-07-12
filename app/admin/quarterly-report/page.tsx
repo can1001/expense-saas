@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Fragment } from 'react';
 import Link from 'next/link';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 import {
   ArrowLeft,
   BarChart3,
@@ -138,6 +139,8 @@ function formatAmount(amount: number): string {
 }
 
 export default function QuarterlyReportPage() {
+  const terms = useOrgTerms();
+
   // 이전 분기를 기본값으로 설정 (2분기에는 1분기, 3분기에는 2분기 조회)
   const actualQuarter = Math.floor(new Date().getMonth() / 3) + 1;
   const defaultQuarter = actualQuarter === 1 ? 4 : actualQuarter - 1;
@@ -717,7 +720,7 @@ export default function QuarterlyReportPage() {
               <table className={TABLE_BASE}>
                 <thead className={TABLE_HEADER}>
                   <tr>
-                    <th className={TABLE_HEADER_CELL}>위원회 / 사역팀(부) / 항 / 목 / 세목</th>
+                    <th className={TABLE_HEADER_CELL}>{terms.committee} / {terms.departmentFull} / 항 / 목 / 세목</th>
                     <th className={TABLE_HEADER_CELL}>건수</th>
                     <th className={TABLE_HEADER_CELL}>금액</th>
                     <th className={TABLE_HEADER_CELL}>비율</th>

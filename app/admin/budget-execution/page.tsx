@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { DonutChart } from '@/components/charts/DonutChart';
 import { BarChart3 } from 'lucide-react';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface Department {
   id: string;
@@ -60,6 +61,7 @@ function getRateColor(rate: number): string {
 }
 
 export default function BudgetExecutionPage() {
+  const terms = useOrgTerms();
   const [year, setYear] = useState(new Date().getFullYear());
   const [data, setData] = useState<BudgetExecutionData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,7 +93,7 @@ export default function BudgetExecutionPage() {
       {/* 헤더 */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-blue-800 mb-2">
-          {year}년 사역비 예산 집행 현황
+          {year}년 {terms.operationalExpense} 예산 집행 현황
         </h1>
         <p className="text-gray-500">(단위: 만원)</p>
         <div className="mt-4">
@@ -145,7 +147,7 @@ export default function BudgetExecutionPage() {
       {!loading && !error && data && data.committees.length === 0 && (
         <div className="text-center text-gray-500 py-16">
           <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-          <p>등록된 위원회가 없습니다.</p>
+          <p>등록된 {terms.committee}가 없습니다.</p>
         </div>
       )}
     </div>
@@ -154,16 +156,17 @@ export default function BudgetExecutionPage() {
 
 // 사역비 종합 섹션
 function SummarySection({ summary }: { summary: BudgetExecutionData['summary'] }) {
+  const terms = useOrgTerms();
   return (
     <div className="mt-8 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-xl shadow-lg p-6">
       <h2 className="text-xl font-bold text-purple-800 mb-6 text-center">
-        사역비 종합
+        {terms.operationalExpense} 종합
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* 사역비 합계 */}
         <div className="bg-white rounded-lg p-5 shadow">
-          <h3 className="text-lg font-semibold text-gray-700 mb-4">사역비 합계</h3>
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">{terms.operationalExpense} 합계</h3>
           <div className="flex items-center justify-between">
             <div className="space-y-3">
               <div className="flex justify-between items-center gap-4">
@@ -205,7 +208,7 @@ function SummarySection({ summary }: { summary: BudgetExecutionData['summary'] }
                 </span>
               </div>
               <div className="flex justify-between items-center gap-4">
-                <span className="text-gray-600">사역비</span>
+                <span className="text-gray-600">{terms.operationalExpense}</span>
                 <span className="text-xl font-bold text-purple-700">
                   {formatAmount(summary.totalBudget)} 만원
                 </span>
@@ -232,6 +235,7 @@ function SummarySection({ summary }: { summary: BudgetExecutionData['summary'] }
 
 // 위원회 카드 컴포넌트
 function CommitteeCard({ committee }: { committee: Committee }) {
+  const terms = useOrgTerms();
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
       {/* 카드 헤더 */}
@@ -273,7 +277,7 @@ function CommitteeCard({ committee }: { committee: Committee }) {
         ))}
         {committee.departments.length === 0 && (
           <p className="text-center text-gray-400 py-4 text-sm">
-            등록된 사역팀이 없습니다.
+            등록된 {terms.department}이 없습니다.
           </p>
         )}
       </div>

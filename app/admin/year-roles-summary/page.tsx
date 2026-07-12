@@ -20,6 +20,7 @@ import {
   ALERT_ERROR,
 } from '@/lib/constants/styles';
 import { useRoles } from '@/hooks/useRoles';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface User {
   id: string;
@@ -67,6 +68,7 @@ export default function YearRolesSummaryPage() {
 
   // Role 테이블에서 역할 정보 가져오기
   const { getRoleColor } = useRoles();
+  const terms = useOrgTerms();
 
   const [departmentRoles, setDepartmentRoles] = useState<DepartmentRoles[]>([]);
   const [committees, setCommittees] = useState<string[]>([]);
@@ -419,7 +421,7 @@ export default function YearRolesSummaryPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">위원회</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{terms.committee}</label>
             <select
               value={selectedCommittee}
               onChange={(e) => setSelectedCommittee(e.target.value)}
@@ -496,7 +498,7 @@ export default function YearRolesSummaryPage() {
                 <table className={TABLE_BASE}>
                   <thead className={TABLE_HEADER}>
                     <tr>
-                      <th className={TABLE_HEADER_CELL}>사역팀(부)</th>
+                      <th className={TABLE_HEADER_CELL}>{terms.departmentFull}</th>
                       <th className={`${TABLE_HEADER_CELL} text-center`}>
                         <span className={`px-2 py-1 text-xs rounded ${getRoleColor('team_leader').bg} ${getRoleColor('team_leader').text}`}>팀장 (1차)</span>
                       </th>

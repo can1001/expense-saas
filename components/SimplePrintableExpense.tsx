@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface SimpleExpenseItem {
   id: string;
@@ -57,6 +58,8 @@ function getGridClass(count: number): string {
 }
 
 export default function SimplePrintableExpense({ expense }: SimplePrintableExpenseProps) {
+  const terms = useOrgTerms();
+
   // 지출일자 분리 (없으면 빈칸)
   const expenseDate = expense.expenseDate ? new Date(expense.expenseDate) : null;
   const expenseYear = expenseDate ? expenseDate.getFullYear() : '';
@@ -114,7 +117,7 @@ export default function SimplePrintableExpense({ expense }: SimplePrintableExpen
 
           {/* 5행: 사역팀(부)장 + 지출일자 + 회계 */}
           <tr style={{ height: '25px' }}>
-            <td className="left-approval-cell">사역팀(부)장</td>
+            <td className="left-approval-cell">{terms.departmentFull}장</td>
             <td rowSpan={2} className="label-cell">지 출 일 자</td>
             <td rowSpan={2} className="value-cell">
               <div className="notice-box">

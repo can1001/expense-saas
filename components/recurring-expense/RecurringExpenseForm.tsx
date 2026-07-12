@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import BudgetSelector from '@/components/BudgetSelector';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 import { FrequencySelector } from './FrequencySelector';
 import { DayOfMonthInput } from './DayOfMonthInput';
 import {
@@ -24,12 +25,13 @@ import {
 
 /**
  * 자동이체 폼 스키마 (클라이언트용)
+ * 조직 유형별 용어(terms)를 받아 검증 메시지를 생성한다.
  */
-const recurringExpenseFormSchema = z.object({
+const createRecurringExpenseFormSchema = (terms: { committee: string; departmentSlash: string }) => z.object({
   name: z.string().min(1, '자동이체 이름을 입력해주세요'),
   description: z.string().optional(),
-  committee: z.string().min(1, '위원회를 선택해주세요'),
-  department: z.string().min(1, '사역팀/부를 선택해주세요'),
+  committee: z.string().min(1, `${terms.committee}를 선택해주세요`),
+  department: z.string().min(1, `${terms.departmentSlash}를 선택해주세요`),
   budgetCategory: z.string().min(1, '예산(항)을 선택해주세요'),
   budgetSubcategory: z.string().min(1, '예산(목)을 선택해주세요'),
   budgetDetail: z.string().optional(),
@@ -44,7 +46,7 @@ const recurringExpenseFormSchema = z.object({
   advanceDays: z.number().int().min(0).max(30),
 });
 
-type FormData = z.infer<typeof recurringExpenseFormSchema>;
+type FormData = z.infer<ReturnType<typeof createRecurringExpenseFormSchema>>;
 
 interface RecurringExpenseFormProps {
   initialData?: {
@@ -94,6 +96,7 @@ function formatDateToString(date: Date | string | undefined): string {
 }
 
 export function RecurringExpenseForm({ initialData }: RecurringExpenseFormProps) {
+  const terms = useOrgTerms();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +105,12 @@ export function RecurringExpenseForm({ initialData }: RecurringExpenseFormProps)
   );
 
   const isEditMode = !!initialData?.id;
+
+  const recurringExpenseFormSchema = useMemo(
+    () => createRecurringExpenseFormSchema(terms),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [terms.committee, terms.departmentSlash]
+  );
 
   const {
     register,

@@ -7,6 +7,7 @@
 import { UseFormRegister, FieldErrors } from 'react-hook-form';
 import { ExpenseFormData } from '@/lib/schemas/expense-schema';
 import { INPUT_BASE, SECTION_CARD, SECTION_TITLE, LABEL_BASE, LABEL_REQUIRED, ERROR_MESSAGE } from '@/lib/constants/styles';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface ApplicantSectionProps {
   register: UseFormRegister<ExpenseFormData>;
@@ -19,6 +20,8 @@ export default function ApplicantSection({
   errors,
   disabled = false,
 }: ApplicantSectionProps) {
+  const terms = useOrgTerms();
+
   return (
     <div className={SECTION_CARD}>
       <h2 className={SECTION_TITLE}>신청 정보</h2>
@@ -50,7 +53,7 @@ export default function ApplicantSection({
             disabled={disabled}
             readOnly
             aria-readonly="true"
-            title="청구팀은 위원회/사역팀 선택에 따라 자동으로 설정됩니다."
+            title={`청구팀은 ${terms.committee}/${terms.department} 선택에 따라 자동으로 설정됩니다.`}
             className={INPUT_BASE}
           />
           {errors.requestTeam && (

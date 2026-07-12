@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Expense, formatCurrency, ApprovalLine } from './types';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface PrintHeaderProps {
   expense: Expense;
@@ -15,6 +16,7 @@ function formatNameForPrint(name: string): string {
 }
 
 export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps) {
+  const terms = useOrgTerms();
   const steps = approvalLine?.steps || [];
 
   // 지출일자에서 연/월/일 추출
@@ -92,7 +94,7 @@ export default function PrintHeader({ expense, approvalLine }: PrintHeaderProps)
 
           {/* Row 5: 사역팀(부)장 헤더 + 지출일자(rs=2) + 회계 헤더 */}
           <tr>
-            <td className="approval-header-cell">사역팀(부)장</td>
+            <td className="approval-header-cell">{`${terms.departmentFull}장`}</td>
             <td className="info-label-cell" rowSpan={2}>지출일자</td>
             <td className="info-value-cell date-cell" rowSpan={2}>
               <span className="year-text">{year || '____'}</span> 년

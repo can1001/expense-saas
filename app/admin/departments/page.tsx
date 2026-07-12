@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Check, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 import {
   BTN_SM,
   INPUT_BASE,
@@ -38,6 +39,7 @@ interface GroupedDepartments {
 }
 
 export default function DepartmentsPage() {
+  const terms = useOrgTerms();
   const currentYear = new Date().getFullYear();
   const [committees, setCommittees] = useState<Committee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -255,8 +257,8 @@ export default function DepartmentsPage() {
     <div className="max-w-4xl">
       {/* 헤더 */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">사역팀(부) 관리</h1>
-        <p className="text-gray-600 mt-1">위원회별 사역팀을 추가, 수정, 비활성화할 수 있습니다.</p>
+        <h1 className="text-2xl font-bold text-gray-900">{terms.departmentFull} 관리</h1>
+        <p className="text-gray-600 mt-1">{`${terms.committee}별 ${terms.department}을 추가, 수정, 비활성화할 수 있습니다.`}</p>
       </div>
 
       {error && (
@@ -304,7 +306,7 @@ export default function DepartmentsPage() {
                       type="text"
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
-                      placeholder="사역팀명 입력"
+                      placeholder={`${terms.department}명 입력`}
                       className={`${INPUT_BASE} flex-1 max-w-[200px]`}
                       autoFocus
                       onKeyDown={(e) => {
@@ -438,7 +440,7 @@ export default function DepartmentsPage() {
 
                 {depts.length === 0 && addingToCommittee !== committee.id && (
                   <div className="text-center py-6 text-gray-500">
-                    등록된 사역팀이 없습니다.
+                    {`등록된 ${terms.department}이 없습니다.`}
                   </div>
                 )}
               </div>
@@ -448,7 +450,7 @@ export default function DepartmentsPage() {
 
         {groupedData.length === 0 && (
           <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-            활성화된 위원회가 없습니다. 먼저 위원회를 추가해주세요.
+            {`활성화된 ${terms.committee}가 없습니다. 먼저 ${terms.committee}를 추가해주세요.`}
           </div>
         )}
       </div>

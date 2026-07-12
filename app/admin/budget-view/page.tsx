@@ -21,6 +21,7 @@ import {
   SPINNER_MD,
   BTN_OUTLINE,
 } from '@/lib/constants/styles';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface BudgetDetailItem {
   id: string;
@@ -64,6 +65,7 @@ interface CommitteeOption {
 }
 
 export default function BudgetViewPage() {
+  const terms = useOrgTerms();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [search, setSearch] = useState('');
@@ -231,11 +233,11 @@ export default function BudgetViewPage() {
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">위원회</div>
+            <div className="text-sm text-gray-500">{terms.committee}</div>
             <div className="text-2xl font-bold text-indigo-600">{summary.totalCommittees}</div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">사역팀</div>
+            <div className="text-sm text-gray-500">{terms.department}</div>
             <div className="text-2xl font-bold text-blue-600">{summary.totalDepartments}</div>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
@@ -276,7 +278,7 @@ export default function BudgetViewPage() {
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">위원회:</label>
+            <label className="text-sm font-medium text-gray-700">{terms.committee}:</label>
             <select
               value={committeeFilter}
               onChange={(e) => setCommitteeFilter(e.target.value)}
@@ -294,7 +296,7 @@ export default function BudgetViewPage() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="위원회, 사역팀, 세목명, 담당자 검색..."
+              placeholder={`${terms.committee}, ${terms.department}, 세목명, 담당자 검색...`}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className={`${INPUT_BASE} pl-10`}
@@ -360,7 +362,7 @@ export default function BudgetViewPage() {
                       <Building2 className="w-5 h-5 text-indigo-600" />
                       <span className="font-semibold text-indigo-900">{committee.name}</span>
                       <span className="text-sm text-indigo-600">
-                        ({committee.departmentCount}개 사역팀, {committee.detailCount}개 세목)
+                        ({committee.departmentCount}개 {terms.department}, {committee.detailCount}개 세목)
                       </span>
                     </div>
                   </div>

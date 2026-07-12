@@ -31,6 +31,8 @@ import {
   getTodayString,
   getWeekLabel,
 } from '@/lib/constants/offering-types';
+import { useTenant } from '@/lib/contexts/TenantContext';
+import { isChurchOnlyFeatureVisible } from '@/lib/org-terms';
 
 interface Offering {
   id: string;
@@ -113,7 +115,26 @@ function mapCSVToOfferings(rows: string[][]): UploadItem[] {
     .filter(item => item.name && item.amount > 0);
 }
 
+// 교회 전용 기능 가드: 기업/비영리 등 다른 조직 유형에서는 안내만 표시
 export default function OfferingsPage() {
+  const { orgType, isLoading } = useTenant();
+
+  if (!isLoading && !isChurchOnlyFeatureVisible(orgType)) {
+    return (
+      <div className={`${SECTION_CARD} text-center py-16`}>
+        <HandCoins className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">사용하지 않는 기능입니다</h2>
+        <p className="text-sm text-gray-500">
+          헌금 관리는 교회 조직 전용 기능으로, 현재 조직 유형에서는 제공되지 않습니다.
+        </p>
+      </div>
+    );
+  }
+
+  return <OfferingsPageContent />;
+}
+
+function OfferingsPageContent() {
   const [tab, setTab] = useState<TabType>('list');
   const [loading, setLoading] = useState(true);
   const [offerings, setOfferings] = useState<Offering[]>([]);

@@ -7,6 +7,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import type { ReportItem, CommitteeExpense } from '@/lib/data/financial-reports/types';
 import { formatAmount } from './utils';
+import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface FinancialChartsProps {
   incomeItems: ReportItem[];
@@ -70,6 +71,8 @@ function CenterLabel({ budget, actual, rate, cx, cy }: {
 }
 
 export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }: FinancialChartsProps) {
+  const terms = useOrgTerms();
+
   // 수입 예산/결산 계산 (예산외수입 제외)
   const incomeRegularItems = incomeItems.filter((item) => item.category !== '예산외수입');
   const incomeCategoryTotals = incomeRegularItems.filter((item, index, arr) => {
@@ -212,7 +215,7 @@ export function FinancialCharts({ incomeItems, expenseItems, committeeExpenses }
 
         {/* 지출 위원회별 */}
         <div className="bg-gray-50 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-800 mb-4 text-center">지출 위원회별</h3>
+          <h3 className="text-lg font-medium text-gray-800 mb-4 text-center">{`지출 ${terms.committee}별`}</h3>
           {committeeChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
               <PieChart>
