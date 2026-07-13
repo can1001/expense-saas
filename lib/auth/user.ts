@@ -5,25 +5,38 @@ import { cookies } from 'next/headers';
 import { TenantContext, withTenantAsync } from '@/lib/tenant-context';
 import { findTenantBySubdomain } from '@/lib/tenant';
 import { canAccessAdminMenuPathWithRoles } from '@/lib/constants/menu-permissions';
+import { getUserJwtSecret } from '@/lib/auth/jwt-secret';
+import {
+  Permission as PermissionCode,
+  PERMISSIONS,
+  hasPermission as checkPermission,
+  roleHasPermission,
+} from '@/lib/auth/permissions';
+import { getTenantRoleResolver } from '@/lib/auth/role-permission-cache';
 
 // JWT 설정
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.USER_JWT_SECRET || 'user-secret-key-change-in-production'
-);
+// AC7: 프로덕션에서 USER_JWT_SECRET 미설정 시 부팅 실패(하드코딩 폴백 제거).
+// 테스트 환경에서는 폴백 허용(모듈 import 시점에 throw 방지).
+const JWT_SECRET = getUserJwtSecret();
 const JWT_ISSUER = 'expense-saas';
 const JWT_AUDIENCE = 'tenant-user';
 const TOKEN_EXPIRY = '24h'; // 24시간
 const COOKIE_NAME = 'user_token';
 
 // 사용자 세션 타입
+// roles: 유효 역할 코드 목록(단일이면 [role]). 권한은 roles+granted 로부터 파생.
+// 5개 불리언 플래그는 하위호환용 파생 값(레거시 소비자/UI). 신규 코드는 hasPermission 사용.
 export interface UserSession {
   id: string;
   tenantId: string;
   userid: string;
   username: string;
   role: string;
+  roles: string[];
   roleId: string | null;
   department: string | null;
+  /** 역할 외 개별 부여 권한 코드 (예: user:register) */
+  granted: string[];
   canApprove: boolean;
   canManageExpense: boolean;
   canAccessAdmin: boolean;
@@ -31,16 +44,19 @@ export interface UserSession {
   canRegisterUsers: boolean;
 }
 
-// JWT Payload 타입
+// JWT Payload 타입 (roles-only: 권한을 굽지 않고 roles+granted 만 담는다)
 interface UserJWTPayload extends JWTPayload {
   sub: string;
   tenantId: string;
   userid: string;
   username: string;
   role: string;
+  roles?: string[];
+  granted?: string[];
   roleId: string | null;
   department: string | null;
-  permissions: {
+  // 레거시 토큰 호환용(구 토큰만 존재). 신규 토큰은 굽지 않는다.
+  permissions?: {
     canApprove: boolean;
     canManageExpense: boolean;
     canAccessAdmin: boolean;
@@ -50,24 +66,43 @@ interface UserJWTPayload extends JWTPayload {
 }
 
 /**
+ * 유효 역할 + 개별 부여 권한으로부터 레거시 불리언 플래그를 파생.
+ * (플래그는 하위호환용 표시값 — 가드는 hasPermission 을 직접 사용)
+ */
+export function deriveLegacyFlags(roles: string[], granted: string[] = []) {
+  const has = (p: PermissionCode) =>
+    roleHasPermission(roles, p) || granted.includes(p);
+  return {
+    canApprove: has(PERMISSIONS.EXPENSE_APPROVE),
+    canManageExpense: has(PERMISSIONS.EXPENSE_PAYMENT_MANAGE),
+    canAccessAdmin: has(PERMISSIONS.ADMIN_DASHBOARD_READ),
+    canExportData: has(PERMISSIONS.EXPENSE_EXPORT),
+    canRegisterUsers: has(PERMISSIONS.USER_REGISTER),
+  };
+}
+
+/**
  * 사용자용 JWT 토큰 생성
  */
 export async function createUserToken(user: UserSession): Promise<string> {
+  const roles = user.roles?.length ? user.roles : [user.role];
+  // 개별 부여 권한: canRegisterUsers 가 역할로 설명되지 않으면 granted 로 보존
+  const granted =
+    user.granted && user.granted.length
+      ? user.granted
+      : user.canRegisterUsers && !roleHasPermission(roles, PERMISSIONS.USER_REGISTER)
+        ? [PERMISSIONS.USER_REGISTER]
+        : [];
   const token = await new SignJWT({
     sub: user.id,
     tenantId: user.tenantId,
     userid: user.userid,
     username: user.username,
     role: user.role,
+    roles,
+    granted,
     roleId: user.roleId,
     department: user.department,
-    permissions: {
-      canApprove: user.canApprove,
-      canManageExpense: user.canManageExpense,
-      canAccessAdmin: user.canAccessAdmin,
-      canExportData: user.canExportData,
-      canRegisterUsers: user.canRegisterUsers,
-    },
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -91,19 +126,30 @@ export async function verifyUserToken(token: string): Promise<UserSession | null
 
     const typedPayload = payload as UserJWTPayload;
 
+    const roles =
+      typedPayload.roles?.length ? typedPayload.roles : [typedPayload.role];
+    const granted = typedPayload.granted ?? [];
+
+    // 레거시 토큰(구 permissions 객체) 호환: 있으면 그대로, 없으면 roles 에서 파생
+    const flags = typedPayload.permissions
+      ? typedPayload.permissions
+      : deriveLegacyFlags(roles, granted);
+
     return {
       id: typedPayload.sub!,
       tenantId: typedPayload.tenantId,
       userid: typedPayload.userid,
       username: typedPayload.username,
       role: typedPayload.role,
+      roles,
       roleId: typedPayload.roleId,
       department: typedPayload.department,
-      canApprove: typedPayload.permissions.canApprove,
-      canManageExpense: typedPayload.permissions.canManageExpense,
-      canAccessAdmin: typedPayload.permissions.canAccessAdmin,
-      canExportData: typedPayload.permissions.canExportData,
-      canRegisterUsers: typedPayload.permissions.canRegisterUsers,
+      granted,
+      canApprove: flags.canApprove,
+      canManageExpense: flags.canManageExpense,
+      canAccessAdmin: flags.canAccessAdmin,
+      canExportData: flags.canExportData,
+      canRegisterUsers: flags.canRegisterUsers,
     };
   } catch {
     return null;
@@ -247,13 +293,24 @@ export function withAuth(handler: UserApiHandler) {
 }
 
 /**
- * 특정 권한이 필요한 API 래퍼
+ * 세션에서 effective 역할 코드 목록 추출.
+ * (현재 세션은 단일 role. 향후 UserYearRole 다중역할을 세션에 담으면 여기서 합산)
  */
-export type Permission = 'canApprove' | 'canManageExpense' | 'canAccessAdmin' | 'canExportData' | 'canRegisterUsers';
+export function getEffectiveRoleCodes(user: UserSession): string[] {
+  if (Array.isArray(user.roles) && user.roles.length > 0) return user.roles;
+  return [user.role];
+}
 
-export function withPermission(permission: Permission, handler: UserApiHandler) {
+/**
+ * permission 코드 기반 API 래퍼 (AC2: 단일 인가 경로 hasPermission).
+ * 세션 역할 → 테넌트별 DB 캐시 resolver(Role.permissions)로 effective permission 해석 후 판정.
+ * AC3: Role.permissions 변경이 재로그인 없이 캐시 TTL 내(무효화 즉시) 반영된다.
+ */
+export function withPermissions(permission: PermissionCode, handler: UserApiHandler) {
   return withAuth(async (request, context) => {
-    if (!context.user[permission]) {
+    const roles = getEffectiveRoleCodes(context.user);
+    const resolver = await getTenantRoleResolver(context.user.tenantId);
+    if (!checkPermission({ roles }, permission, resolver)) {
       return NextResponse.json(
         { error: '이 작업을 수행할 권한이 없습니다.' },
         { status: 403 }
@@ -264,19 +321,8 @@ export function withPermission(permission: Permission, handler: UserApiHandler) 
 }
 
 /**
- * 관리자 권한이 필요한 API 래퍼
- */
-export function withAdmin(handler: UserApiHandler) {
-  return withPermission('canAccessAdmin', handler);
-}
-
-/**
  * 특정 관리자 메뉴 경로 접근 권한이 필요한 API 래퍼
- * - 클라이언트 메뉴 가드(ROLE_ADMIN_MENU_PATHS)와 동일한 기준으로 인가
- * - canAccessAdmin 불리언 대신 역할 코드 기반 경로 권한을 사용하므로,
- *   회계/행정간사/재정팀원처럼 canAccessAdmin=false이지만 해당 보고서 메뉴에
- *   접근 가능한 역할도 API를 호출할 수 있다.
- * - 민감한 관리 API(roles/settings/users 등)는 계속 withAdmin을 사용한다.
+ * - 클라이언트 메뉴 가드와 동일한 기준(permission 파생)으로 인가한다.
  *
  * @param menuPath ROLE_ADMIN_MENU_PATHS 기준 페이지 경로 (예: '/admin', '/admin/budget-execution')
  */
@@ -309,74 +355,3 @@ export function createUserLogoutCookie(): string {
   return `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
 }
 
-/**
- * 역할에서 권한 가져오기
- */
-export async function getRolePermissions(roleId: string | null, roleCode: string): Promise<{
-  canApprove: boolean;
-  canManageExpense: boolean;
-  canAccessAdmin: boolean;
-  canExportData: boolean;
-  canRegisterUsers: boolean;
-}> {
-  // roleId가 있으면 Role 테이블에서 권한 조회
-  if (roleId) {
-    const role = await prismaBase.role.findUnique({
-      where: { id: roleId },
-      select: {
-        canApprove: true,
-        canManageExpense: true,
-        canAccessAdmin: true,
-        canExportData: true,
-        canRegisterUsers: true,
-      },
-    });
-    if (role) {
-      return role;
-    }
-  }
-
-  // roleCode로 기본 권한 반환 (호환성)
-  switch (roleCode) {
-    case 'admin':
-      return {
-        canApprove: true,
-        canManageExpense: true,
-        canAccessAdmin: true,
-        canExportData: true,
-        canRegisterUsers: true,
-      };
-    case 'finance_head':
-      return {
-        canApprove: true,
-        canManageExpense: true,
-        canAccessAdmin: true,
-        canExportData: true,
-        canRegisterUsers: false,
-      };
-    case 'accountant':
-      return {
-        canApprove: true,
-        canManageExpense: true,
-        canAccessAdmin: false,
-        canExportData: false,
-        canRegisterUsers: false,
-      };
-    case 'team_leader':
-      return {
-        canApprove: true,
-        canManageExpense: false,
-        canAccessAdmin: false,
-        canExportData: false,
-        canRegisterUsers: false,
-      };
-    default:
-      return {
-        canApprove: false,
-        canManageExpense: false,
-        canAccessAdmin: false,
-        canExportData: false,
-        canRegisterUsers: false,
-      };
-  }
-}

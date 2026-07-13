@@ -722,12 +722,9 @@ model Role {
   sortOrder   Int     @default(0)
   isActive    Boolean @default(true)
 
-  // 권한 플래그
-  canApprove       Boolean @default(false) // 결재 권한
-  canManageExpense Boolean @default(false) // 지출 관리 권한
-  canAccessAdmin   Boolean @default(false) // 관리자 메뉴 접근
-  canExportData    Boolean @default(false) // 데이터 내보내기 권한
-  canRegisterUsers Boolean @default(false) // 사용자 등록 권한
+  // RBAC permission 코드 배열 (단일 출처: lib/auth/permissions.ts PERMISSIONS)
+  // 비어있으면 코드 프리셋(ROLE_PERMISSION_PRESETS)으로 폴백한다.
+  permissions String[] @default([])
 
   // 관계
   users         User[]         @relation("UserRole")

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
-import { withAuth, withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { withAuth, UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 // GET /api/departments - 사역팀 목록 조회
 const handleGet: UserApiHandler = async (request) => {
@@ -124,4 +125,4 @@ const handlePost: UserApiHandler = async (request) => {
 };
 
 export const GET = withAuth(handleGet);
-export const POST = withAdmin(handlePost);
+export const POST = withPermissions(PERMISSIONS.DEPARTMENT_MANAGE, handlePost);

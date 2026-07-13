@@ -32,9 +32,7 @@ import {
   TABLE_BODY,
   TABLE_CELL,
 } from '@/lib/constants/styles';
-
-// 알림 발송 권한이 있는 역할
-const NOTIFICATION_ALLOWED_ROLES = ['admin', 'admin_assistant', 'accountant', 'finance_head'];
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 interface UserInfo {
   id: string;
@@ -118,7 +116,7 @@ export default function SendNotificationPage() {
         if (response.ok && data.user) {
           setUser(data.user);
           // 권한 체크
-          if (!NOTIFICATION_ALLOWED_ROLES.includes(data.user.role)) {
+          if (!roleHasPermission(data.user.role, PERMISSIONS.NOTIFICATION_SEND)) {
             router.push('/mypage');
           }
         } else {
@@ -152,7 +150,7 @@ export default function SendNotificationPage() {
 
   // 이력 로드
   useEffect(() => {
-    if (user && NOTIFICATION_ALLOWED_ROLES.includes(user.role)) {
+    if (user && roleHasPermission(user.role, PERMISSIONS.NOTIFICATION_SEND)) {
       fetchNotifications();
     }
   }, [user, fetchNotifications]);
@@ -299,7 +297,7 @@ export default function SendNotificationPage() {
   }
 
   // 권한 없음
-  if (!user || !NOTIFICATION_ALLOWED_ROLES.includes(user.role)) {
+  if (!user || !roleHasPermission(user.role, PERMISSIONS.NOTIFICATION_SEND)) {
     return null;
   }
 

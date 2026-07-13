@@ -16,6 +16,7 @@ import { LoadMoreIndicator } from '@/components/ui/LoadingIndicator';
 import { ExpenseListItem, ExpenseListResponse, UserRole } from '@/lib/types';
 import { BTN_PRIMARY, BTN_LG, BTN_PAGINATION, BTN_PAGE_ACTIVE, BTN_PAGE_INACTIVE, FLEX_CENTER } from '@/lib/constants/styles';
 import { formatCurrency, getExpenseEditPath } from '@/lib/utils';
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
 interface CurrentUser {
@@ -105,9 +106,9 @@ function ExpensesPageContent() {
     }
   };
 
-  // 지급상태 변경 권한 확인 (admin, finance_head, accountant, admin_assistant)
-  const paymentStatusRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
-  const canBulkChangePaymentStatus = currentUser && paymentStatusRoles.includes(currentUser.role);
+  // 지급상태 변경 권한 확인 — permission 단일 출처
+  const canBulkChangePaymentStatus =
+    !!currentUser && roleHasPermission(currentUser.role, PERMISSIONS.EXPENSE_PAYMENT_MANAGE);
 
   // 검색어 debounce (300ms)
   useEffect(() => {

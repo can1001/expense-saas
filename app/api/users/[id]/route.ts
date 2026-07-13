@@ -6,7 +6,8 @@ import {
   getRoleByCode,
   UserRole,
 } from '@/lib/services/user-service';
-import { withAuth, withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { withAuth, UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { ROLE_CODES, PERMISSIONS } from '@/lib/auth/permissions';
 
 // GET /api/users/[id] - 사용자 상세 조회
 const handleGet: UserApiHandler = async (request, { params }) => {
@@ -51,8 +52,8 @@ const handlePut: UserApiHandler = async (request, { params }) => {
     }
 
     // 역할 검증
-    const validRoles: UserRole[] = ['admin', 'finance_head', 'accountant', 'team_leader', 'admin_assistant', 'user'];
-    if (role && !validRoles.includes(role)) {
+    // P11: 역할 유효성은 ROLE_CODES 단일 출처로 검증(finance_member 포함)
+    if (role && !ROLE_CODES.includes(role)) {
       return NextResponse.json(
         { error: 'Invalid role' },
         { status: 400 }
@@ -122,5 +123,5 @@ const handleDelete: UserApiHandler = async (request, { params }) => {
 };
 
 export const GET = withAuth(handleGet);
-export const PUT = withAdmin(handlePut);
-export const DELETE = withAdmin(handleDelete);
+export const PUT = withPermissions(PERMISSIONS.USER_MANAGE, handlePut);
+export const DELETE = withPermissions(PERMISSIONS.USER_MANAGE, handleDelete);

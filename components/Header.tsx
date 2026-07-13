@@ -8,6 +8,7 @@ import { useRoles } from '@/hooks/useRoles';
 import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount';
 import { canShowUserRegisterMenu, canAccessAdminMenuWithRoles, canAccessRecurringExpenseMenuWithRoles } from '@/lib/constants/menu-permissions';
 import QuickUserRegister from '@/components/QuickUserRegister';
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 interface UserInfo {
   id: string;
@@ -26,9 +27,6 @@ interface TenantInfo {
   name: string;
   subdomain: string;
 }
-
-// 알림 발송 권한이 있는 역할
-const NOTIFICATION_ALLOWED_ROLES = ['admin', 'admin_assistant', 'accountant', 'finance_head'];
 
 // 모바일 드로어 컴포넌트
 function MobileDrawer({
@@ -225,7 +223,7 @@ function MobileDrawer({
                   <Bell className="w-5 h-5" />
                   알림 설정
                 </Link>
-                {NOTIFICATION_ALLOWED_ROLES.includes(user.role) && (
+                {roleHasPermission(user.role, PERMISSIONS.NOTIFICATION_SEND) && (
                   <Link
                     href="/mypage/send-notification"
                     onClick={onClose}
@@ -508,7 +506,7 @@ export default function Header() {
                         <History className="w-4 h-4" />
                         알림 히스토리
                       </Link>
-                      {user && NOTIFICATION_ALLOWED_ROLES.includes(user.role) && (
+                      {user && roleHasPermission(user.role, PERMISSIONS.NOTIFICATION_SEND) && (
                         <Link
                           href="/mypage/send-notification"
                           className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

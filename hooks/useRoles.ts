@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { PERMISSIONS, roleHasPermission, Permission } from '@/lib/auth/permissions';
 
 // Role 테이블 타입
 export interface Role {
@@ -11,14 +12,22 @@ export interface Role {
   stepNumber: number | null;
   sortOrder: number;
   isActive: boolean;
-  canApprove: boolean;
-  canManageExpense: boolean;
-  canAccessAdmin: boolean;
-  canExportData: boolean;
+  permissions: string[];
   _count?: {
     users: number;
     userYearRoles: number;
   };
+}
+
+/**
+ * 역할이 특정 permission 을 갖는지 — DB permissions[] 우선, 없으면 역할 코드 프리셋 폴백.
+ */
+function roleGrants(roles: Role[], code: string, permission: Permission): boolean {
+  const role = roles.find((r) => r.code === code);
+  if (role?.permissions && role.permissions.length > 0) {
+    return role.permissions.includes(permission);
+  }
+  return roleHasPermission(code, permission);
 }
 
 // 역할별 색상 정의 (UI 관련이므로 클라이언트에서 관리)
@@ -82,39 +91,31 @@ export function getRoleStep(roles: Role[], code: string): number | null {
 }
 
 /**
- * 확장 메뉴 접근 권한 체크 (간편 지출결의서 등)
- * Role.canManageExpense 기반
+ * 확장 메뉴 접근 권한 체크 (간편 지출결의서 등) — SIMPLE_EXPENSE_USE 기반
  */
 export function canAccessExtendedMenu(roles: Role[], code: string): boolean {
-  const role = roles.find(r => r.code === code);
-  return role?.canManageExpense || code === 'admin';
+  return roleGrants(roles, code, PERMISSIONS.SIMPLE_EXPENSE_USE);
 }
 
 /**
- * 결재함 접근 권한 체크
- * Role.canApprove 기반
+ * 결재함 접근 권한 체크 — EXPENSE_APPROVE 기반
  */
 export function canAccessApprovalMenu(roles: Role[], code: string): boolean {
-  const role = roles.find(r => r.code === code);
-  return role?.canApprove || code === 'admin';
+  return roleGrants(roles, code, PERMISSIONS.EXPENSE_APPROVE);
 }
 
 /**
- * 관리 메뉴 접근 권한 체크
- * Role.canAccessAdmin 기반
+ * 관리 메뉴 접근 권한 체크 — ADMIN_DASHBOARD_READ 기반
  */
 export function canAccessAdminMenu(roles: Role[], code: string): boolean {
-  const role = roles.find(r => r.code === code);
-  return role?.canAccessAdmin || false;
+  return roleGrants(roles, code, PERMISSIONS.ADMIN_DASHBOARD_READ);
 }
 
 /**
- * 데이터 내보내기 권한 체크
- * Role.canExportData 기반
+ * 데이터 내보내기 권한 체크 — EXPENSE_EXPORT 기반
  */
 export function canExportData(roles: Role[], code: string): boolean {
-  const role = roles.find(r => r.code === code);
-  return role?.canExportData || false;
+  return roleGrants(roles, code, PERMISSIONS.EXPENSE_EXPORT);
 }
 
 // Hook 결과 타입

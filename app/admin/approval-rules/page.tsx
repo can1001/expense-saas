@@ -3,13 +3,22 @@
 import { useEffect, useState } from 'react';
 import { GitBranch, ArrowRight, Info, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 import { SECTION_CARD, BTN_OUTLINE, BTN_SM, SELECT_BASE } from '@/lib/constants/styles';
+import { PERMISSIONS, roleHasPermission } from '@/lib/auth/permissions';
 
 interface Role {
   id: string;
   code: string;
   name: string;
   stepNumber: number | null;
-  canApprove: boolean;
+  permissions: string[];
+}
+
+/** 역할이 결재 권한을 갖는지 — DB permissions[] 우선, 없으면 코드 프리셋 폴백 */
+function roleCanApprove(role: Role): boolean {
+  if (role.permissions && role.permissions.length > 0) {
+    return role.permissions.includes(PERMISSIONS.EXPENSE_APPROVE);
+  }
+  return roleHasPermission(role.code, PERMISSIONS.EXPENSE_APPROVE);
 }
 
 interface YearRole {
@@ -185,7 +194,7 @@ export default function ApprovalRulesPage() {
                             )}
                           </td>
                           <td className="py-3 text-center">
-                            {role.canApprove ? (
+                            {roleCanApprove(role) ? (
                               <CheckCircle className="w-5 h-5 text-green-500 mx-auto" />
                             ) : (
                               <XCircle className="w-5 h-5 text-gray-300 mx-auto" />

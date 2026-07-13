@@ -27,6 +27,9 @@ vi.mock('@/lib/validators', () => ({
 
 // Import after mocking
 import { GET } from '../usage-details/route';
+
+// withAuth 래핑 이후 라우트 핸들러는 (request, context) 시그니처를 갖는다
+const mockRouteContext = { params: Promise.resolve({}) } as never;
 import { prisma } from '@/lib/prisma';
 import { isValidCuid } from '@/lib/validators';
 
@@ -90,7 +93,7 @@ describe('GET /api/budget/usage-details', () => {
       const { budgetCategory: _omit, ...rest } = baseParams;
       const request = createRequest(rest);
 
-      const response = await GET(request);
+      const response = await GET(request, mockRouteContext);
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -101,7 +104,7 @@ describe('GET /api/budget/usage-details', () => {
       const { budgetSubcategory: _omit, ...rest } = baseParams;
       const request = createRequest(rest);
 
-      const response = await GET(request);
+      const response = await GET(request, mockRouteContext);
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -112,7 +115,7 @@ describe('GET /api/budget/usage-details', () => {
       const { budgetDetail: _omit, ...rest } = baseParams;
       const request = createRequest(rest);
 
-      const response = await GET(request);
+      const response = await GET(request, mockRouteContext);
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -123,7 +126,7 @@ describe('GET /api/budget/usage-details', () => {
       const { year: _omit, ...rest } = baseParams;
       const request = createRequest(rest);
 
-      const response = await GET(request);
+      const response = await GET(request, mockRouteContext);
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -133,7 +136,7 @@ describe('GET /api/budget/usage-details', () => {
     it('year가 숫자가 아니면 400 에러를 반환해야 함', async () => {
       const request = createRequest({ ...baseParams, year: 'invalid' });
 
-      const response = await GET(request);
+      const response = await GET(request, mockRouteContext);
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -146,7 +149,7 @@ describe('GET /api/budget/usage-details', () => {
         excludeExpenseId: 'invalid-id-format',
       });
 
-      const response = await GET(request);
+      const response = await GET(request, mockRouteContext);
       const data = await response.json();
 
       expect(response.status).toBe(400);
@@ -162,7 +165,7 @@ describe('GET /api/budget/usage-details', () => {
         excludeExpenseId: validCuid,
       });
 
-      const response = await GET(request);
+      const response = await GET(request, mockRouteContext);
 
       expect(response.status).toBe(200);
     });
@@ -174,7 +177,7 @@ describe('GET /api/budget/usage-details', () => {
 
       const request = createRequest(baseParams);
 
-      const response = await GET(request);
+      const response = await GET(request, mockRouteContext);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -192,7 +195,7 @@ describe('GET /api/budget/usage-details', () => {
 
       const request = createRequest(baseParams);
 
-      const response = await GET(request);
+      const response = await GET(request, mockRouteContext);
       const data = await response.json();
 
       const item = data.items[0];
@@ -210,7 +213,7 @@ describe('GET /api/budget/usage-details', () => {
 
       const request = createRequest(baseParams);
 
-      const response = await GET(request);
+      const response = await GET(request, mockRouteContext);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -230,7 +233,7 @@ describe('GET /api/budget/usage-details', () => {
         excludeExpenseId: excludeId,
       });
 
-      await GET(request);
+      await GET(request, mockRouteContext);
 
       expect(mockPrisma.expenseItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -248,7 +251,7 @@ describe('GET /api/budget/usage-details', () => {
 
       const request = createRequest(baseParams);
 
-      await GET(request);
+      await GET(request, mockRouteContext);
 
       const callArgs = mockPrisma.expenseItem.findMany.mock.calls[0][0];
       expect(callArgs.where.expense.id).toBeUndefined();
@@ -261,7 +264,7 @@ describe('GET /api/budget/usage-details', () => {
 
       const request = createRequest(baseParams);
 
-      await GET(request);
+      await GET(request, mockRouteContext);
 
       expect(mockPrisma.expenseItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -279,7 +282,7 @@ describe('GET /api/budget/usage-details', () => {
 
       const request = createRequest(baseParams);
 
-      await GET(request);
+      await GET(request, mockRouteContext);
 
       expect(mockPrisma.expenseItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -299,7 +302,7 @@ describe('GET /api/budget/usage-details', () => {
 
       const request = createRequest(baseParams);
 
-      await GET(request);
+      await GET(request, mockRouteContext);
 
       const callArgs = mockPrisma.expenseItem.findMany.mock.calls[0][0];
       const requestDateFilter = callArgs.where.expense.requestDate;
@@ -313,7 +316,7 @@ describe('GET /api/budget/usage-details', () => {
 
       const request = createRequest(baseParams);
 
-      await GET(request);
+      await GET(request, mockRouteContext);
 
       expect(mockPrisma.expenseItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({

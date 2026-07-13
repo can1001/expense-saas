@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { notificationService } from '@/lib/services/notification';
 import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
 import { withAuth, UserApiHandler } from '@/lib/auth/user';
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 /**
  * PUT /api/expenses/[id]/payment-status
@@ -28,9 +29,8 @@ const handlePut: UserApiHandler = async (request, { params, user }) => {
     const currentUser = user;
 
     // 지급상태 변경 권한 (admin, finance_head, accountant, admin_assistant) - 연도별 유효 역할 기준
-    const allowedRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
     const { role: effectiveRole } = await getEffectiveRole(currentUser.id, CURRENT_YEAR);
-    if (!allowedRoles.includes(effectiveRole)) {
+    if (!roleHasPermission(effectiveRole, PERMISSIONS.EXPENSE_PAYMENT_MANAGE)) {
       return NextResponse.json(
         { error: '지출 상태 변경 권한이 없습니다.' },
         { status: 403 }

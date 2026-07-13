@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAllUsedAmounts, makeBudgetDetailKey } from '@/lib/services/budget-service';
-import { withAuth, withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { withAuth, UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 /**
  * GET /api/budget-details/year?year=2026&includeInactive=true
@@ -187,4 +188,4 @@ const handlePost: UserApiHandler = async (request) => {
 };
 
 export const GET = withAuth(handleGet);
-export const POST = withAdmin(handlePost);
+export const POST = withPermissions(PERMISSIONS.BUDGET_MASTER_MANAGE, handlePost);

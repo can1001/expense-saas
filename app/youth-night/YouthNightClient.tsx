@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Header from '@/components/Header';
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 interface UserInfo {
   id: string;
@@ -99,7 +100,7 @@ export default function YouthNightClient({ user, curriculums }: Props) {
     return acc;
   }, {} as Record<string, Curriculum[]>);
 
-  const isAdmin = ['admin', 'finance_head', 'accountant', 'team_leader'].includes(user.role);
+  const isAdmin = roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE);
   const totalLessons = curriculums.reduce((sum, c) => sum + c.lessons.length, 0);
 
   return (

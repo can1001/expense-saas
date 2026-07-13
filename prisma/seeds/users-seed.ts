@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { ROLE_PERMISSION_PRESETS, RoleCode } from '../../lib/auth/permissions';
 
 const prisma = new PrismaClient();
 
@@ -16,13 +17,13 @@ const DEFAULT_PASSWORD_HASH = '$2b$10$y66Vh2AsfiG1z5rYPzk/Ge7OGLfJA8fyhjQPwNx.hm
 // 역할 (Role) 데이터
 // ============================================================
 const roles = [
-  { id: 'cmk878p2v0000eg3mzdonk4zf', code: 'admin', name: '관리자', description: '시스템 관리자 - 모든 권한', stepNumber: null, sortOrder: 0, isActive: true, canApprove: false, canManageExpense: true, canAccessAdmin: true, canExportData: true, canRegisterUsers: true },
-  { id: 'cmk878pjm0001eg3mjpjvg05s', code: 'finance_head', name: '재정팀장', description: '3차/최종 결재권자', stepNumber: 3, sortOrder: 1, isActive: true, canApprove: true, canManageExpense: true, canAccessAdmin: false, canExportData: true, canRegisterUsers: true },
-  { id: 'cmk878plq0002eg3mbyuccaqa', code: 'accountant', name: '회계', description: '2차 결재권자', stepNumber: 2, sortOrder: 2, isActive: true, canApprove: true, canManageExpense: true, canAccessAdmin: false, canExportData: true, canRegisterUsers: true },
-  { id: 'cmk878poo0003eg3mq7pxz5a0', code: 'team_leader', name: '팀장', description: '1차 결재권자', stepNumber: 1, sortOrder: 3, isActive: true, canApprove: true, canManageExpense: false, canAccessAdmin: false, canExportData: false, canRegisterUsers: true },
-  { id: 'cmk878pre0004eg3m9yelxwsg', code: 'admin_assistant', name: '행정간사', description: '지출관리, 데이터 내보내기 권한', stepNumber: null, sortOrder: 4, isActive: true, canApprove: false, canManageExpense: true, canAccessAdmin: false, canExportData: true, canRegisterUsers: true },
-  { id: 'cmnd9fm0001eg3m7fincmembr', code: 'finance_member', name: '재정팀원', description: '재정팀원 - 회계와 동일한 권한', stepNumber: 2, sortOrder: 5, isActive: true, canApprove: true, canManageExpense: true, canAccessAdmin: false, canExportData: true, canRegisterUsers: true },
-  { id: 'cmk878pu00005eg3mptqb10hg', code: 'user', name: '사용자', description: '일반 사용자', stepNumber: null, sortOrder: 6, isActive: true, canApprove: false, canManageExpense: false, canAccessAdmin: false, canExportData: false, canRegisterUsers: false },
+  { id: 'cmk878p2v0000eg3mzdonk4zf', code: 'admin', name: '관리자', description: '시스템 관리자 - 모든 권한', stepNumber: null, sortOrder: 0, isActive: true },
+  { id: 'cmk878pjm0001eg3mjpjvg05s', code: 'finance_head', name: '재정팀장', description: '3차/최종 결재권자', stepNumber: 3, sortOrder: 1, isActive: true },
+  { id: 'cmk878plq0002eg3mbyuccaqa', code: 'accountant', name: '회계', description: '2차 결재권자', stepNumber: 2, sortOrder: 2, isActive: true },
+  { id: 'cmk878poo0003eg3mq7pxz5a0', code: 'team_leader', name: '팀장', description: '1차 결재권자', stepNumber: 1, sortOrder: 3, isActive: true },
+  { id: 'cmk878pre0004eg3m9yelxwsg', code: 'admin_assistant', name: '행정간사', description: '지출관리, 데이터 내보내기 권한', stepNumber: null, sortOrder: 4, isActive: true },
+  { id: 'cmnd9fm0001eg3m7fincmembr', code: 'finance_member', name: '재정팀원', description: '재정팀원 - 회계와 동일한 권한', stepNumber: 2, sortOrder: 5, isActive: true },
+  { id: 'cmk878pu00005eg3mptqb10hg', code: 'user', name: '사용자', description: '일반 사용자', stepNumber: null, sortOrder: 6, isActive: true },
 ];
 
 // ============================================================
@@ -123,6 +124,7 @@ async function main() {
   // 1. Role 시드
   console.log('📋 역할(Role) 시드 중...');
   for (const role of roles) {
+    const permissions = [...(ROLE_PERMISSION_PRESETS[role.code as RoleCode] ?? [])];
     await prisma.role.upsert({
       where: { id: role.id },
       update: {
@@ -132,13 +134,9 @@ async function main() {
         stepNumber: role.stepNumber,
         sortOrder: role.sortOrder,
         isActive: role.isActive,
-        canApprove: role.canApprove,
-        canManageExpense: role.canManageExpense,
-        canAccessAdmin: role.canAccessAdmin,
-        canExportData: role.canExportData,
-        canRegisterUsers: role.canRegisterUsers,
+        permissions,
       },
-      create: role,
+      create: { ...role, permissions },
     });
   }
   console.log(`   ✅ ${roles.length}개 역할 시드 완료\n`);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
+import { withAuth } from '@/lib/auth/user';
 
 /**
  * GET /api/budget/search - 계정과목 검색
@@ -14,7 +15,8 @@ import { handleApiError } from '@/lib/api/error-handler';
  * - year: 연도 (기본: 현재 연도)
  * - limit: 최대 결과 수 (기본: 20)
  */
-export async function GET(request: NextRequest) {
+// AC5: 인증 + 테넌트 컨텍스트 필수(미가드 시 테넌트 격리 미적용 위험)
+async function handleGET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q') || '';
@@ -153,3 +155,5 @@ export async function GET(request: NextRequest) {
     return handleApiError(error);
   }
 }
+
+export const GET = withAuth(handleGET);

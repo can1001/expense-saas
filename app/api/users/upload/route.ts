@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 // 역할 코드 타입 (Role.code와 동일)
-type UserRole = 'admin' | 'finance_head' | 'accountant' | 'team_leader' | 'admin_assistant' | 'user';
+type UserRole = 'admin' | 'finance_head' | 'accountant' | 'finance_member' | 'team_leader' | 'admin_assistant' | 'user';
 
 // 기본 비밀번호
 const DEFAULT_PASSWORD = 'chc2026';
@@ -18,6 +19,8 @@ const ROLE_MAP: Record<string, UserRole> = {
   'finance_head': 'finance_head',
   '회계': 'accountant',
   'accountant': 'accountant',
+  '재정팀원': 'finance_member',
+  'finance_member': 'finance_member',
   '팀장': 'team_leader',
   'team_leader': 'team_leader',
   '행정간사': 'admin_assistant',
@@ -65,6 +68,7 @@ const handleGet: UserApiHandler = async () => {
       admin: '관리자',
       finance_head: '재정팀장',
       accountant: '회계',
+      finance_member: '재정팀원',
       team_leader: '팀장',
       admin_assistant: '행정간사',
       user: '사용자',
@@ -397,5 +401,5 @@ const handlePost: UserApiHandler = async (request) => {
   }
 };
 
-export const GET = withAdmin(handleGet);
-export const POST = withAdmin(handlePost);
+export const GET = withPermissions(PERMISSIONS.USER_MANAGE, handleGet);
+export const POST = withPermissions(PERMISSIONS.USER_MANAGE, handlePost);

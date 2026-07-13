@@ -2,9 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import ExcelJS from 'exceljs';
 import { withAdminMenu, UserApiHandler } from '@/lib/auth/user';
-
-// 재정보고서 Excel 내보내기 접근 권한이 있는 역할
-const QUARTERLY_REPORT_EXPORT_ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'finance_member'];
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 /**
  * 분기별 날짜 범위 계산
@@ -31,7 +29,7 @@ function getYearDateRange(year: number) {
  */
 const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    if (!QUARTERLY_REPORT_EXPORT_ALLOWED_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.REPORT_EXPORT)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 

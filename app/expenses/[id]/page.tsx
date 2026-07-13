@@ -15,6 +15,7 @@ import { PaymentStatusModal } from '@/components/PaymentStatusModal';
 import Accordion, { InfoRow, MobileItemCard } from '@/components/ui/Accordion';
 import { Expense } from '@/lib/types';
 import { formatCurrency, getExpenseEditPath } from '@/lib/utils';
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_SECONDARY, BTN_DANGER, BTN_OUTLINE, BTN_LG, SPINNER, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 import { APPROVED_EDIT_ROLES } from '@/lib/constants/menu-permissions';
 import { ArrowLeft, Printer, FileSpreadsheet, Edit2, Trash2, Copy } from 'lucide-react';
@@ -267,9 +268,9 @@ export default function ExpenseDetailPage() {
     }
   };
 
-  // 지급상태 변경 권한 확인 (admin, finance_head, accountant, admin_assistant)
-  const paymentStatusRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
-  const canChangePaymentStatus = currentUser && paymentStatusRoles.includes(currentUser.role);
+  // 지급상태 변경 권한 확인 — permission 단일 출처
+  const canChangePaymentStatus =
+    !!currentUser && roleHasPermission(currentUser.role, PERMISSIONS.EXPENSE_PAYMENT_MANAGE);
 
   // PDF 다운로드 훅 (early return 전에 호출해야 함)
   const { downloadPDF, loading: pdfLoading } = usePDFDownload({

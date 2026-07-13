@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { getUserFromRequest } from '@/lib/auth/user';
+import { getUserFromRequest, deriveLegacyFlags } from '@/lib/auth/user';
 import { prisma } from '@/lib/prisma';
 import { getEffectiveRole, getUserAllYearRoles, CURRENT_YEAR } from '@/lib/services/user-service';
+import { PERMISSIONS, subjectPermissions } from '@/lib/auth/permissions';
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,15 +24,6 @@ export async function GET(request: NextRequest) {
     const userWithRole = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        roleRef: {
-          select: {
-            canRegisterUsers: true,
-            canApprove: true,
-            canManageExpense: true,
-            canAccessAdmin: true,
-            canExportData: true,
-          },
-        },
         tenant: {
           select: {
             id: true,
@@ -85,20 +77,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 권한 정보 (JWT에서 또는 Role 테이블에서)
-    const permissions = jwtUser ? {
-      canApprove: jwtUser.canApprove,
-      canManageExpense: jwtUser.canManageExpense,
-      canAccessAdmin: jwtUser.canAccessAdmin,
-      canExportData: jwtUser.canExportData,
-      canRegisterUsers: jwtUser.canRegisterUsers,
-    } : {
-      canApprove: userWithRole.roleRef?.canApprove ?? false,
-      canManageExpense: userWithRole.roleRef?.canManageExpense ?? false,
-      canAccessAdmin: userWithRole.roleRef?.canAccessAdmin ?? false,
-      canExportData: userWithRole.roleRef?.canExportData ?? false,
-      canRegisterUsers: userWithRole.canRegisterUsers ?? userWithRole.roleRef?.canRegisterUsers ?? false,
-    };
+    // 권한 정보: effective 역할 + 개별 부여(canRegisterUsers)로부터 파생 (단일 출처)
+    const effectiveRoles = Array.from(new Set([effectiveRole, ...allRoles]));
+    const granted = userWithRole.canRegisterUsers ? [PERMISSIONS.USER_REGISTER] : [];
+    const permissions = deriveLegacyFlags(effectiveRoles, granted);
+    const permissionCodes = Array.from(subjectPermissions({ roles: effectiveRoles, granted }));
 
     return NextResponse.json({
       user: {
@@ -111,9 +94,9 @@ export async function GET(request: NextRequest) {
         departmentId: effectiveDepartmentId,
         defaultBankAccount,
         permissions,
+        permissionCodes,
         // 하위 호환성
         canRegisterUsers: permissions.canRegisterUsers,
-        roleRef: userWithRole.roleRef ?? null,
       },
       tenant: userWithRole.tenant,
     });

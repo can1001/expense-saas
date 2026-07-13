@@ -9,6 +9,7 @@ import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { withSuperAdmin } from '@/lib/auth/super-admin';
 import { logPlatformActivity } from '@/lib/platform/activity-log';
 import { seedDefaultData } from '@/lib/tenant/seed-default-data';
+import { ROLE_PERMISSION_PRESETS, RoleCode } from '@/lib/auth/permissions';
 import bcrypt from 'bcryptjs';
 
 // GET /api/platform/tenants - 테넌트 목록 조회
@@ -148,59 +149,18 @@ export const POST = withSuperAdmin(async (request: NextRequest, { superAdmin }) 
         },
       });
 
-      // 2. 기본 역할 생성
+      // 2. 기본 역할 생성 (permission 프리셋 기반)
       const roles = [
-        {
-          tenantId: newTenant.id,
-          code: 'admin',
-          name: '관리자',
-          description: '시스템 전체 관리 권한',
-          sortOrder: 0,
-          canApprove: true,
-          canManageExpense: true,
-          canAccessAdmin: true,
-          canExportData: true,
-          canRegisterUsers: true,
-        },
-        {
-          tenantId: newTenant.id,
-          code: 'finance_head',
-          name: '재정팀장',
-          description: '재정 관리 및 최종 결재 권한',
-          stepNumber: 3,
-          sortOrder: 1,
-          canApprove: true,
-          canManageExpense: true,
-          canAccessAdmin: true,
-          canExportData: true,
-        },
-        {
-          tenantId: newTenant.id,
-          code: 'accountant',
-          name: '회계',
-          description: '회계 처리 및 2차 결재 권한',
-          stepNumber: 2,
-          sortOrder: 2,
-          canApprove: true,
-          canManageExpense: true,
-        },
-        {
-          tenantId: newTenant.id,
-          code: 'team_leader',
-          name: '팀장',
-          description: '팀 관리 및 1차 결재 권한',
-          stepNumber: 1,
-          sortOrder: 3,
-          canApprove: true,
-        },
-        {
-          tenantId: newTenant.id,
-          code: 'user',
-          name: '사용자',
-          description: '일반 사용자 (지출결의서 작성)',
-          sortOrder: 4,
-        },
-      ];
+        { code: 'admin', name: '관리자', description: '시스템 전체 관리 권한', sortOrder: 0 },
+        { code: 'finance_head', name: '재정팀장', description: '재정 관리 및 최종 결재 권한', stepNumber: 3, sortOrder: 1 },
+        { code: 'accountant', name: '회계', description: '회계 처리 및 2차 결재 권한', stepNumber: 2, sortOrder: 2 },
+        { code: 'team_leader', name: '팀장', description: '팀 관리 및 1차 결재 권한', stepNumber: 1, sortOrder: 3 },
+        { code: 'user', name: '사용자', description: '일반 사용자 (지출결의서 작성)', sortOrder: 4 },
+      ].map((r) => ({
+        ...r,
+        tenantId: newTenant.id,
+        permissions: [...(ROLE_PERMISSION_PRESETS[r.code as RoleCode] ?? [])],
+      }));
 
       await tx.role.createMany({ data: roles });
 

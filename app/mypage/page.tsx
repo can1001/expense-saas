@@ -5,9 +5,7 @@ import Link from 'next/link';
 import { Key, PenLine, Bell, History, Send } from 'lucide-react';
 import Header from '@/components/Header';
 import { SECTION_CARD, PADDING_CARD } from '@/lib/constants/styles';
-
-// 알림 발송 권한이 있는 역할
-const NOTIFICATION_ALLOWED_ROLES = ['admin', 'admin_assistant', 'accountant', 'finance_head'];
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 export default function MyPage() {
   const [canSendNotification, setCanSendNotification] = useState(false);
@@ -18,7 +16,7 @@ export default function MyPage() {
         const response = await fetch('/api/auth/me');
         const data = await response.json();
         if (response.ok && data.user) {
-          setCanSendNotification(NOTIFICATION_ALLOWED_ROLES.includes(data.user.role));
+          setCanSendNotification(roleHasPermission(data.user.role, PERMISSIONS.NOTIFICATION_SEND));
         }
       } catch {
         // 무시

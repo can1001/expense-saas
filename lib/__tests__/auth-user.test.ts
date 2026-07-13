@@ -344,14 +344,14 @@ describe('auth/user withAuth behavior via global mock', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it('should check permission via global mock', async () => {
-    // canApprove 권한이 있는 mock user 설정
-    setMockUser({ ...mockUserSession, canApprove: true });
+  it('should allow when role has permission (withPermissions)', async () => {
+    // accountant 역할 → EXPENSE_APPROVE 보유
+    setMockUser({ ...mockUserSession, role: 'accountant', roles: ['accountant'] });
 
-    const { withPermission } = await import('@/lib/auth/user');
+    const { withPermissions } = await import('@/lib/auth/user');
 
     const handler = vi.fn().mockResolvedValue(NextResponse.json({ success: true }));
-    const wrapped = withPermission('canApprove', handler);
+    const wrapped = withPermissions('expense:approve' as never, handler);
     const request = new NextRequest('http://localhost/api/test');
 
     const response = await wrapped(request, { params: Promise.resolve({}) });
@@ -360,14 +360,14 @@ describe('auth/user withAuth behavior via global mock', () => {
     expect(handler).toHaveBeenCalled();
   });
 
-  it('should deny access when permission missing via global mock', async () => {
-    // canApprove 권한이 없는 mock user 설정
-    setMockUser({ ...mockUserSession, canApprove: false });
+  it('should deny when role lacks permission (withPermissions)', async () => {
+    // user 역할 → EXPENSE_APPROVE 없음
+    setMockUser({ ...mockUserSession, role: 'user', roles: ['user'] });
 
-    const { withPermission } = await import('@/lib/auth/user');
+    const { withPermissions } = await import('@/lib/auth/user');
 
     const handler = vi.fn();
-    const wrapped = withPermission('canApprove', handler);
+    const wrapped = withPermissions('expense:approve' as never, handler);
     const request = new NextRequest('http://localhost/api/test');
 
     const response = await wrapped(request, { params: Promise.resolve({}) });
@@ -376,14 +376,13 @@ describe('auth/user withAuth behavior via global mock', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it('should allow admin access via global mock', async () => {
-    // canAccessAdmin 권한이 있는 mock user 설정
-    setMockUser({ ...mockUserSession, canAccessAdmin: true });
+  it('should allow admin-only permission for admin (withPermissions)', async () => {
+    setMockUser({ ...mockUserSession, role: 'admin', roles: ['admin'] });
 
-    const { withAdmin } = await import('@/lib/auth/user');
+    const { withPermissions } = await import('@/lib/auth/user');
 
     const handler = vi.fn().mockResolvedValue(NextResponse.json({ success: true }));
-    const wrapped = withAdmin(handler);
+    const wrapped = withPermissions('settings:manage' as never, handler);
     const request = new NextRequest('http://localhost/api/test');
 
     const response = await wrapped(request, { params: Promise.resolve({}) });
@@ -392,14 +391,13 @@ describe('auth/user withAuth behavior via global mock', () => {
     expect(handler).toHaveBeenCalled();
   });
 
-  it('should deny admin access for non-admin via global mock', async () => {
-    // canAccessAdmin 권한이 없는 mock user 설정
-    setMockUser({ ...mockUserSession, canAccessAdmin: false });
+  it('should deny admin-only permission for non-admin (withPermissions)', async () => {
+    setMockUser({ ...mockUserSession, role: 'finance_head', roles: ['finance_head'] });
 
-    const { withAdmin } = await import('@/lib/auth/user');
+    const { withPermissions } = await import('@/lib/auth/user');
 
     const handler = vi.fn();
-    const wrapped = withAdmin(handler);
+    const wrapped = withPermissions('settings:manage' as never, handler);
     const request = new NextRequest('http://localhost/api/test');
 
     const response = await wrapped(request, { params: Promise.resolve({}) });

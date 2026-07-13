@@ -8,7 +8,8 @@ import {
   generateWooriBankFilename,
   ExpenseForWooriBank,
 } from '@/lib/excel-export';
-import { withPermission, UserApiHandler } from '@/lib/auth/user';
+import { UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 /**
  * GET /api/expenses/export/excel
@@ -146,4 +147,4 @@ const handleGet: UserApiHandler = async (request) => {
   }
 };
 
-export const GET = withPermission('canExportData', handleGet);
+export const GET = withPermissions(PERMISSIONS.EXPENSE_EXPORT, handleGet);

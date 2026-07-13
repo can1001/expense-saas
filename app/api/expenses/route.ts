@@ -10,9 +10,7 @@ import {
 import type { ApprovalStatus } from '@/lib/types';
 import { withAuth, UserApiHandler } from '@/lib/auth/user';
 import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
-
-// 전체 조회 권한이 있는 역할
-const FULL_ACCESS_ROLES = ['admin', 'finance_head', 'accountant', 'finance_member', 'admin_assistant'];
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 // 서버 정렬 허용 키 — Expense 직속 컬럼 8개
 // 예산 3개(budgetCategory/Subcategory/Detail)는 ExpenseItem 1:N 관계라 Prisma orderBy 불가 → 클라에서 비활성화
@@ -60,7 +58,7 @@ const handleGet: UserApiHandler = async (request, { user }) => {
     // 역할 기반 권한 where 절
     const permissionWhere: Prisma.ExpenseWhereInput = {};
 
-    if (FULL_ACCESS_ROLES.includes(effectiveRole)) {
+    if (roleHasPermission(effectiveRole, PERMISSIONS.EXPENSE_READ_ALL)) {
       // 전체 조회 권한: 필터 없음
     } else if (effectiveRole === 'team_leader') {
       const department = effectiveDepartment ?? user.department;

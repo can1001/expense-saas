@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, UserApiHandler } from '@/lib/auth/user';
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 import { OfferingType } from '@prisma/client';
 import { mapKoreanTypeToEnum } from '@/lib/constants/offering-types';
 
-// 헌금 관리 권한이 있는 역할
-const OFFERING_ALLOWED_ROLES = ['admin', 'admin_assistant', 'accountant', 'finance_head'];
 
 /**
  * GET /api/admin/offerings
@@ -13,7 +12,7 @@ const OFFERING_ALLOWED_ROLES = ['admin', 'admin_assistant', 'accountant', 'finan
  */
 const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    if (!OFFERING_ALLOWED_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.OFFERING_MANAGE)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
@@ -135,7 +134,7 @@ const handleGet: UserApiHandler = async (request, { user }) => {
  */
 const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    if (!OFFERING_ALLOWED_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.OFFERING_MANAGE)) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 

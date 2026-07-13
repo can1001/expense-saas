@@ -1,7 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Shield, Check, X, Edit2, Trash2, Plus, Save, XCircle } from 'lucide-react';
+import { Shield, Check, Edit2, Trash2, Plus, Save, XCircle } from 'lucide-react';
+import {
+  isProtectedSystemRole,
+  PERMISSION_GROUPS,
+  PERMISSION_LABELS,
+} from '@/lib/auth/permissions';
 import {
   SECTION_CARD,
   BTN_PRIMARY,
@@ -22,11 +27,7 @@ interface Role {
   stepNumber: number | null;
   sortOrder: number;
   isActive: boolean;
-  canApprove: boolean;
-  canManageExpense: boolean;
-  canAccessAdmin: boolean;
-  canExportData: boolean;
-  canRegisterUsers: boolean;
+  permissions: string[];
   _count?: {
     users: number;
     userYearRoles: number;
@@ -48,12 +49,17 @@ export default function RolesPage() {
     description: '',
     stepNumber: '',
     sortOrder: '0',
-    canApprove: false,
-    canManageExpense: false,
-    canAccessAdmin: false,
-    canExportData: false,
-    canRegisterUsers: false,
+    permissions: [] as string[],
   });
+
+  const togglePermission = (perm: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      permissions: prev.permissions.includes(perm)
+        ? prev.permissions.filter((p) => p !== perm)
+        : [...prev.permissions, perm],
+    }));
+  };
 
   const fetchRoles = useCallback(async () => {
     setLoading(true);
@@ -83,11 +89,7 @@ export default function RolesPage() {
       description: '',
       stepNumber: '',
       sortOrder: '0',
-      canApprove: false,
-      canManageExpense: false,
-      canAccessAdmin: false,
-      canExportData: false,
-      canRegisterUsers: false,
+      permissions: [],
     });
   };
 
@@ -137,11 +139,7 @@ export default function RolesPage() {
           description: formData.description || null,
           stepNumber: formData.stepNumber ? parseInt(formData.stepNumber) : null,
           sortOrder: parseInt(formData.sortOrder),
-          canApprove: formData.canApprove,
-          canManageExpense: formData.canManageExpense,
-          canAccessAdmin: formData.canAccessAdmin,
-          canExportData: formData.canExportData,
-          canRegisterUsers: formData.canRegisterUsers,
+          permissions: formData.permissions,
         }),
       });
 
@@ -161,7 +159,7 @@ export default function RolesPage() {
   };
 
   const handleDelete = async (role: Role) => {
-    if (['admin', 'user'].includes(role.code)) {
+    if (isProtectedSystemRole(role.code)) {
       alert('기본 역할은 삭제할 수 없습니다.');
       return;
     }
@@ -201,11 +199,7 @@ export default function RolesPage() {
       description: role.description || '',
       stepNumber: role.stepNumber?.toString() || '',
       sortOrder: role.sortOrder.toString(),
-      canApprove: role.canApprove,
-      canManageExpense: role.canManageExpense,
-      canAccessAdmin: role.canAccessAdmin,
-      canExportData: role.canExportData,
-      canRegisterUsers: role.canRegisterUsers,
+      permissions: role.permissions ?? [],
     });
   };
 
@@ -338,55 +332,40 @@ export default function RolesPage() {
             </div>
           </div>
 
-          {/* 권한 체크박스 */}
+          {/* 권한 체크박스 (permission 기반) */}
           <div className="mt-4 border-t pt-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">권한 설정</h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <label className="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-gray-50">
-                <input
-                  type="checkbox"
-                  checked={formData.canApprove}
-                  onChange={(e) => setFormData({ ...formData, canApprove: e.target.checked })}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm">결재 권한</span>
-              </label>
-              <label className="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-gray-50">
-                <input
-                  type="checkbox"
-                  checked={formData.canManageExpense}
-                  onChange={(e) => setFormData({ ...formData, canManageExpense: e.target.checked })}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm">지출 관리</span>
-              </label>
-              <label className="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-gray-50">
-                <input
-                  type="checkbox"
-                  checked={formData.canAccessAdmin}
-                  onChange={(e) => setFormData({ ...formData, canAccessAdmin: e.target.checked })}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm">관리자 메뉴</span>
-              </label>
-              <label className="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-gray-50">
-                <input
-                  type="checkbox"
-                  checked={formData.canExportData}
-                  onChange={(e) => setFormData({ ...formData, canExportData: e.target.checked })}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm">데이터 내보내기</span>
-              </label>
-              <label className="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-gray-50">
-                <input
-                  type="checkbox"
-                  checked={formData.canRegisterUsers}
-                  onChange={(e) => setFormData({ ...formData, canRegisterUsers: e.target.checked })}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm">사용자 등록</span>
-              </label>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-gray-700">
+                권한 설정
+                <span className="ml-2 text-xs text-gray-500">
+                  ({formData.permissions.length}개 선택)
+                </span>
+              </h3>
+            </div>
+            <div className="space-y-4">
+              {PERMISSION_GROUPS.map((group) => (
+                <div key={group.title}>
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                    {group.title}
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                    {group.permissions.map((perm) => (
+                      <label
+                        key={perm}
+                        className="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.permissions.includes(perm)}
+                          onChange={() => togglePermission(perm)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm">{PERMISSION_LABELS[perm]}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -453,7 +432,7 @@ export default function RolesPage() {
                     <Edit2 className="w-3 h-3" />
                     수정
                   </button>
-                  {!['admin', 'user'].includes(role.code) && role.isActive && (
+                  {!isProtectedSystemRole(role.code) && role.isActive && (
                     <button
                       onClick={() => handleDelete(role)}
                       className={`${BTN_DANGER} ${BTN_SM} flex items-center gap-1`}
@@ -466,50 +445,25 @@ export default function RolesPage() {
               </div>
             </div>
 
-            {/* 권한 목록 */}
+            {/* 권한 목록 (permission 칩) */}
             <div className="p-4 bg-gray-50">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <div
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-                    role.canApprove ? 'bg-green-100 text-green-700' : 'bg-white text-gray-400'
-                  }`}
-                >
-                  {role.canApprove ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                  <span>결재 권한</span>
+              {role.permissions && role.permissions.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {role.permissions.map((perm) => (
+                    <span
+                      key={perm}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-green-100 text-green-700"
+                    >
+                      <Check className="w-3 h-3" />
+                      {PERMISSION_LABELS[perm as keyof typeof PERMISSION_LABELS] || perm}
+                    </span>
+                  ))}
                 </div>
-                <div
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-                    role.canManageExpense ? 'bg-green-100 text-green-700' : 'bg-white text-gray-400'
-                  }`}
-                >
-                  {role.canManageExpense ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                  <span>지출 관리</span>
-                </div>
-                <div
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-                    role.canAccessAdmin ? 'bg-green-100 text-green-700' : 'bg-white text-gray-400'
-                  }`}
-                >
-                  {role.canAccessAdmin ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                  <span>관리자 메뉴</span>
-                </div>
-                <div
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-                    role.canExportData ? 'bg-green-100 text-green-700' : 'bg-white text-gray-400'
-                  }`}
-                >
-                  {role.canExportData ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                  <span>데이터 내보내기</span>
-                </div>
-                <div
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-                    role.canRegisterUsers ? 'bg-green-100 text-green-700' : 'bg-white text-gray-400'
-                  }`}
-                >
-                  {role.canRegisterUsers ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                  <span>사용자 등록</span>
-                </div>
-              </div>
+              ) : (
+                <p className="text-sm text-gray-400">
+                  개별 권한 없음 — 역할 코드 기본 권한(프리셋)이 적용됩니다.
+                </p>
+              )}
             </div>
           </div>
         ))}
@@ -523,14 +477,12 @@ export default function RolesPage() {
 
       {/* 권한 설명 */}
       <div className="p-4 bg-blue-50 rounded-lg">
-        <h3 className="font-medium text-blue-800 mb-2">권한 설명</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-blue-700">
-          <div><strong>결재 권한:</strong> 지출결의서 결재 (결재 단계 필요)</div>
-          <div><strong>지출 관리:</strong> 지급완료 처리, 상태 변경</div>
-          <div><strong>관리자 메뉴:</strong> 사용자, 예산, 역할 관리 접근</div>
-          <div><strong>데이터 내보내기:</strong> Excel 등 다운로드</div>
-          <div><strong>사용자 등록:</strong> 간편 사용자 등록 기능 접근</div>
-        </div>
+        <h3 className="font-medium text-blue-800 mb-2">권한 안내</h3>
+        <p className="text-sm text-blue-700">
+          역할별 권한은 세분화된 권한(permission) 조합으로 관리됩니다. 개별 권한을
+          지정하지 않으면 역할 코드의 기본 권한(프리셋)이 적용되며, 지정하면 해당
+          권한 조합이 우선합니다. 변경은 재로그인 없이 반영됩니다.
+        </p>
       </div>
     </div>
   );

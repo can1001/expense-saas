@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
-import { withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { sanitizePermissions, PERMISSIONS } from '@/lib/auth/permissions';
+import { invalidateRolePermissionCache } from '@/lib/auth/role-permission-cache';
 
 /**
  * GET /api/admin/roles
@@ -35,7 +37,7 @@ const handleGet: UserApiHandler = async (request) => {
  * POST /api/admin/roles
  * 역할 생성
  */
-const handlePost: UserApiHandler = async (request) => {
+const handlePost: UserApiHandler = async (request, { user }) => {
   try {
     const body = await request.json();
 
@@ -45,11 +47,7 @@ const handlePost: UserApiHandler = async (request) => {
       description,
       stepNumber,
       sortOrder,
-      canApprove,
-      canManageExpense,
-      canAccessAdmin,
-      canExportData,
-      canRegisterUsers,
+      permissions,
     } = body;
 
     // 필수 필드 검증
@@ -79,13 +77,12 @@ const handlePost: UserApiHandler = async (request) => {
         description,
         stepNumber: stepNumber ?? null,
         sortOrder: sortOrder ?? 0,
-        canApprove: canApprove ?? false,
-        canManageExpense: canManageExpense ?? false,
-        canAccessAdmin: canAccessAdmin ?? false,
-        canExportData: canExportData ?? false,
-        canRegisterUsers: canRegisterUsers ?? false,
+        permissions: sanitizePermissions(permissions),
       },
     });
+
+    // AC3: 역할 변경 시 권한 캐시 무효화 → 재로그인 없이 반영
+    invalidateRolePermissionCache(user.tenantId);
 
     return NextResponse.json(role, { status: 201 });
   } catch (error) {
@@ -93,5 +90,5 @@ const handlePost: UserApiHandler = async (request) => {
   }
 };
 
-export const GET = withAdmin(handleGet);
-export const POST = withAdmin(handlePost);
+export const GET = withPermissions(PERMISSIONS.ROLE_MANAGE, handleGet);
+export const POST = withPermissions(PERMISSIONS.ROLE_MANAGE, handlePost);

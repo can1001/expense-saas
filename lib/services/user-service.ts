@@ -672,14 +672,17 @@ export async function checkCanRegisterUsers(userId: string): Promise<boolean> {
 
   if (!user) return false;
 
-  // admin은 항상 권한 있음
-  if (user.role === 'admin') return true;
-
-  // 사용자에게 직접 부여된 권한 확인
+  // 사용자에게 직접 부여된 권한 확인 (개별 플래그)
   if (user.canRegisterUsers) return true;
 
-  // 역할에 부여된 권한 확인
-  if (user.roleRef?.canRegisterUsers) return true;
+  // 역할 permission 확인: roleRef.permissions[] 우선, 없으면 코드 프리셋(admin 등)
+  const { PERMISSIONS, roleHasPermission } = await import('@/lib/auth/permissions');
+  const rolePerms = user.roleRef?.permissions ?? [];
+  if (rolePerms.length > 0) {
+    if (rolePerms.includes(PERMISSIONS.USER_REGISTER)) return true;
+  } else if (roleHasPermission(user.role, PERMISSIONS.USER_REGISTER)) {
+    return true;
+  }
 
   return false;
 }
