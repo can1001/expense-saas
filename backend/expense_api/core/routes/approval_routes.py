@@ -20,13 +20,21 @@ from expense_api.core.schemas.approval import (
     SubmitRequest,
     WorkflowResult,
 )
+from expense_api.core.models.enums import NotificationEventType
 from expense_api.core.service.approval_service import ApprovalService, WorkflowError
+from expense_api.core.service.notification_service import NotificationService
 
 router = APIRouter()
 
 
 def _result(expense) -> WorkflowResult:
     return WorkflowResult(expenseId=expense.id, status=expense.status)
+
+
+async def _notify(session: AsyncSession, tenant_id: str, expense, event: str, comment: str | None = None):
+    """워크플로우 액션 후 관련자에게 알림 (실패해도 워크플로우엔 영향 없음)."""
+    await NotificationService(session, tenant_id).notify_approval_event(expense, event, comment)
+    await session.commit()
 
 
 @router.post("/{expense_id}/submit", response_model=WorkflowResult)
@@ -41,6 +49,7 @@ async def submit(
         expense = await ApprovalService(session, tenant_id).submit(expense_id, user, body)
     except WorkflowError as e:
         raise HTTPException(e.status_code, e.message)
+    await _notify(session, tenant_id, expense, NotificationEventType.SUBMIT.value)
     return _result(expense)
 
 
@@ -56,6 +65,7 @@ async def approve(
         expense = await ApprovalService(session, tenant_id).approve(expense_id, user, body.comment)
     except WorkflowError as e:
         raise HTTPException(e.status_code, e.message)
+    await _notify(session, tenant_id, expense, NotificationEventType.APPROVE.value)
     return _result(expense)
 
 
@@ -71,6 +81,7 @@ async def reject(
         expense = await ApprovalService(session, tenant_id).reject(expense_id, user, body.comment)
     except WorkflowError as e:
         raise HTTPException(e.status_code, e.message)
+    await _notify(session, tenant_id, expense, NotificationEventType.REJECT.value, body.comment)
     return _result(expense)
 
 
