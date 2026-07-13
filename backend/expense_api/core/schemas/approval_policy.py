@@ -17,6 +17,11 @@ class PolicyStepRule(BaseModel):
     role: str | None = None  # role 타입, 또는 budget_manager 미지정 시 폴백 role
     userId: str | None = None  # fixed_user 타입
     autoApproveWhenSelf: bool = True  # 신청자==결재자 → 전결
+    # 조건부: 청구금액이 [minAmount, maxAmount] 범위일 때만 이 단계 포함
+    minAmount: int | None = None
+    maxAmount: int | None = None
+    # 병렬: True 면 (직전 포함 단계와) 같은 레벨에서 동시 결재
+    parallel: bool = False
 
 
 class ApprovalPolicyCreate(BaseModel):
@@ -36,15 +41,16 @@ class ApprovalPolicyOut(BaseModel):
 
 
 class ResolvedStepOut(BaseModel):
-    stepNumber: int
+    stepNumber: int  # 결재 레벨 (병렬 시 여러 스텝이 동일 값 공유)
     stepName: str
     approverName: str
     approverId: str | None
     isAutoApproved: bool
+    isParallel: bool = False
 
 
 class CalculatedLineOut(BaseModel):
-    totalSteps: int
-    firstPendingStep: int  # 자동승인 이후 첫 대기 단계
+    totalSteps: int  # 전체 레벨 수 (병렬 스텝은 한 레벨로 계산)
+    firstPendingStep: int  # 선두 연속 전결 레벨 이후 첫 대기 레벨
     allAutoApproved: bool
     steps: list[ResolvedStepOut]

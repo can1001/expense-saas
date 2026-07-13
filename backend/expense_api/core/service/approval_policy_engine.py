@@ -36,6 +36,7 @@ class ExpenseContext:
     year: int
     applicant_user_id: str
     budget_detail_name: str | None = None
+    request_amount: int = 0  # 조건부 단계(minAmount/maxAmount) 판정용
 
 
 class ApprovalPolicyEngine:
@@ -113,51 +114,69 @@ class ApprovalPolicyEngine:
             )
         return approver
 
-    # ── resolve 전체 ──────────────────────────────────────────────────
+    @staticmethod
+    def _matches_condition(rule: PolicyStepRule, amount: int) -> bool:
+        if rule.minAmount is not None and amount < rule.minAmount:
+            return False
+        if rule.maxAmount is not None and amount > rule.maxAmount:
+            return False
+        return True
+
+    # ── resolve 전체 (레벨 기반: 병렬/조건부 지원) ─────────────────────
     async def resolve(self, policy: ApprovalPolicy, ctx: ExpenseContext) -> CalculatedLineOut:
-        rules = [PolicyStepRule(**s) for s in (policy.steps or [])]
-        if not rules:
+        all_rules = [PolicyStepRule(**s) for s in (policy.steps or [])]
+        if not all_rules:
             raise PolicyResolutionError("정책에 결재 단계가 없습니다.")
 
-        # 1) 결재자 resolve
-        resolved: list[tuple[PolicyStepRule, User]] = []
-        for rule in rules:
+        # 1) 조건부 필터 (금액 범위)
+        rules = [r for r in all_rules if self._matches_condition(r, ctx.request_amount)]
+        if not rules:
+            raise PolicyResolutionError("청구금액 조건에 맞는 결재 단계가 없습니다.")
+
+        # 2) 결재자 resolve + 레벨 배정 (parallel 이면 직전과 동일 레벨)
+        resolved: list[tuple[PolicyStepRule, User, int]] = []
+        level = 0
+        for i, rule in enumerate(rules):
             approver = await self._resolve_step(rule, ctx)
-            resolved.append((rule, approver))
+            if i == 0 or not rule.parallel:
+                level += 1
+            resolved.append((rule, approver, level))
 
-        approver_ids = [u.id for _, u in resolved]
+        approver_ids = [u.id for _, u, _ in resolved]
+        total_levels = level
 
-        # 2) 전결(자동승인) 계산
+        # 3) 전결(자동승인) 계산 (스텝 단위)
         steps: list[ResolvedStepOut] = []
-        for i, (rule, user) in enumerate(resolved):
+        for i, (rule, user, lvl) in enumerate(resolved):
             auto = False
             if rule.autoApproveWhenSelf and user.id == ctx.applicant_user_id:
                 auto = True
-            # 동일 결재자가 '뒤' 단계에도 있으면 앞 단계 자동승인 (전결)
             if policy.collapseDuplicateApprovers and user.id in approver_ids[i + 1 :]:
                 auto = True
             steps.append(
                 ResolvedStepOut(
-                    stepNumber=i + 1,
+                    stepNumber=lvl,
                     stepName=rule.stepName,
                     approverName=user.username,
                     approverId=user.id,
                     isAutoApproved=auto,
+                    isParallel=rule.parallel,
                 )
             )
 
-        # 3) 선두 연속 자동승인 개수 → firstPendingStep
-        leading_auto = 0
-        for s in steps:
-            if s.isAutoApproved:
-                leading_auto += 1
-            else:
-                break
-        first_pending = leading_auto + 1
-        all_auto = first_pending > len(steps)
+        # 4) 선두 연속 '전원 전결' 레벨 → firstPendingLevel
+        #    한 레벨은 그 레벨의 모든 스텝이 자동승인일 때만 완료로 간주.
+        first_pending = total_levels + 1
+        for lvl in range(1, total_levels + 1):
+            lvl_steps = [s for s in steps if s.stepNumber == lvl]
+            if all(s.isAutoApproved for s in lvl_steps):
+                continue
+            first_pending = lvl
+            break
+        all_auto = first_pending > total_levels
 
         return CalculatedLineOut(
-            totalSteps=len(steps),
+            totalSteps=total_levels,
             firstPendingStep=first_pending,
             allAutoApproved=all_auto,
             steps=steps,
