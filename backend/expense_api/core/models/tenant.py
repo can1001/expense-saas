@@ -23,12 +23,18 @@ class Tenant(SQLModel, table=True):
     customDomain: str | None = Field(default=None, unique=True)
 
     # 조직 정보 (enum → String 저장, spec §4.3)
-    orgType: str = Field(default=OrgType.CHURCH.value, sa_column=Column(String, nullable=False, server_default=OrgType.CHURCH.value))
+    orgType: str = Field(
+        default=OrgType.CHURCH.value,
+        sa_column=Column(String, nullable=False, server_default=OrgType.CHURCH.value),
+    )
     description: str | None = None
     logoUrl: str | None = None
 
     # 요금제
-    plan: str = Field(default=PlanType.FREE.value, sa_column=Column(String, nullable=False, server_default=PlanType.FREE.value))
+    plan: str = Field(
+        default=PlanType.FREE.value,
+        sa_column=Column(String, nullable=False, server_default=PlanType.FREE.value),
+    )
     planStartAt: datetime | None = None
     planEndAt: datetime | None = None
 
@@ -42,7 +48,9 @@ class Tenant(SQLModel, table=True):
     settings: dict | None = Field(default=None, sa_column=Column(JSON))
 
     # 🆕 기능 모듈 (spec §15.3) — 비어 있으면 orgType 프리셋으로 폴백
-    enabledModules: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False, server_default="[]"))
+    enabledModules: list[str] = Field(
+        default_factory=list, sa_column=Column(JSON, nullable=False, server_default="[]")
+    )
 
     # 상태
     isActive: bool = Field(default=True, index=True)
@@ -50,8 +58,13 @@ class Tenant(SQLModel, table=True):
     suspendReason: str | None = None
 
     # 메타
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
-    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
 
 
 class SuperAdmin(SQLModel, table=True):
@@ -63,5 +76,10 @@ class SuperAdmin(SQLModel, table=True):
     name: str
     isActive: bool = True
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
-    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )

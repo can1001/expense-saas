@@ -18,6 +18,7 @@ from expense_api.core.models.approval import (  # noqa: F401
     ApprovalLog,
     ApprovalStep,
 )
+from expense_api.core.models.approval_policy import ApprovalPolicy  # noqa: F401
 from expense_api.core.models.expense import (  # noqa: F401
     Expense,
     ExpenseAttachment,
@@ -47,4 +48,5 @@ __all__ = [
     "ApprovalLine",
     "ApprovalStep",
     "ApprovalLog",
+    "ApprovalPolicy",
 ]

@@ -31,7 +31,9 @@ class BudgetService:
             committee_rec = await self.repo.get_committee_by_name(committee, active_only=True)
             options: list[str] = []
             if committee_rec:
-                depts = await self.repo.list_departments(committee_id=committee_rec.id, active_only=True)
+                depts = await self.repo.list_departments(
+                    committee_id=committee_rec.id, active_only=True
+                )
                 options = [d.name for d in depts]
             return {"field": "departments", "options": options}
 

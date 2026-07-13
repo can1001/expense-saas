@@ -128,4 +128,16 @@ curl -X POST localhost:8000/api/expenses/$EID/submit -H "Authorization: Bearer $
   -d '{"steps":[{"stepNumber":1,"stepName":"팀장","approverName":"관리자"}]}'
 ```
 
+**Phase 3.x (설정형 결재선 / ApprovalPolicy §15.3) — 완료**
+- [x] `ApprovalPolicy` 모델(tenantId, steps JSON, isDefault, collapseDuplicateApprovers)
+- [x] `ApprovalPolicyEngine`: 규칙 → 구체 결재자 resolve
+  - `role`(UserYearRole) / `budget_manager`(BudgetDetailYear) / `fixed_user`
+  - 전결(자동승인): 신청자==결재자 + 동일 결재자 중복 collapse
+- [x] submit 정책 연동: steps 미지정 시 기본 정책 산출, 선두 연속 전결 선완료(전체 전결→FINAL)
+- [x] 정책 CRUD `/api/approval-policies`, 미리보기 `/api/approval-line/calculate`
+- [x] 데모 교회식 기본 정책 시드(담당자→회계→재정팀장) + 연도역할/담당자
+- [x] 테스트 50건 (교회 3케이스 재현: 일반/신청자=담당자/담당자=재정팀장 전결)
+
+> 교회 하드코딩 결재선(482줄)을 **테넌트 설정 데이터**로 일반화. 이제 회사 테넌트는 자기 전결규정을 정책으로 정의할 수 있다.
+
 **다음 (Phase 4)**: 알림/업로드 — `push`, `upload`(Cloudinary), 알림 로그.

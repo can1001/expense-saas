@@ -20,9 +20,7 @@ class UserRepository(TenantScopedRepository[User]):
 
 
 # ── 로그인 전용 (pre-auth): 테넌트 컨텍스트가 아직 없으므로 스코프 밖 ──────
-async def find_login_user(
-    session: AsyncSession, userid: str, tenant_id: str | None
-) -> User | None:
+async def find_login_user(session: AsyncSession, userid: str, tenant_id: str | None) -> User | None:
     """로그인용 사용자 조회 (Prisma findFirst 대응).
 
     tenant_id 가 주어지면 해당 테넌트로 한정, 없으면(단일테넌트 레거시) userid 만으로 조회.

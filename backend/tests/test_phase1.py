@@ -42,7 +42,9 @@ def test_db_resolver_explicit_overrides_preset():
     # DB 에 명시된 권한이 있으면 그것이 정본 (프리셋 무시)
     resolver = perm.make_db_resolver({"user": [perm.PERMISSIONS.EXPENSE_EXPORT]})
     perms = perm.resolve_permissions(["user"], resolver=resolver)
-    assert perms == {perm.PERMISSIONS.EXPENSE_EXPORT}  # user 프리셋(read.own/create) 이 아니라 DB 값
+    assert perms == {
+        perm.PERMISSIONS.EXPENSE_EXPORT
+    }  # user 프리셋(read.own/create) 이 아니라 DB 값
 
 
 def test_granted_added():

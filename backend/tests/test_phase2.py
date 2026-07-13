@@ -59,8 +59,12 @@ async def _build_tree(session: AsyncSession, tid: str, committee_name: str = "ê¸
     session.add_all([det_snack, det_tea, det_reg])
     await session.flush()
     for det in (det_snack, det_tea, det_reg):
-        session.add(DepartmentBudgetDetail(tenantId=tid, departmentId=d_fin.id, budgetDetailId=det.id))
-    session.add(DepartmentBudgetDetail(tenantId=tid, departmentId=d_sales.id, budgetDetailId=det_reg.id))
+        session.add(
+            DepartmentBudgetDetail(tenantId=tid, departmentId=d_fin.id, budgetDetailId=det.id)
+        )
+    session.add(
+        DepartmentBudgetDetail(tenantId=tid, departmentId=d_sales.id, budgetDetailId=det_reg.id)
+    )
     await session.flush()
 
 

@@ -42,10 +42,10 @@ class BudgetRepository:
         stmt = stmt.order_by(Committee.sortOrder)
         return list((await self.session.execute(stmt)).scalars().all())
 
-    async def get_committee_by_name(self, name: str, *, active_only: bool = True) -> Committee | None:
-        stmt = select(Committee).where(
-            Committee.tenantId == self.tenant_id, Committee.name == name
-        )
+    async def get_committee_by_name(
+        self, name: str, *, active_only: bool = True
+    ) -> Committee | None:
+        stmt = select(Committee).where(Committee.tenantId == self.tenant_id, Committee.name == name)
         if active_only:
             stmt = stmt.where(Committee.isActive == True)  # noqa: E712
         return (await self.session.execute(stmt)).scalars().first()

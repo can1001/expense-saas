@@ -29,10 +29,17 @@ class Role(SQLModel, table=True):
     isActive: bool = True
 
     # RBAC permission 코드 배열 (비면 코드 프리셋으로 폴백 — permissions.py)
-    permissions: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False, server_default="[]"))
+    permissions: list[str] = Field(
+        default_factory=list, sa_column=Column(JSON, nullable=False, server_default="[]")
+    )
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
-    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
 
 
 class User(SQLModel, table=True):
@@ -55,8 +62,13 @@ class User(SQLModel, table=True):
     # 개별 권한 플래그 (역할과 별개)
     canRegisterUsers: bool = False
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
-    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
 
 
 class UserYearRole(SQLModel, table=True):
@@ -75,5 +87,10 @@ class UserYearRole(SQLModel, table=True):
     roleId: str | None = Field(default=None, foreign_key="Role.id")
     departmentId: str | None = None  # Phase 2 에서 Department FK 로 승격
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
-    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )

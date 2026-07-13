@@ -85,7 +85,9 @@ async def login_route(
             permissions=UserPermissionFlags(**result.flags),
         ),
         tenant=(
-            LoginTenant(id=result.tenant.id, name=result.tenant.name, subdomain=result.tenant.subdomain)
+            LoginTenant(
+                id=result.tenant.id, name=result.tenant.name, subdomain=result.tenant.subdomain
+            )
             if result.tenant
             else None
         ),

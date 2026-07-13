@@ -56,8 +56,13 @@ class Expense(SQLModel, table=True):
     recurringExpenseId: str | None = None  # Phase 4: RecurringExpense FK 로 승격
 
     version: str = "4.1.3"
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}, index=True)
-    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}, index=True
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
 
 
 class ExpenseItem(SQLModel, table=True):
@@ -77,7 +82,9 @@ class ExpenseItem(SQLModel, table=True):
     amount: int  # 금액 = unitPrice × quantity (서버 계산)
 
     order: int  # 순서
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
 
 
 class ExpenseAttachment(SQLModel, table=True):
@@ -97,4 +104,6 @@ class ExpenseAttachment(SQLModel, table=True):
     width: int | None = None
     height: int | None = None
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )

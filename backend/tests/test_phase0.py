@@ -17,10 +17,7 @@ def test_make_sync_url_sqlite():
 
 def test_make_sync_url_postgres():
     # prod 경로: asyncpg → psycopg2 (postgresql)
-    assert (
-        make_sync_url("postgresql+asyncpg://u:p@h:5432/db")
-        == "postgresql://u:p@h:5432/db"
-    )
+    assert make_sync_url("postgresql+asyncpg://u:p@h:5432/db") == "postgresql://u:p@h:5432/db"
 
 
 def test_make_sync_url_passthrough():
