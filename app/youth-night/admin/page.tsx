@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import YouthNightAdminClient from './YouthNightAdminClient';
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 export default async function YouthNightAdminPage() {
   const user = await getCurrentUser();
@@ -12,8 +13,7 @@ export default async function YouthNightAdminPage() {
   }
 
   // 관리자/교사 권한 확인 (admin, finance_head, accountant, team_leader)
-  const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
-  if (!ALLOWED_ROLES.includes(user.role)) {
+  if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
     redirect('/youth-night');
   }
 

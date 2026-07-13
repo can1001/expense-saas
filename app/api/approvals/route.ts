@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { withPermission, UserApiHandler } from '@/lib/auth/user';
+import { UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 /**
  * GET /api/approvals
@@ -163,4 +164,4 @@ const handleGet: UserApiHandler = async (request, { user }) => {
   }
 };
 
-export const GET = withPermission('canApprove', handleGet);
+export const GET = withPermissions(PERMISSIONS.EXPENSE_APPROVE, handleGet);

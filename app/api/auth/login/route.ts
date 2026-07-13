@@ -4,9 +4,10 @@ import { handleApiError } from '@/lib/api/error-handler';
 import {
   createUserToken,
   createUserTokenCookie,
-  getRolePermissions,
+  deriveLegacyFlags,
   UserSession,
 } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { findTenantBySubdomain } from '@/lib/tenant';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
@@ -145,8 +146,10 @@ export async function POST(request: NextRequest) {
     // 로그인 성공 - Rate limit 초기화
     clearLoginAttempts(rateLimitKey);
 
-    // 역할 권한 가져오기
-    const permissions = await getRolePermissions(user.roleId, user.role);
+    // roles-only: 유효 역할 코드로부터 권한 파생 (JWT에 권한을 굽지 않음)
+    const roles = [user.role];
+    const granted = user.canRegisterUsers ? [PERMISSIONS.USER_REGISTER] : [];
+    const flags = deriveLegacyFlags(roles, granted);
 
     // 세션 생성
     const session: UserSession = {
@@ -155,10 +158,11 @@ export async function POST(request: NextRequest) {
       userid: user.userid,
       username: user.username,
       role: user.role,
+      roles,
       roleId: user.roleId,
       department: user.department,
-      ...permissions,
-      canRegisterUsers: user.canRegisterUsers || permissions.canRegisterUsers,
+      granted,
+      ...flags,
     };
 
     // JWT 토큰 생성

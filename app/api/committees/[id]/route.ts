@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
-import { withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 // PATCH /api/committees/[id] - 위원회 수정 (관리자 전용)
 const handlePatch: UserApiHandler = async (request, { params }) => {
@@ -85,5 +86,5 @@ const handleDelete: UserApiHandler = async (request, { params }) => {
   }
 };
 
-export const PATCH = withAdmin(handlePatch);
-export const DELETE = withAdmin(handleDelete);
+export const PATCH = withPermissions(PERMISSIONS.COMMITTEE_MANAGE, handlePatch);
+export const DELETE = withPermissions(PERMISSIONS.COMMITTEE_MANAGE, handleDelete);

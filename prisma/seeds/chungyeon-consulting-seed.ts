@@ -15,6 +15,7 @@ import { PrismaClient, OrgType, PlanType } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 import { config } from 'dotenv';
+import { ROLE_PERMISSION_PRESETS, RoleCode } from '../../lib/auth/permissions';
 
 config();
 
@@ -72,11 +73,6 @@ const defaultRoles = [
     description: '시스템 전체 관리 권한',
     stepNumber: null,
     sortOrder: 1,
-    canApprove: true,
-    canManageExpense: true,
-    canAccessAdmin: true,
-    canExportData: true,
-    canRegisterUsers: true,
   },
   {
     code: 'finance_head',
@@ -84,11 +80,6 @@ const defaultRoles = [
     description: '재정팀장 - 최종 결재 권한',
     stepNumber: 3,
     sortOrder: 2,
-    canApprove: true,
-    canManageExpense: true,
-    canAccessAdmin: true,
-    canExportData: true,
-    canRegisterUsers: false,
   },
   {
     code: 'accountant',
@@ -96,11 +87,6 @@ const defaultRoles = [
     description: '회계 담당자 - 2차 결재 권한',
     stepNumber: 2,
     sortOrder: 3,
-    canApprove: true,
-    canManageExpense: true,
-    canAccessAdmin: false,
-    canExportData: false,
-    canRegisterUsers: false,
   },
   {
     code: 'team_leader',
@@ -108,11 +94,6 @@ const defaultRoles = [
     description: '팀장 - 1차 결재 권한',
     stepNumber: 1,
     sortOrder: 4,
-    canApprove: true,
-    canManageExpense: false,
-    canAccessAdmin: false,
-    canExportData: false,
-    canRegisterUsers: false,
   },
   {
     code: 'user',
@@ -120,11 +101,6 @@ const defaultRoles = [
     description: '일반 사용자',
     stepNumber: null,
     sortOrder: 5,
-    canApprove: false,
-    canManageExpense: false,
-    canAccessAdmin: false,
-    canExportData: false,
-    canRegisterUsers: false,
   },
 ];
 
@@ -735,11 +711,7 @@ async function main() {
           description: roleData.description,
           stepNumber: roleData.stepNumber,
           sortOrder: roleData.sortOrder,
-          canApprove: roleData.canApprove,
-          canManageExpense: roleData.canManageExpense,
-          canAccessAdmin: roleData.canAccessAdmin,
-          canExportData: roleData.canExportData,
-          canRegisterUsers: roleData.canRegisterUsers,
+          permissions: [...(ROLE_PERMISSION_PRESETS[roleData.code as RoleCode] ?? [])],
           isActive: true,
         },
       });

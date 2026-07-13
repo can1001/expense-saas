@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import ExcelJS from 'exceljs';
+import { withAuth } from '@/lib/auth/user';
 
 /**
  * GET /api/budget/hierarchy/export
  * 예산 현황 Excel 내보내기
  */
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
@@ -200,3 +201,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const GET = withAuth(handleGET);

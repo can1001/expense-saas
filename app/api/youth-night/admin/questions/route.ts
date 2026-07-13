@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, UserApiHandler } from '@/lib/auth/user';
-
-// 관리자 권한 확인
-const ADMIN_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 // GET - 레슨별 퀴즈 문제 목록 조회
 const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    if (!ADMIN_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
       return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
 
@@ -34,7 +32,7 @@ const handleGet: UserApiHandler = async (request, { user }) => {
 // POST - 새 퀴즈 문제 추가
 const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    if (!ADMIN_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
       return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
 
@@ -92,7 +90,7 @@ const handlePost: UserApiHandler = async (request, { user }) => {
 // PUT - 퀴즈 문제 수정
 const handlePut: UserApiHandler = async (request, { user }) => {
   try {
-    if (!ADMIN_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
       return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
 
@@ -137,7 +135,7 @@ const handlePut: UserApiHandler = async (request, { user }) => {
 // DELETE - 퀴즈 문제 삭제
 const handleDelete: UserApiHandler = async (request, { user }) => {
   try {
-    if (!ADMIN_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
       return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
+import { getUserJwtSecret } from '@/lib/auth/jwt-secret';
 
 // 로그인이 필요한 경로
 const protectedPaths = ['/expenses', '/approvals', '/recurring-expenses'];
@@ -12,13 +13,8 @@ const authPaths = ['/login'];
 const platformApiPaths = ['/api/platform', '/api/super-admin'];
 
 // 사용자 토큰(user_token) 서명용 비밀키 (Edge Runtime에서 사용)
-// 반드시 lib/auth/user.ts의 JWT_SECRET(서명 키)과 동일한 방식으로 해석해야
-// 검증이 성공한다. (env 미설정 시 기본값 동일 유지)
-function getUserJwtSecret(): Uint8Array {
-  return new TextEncoder().encode(
-    process.env.USER_JWT_SECRET || 'user-secret-key-change-in-production'
-  );
-}
+// 반드시 lib/auth/user.ts의 JWT_SECRET(서명 키)과 동일하게 getUserJwtSecret으로 해석해야
+// 검증이 성공한다. AC7: 프로덕션 미설정 시 부팅 실패(하드코딩 폴백 제거).
 
 // JWT 토큰 검증 (lib/auth/user.ts의 issuer/audience와 일치)
 async function verifySessionToken(token: string): Promise<boolean> {

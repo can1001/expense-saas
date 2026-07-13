@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, UserApiHandler } from '@/lib/auth/user';
-
-// 교사 권한 확인 (admin, finance_head, accountant, team_leader 권한 있는 사용자만 승인 가능)
-const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 // 암송 승인/반려 (POST)
 const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    if (!ALLOWED_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
       return NextResponse.json({ error: '암송 승인 권한이 없습니다' }, { status: 403 });
     }
 
@@ -134,7 +132,7 @@ const handlePost: UserApiHandler = async (request, { user }) => {
 // 승인 대기 중인 암송 목록 조회 (GET)
 const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    if (!ALLOWED_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
       return NextResponse.json({ error: '암송 승인 권한이 없습니다' }, { status: 403 });
     }
 

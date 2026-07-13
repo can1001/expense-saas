@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { isValidCuid } from '@/lib/validators';
 import type { ApprovalStatus } from '@/lib/types';
+import { withAuth } from '@/lib/auth/user';
 
 /**
  * GET /api/budget/usage-details - 항/목/세목별 사용금액 상세 내역 조회
@@ -18,7 +19,7 @@ import type { ApprovalStatus } from '@/lib/types';
  *
  * Returns: 승인된(APPROVED_STEP_1 이상) 지출 항목 목록
  */
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const budgetCategory = searchParams.get('budgetCategory');
@@ -121,3 +122,5 @@ export async function GET(request: NextRequest) {
     return handleApiError(error);
   }
 }
+
+export const GET = withAuth(handleGET);

@@ -14,6 +14,7 @@ import {
 } from '@/lib/api/error-handler';
 import { validatePublicId } from '@/lib/validators/id-validator';
 import { ERROR_MESSAGES } from '@/lib/constants/error-messages';
+import { withAuth } from '@/lib/auth/user';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,7 @@ export const dynamic = 'force-dynamic';
 /**
  * DELETE /api/upload/delete - Cloudinary 이미지 삭제
  */
-export async function DELETE(request: NextRequest) {
+async function handleDELETE(request: NextRequest) {
   try {
     // JSON 요청 본문 파싱 및 검증
     const body = await parseJsonRequest(request);
@@ -57,3 +58,5 @@ export async function DELETE(request: NextRequest) {
     return handleApiError(error);
   }
 }
+
+export const DELETE = withAuth(handleDELETE);

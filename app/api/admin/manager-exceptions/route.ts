@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
-import { withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 /**
  * 담당자 예외 현황 API
@@ -146,4 +147,4 @@ const handleGet: UserApiHandler = async (request) => {
   }
 };
 
-export const GET = withAdmin(handleGet);
+export const GET = withPermissions(PERMISSIONS.BUDGET_MANAGER_MANAGE, handleGet);

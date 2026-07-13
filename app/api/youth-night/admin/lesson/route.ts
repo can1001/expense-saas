@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, UserApiHandler } from '@/lib/auth/user';
-
-// 관리자/교사 권한 확인
-const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 // 새 레슨 생성
 const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    if (!ALLOWED_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 
@@ -76,7 +74,7 @@ const handlePost: UserApiHandler = async (request, { user }) => {
 // 레슨 상세 조회
 const handleGet: UserApiHandler = async (request, { user }) => {
   try {
-    if (!ALLOWED_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 
@@ -117,7 +115,7 @@ const handleGet: UserApiHandler = async (request, { user }) => {
 // 레슨 수정 (공개/비공개 토글 및 내용 수정)
 const handlePut: UserApiHandler = async (request, { user }) => {
   try {
-    if (!ALLOWED_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 
@@ -190,7 +188,7 @@ const handlePut: UserApiHandler = async (request, { user }) => {
 // 레슨 순서 변경 (드래그 앤 드랍)
 const handlePatch: UserApiHandler = async (request, { user }) => {
   try {
-    if (!ALLOWED_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 
@@ -249,7 +247,7 @@ const handlePatch: UserApiHandler = async (request, { user }) => {
 // 레슨 삭제
 const handleDelete: UserApiHandler = async (request, { user }) => {
   try {
-    if (!ALLOWED_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 

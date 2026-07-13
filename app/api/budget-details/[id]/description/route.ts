@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 // PATCH /api/budget-details/[id]/description - 적요 예제 수정
 const handlePatch: UserApiHandler = async (request, { params }) => {
@@ -53,4 +54,4 @@ const handlePatch: UserApiHandler = async (request, { params }) => {
   }
 };
 
-export const PATCH = withAdmin(handlePatch);
+export const PATCH = withPermissions(PERMISSIONS.BUDGET_MASTER_MANAGE, handlePatch);

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, UserApiHandler } from '@/lib/auth/user';
 import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 /**
  * PUT /api/expenses/bulk-expense-date
@@ -20,9 +21,8 @@ const handlePut: UserApiHandler = async (request, { user }) => {
     const currentUser = user;
 
     // 지출일자 변경 권한 (admin, finance_head, accountant, admin_assistant) - 연도별 유효 역할 기준
-    const allowedRoles = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
     const { role: effectiveRole } = await getEffectiveRole(currentUser.id, CURRENT_YEAR);
-    if (!allowedRoles.includes(effectiveRole)) {
+    if (!roleHasPermission(effectiveRole, PERMISSIONS.EXPENSE_PAYMENT_MANAGE)) {
       return NextResponse.json(
         { error: '지출일자 변경 권한이 없습니다.' },
         { status: 403 }

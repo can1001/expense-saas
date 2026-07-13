@@ -8,7 +8,8 @@ import {
   UserRole,
 } from '@/lib/services/user-service';
 import { prisma } from '@/lib/prisma';
-import { withAuth, withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { withAuth, UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { YEAR_ROLE_CODES, PERMISSIONS } from '@/lib/auth/permissions';
 
 // GET /api/users/year-roles - 연도별 역할 목록 조회
 const handleGet: UserApiHandler = async (request) => {
@@ -71,9 +72,8 @@ const handlePost: UserApiHandler = async (request) => {
       );
     }
 
-    // 역할 검증 (admin, user는 연도별 역할로 설정 불가)
-    const validYearRoles: UserRole[] = ['finance_head', 'accountant', 'finance_member', 'team_leader', 'admin_assistant'];
-    if (!validYearRoles.includes(role)) {
+    // 역할 검증 (admin, user는 연도별 역할로 설정 불가) — YEAR_ROLE_CODES 단일 출처
+    if (!YEAR_ROLE_CODES.includes(role)) {
       return NextResponse.json(
         { error: 'Invalid role for year role. Valid roles: finance_head, accountant, finance_member, team_leader, admin_assistant' },
         { status: 400 }
@@ -127,5 +127,5 @@ const handleDelete: UserApiHandler = async (request) => {
 };
 
 export const GET = withAuth(handleGet);
-export const POST = withAdmin(handlePost);
-export const DELETE = withAdmin(handleDelete);
+export const POST = withPermissions(PERMISSIONS.USER_MANAGE, handlePost);
+export const DELETE = withPermissions(PERMISSIONS.USER_MANAGE, handleDelete);

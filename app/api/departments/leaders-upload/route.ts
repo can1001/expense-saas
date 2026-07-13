@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import { prisma } from '@/lib/prisma';
-import { withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 interface ExcelRow {
   committee: string;
@@ -387,5 +388,5 @@ const handlePost: UserApiHandler = async (request) => {
   }
 };
 
-export const GET = withAdmin(handleGet);
-export const POST = withAdmin(handlePost);
+export const GET = withPermissions(PERMISSIONS.DEPARTMENT_MANAGE, handleGet);
+export const POST = withPermissions(PERMISSIONS.DEPARTMENT_MANAGE, handlePost);

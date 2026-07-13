@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
 import { webPushProvider } from '@/lib/services/notification/web-push-provider';
-import { withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 /**
  * GET /api/admin/notifications
@@ -166,5 +167,5 @@ const handlePost: UserApiHandler = async (request, { user }) => {
   }
 };
 
-export const GET = withAdmin(handleGet);
-export const POST = withAdmin(handlePost);
+export const GET = withPermissions(PERMISSIONS.NOTIFICATION_SEND, handleGet);
+export const POST = withPermissions(PERMISSIONS.NOTIFICATION_SEND, handlePost);

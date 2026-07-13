@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 interface BudgetDetailInput {
   name: string;
@@ -147,4 +148,4 @@ const handlePost: UserApiHandler = async (request) => {
   }
 };
 
-export const POST = withAdmin(handlePost);
+export const POST = withPermissions(PERMISSIONS.BUDGET_MASTER_MANAGE, handlePost);

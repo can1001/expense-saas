@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
-import { withAuth, withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { withAuth, UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 /**
  * GET /api/settings
@@ -161,4 +162,4 @@ const handlePut: UserApiHandler = async (request) => {
 };
 
 export const GET = withAuth(handleGet);
-export const PUT = withAdmin(handlePut);
+export const PUT = withPermissions(PERMISSIONS.SETTINGS_MANAGE, handlePut);

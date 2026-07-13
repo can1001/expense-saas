@@ -2,14 +2,12 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, UserApiHandler } from '@/lib/auth/user';
 import { Prisma } from '@prisma/client';
-
-// 관리자/교사 권한 확인
-const ALLOWED_ROLES = ['admin', 'finance_head', 'accountant', 'team_leader'];
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 // 새 커리큘럼과 레슨들 생성
 const handlePost: UserApiHandler = async (request, { user }) => {
   try {
-    if (!ALLOWED_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 
@@ -67,7 +65,7 @@ const handlePost: UserApiHandler = async (request, { user }) => {
 // 커리큘럼 수정 (전체 필드 수정 지원)
 const handlePut: UserApiHandler = async (request, { user }) => {
   try {
-    if (!ALLOWED_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 
@@ -112,7 +110,7 @@ const handlePut: UserApiHandler = async (request, { user }) => {
 // 커리큘럼 삭제
 const handleDelete: UserApiHandler = async (request, { user }) => {
   try {
-    if (!ALLOWED_ROLES.includes(user.role)) {
+    if (!roleHasPermission(user.role, PERMISSIONS.YOUTH_MANAGE)) {
       return NextResponse.json({ error: '권한이 없습니다' }, { status: 403 });
     }
 

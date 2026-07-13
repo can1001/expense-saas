@@ -1295,7 +1295,7 @@ describe('user-service', () => {
       expect(result).toBe(true);
     });
 
-    it('should return true when role has canRegisterUsers flag', async () => {
+    it('should return true when role permissions include user:register', async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         ...mockUser,
         canRegisterUsers: false,
@@ -1303,7 +1303,7 @@ describe('user-service', () => {
           id: 'role-1',
           code: 'team_leader',
           name: '팀장',
-          canRegisterUsers: true,
+          permissions: ['user:register'],
           stepNumber: 1,
           sortOrder: 1,
           isActive: true,
@@ -1317,7 +1317,7 @@ describe('user-service', () => {
       expect(result).toBe(true);
     });
 
-    it('should return false when neither user nor role has canRegisterUsers flag', async () => {
+    it('should return false when neither user nor role grants user:register', async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         ...mockUser,
         canRegisterUsers: false,
@@ -1325,7 +1325,7 @@ describe('user-service', () => {
           id: 'role-1',
           code: 'user',
           name: '사용자',
-          canRegisterUsers: false,
+          permissions: [],
           stepNumber: null,
           sortOrder: 5,
           isActive: true,

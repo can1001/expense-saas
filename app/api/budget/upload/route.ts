@@ -20,11 +20,12 @@ import {
   apiError,
   apiValidationError,
 } from '@/lib/api/response-handler';
+import { withAuth } from '@/lib/auth/user';
 
 /**
  * POST: 예산 데이터 업로드
  */
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -117,7 +118,7 @@ export async function POST(request: Request) {
 /**
  * GET: 예산 데이터 템플릿 다운로드
  */
-export async function GET() {
+async function handleGET() {
   try {
     const buffer = await exportBudgetTemplate();
 
@@ -140,3 +141,6 @@ export async function GET() {
     );
   }
 }
+
+export const POST = withAuth(handlePOST);
+export const GET = withAuth(handleGET);

@@ -172,11 +172,7 @@ async function main() {
     console.log(`    description: ${role.description ? `'${escapeString(role.description)}'` : 'null'},`);
     console.log(`    stepNumber: ${role.stepNumber ?? 'null'},`);
     console.log(`    sortOrder: ${role.sortOrder},`);
-    console.log(`    canApprove: ${role.canApprove},`);
-    console.log(`    canManageExpense: ${role.canManageExpense},`);
-    console.log(`    canAccessAdmin: ${role.canAccessAdmin},`);
-    console.log(`    canExportData: ${role.canExportData},`);
-    console.log(`    canRegisterUsers: ${role.canRegisterUsers},`);
+    console.log(`    permissions: ${JSON.stringify(role.permissions ?? [])},`);
     console.log('  },');
   }
   console.log('];');

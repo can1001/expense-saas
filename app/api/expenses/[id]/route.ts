@@ -8,6 +8,7 @@ import { withAuth, UserApiHandler, UserSession } from '@/lib/auth/user';
 import { maskAccountNumber } from '@/lib/utils';
 import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
 import { APPROVED_EDIT_ROLES } from '@/lib/constants/menu-permissions';
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 // GET /api/expenses/[id] - 지출결의서 상세 조회
 const handleGet: UserApiHandler = async (request, { params, user }) => {
@@ -36,14 +37,11 @@ const handleGet: UserApiHandler = async (request, { params, user }) => {
     // 현재 로그인한 사용자 확인
     const isOwner = expense.userId === user.id;
 
-    // 계좌번호 열람 권한이 있는 역할 (프린트 시 계좌번호 전체 표시 필요)
-    const ACCOUNT_VIEW_ROLES = ['admin', 'finance_head', 'accountant', 'admin_assistant'];
-
     // 계좌번호 열람 권한 확인 (연도별 유효 역할 기준)
     let canViewAccount = isOwner;
     if (!canViewAccount) {
       const { role: effectiveRole } = await getEffectiveRole(user.id, CURRENT_YEAR);
-      canViewAccount = ACCOUNT_VIEW_ROLES.includes(effectiveRole);
+      canViewAccount = roleHasPermission(effectiveRole, PERMISSIONS.EXPENSE_PAYMENT_MANAGE);
     }
 
     // 계좌번호 열람 권한이 없는 경우에만 마스킹

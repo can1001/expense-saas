@@ -10,8 +10,7 @@ import { prisma, Prisma } from '@/lib/prisma';
 import { getEffectiveRole, CURRENT_YEAR } from '@/lib/services/user-service';
 import { handleApiError } from '@/lib/api/error-handler';
 import { withAuth, UserApiHandler } from '@/lib/auth/user';
-
-const FULL_ACCESS_ROLES = ['admin', 'finance_head', 'accountant', 'finance_member', 'admin_assistant'];
+import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 const handleGet: UserApiHandler = async (request, { user }) => {
   try {
@@ -22,7 +21,7 @@ const handleGet: UserApiHandler = async (request, { user }) => {
 
     // 권한별 where 절 (목록 API 와 동일한 규칙)
     const where: Prisma.ExpenseWhereInput = {};
-    if (FULL_ACCESS_ROLES.includes(effectiveRole)) {
+    if (roleHasPermission(effectiveRole, PERMISSIONS.EXPENSE_READ_ALL)) {
       // 전체 접근
     } else if (effectiveRole === 'team_leader') {
       let effectiveDepartment: string | null = null;

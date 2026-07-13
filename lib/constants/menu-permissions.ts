@@ -1,189 +1,175 @@
 /**
- * 역할별 메뉴 접근 권한 정의
- * 클라이언트 컴포넌트에서 안전하게 사용 가능
+ * 역할별 메뉴 접근 권한 정의 (클라이언트 안전)
+ *
+ * ⚠️ 단일 출처: 모든 판정은 lib/auth/permissions.ts 의 권한 프리셋으로부터 파생된다.
+ * 하드코딩된 역할 배열/경로 화이트리스트를 두지 않고, permission 으로부터 계산한다(AC2).
+ * 서버 가드(withAdminMenu)와 클라이언트 메뉴가 동일한 permission 을 사용한다(AC1).
  */
 
-// 역할 코드 타입 (Role.code와 동일)
-export type UserRole = 'admin' | 'finance_head' | 'accountant' | 'finance_member' | 'team_leader' | 'admin_assistant' | 'user';
+import {
+  ROLE_CODES,
+  RoleCode,
+  PERMISSIONS,
+  Permission,
+  ROLE_NAMES as PERMISSION_ROLE_NAMES,
+  ROLE_PERMISSION_PRESETS,
+  isRoleCode,
+  hasPermission,
+  resolvePermissions,
+  presetResolver,
+} from '@/lib/auth/permissions';
 
-// 역할 한글명 (클라이언트 안전)
-export const ROLE_NAMES: Record<string, string> = {
-  admin: '관리자',
-  finance_head: '재정팀장',
-  accountant: '회계',
-  finance_member: '재정팀원',
-  team_leader: '팀장',
-  admin_assistant: '행정간사',
-  user: '사용자',
-};
+// 역할 코드 타입 (하위 호환)
+export type UserRole = RoleCode;
 
-// 확장 메뉴 접근 가능 역할 (간편 지출결의서 등)
-export const EXTENDED_MENU_ROLES: UserRole[] = [
-  'admin',
-  'finance_head',
-  'accountant',
-  'finance_member',
-  'admin_assistant',
+// 역할 한글명 — permissions.ts 단일 출처를 재노출
+export const ROLE_NAMES: Record<string, string> = PERMISSION_ROLE_NAMES;
+
+/** 특정 permission 을 프리셋으로 보유한 역할 목록 (ROLE_CODES 순서 유지) */
+function rolesWithPermission(permission: Permission): RoleCode[] {
+  return ROLE_CODES.filter((role) =>
+    ROLE_PERMISSION_PRESETS[role].includes(permission)
+  );
+}
+
+/** 단일/다중 역할을 permission 집합으로 (프리셋 기준) */
+function permsForRoles(roles: string[]) {
+  return resolvePermissions(roles, { resolver: presetResolver });
+}
+
+// ========================================
+// 파생 역할 그룹 (하위 호환용 — 전부 permission 에서 계산)
+// ========================================
+
+/** 확장 메뉴(간편 지출결의서) 접근 역할 */
+export const EXTENDED_MENU_ROLES: UserRole[] = rolesWithPermission(
+  PERMISSIONS.SIMPLE_EXPENSE_USE
+);
+
+/** 결재함 접근 역할 */
+export const APPROVAL_MENU_ROLES: UserRole[] = rolesWithPermission(
+  PERMISSIONS.EXPENSE_APPROVE
+);
+
+/** 관리 메뉴 접근 역할 */
+export const ADMIN_MENU_ROLES: UserRole[] = rolesWithPermission(
+  PERMISSIONS.ADMIN_DASHBOARD_READ
+);
+
+/** 자동이체 메뉴 접근 역할 */
+export const RECURRING_EXPENSE_MENU_ROLES: UserRole[] = rolesWithPermission(
+  PERMISSIONS.RECURRING_READ
+);
+
+/** 자동이체 전체 관리 역할 */
+export const RECURRING_EXPENSE_FULL_ACCESS_ROLES: UserRole[] = rolesWithPermission(
+  PERMISSIONS.RECURRING_MANAGE_ALL
+);
+
+/** 최종승인+지급대기 수정 가능 역할 */
+export const APPROVED_EDIT_ROLES: UserRole[] = rolesWithPermission(
+  PERMISSIONS.EXPENSE_EDIT_APPROVED
+);
+
+// ========================================
+// 관리자 메뉴 경로 → permission 매핑 (단일 출처)
+// 클라이언트 메뉴 필터와 서버 withAdminMenu 가드가 공유한다.
+// ========================================
+export const MENU_PERMISSIONS: ReadonlyArray<{ path: string; permission: Permission }> = [
+  { path: '/admin', permission: PERMISSIONS.ADMIN_DASHBOARD_READ },
+  { path: '/admin/committees', permission: PERMISSIONS.COMMITTEE_MANAGE },
+  { path: '/admin/departments', permission: PERMISSIONS.DEPARTMENT_MANAGE },
+  { path: '/admin/budget-managers', permission: PERMISSIONS.BUDGET_MANAGER_MANAGE },
+  { path: '/admin/budget-view', permission: PERMISSIONS.BUDGET_VIEW },
+  { path: '/admin/budget-execution', permission: PERMISSIONS.REPORT_BUDGET_EXEC_READ },
+  { path: '/admin/hr-admin-execution', permission: PERMISSIONS.REPORT_HR_ADMIN_READ },
+  { path: '/admin/quarterly-report', permission: PERMISSIONS.REPORT_QUARTERLY_READ },
+  { path: '/admin/cumulative-report', permission: PERMISSIONS.REPORT_CUMULATIVE_READ },
+  { path: '/reports/financial', permission: PERMISSIONS.REPORT_FINANCIAL_READ },
+  { path: '/admin/offerings', permission: PERMISSIONS.OFFERING_MANAGE },
+  { path: '/admin/expense-upload', permission: PERMISSIONS.EXPENSE_BULK_UPLOAD },
+  // admin 전용(관리 민감) 경로
+  { path: '/admin/users', permission: PERMISSIONS.USER_MANAGE },
+  { path: '/admin/roles', permission: PERMISSIONS.ROLE_MANAGE },
+  { path: '/admin/settings', permission: PERMISSIONS.SETTINGS_MANAGE },
+  { path: '/admin/notifications', permission: PERMISSIONS.NOTIFICATION_SEND },
 ];
 
-// 결재함 접근 가능 역할
-export const APPROVAL_MENU_ROLES: UserRole[] = [
-  'admin',
-  'finance_head',
-  'accountant',
-  'team_leader',
-];
-
-// 관리 메뉴 접근 가능 역할
-export const ADMIN_MENU_ROLES: UserRole[] = [
-  'admin',
-  'finance_head',
-  'accountant',
-  'finance_member',
-  'admin_assistant',
-];
-
-// 자동이체 메뉴 접근 가능 역할 (재정팀 + 행정간사)
-export const RECURRING_EXPENSE_MENU_ROLES: UserRole[] = [
-  'admin',
-  'finance_head',
-  'accountant',
-  'finance_member',
-  'admin_assistant',
-];
-
-// 자동이체 전체 관리 가능 역할 (본인 소유 외 모든 자동이체 조회/수정/삭제/생성)
-export const RECURRING_EXPENSE_FULL_ACCESS_ROLES: UserRole[] = [
-  'admin',
-  'finance_head',
-  'accountant',
-  'finance_member',
-  'admin_assistant',
-];
-
-// 최종승인 + 지급대기 상태 지출결의서 수정 가능 역할
-export const APPROVED_EDIT_ROLES: UserRole[] = [
-  'admin',
-  'finance_head',
-  'accountant',
-  'admin_assistant',
-];
-
-// 역할별 접근 가능한 관리자 메뉴 경로 정의
-export const ROLE_ADMIN_MENU_PATHS: Record<string, string[] | 'all'> = {
-  admin: 'all', // 모든 메뉴 접근
-  accountant: [
-    '/admin',                      // 대시보드 홈
-    '/admin/committees',           // 위원회 관리
-    '/admin/departments',          // 사역팀(부) 관리
-    '/admin/budget-managers',      // 세목별 담당자
-    '/admin/budget-view',          // 예산 현황 조회
-    '/admin/budget-execution',     // 사역비 집행 현황
-    '/admin/hr-admin-execution',   // 인사/행정비 현황
-    '/admin/quarterly-report',     // 분기별 회계보고
-    '/admin/cumulative-report',    // 분기별 누적 현황
-    '/reports/financial',          // 재정보고서(제직용, 정적 페이지)
-    '/admin/offerings',            // 헌금 관리
-  ],
-  admin_assistant: [
-    '/admin',
-    '/admin/committees',
-    '/admin/departments',
-    '/admin/budget-managers',
-    '/admin/budget-view',
-    '/admin/budget-execution',
-    '/admin/hr-admin-execution',
-    '/admin/quarterly-report',
-    '/admin/cumulative-report',
-    '/reports/financial',          // 재정보고서(제직용, 정적 페이지)
-    '/admin/offerings',
-    '/admin/expense-upload',       // 지출결의서 일괄 업로드
-  ],
-  finance_head: [
-    '/admin',
-    '/admin/committees',
-    '/admin/departments',
-    '/admin/budget-managers',
-    '/admin/budget-view',
-    '/admin/budget-execution',
-    '/admin/hr-admin-execution',
-    '/admin/quarterly-report',
-    '/admin/cumulative-report',
-    '/reports/financial',          // 재정보고서(제직용, 정적 페이지)
-    '/admin/offerings',
-  ],
-  finance_member: [
-    '/admin',
-    '/admin/committees',
-    '/admin/departments',
-    '/admin/budget-managers',
-    '/admin/budget-view',
-    '/admin/budget-execution',
-    '/admin/hr-admin-execution',
-    '/admin/quarterly-report',
-    '/admin/cumulative-report',
-    '/reports/financial',          // 재정보고서(제직용, 정적 페이지)
-    '/admin/offerings',
-  ],
-};
+/** 요청 경로에 필요한 permission (매핑 규칙: /admin 은 정확일치, 그 외는 하위경로 포함) */
+export function requiredPermissionForPath(path: string): Permission | null {
+  for (const { path: allowed, permission } of MENU_PERMISSIONS) {
+    if (allowed === '/admin') {
+      if (path === '/admin') return permission;
+    } else if (path === allowed || path.startsWith(allowed + '/')) {
+      return permission;
+    }
+  }
+  return null;
+}
 
 /**
- * 확장 메뉴 접근 권한 체크
- * (간편 지출결의서 작성/목록)
+ * 역할별 접근 가능한 관리자 경로 (파생). admin 은 'all'.
+ * 접근 가능한 경로가 없는 역할은 키를 두지 않는다(하위 호환: undefined).
  */
+export const ROLE_ADMIN_MENU_PATHS: Record<string, string[] | 'all'> = (() => {
+  const result: Record<string, string[] | 'all'> = { admin: 'all' };
+  for (const role of ROLE_CODES) {
+    if (role === 'admin') continue;
+    const preset = ROLE_PERMISSION_PRESETS[role];
+    const paths = MENU_PERMISSIONS.filter((mp) =>
+      preset.includes(mp.permission)
+    ).map((mp) => mp.path);
+    if (paths.length > 0) result[role] = paths;
+  }
+  return result;
+})();
+
+// ========================================
+// 판정 함수 (전부 hasPermission 경유)
+// ========================================
+
+/** 확장 메뉴(간편 지출결의서) 접근 권한 */
 export function canAccessExtendedMenu(role: string): boolean {
-  return EXTENDED_MENU_ROLES.includes(role as UserRole);
+  return hasPermission(permsForRoles([role]), PERMISSIONS.SIMPLE_EXPENSE_USE);
 }
 
-/**
- * 결재함 접근 권한 체크
- */
+/** 결재함 접근 권한 */
 export function canAccessApprovalMenu(role: string): boolean {
-  return APPROVAL_MENU_ROLES.includes(role as UserRole);
+  return hasPermission(permsForRoles([role]), PERMISSIONS.EXPENSE_APPROVE);
 }
 
-/**
- * 관리 메뉴 접근 권한 체크
- */
+/** 관리 메뉴 접근 권한 */
 export function canAccessAdminMenu(role: string): boolean {
-  return ADMIN_MENU_ROLES.includes(role as UserRole);
+  return hasPermission(permsForRoles([role]), PERMISSIONS.ADMIN_DASHBOARD_READ);
 }
 
-/**
- * 관리 메뉴 접근 권한 체크 (다중 역할 지원)
- * roles 배열 중 하나라도 관리 메뉴 접근 권한이 있으면 true
- */
+/** 관리 메뉴 접근 권한 (다중 역할) */
 export function canAccessAdminMenuWithRoles(roles: string[]): boolean {
-  return roles.some(role => ADMIN_MENU_ROLES.includes(role as UserRole));
+  return hasPermission(permsForRoles(roles), PERMISSIONS.ADMIN_DASHBOARD_READ);
 }
 
-/**
- * 자동이체 메뉴 접근 권한 체크
- */
+/** 자동이체 메뉴 접근 권한 */
 export function canAccessRecurringExpenseMenu(role: string): boolean {
-  return RECURRING_EXPENSE_MENU_ROLES.includes(role as UserRole);
+  return hasPermission(permsForRoles([role]), PERMISSIONS.RECURRING_READ);
 }
 
-/**
- * 자동이체 전체 관리 권한 체크 (본인 소유 외 데이터 접근)
- */
+/** 자동이체 전체 관리 권한 (본인 소유 외 데이터 접근) */
 export function canManageAllRecurringExpenses(role: string): boolean {
-  return RECURRING_EXPENSE_FULL_ACCESS_ROLES.includes(role as UserRole);
+  return hasPermission(permsForRoles([role]), PERMISSIONS.RECURRING_MANAGE_ALL);
 }
 
-/**
- * 자동이체 메뉴 접근 권한 체크 (다중 역할 지원)
- */
+/** 자동이체 메뉴 접근 권한 (다중 역할) */
 export function canAccessRecurringExpenseMenuWithRoles(roles: string[]): boolean {
-  return roles.some(role => RECURRING_EXPENSE_MENU_ROLES.includes(role as UserRole));
+  return hasPermission(permsForRoles(roles), PERMISSIONS.RECURRING_READ);
 }
 
 /**
  * 자동이체 API 접근 권한 확인
- * 권한이 없으면 에러 객체 반환, 있으면 null 반환
- * (ApiError를 직접 throw하지 않음 - 순환 의존성 방지)
+ * 권한 없으면 에러 객체 반환, 있으면 null
  */
-export function checkRecurringExpenseAccess(userRole: string): { error: string; status: 403 } | null {
+export function checkRecurringExpenseAccess(
+  userRole: string
+): { error: string; status: 403 } | null {
   if (!canAccessRecurringExpenseMenu(userRole)) {
     return { error: '자동이체 접근 권한이 없습니다.', status: 403 };
   }
@@ -191,9 +177,8 @@ export function checkRecurringExpenseAccess(userRole: string): { error: string; 
 }
 
 /**
- * 사용자 등록 메뉴 표시 여부 확인
- * - 역할의 canRegisterUsers 플래그 또는 개별 사용자 권한으로 확인
- * - 클라이언트에서는 user 객체에 canRegisterUsers 필드가 있어야 함
+ * 사용자 등록 메뉴 표시 여부
+ * - 역할이 user:register 권한을 갖거나(=admin), 개별/역할 플래그 canRegisterUsers
  */
 export function canShowUserRegisterMenu(user: {
   role?: string;
@@ -201,107 +186,52 @@ export function canShowUserRegisterMenu(user: {
   roleRef?: { canRegisterUsers?: boolean } | null;
 } | null): boolean {
   if (!user) return false;
-
-  // admin은 항상 권한 있음
-  if (user.role === 'admin') return true;
-
-  // 사용자에게 직접 부여된 권한 확인
+  if (user.role && hasPermission(permsForRoles([user.role]), PERMISSIONS.USER_REGISTER)) {
+    return true;
+  }
   if (user.canRegisterUsers) return true;
-
-  // 역할에 부여된 권한 확인
   if (user.roleRef?.canRegisterUsers) return true;
-
   return false;
 }
 
-/**
- * 특정 관리자 메뉴 경로 접근 권한 체크
- */
+/** 특정 관리자 메뉴 경로 접근 권한 */
 export function canAccessAdminMenuPath(role: string, path: string): boolean {
-  const allowedPaths = ROLE_ADMIN_MENU_PATHS[role];
-  if (!allowedPaths) return false;
-  if (allowedPaths === 'all') return true;
-
-  return allowedPaths.some(allowed => {
-    // /admin 홈은 정확히 일치하는 경우에만 허용
-    if (allowed === '/admin') {
-      return path === '/admin';
-    }
-    // 다른 경로는 정확히 일치하거나 하위 경로인 경우 허용
-    return path === allowed || path.startsWith(allowed + '/');
-  });
+  if (!isRoleCode(role)) return false;
+  if (role === 'admin') return true; // admin = all
+  const permission = requiredPermissionForPath(path);
+  if (!permission) return false; // 매핑 없는 경로는 admin 전용
+  return hasPermission(permsForRoles([role]), permission);
 }
 
-/**
- * 특정 관리자 메뉴 경로 접근 권한 체크 (다중 역할 지원)
- * roles 배열 중 하나라도 해당 경로에 접근 권한이 있으면 true
- */
+/** 특정 관리자 메뉴 경로 접근 권한 (다중 역할) */
 export function canAccessAdminMenuPathWithRoles(roles: string[], path: string): boolean {
-  return roles.some(role => canAccessAdminMenuPath(role, path));
+  return roles.some((role) => canAccessAdminMenuPath(role, path));
 }
 
-/**
- * 역할별 접근 가능한 메뉴 그룹 필터링
- */
+/** 역할별 접근 가능 메뉴 그룹 필터링 */
 export function filterAdminMenuByRole<T extends { items: { href: string }[] }>(
   menu: T[],
   role: string
 ): T[] {
-  const allowedPaths = ROLE_ADMIN_MENU_PATHS[role];
-  if (!allowedPaths) return [];
-  if (allowedPaths === 'all') return menu;
-
   return menu
-    .map(group => ({
+    .map((group) => ({
       ...group,
-      items: group.items.filter(item =>
-        allowedPaths.some(allowed => {
-          // /admin 홈은 정확히 일치하는 경우에만 허용
-          if (allowed === '/admin') {
-            return item.href === '/admin';
-          }
-          // 다른 경로는 정확히 일치하거나 하위 경로인 경우 허용
-          return item.href === allowed || item.href.startsWith(allowed + '/');
-        })
-      ),
+      items: group.items.filter((item) => canAccessAdminMenuPath(role, item.href)),
     }))
-    .filter(group => group.items.length > 0) as T[];
+    .filter((group) => group.items.length > 0) as T[];
 }
 
-/**
- * 역할별 접근 가능한 메뉴 그룹 필터링 (다중 역할 지원)
- * 모든 역할의 접근 가능한 경로를 합산하여 필터링
- */
+/** 역할별 접근 가능 메뉴 그룹 필터링 (다중 역할) */
 export function filterAdminMenuByRoles<T extends { items: { href: string }[] }>(
   menu: T[],
   roles: string[]
 ): T[] {
-  // admin 역할이 있으면 모든 메뉴 반환
-  if (roles.includes('admin')) return menu;
-
-  // 모든 역할의 허용 경로 합산
-  const allAllowedPaths = new Set<string>();
-  for (const role of roles) {
-    const paths = ROLE_ADMIN_MENU_PATHS[role];
-    if (paths === 'all') return menu;
-    if (Array.isArray(paths)) {
-      paths.forEach(p => allAllowedPaths.add(p));
-    }
-  }
-
-  if (allAllowedPaths.size === 0) return [];
-
   return menu
-    .map(group => ({
+    .map((group) => ({
       ...group,
-      items: group.items.filter(item =>
-        Array.from(allAllowedPaths).some(allowed => {
-          if (allowed === '/admin') {
-            return item.href === '/admin';
-          }
-          return item.href === allowed || item.href.startsWith(allowed + '/');
-        })
+      items: group.items.filter((item) =>
+        canAccessAdminMenuPathWithRoles(roles, item.href)
       ),
     }))
-    .filter(group => group.items.length > 0) as T[];
+    .filter((group) => group.items.length > 0) as T[];
 }

@@ -6,7 +6,8 @@ import {
 } from '@/lib/approval-engine';
 import { notificationService } from '@/lib/services/notification';
 import { handleApiError } from '@/lib/api/error-handler';
-import { withPermission, UserApiHandler } from '@/lib/auth/user';
+import { UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 /**
  * POST /api/expenses/[id]/approve
@@ -364,4 +365,4 @@ const handlePost: UserApiHandler = async (request, { params, user }) => {
   }
 };
 
-export const POST = withPermission('canApprove', handlePost);
+export const POST = withPermissions(PERMISSIONS.EXPENSE_APPROVE, handlePost);

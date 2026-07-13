@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
-import { withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 /**
  * GET /api/admin/year-config/[year]
@@ -87,5 +88,5 @@ const handleDelete: UserApiHandler = async (request, { params }) => {
   }
 };
 
-export const GET = withAdmin(handleGet);
-export const DELETE = withAdmin(handleDelete);
+export const GET = withPermissions(PERMISSIONS.SETTINGS_MANAGE, handleGet);
+export const DELETE = withPermissions(PERMISSIONS.SETTINGS_MANAGE, handleDelete);

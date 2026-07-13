@@ -29,7 +29,8 @@ vi.mock('@/lib/prisma', () => ({
 vi.mock('@/lib/auth/user', () => ({
   createUserToken: vi.fn().mockResolvedValue('mock-jwt-token'),
   createUserTokenCookie: vi.fn().mockReturnValue('user_token=mock-jwt-token; Path=/; HttpOnly'),
-  getRolePermissions: vi.fn().mockResolvedValue({
+  // roles-only: 로그인은 deriveLegacyFlags 로 역할에서 플래그를 파생한다
+  deriveLegacyFlags: vi.fn().mockReturnValue({
     canApprove: true,
     canManageExpense: true,
     canAccessAdmin: true,

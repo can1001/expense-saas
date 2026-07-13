@@ -70,7 +70,8 @@ describe('admin-menu', () => {
     it('should have valid href paths for all items', () => {
       ADMIN_SIDEBAR_MENU.forEach((group) => {
         group.items.forEach((item) => {
-          expect(item.href).toMatch(/^\/admin/);
+          // 관리 사이드바 항목은 /admin 하위이거나, 제직용 재정보고서(/reports/financial)
+          expect(item.href).toMatch(/^\/(admin|reports)/);
           expect(item.href).toBeTruthy();
         });
       });

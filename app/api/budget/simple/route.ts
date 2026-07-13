@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
+import { withAuth } from '@/lib/auth/user';
 
 /**
  * POST /api/budget/simple - 간편 예산 선택 (위원회/사역팀 없이)
@@ -17,7 +18,7 @@ import { handleApiError } from '@/lib/api/error-handler';
  * - field: 다음 레벨 필드명 (categories | subcategories | details)
  * - options: 선택 가능한 옵션 배열
  */
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const body = await request.json();
     const { category, subcategory, year: requestYear } = body;
@@ -140,3 +141,5 @@ export async function POST(request: NextRequest) {
     return handleApiError(error);
   }
 }
+
+export const POST = withAuth(handlePOST);

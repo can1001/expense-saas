@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
+import { withAuth } from '@/lib/auth/user';
 
 /**
  * GET /api/budget/simple/all-details - 모든 세목 목록과 부모 정보 반환
@@ -11,7 +12,7 @@ import { handleApiError } from '@/lib/api/error-handler';
  * 응답:
  * - details: 세목 목록 (name, category, subcategory, managerId, managerName 포함)
  */
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const year = parseInt(searchParams.get('year') || '') || new Date().getFullYear();
@@ -72,3 +73,5 @@ export async function GET(request: NextRequest) {
     return handleApiError(error);
   }
 }
+
+export const GET = withAuth(handleGET);

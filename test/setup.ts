@@ -46,8 +46,10 @@ export const mockUserSession = {
   userid: 'testuser',
   username: '테스트 사용자',
   role: 'admin',
+  roles: ['admin'],
   roleId: 'test-role-id',
   department: null,
+  granted: [] as string[],
   canApprove: true,
   canManageExpense: true,
   canAccessAdmin: true,
@@ -75,40 +77,40 @@ vi.mock('@/lib/auth/user', () => ({
     }
     return handler(request, { ...context, user: _mockUser });
   },
-  withPermission: (permission: string, handler: any) => async (request: any, context: any) => {
+  // permission 코드 기반 가드 (프리셋으로 mock user 역할 권한 판정)
+  withPermissions: (permission: string, handler: any) => async (request: any, context: any) => {
+    const { NextResponse } = await import('next/server');
     if (!_mockUser) {
-      const { NextResponse } = await import('next/server');
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
     }
-    if (!(_mockUser as any)[permission]) {
-      const { NextResponse } = await import('next/server');
+    const { subjectPermissions } = await import('@/lib/auth/permissions');
+    const roles = (_mockUser as any).roles?.length ? (_mockUser as any).roles : [_mockUser.role];
+    const perms = subjectPermissions({ roles });
+    if (!perms.has(permission as any)) {
       return NextResponse.json({ error: '이 작업을 수행할 권한이 없습니다.' }, { status: 403 });
     }
     return handler(request, { ...context, user: _mockUser });
   },
-  withAdmin: (handler: any) => async (request: any, context: any) => {
+  withAdminMenu: (_menuPath: string, handler: any) => async (request: any, context: any) => {
+    const { NextResponse } = await import('next/server');
     if (!_mockUser) {
-      const { NextResponse } = await import('next/server');
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
-    }
-    if (!_mockUser.canAccessAdmin) {
-      const { NextResponse } = await import('next/server');
-      return NextResponse.json({ error: '이 작업을 수행할 권한이 없습니다.' }, { status: 403 });
     }
     return handler(request, { ...context, user: _mockUser });
   },
+  getEffectiveRoleCodes: (user: any) => (user?.roles?.length ? user.roles : [user?.role]),
   getUserFromRequest: vi.fn(async () => _mockUser),
   verifyUserToken: vi.fn(async () => _mockUser),
+  deriveLegacyFlags: (roles: string[], granted: string[] = []) => ({
+    canApprove: roles.includes('admin') || roles.includes('finance_head') || roles.includes('accountant') || roles.includes('team_leader'),
+    canManageExpense: roles.includes('admin') || roles.includes('finance_head') || roles.includes('accountant') || roles.includes('admin_assistant'),
+    canAccessAdmin: roles.includes('admin') || roles.includes('finance_head') || roles.includes('accountant') || roles.includes('finance_member') || roles.includes('admin_assistant'),
+    canExportData: roles.includes('admin') || roles.includes('finance_head'),
+    canRegisterUsers: roles.includes('admin') || granted.includes('user:register'),
+  }),
   createUserToken: vi.fn(async () => 'mock-user-token'),
   createUserTokenCookie: vi.fn(() => 'user_token=mock; Path=/; HttpOnly'),
   createUserLogoutCookie: vi.fn(() => 'user_token=; Path=/; HttpOnly; Max-Age=0'),
-  getRolePermissions: vi.fn(async () => ({
-    canApprove: true,
-    canManageExpense: true,
-    canAccessAdmin: true,
-    canExportData: true,
-    canRegisterUsers: true,
-  })),
 }));
 
 // Next.js 라우터 모킹

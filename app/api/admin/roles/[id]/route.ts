@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
-import { withAdmin, UserApiHandler } from '@/lib/auth/user';
+import { UserApiHandler, withPermissions } from '@/lib/auth/user';
+import { isProtectedSystemRole, sanitizePermissions, PERMISSIONS } from '@/lib/auth/permissions';
+import { invalidateRolePermissionCache } from '@/lib/auth/role-permission-cache';
 
 /**
  * GET /api/admin/roles/[id]
@@ -40,7 +42,7 @@ const handleGet: UserApiHandler = async (request, { params }) => {
  * PUT /api/admin/roles/[id]
  * 역할 수정
  */
-const handlePut: UserApiHandler = async (request, { params }) => {
+const handlePut: UserApiHandler = async (request, { params, user }) => {
   try {
     const { id } = await params!;
     const body = await request.json();
@@ -52,11 +54,7 @@ const handlePut: UserApiHandler = async (request, { params }) => {
       stepNumber,
       sortOrder,
       isActive,
-      canApprove,
-      canManageExpense,
-      canAccessAdmin,
-      canExportData,
-      canRegisterUsers,
+      permissions,
     } = body;
 
     // 역할 존재 확인
@@ -94,13 +92,12 @@ const handlePut: UserApiHandler = async (request, { params }) => {
         ...(stepNumber !== undefined && { stepNumber }),
         ...(sortOrder !== undefined && { sortOrder }),
         ...(isActive !== undefined && { isActive }),
-        ...(canApprove !== undefined && { canApprove }),
-        ...(canManageExpense !== undefined && { canManageExpense }),
-        ...(canAccessAdmin !== undefined && { canAccessAdmin }),
-        ...(canExportData !== undefined && { canExportData }),
-        ...(canRegisterUsers !== undefined && { canRegisterUsers }),
+        ...(permissions !== undefined && { permissions: sanitizePermissions(permissions) }),
       },
     });
+
+    // AC3: 역할 변경 시 권한 캐시 무효화 → 재로그인 없이 반영
+    invalidateRolePermissionCache(user.tenantId);
 
     return NextResponse.json(role);
   } catch (error) {
@@ -112,7 +109,7 @@ const handlePut: UserApiHandler = async (request, { params }) => {
  * DELETE /api/admin/roles/[id]
  * 역할 삭제 (비활성화)
  */
-const handleDelete: UserApiHandler = async (request, { params }) => {
+const handleDelete: UserApiHandler = async (request, { params, user }) => {
   try {
     const { id } = await params!;
 
@@ -137,7 +134,7 @@ const handleDelete: UserApiHandler = async (request, { params }) => {
     }
 
     // 기본 역할(admin, user)은 삭제 불가
-    if (['admin', 'user'].includes(existingRole.code)) {
+    if (isProtectedSystemRole(existingRole.code)) {
       return NextResponse.json(
         { error: '기본 역할은 삭제할 수 없습니다.' },
         { status: 400 }
@@ -164,6 +161,9 @@ const handleDelete: UserApiHandler = async (request, { params }) => {
       data: { isActive: false },
     });
 
+    // AC3: 역할 변경 시 권한 캐시 무효화 → 재로그인 없이 반영
+    invalidateRolePermissionCache(user.tenantId);
+
     return NextResponse.json({
       message: '역할이 비활성화되었습니다.',
       role,
@@ -173,6 +173,6 @@ const handleDelete: UserApiHandler = async (request, { params }) => {
   }
 };
 
-export const GET = withAdmin(handleGet);
-export const PUT = withAdmin(handlePut);
-export const DELETE = withAdmin(handleDelete);
+export const GET = withPermissions(PERMISSIONS.ROLE_MANAGE, handleGet);
+export const PUT = withPermissions(PERMISSIONS.ROLE_MANAGE, handlePut);
+export const DELETE = withPermissions(PERMISSIONS.ROLE_MANAGE, handleDelete);
