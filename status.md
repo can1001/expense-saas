@@ -95,3 +95,9 @@
 - **개발 세션에서 운영 DB에 push 하면 현재 배포된 구 코드가 깨진다**(구 코드가 삭제된 컬럼 SELECT). 
   → db:push(`--accept-data-loss`)는 **신 코드 배포와 같은 릴리스**에서 수행해야 함. 런북 문서화 완료.
 - 백필 스크립트 준비됨(permissions[] 미설정 시 런타임은 프리셋 폴백이라 무중단).
+
+### Turn 7 (2026-07-13) — 배포 PR + 파이프라인
+- 브랜치 `20260713-rbac-refactoring` 생성, 101개 파일 커밋(`.claude/settings.local.json` 제외), push.
+- **PR #4 생성**: https://github.com/can1001/expense-saas/pull/4
+- 마이그레이션 파이프라인: `package.json`에 `db:backfill:roles` + `deploy:migrate`(= `prisma db push --accept-data-loss` + 백필) 스크립트 추가. 웹 서비스 build는 대시보드 설정이라 `render.yaml`에 이 릴리스용 Build Command 안내 주석 추가. `docs/RBAC_PHASE5_MIGRATION.md` 런북.
+- 최종: 전체 2058 통과, 소스 타입에러 0. 배포 시 build에 `&& npm run deploy:migrate` 1회 포함하면 컬럼 드롭+백필 완료.
