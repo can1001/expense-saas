@@ -120,6 +120,18 @@ const nextConfig: NextConfig = {
   },
   // Turbopack 설정 (개발 모드용) - webpack과 공존 허용
   turbopack: {},
+  // Python(FastAPI) 백엔드 점진 이전용 프록시 (spec_python_refactoring.md §7)
+  //   /api/py/*  →  <API_ORIGIN>/api/*
+  // 이전 완료된 도메인만 이 경로로 호출하고, 미이전 도메인은 기존 /api/* (Next.js)를 쓴다.
+  async rewrites() {
+    const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:8000";
+    return [
+      {
+        source: "/api/py/:path*",
+        destination: `${apiOrigin}/api/:path*`,
+      },
+    ];
+  },
 };
 
 export default withPWA(nextConfig);
