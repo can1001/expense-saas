@@ -16,9 +16,7 @@ class ExpenseRepository:
         self.tenant_id = tenant_id
 
     async def get(self, expense_id: str) -> Expense | None:
-        stmt = select(Expense).where(
-            Expense.tenantId == self.tenant_id, Expense.id == expense_id
-        )
+        stmt = select(Expense).where(Expense.tenantId == self.tenant_id, Expense.id == expense_id)
         return (await self.session.execute(stmt)).scalars().first()
 
     async def list(

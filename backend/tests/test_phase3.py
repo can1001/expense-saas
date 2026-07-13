@@ -75,8 +75,12 @@ async def session() -> AsyncSession:
 
 def _actor(user: User) -> CurrentUser:
     return CurrentUser(
-        id=user.id, tenantId=user.tenantId, userid=user.userid,
-        username=user.username, role=user.role, roles=[user.role],
+        id=user.id,
+        tenantId=user.tenantId,
+        userid=user.userid,
+        username=user.username,
+        role=user.role,
+        roles=[user.role],
     )
 
 
@@ -94,14 +98,21 @@ async def _seed(session: AsyncSession):
 
 def _expense_req() -> CreateExpenseRequest:
     from datetime import datetime, timezone
+
     return CreateExpenseRequest(
-        committee="기획본부", department="재정팀",
+        committee="기획본부",
+        department="재정팀",
         items=[
-            ExpenseItemInput(budgetDetail="간식비", description="회의 간식", unitPrice=1000, quantity=3),
+            ExpenseItemInput(
+                budgetDetail="간식비", description="회의 간식", unitPrice=1000, quantity=3
+            ),
             ExpenseItemInput(budgetDetail="다과비", description="다과", unitPrice=500, quantity=2),
         ],
         requestDate=datetime(2026, 7, 13, tzinfo=timezone.utc),
-        applicantName="작성자", bankName="국민", accountNumber="123", accountHolder="작성자",
+        applicantName="작성자",
+        bankName="국민",
+        accountNumber="123",
+        accountHolder="작성자",
     )
 
 
@@ -188,7 +199,9 @@ async def test_only_owner_can_submit(session: AsyncSession):
     exp = await ExpenseService(session, t.id).create(owner.id, _expense_req())
     steps = [ApprovalStepInput(stepNumber=1, stepName="팀장", approverName="김팀장")]
     with pytest.raises(WorkflowError) as e:
-        await ApprovalService(session, t.id).submit(exp.id, _actor(leader), SubmitRequest(steps=steps))
+        await ApprovalService(session, t.id).submit(
+            exp.id, _actor(leader), SubmitRequest(steps=steps)
+        )
     assert e.value.status_code == 403
 
 

@@ -34,9 +34,7 @@ def require_permission(permission: str):
         roles_map = await load_tenant_roles_map(session, user.tenantId or None)
         resolver = make_db_resolver(roles_map)
         if not has_permission(user.roles, permission, resolver=resolver, granted=user.granted):
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN, "이 작업을 수행할 권한이 없습니다."
-            )
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "이 작업을 수행할 권한이 없습니다.")
         return user
 
     return _dep

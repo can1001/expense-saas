@@ -21,6 +21,7 @@ from expense_api.core.config.settings import settings  # noqa: E402
 from expense_api.core.db.migrations import run_migrations_async  # noqa: E402
 from expense_api.core.db.seed import seed_if_needed  # noqa: E402
 from expense_api.core.routes import (  # noqa: E402
+    approval_policy_routes,
     approval_routes,
     auth_routes,
     budget_master_routes,
@@ -38,7 +39,11 @@ def _boot_validation() -> None:
     problems: list[str] = []
     if settings.is_sqlite:
         problems.append("prod 에서 SQLite DATABASE_URL 사용 금지")
-    if settings.SECRET_KEY in ("dev-only-change-me", "local-dev-secret-not-for-prod", "change-me-in-prod"):
+    if settings.SECRET_KEY in (
+        "dev-only-change-me",
+        "local-dev-secret-not-for-prod",
+        "change-me-in-prod",
+    ):
         problems.append("prod 에서 기본 SECRET_KEY 사용 금지")
     if problems:
         print("FATAL boot validation:\n  - " + "\n  - ".join(problems), file=sys.stderr)
@@ -71,3 +76,4 @@ app.include_router(budget_routes.router, prefix="/api/budget", tags=["budget"])
 app.include_router(budget_master_routes.router, prefix="/api", tags=["budget-master"])
 app.include_router(expense_routes.router, prefix="/api/expenses", tags=["expenses"])
 app.include_router(approval_routes.router, prefix="/api/expenses", tags=["approval"])
+app.include_router(approval_policy_routes.router, prefix="/api", tags=["approval-policy"])

@@ -14,8 +14,9 @@ class ApprovalStepInput(BaseModel):
 
 
 class SubmitRequest(BaseModel):
-    # Phase 3 골격: 명시적 결재 단계. (자동 산출은 ApprovalPolicy 후속, §15.3)
-    steps: list[ApprovalStepInput] = Field(min_length=1)
+    # steps 를 주면 그대로 사용(수동), 없으면 테넌트 결재 정책으로 자동 산출(§15.3).
+    steps: list[ApprovalStepInput] | None = None
+    policyId: str | None = None  # 특정 정책 지정 (없으면 기본 정책)
     isUrgent: bool = False
 
 

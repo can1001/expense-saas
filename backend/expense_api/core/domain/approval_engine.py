@@ -15,9 +15,7 @@ class Decision:
 
 
 # ── 검증 ──────────────────────────────────────────────────────────────
-def can_modify_approval_line(
-    current_status: str, actor_name: str, applicant_name: str
-) -> Decision:
+def can_modify_approval_line(current_status: str, actor_name: str, applicant_name: str) -> Decision:
     """결재선 수정 가능 여부. DRAFT + 작성자 본인만."""
     if current_status != ApprovalStatus.DRAFT.value:
         return Decision(False, "제출 후에는 결재선을 수정할 수 없습니다. 반려 후 재제출하세요.")

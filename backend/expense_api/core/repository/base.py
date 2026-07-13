@@ -65,8 +65,10 @@ class TenantScopedRepository(Generic[T]):
         return list(result.scalars().all())
 
     async def count(self) -> int:
-        stmt = select(func.count()).select_from(self.model).where(
-            self.model.tenantId == self.tenant_id
+        stmt = (
+            select(func.count())
+            .select_from(self.model)
+            .where(self.model.tenantId == self.tenant_id)
         )
         result = await self.session.execute(stmt)
         return int(result.scalar_one())

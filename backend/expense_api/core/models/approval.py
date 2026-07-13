@@ -21,8 +21,13 @@ class ApprovalLine(SQLModel, table=True):
     totalSteps: int
     isUrgent: bool = False
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
-    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
 
 
 class ApprovalStep(SQLModel, table=True):
@@ -52,8 +57,13 @@ class ApprovalStep(SQLModel, table=True):
     isRequired: bool = True
     isParallel: bool = False
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
-    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
 
 
 class ApprovalLog(SQLModel, table=True):
@@ -81,4 +91,6 @@ class ApprovalLog(SQLModel, table=True):
     beforeSnapshot: dict | None = Field(default=None, sa_column=Column(JSON))
     afterSnapshot: dict | None = Field(default=None, sa_column=Column(JSON))
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}, index=True)
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}, index=True
+    )

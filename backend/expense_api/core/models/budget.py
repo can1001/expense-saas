@@ -27,8 +27,13 @@ class Committee(SQLModel, table=True):
 
     leaderId: str | None = Field(default=None, foreign_key="User.id", index=True)
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
-    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
 
 
 class Department(SQLModel, table=True):
@@ -43,8 +48,13 @@ class Department(SQLModel, table=True):
     sortOrder: int = Field(default=0, index=True)
     isActive: bool = Field(default=True, index=True)
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
-    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
 
 
 class BudgetCategory(SQLModel, table=True):
@@ -57,8 +67,13 @@ class BudgetCategory(SQLModel, table=True):
     sortOrder: int = Field(default=0, index=True)
     isActive: bool = Field(default=True, index=True)
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
-    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
 
 
 class BudgetSubcategory(SQLModel, table=True):
@@ -73,8 +88,13 @@ class BudgetSubcategory(SQLModel, table=True):
     sortOrder: int = Field(default=0, index=True)
     isActive: bool = Field(default=True, index=True)
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
-    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
 
 
 class BudgetDetail(SQLModel, table=True):
@@ -91,8 +111,13 @@ class BudgetDetail(SQLModel, table=True):
     sortOrder: int = Field(default=0, index=True)
     isActive: bool = Field(default=True, index=True)
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
-    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
 
 
 class BudgetDetailYear(SQLModel, table=True):
@@ -105,14 +130,21 @@ class BudgetDetailYear(SQLModel, table=True):
     budgetDetailId: str = Field(foreign_key="BudgetDetail.id", index=True)
     year: int = Field(index=True)
 
-    managerId: str | None = Field(default=None, foreign_key="User.id", index=True)  # 담당자(1차 결재자)
+    managerId: str | None = Field(
+        default=None, foreign_key="User.id", index=True
+    )  # 담당자(1차 결재자)
 
     budgetAmount: int = 0  # 배정 예산
     usedAmount: int = 0  # 사용 금액(집계)
     isActive: bool = Field(default=True, index=True)
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
-    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
 
 
 class DepartmentBudgetDetail(SQLModel, table=True):
@@ -128,4 +160,6 @@ class DepartmentBudgetDetail(SQLModel, table=True):
     budgetDetailId: str = Field(foreign_key="BudgetDetail.id", index=True)
     isActive: bool = True
 
-    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )

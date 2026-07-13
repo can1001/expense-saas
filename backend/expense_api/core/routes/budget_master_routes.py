@@ -186,7 +186,9 @@ async def create_subcategory(
     name = body.name.strip()
     if not name:
         raise HTTPException(400, "예산(목)명을 입력해주세요.")
-    if await _exists_by_name(session, BudgetSubcategory, tenant_id, name, categoryId=body.categoryId):
+    if await _exists_by_name(
+        session, BudgetSubcategory, tenant_id, name, categoryId=body.categoryId
+    ):
         raise HTTPException(409, "해당 항에 이미 존재하는 목명입니다.")
     entity = BudgetSubcategory(
         tenantId=tenant_id,
@@ -228,7 +230,9 @@ async def create_detail(
     name = body.name.strip()
     if not name:
         raise HTTPException(400, "예산(세목)명을 입력해주세요.")
-    if await _exists_by_name(session, BudgetDetail, tenant_id, name, subcategoryId=body.subcategoryId):
+    if await _exists_by_name(
+        session, BudgetDetail, tenant_id, name, subcategoryId=body.subcategoryId
+    ):
         raise HTTPException(409, "해당 목에 이미 존재하는 세목명입니다.")
     entity = BudgetDetail(
         tenantId=tenant_id,

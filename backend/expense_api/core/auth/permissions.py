@@ -265,7 +265,9 @@ def has_all_permissions(
     return all(p in perms for p in permissions)
 
 
-def derive_legacy_flags(roles: Iterable[str], granted: Iterable[str] | None = None) -> dict[str, bool]:
+def derive_legacy_flags(
+    roles: Iterable[str], granted: Iterable[str] | None = None
+) -> dict[str, bool]:
     """유효 역할 + 개별 부여 권한으로부터 레거시 불리언 플래그를 파생.
 
     (프론트 deriveLegacyFlags 이전 — 하위호환 표시값. 가드는 has_permission 직접 사용)
