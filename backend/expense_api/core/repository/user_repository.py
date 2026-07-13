@@ -40,10 +40,14 @@ async def load_tenant_roles_map(
     """테넌트의 역할별 permissions 맵 {code: [perm...]} — DB resolver 구성용.
 
     (프론트 role-permission-cache.getTenantRoleResolver 이전)
+
+    보안: tenant_id 로 '항상' 스코프한다. tenant_id 가 None 이면 Role.tenantId IS NULL
+    (단일테넌트 배포)만 매칭 — 조용히 전 테넌트 역할을 로드하지 않는다. (리뷰 #2)
     """
-    stmt = select(Role).where(Role.isActive == True)  # noqa: E712
-    if tenant_id is not None:
-        stmt = stmt.where(Role.tenantId == tenant_id)
+    stmt = select(Role).where(
+        Role.isActive == True,  # noqa: E712
+        Role.tenantId == tenant_id,  # None → IS NULL
+    )
     result = await session.execute(stmt)
     roles = result.scalars().all()
     return {r.code: list(r.permissions or []) for r in roles}
