@@ -168,6 +168,35 @@ jobs:
           path: .next/
           retention-days: 7
 
+  # Python 백엔드 (FastAPI) — lint + 단위 테스트
+  # 전략: strangler-fig 이전 중이므로 값싼 게이트(ruff check + pytest, SQLite)만 지금 블로킹.
+  #       coverage 임계치는 Phase 6, E2E는 각 도메인 프록시 전환 시점에 추가한다.
+  backend:
+    runs-on: ubuntu-latest
+    name: Backend (Python)
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      RUNNING_ZONE: local  # 테스트는 SQLite 로컬 존으로 실행 (db/guard.py 부팅 가드 충족)
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --dev  # .python-version(3.12) 기준 파이썬 + 의존성 설치 (= build 검증)
+
+      - name: Run ruff (lint)
+        run: uv run ruff check .
+
+      - name: Run pytest
+        run: uv run pytest -q
+
   # 배포 (main 브랜치만)
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
