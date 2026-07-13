@@ -13,6 +13,16 @@ from expense_api.core.models.budget import (  # noqa: F401
     Department,
     DepartmentBudgetDetail,
 )
+from expense_api.core.models.approval import (  # noqa: F401
+    ApprovalLine,
+    ApprovalLog,
+    ApprovalStep,
+)
+from expense_api.core.models.expense import (  # noqa: F401
+    Expense,
+    ExpenseAttachment,
+    ExpenseItem,
+)
 from expense_api.core.models.schema_info import SchemaInfo  # noqa: F401
 from expense_api.core.models.tenant import SuperAdmin, Tenant  # noqa: F401
 from expense_api.core.models.user import Role, User, UserYearRole  # noqa: F401
@@ -31,4 +41,10 @@ __all__ = [
     "BudgetDetail",
     "BudgetDetailYear",
     "DepartmentBudgetDetail",
+    "Expense",
+    "ExpenseItem",
+    "ExpenseAttachment",
+    "ApprovalLine",
+    "ApprovalStep",
+    "ApprovalLog",
 ]

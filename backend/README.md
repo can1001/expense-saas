@@ -109,4 +109,23 @@ curl -X POST localhost:8000/api/budget -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' -d '{"committee":"기획본부","department":"재정팀"}'
 ```
 
-**다음 (Phase 3)**: 지출/결재 도메인 — `Expense`, `SimpleExpense`, `ApprovalLine`, 결재 엔진, 자동이체.
+**Phase 3 (지출·결재) — 완료**
+- [x] enums(ApprovalStatus/PaymentStatus/StepStatus/ApprovalAction) + 모델 6종: `Expense`, `ExpenseItem`, `ExpenseAttachment`, `ApprovalLine`, `ApprovalStep`, `ApprovalLog`
+- [x] 금액 계산(`domain/amount.py`: amount=unitPrice×quantity, requestAmount=Σ) — 서버 재계산(조작 방지)
+- [x] 결재 엔진(`domain/approval_engine.py`): 상태전이·can_approve·next_step (순수 로직)
+- [x] 지출 서비스/라우트: `GET/POST /api/expenses`, `GET /api/expenses/{id}` (생성은 항상 DRAFT, 읽기 권한 스코프)
+- [x] 결재 워크플로우: `/{id}/submit·approve·reject·withdraw`, `/{id}/approval` + `ApprovalLog` 감사기록
+- [x] 테스트 45건 (금액, 엔진 전이, 워크플로우, 격리, 권한/순서 위반)
+
+> **범위 밖(후속)**: 결재선 **자동 산출**(교회 직제·예산담당자 결합, 482줄)은 §15.3 **ApprovalPolicy(설정형)** 로 별도 이전. 이번 골격은 **명시적 결재 단계**로 라인 생성. `SimpleExpense`/`RecurringExpense`/`ExpenseTemplate`, 지급상태 관리, 첨부(Cloudinary)도 후속.
+
+### 결재 워크플로우 예시
+
+```bash
+# 생성(DRAFT) → 제출(PENDING) → 승인(APPROVED_FINAL)
+curl -X POST localhost:8000/api/expenses/$EID/submit -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"steps":[{"stepNumber":1,"stepName":"팀장","approverName":"관리자"}]}'
+```
+
+**다음 (Phase 4)**: 알림/업로드 — `push`, `upload`(Cloudinary), 알림 로그.

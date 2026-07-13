@@ -21,6 +21,47 @@ class PlanType(str, Enum):
     ENTERPRISE = "ENTERPRISE"
 
 
+# ── 결재 (Approval) ───────────────────────────────────────────
+class ApprovalStatus(str, Enum):
+    DRAFT = "DRAFT"  # 작성중 (제출 전)
+    PENDING = "PENDING"  # 결재 대기 (1차 결재 대기)
+    APPROVED_STEP_1 = "APPROVED_STEP_1"  # 1차 승인 완료
+    APPROVED_STEP_2 = "APPROVED_STEP_2"  # 2차 승인 완료
+    APPROVED_FINAL = "APPROVED_FINAL"  # 최종 승인
+    REJECTED = "REJECTED"  # 반려
+    WITHDRAWN = "WITHDRAWN"  # 회수
+
+
+class PaymentStatus(str, Enum):
+    PENDING = "PENDING"  # 지급 대기
+    HOLD = "HOLD"  # 지급 보류
+    CANCELLED = "CANCELLED"  # 지급 취소
+    COMPLETED = "COMPLETED"  # 지급 완료
+
+
+class StepStatus(str, Enum):
+    PENDING = "PENDING"  # 대기중
+    APPROVED = "APPROVED"  # 승인
+    REJECTED = "REJECTED"  # 반려
+    SKIPPED = "SKIPPED"  # 건너뜀
+
+
+class ApprovalAction(str, Enum):
+    SUBMIT = "SUBMIT"
+    APPROVE = "APPROVE"
+    REJECT = "REJECT"
+    RESUBMIT = "RESUBMIT"
+    WITHDRAW = "WITHDRAW"
+    MODIFY_LINE = "MODIFY_LINE"
+    MODIFY_CONTENT = "MODIFY_CONTENT"
+    DELEGATE = "DELEGATE"
+    PAYMENT_COMPLETE = "PAYMENT_COMPLETE"
+    PAYMENT_REVERT = "PAYMENT_REVERT"
+    PAYMENT_HOLD = "PAYMENT_HOLD"
+    PAYMENT_CANCEL = "PAYMENT_CANCEL"
+    BULK_EXPENSE_DATE_UPDATE = "BULK_EXPENSE_DATE_UPDATE"
+
+
 # ─────────────────────────────────────────────────────────────
 # 기능 모듈(capability) 프리셋 — spec §15.3
 # Tenant.enabledModules 가 비어 있으면 orgType 프리셋으로 폴백한다.

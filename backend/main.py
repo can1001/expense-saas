@@ -21,9 +21,11 @@ from expense_api.core.config.settings import settings  # noqa: E402
 from expense_api.core.db.migrations import run_migrations_async  # noqa: E402
 from expense_api.core.db.seed import seed_if_needed  # noqa: E402
 from expense_api.core.routes import (  # noqa: E402
+    approval_routes,
     auth_routes,
     budget_master_routes,
     budget_routes,
+    expense_routes,
     health_routes,
     tenant_routes,
 )
@@ -67,3 +69,5 @@ app.include_router(auth_routes.router, prefix="/api/auth", tags=["auth"])
 app.include_router(tenant_routes.router, prefix="/api/tenant", tags=["tenant"])
 app.include_router(budget_routes.router, prefix="/api/budget", tags=["budget"])
 app.include_router(budget_master_routes.router, prefix="/api", tags=["budget-master"])
+app.include_router(expense_routes.router, prefix="/api/expenses", tags=["expenses"])
+app.include_router(approval_routes.router, prefix="/api/expenses", tags=["approval"])
