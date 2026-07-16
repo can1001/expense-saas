@@ -39,8 +39,12 @@ class Settings(BaseSettings):
     DATABASE_URL: str = _default_database_url()
 
     # JWT
+    # ⚠️ 상호호환: SECRET_KEY 는 Next.js USER_JWT_SECRET 과 동일해야 토큰이 상호 검증된다.
+    #    (로컬 개발 기본값은 Next.js dev 폴백과 일치시켜 크로스 로그인 가능)
     SECRET_KEY: str = "dev-only-change-me"
     JWT_ALGORITHM: str = "HS256"
+    JWT_ISSUER: str = "expense-saas"  # Next.js setIssuer 와 일치
+    JWT_AUDIENCE: str = "tenant-user"  # Next.js setAudience 와 일치
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
