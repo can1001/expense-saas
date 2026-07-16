@@ -1,10 +1,7 @@
 """Phase 3 검증 — 금액 계산, 결재 엔진, 지출 CRUD, 결재 워크플로우, 격리."""
 
 import pytest
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
-from sqlmodel import SQLModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 import expense_api.core.models  # noqa: F401
 from expense_api.core.dependencies.auth import CurrentUser
@@ -60,18 +57,6 @@ def test_can_approve():
 
 
 # ── DB 픽스처 ─────────────────────────────────────────────────────────
-@pytest_asyncio.fixture
-async def session() -> AsyncSession:
-    engine = create_async_engine(
-        "sqlite+aiosqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-    maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    async with maker() as s:
-        yield s
-    await engine.dispose()
-
 
 def _actor(user: User) -> CurrentUser:
     return CurrentUser(

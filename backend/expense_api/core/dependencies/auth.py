@@ -39,7 +39,8 @@ async def get_current_user(
         payload = decode_token(credentials.credentials)
     except JWTError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "유효하지 않은 토큰입니다.")
-    if payload.get("type") != "access":
+    # refresh 토큰만 거부. type 이 없는 Next.js 발급 토큰도 수용(상호호환).
+    if payload.get("type") == "refresh":
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access 토큰이 아닙니다.")
 
     user_id = payload.get("sub")

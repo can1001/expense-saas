@@ -1,9 +1,6 @@
 """Phase 2 검증 — 예산 계층 캐스케이드, 부서-세목 링크 필터, 테넌트 격리."""
 
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
-from sqlmodel import SQLModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 import expense_api.core.models  # noqa: F401
 from expense_api.core.models.budget import (
@@ -17,20 +14,6 @@ from expense_api.core.models.budget import (
 from expense_api.core.models.tenant import Tenant
 from expense_api.core.service.budget_service import BudgetService
 
-
-@pytest_asyncio.fixture
-async def session() -> AsyncSession:
-    engine = create_async_engine(
-        "sqlite+aiosqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-    maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    async with maker() as s:
-        yield s
-    await engine.dispose()
 
 
 async def _build_tree(session: AsyncSession, tid: str, committee_name: str = "기획본부") -> None:

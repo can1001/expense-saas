@@ -1,10 +1,7 @@
 """Phase 1 검증 — RBAC, 멀티테넌시 격리, 기능 모듈 폴백."""
 
 import pytest
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
-from sqlmodel import SQLModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # 모든 모델 로드 (metadata 등록)
 import expense_api.core.models  # noqa: F401
@@ -77,20 +74,6 @@ def test_module_preset_church():
 
 
 # ── 멀티테넌시 격리 ───────────────────────────────────────────────────
-@pytest_asyncio.fixture
-async def session() -> AsyncSession:
-    engine = create_async_engine(
-        "sqlite+aiosqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-    maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    async with maker() as s:
-        yield s
-    await engine.dispose()
-
 
 async def test_tenant_scoped_repo_isolates(session: AsyncSession):
     # 두 테넌트, 각각 사용자 1명

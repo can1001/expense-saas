@@ -149,4 +149,14 @@ curl -X POST localhost:8000/api/expenses/$EID/submit -H "Authorization: Bearer $
 
 > 회사 전결규정(금액 임계·합의 결재·위임)을 정책 데이터로 표현 가능.
 
-**다음 (Phase 4)**: 알림/업로드 — `push`, `upload`(Cloudinary), 알림 로그.
+**Phase 4 (알림) — 완료 (어댑터 + 결재연동)**
+- [x] enums(NotificationChannel/EventType/Status) + 모델 3종: `NotificationPreference`, `NotificationLog`, `PushSubscription`
+- [x] `NotificationProvider` 어댑터 + `MockNotificationProvider`(외부호출 없이 성공) — 로컬 완전 테스트
+- [x] `NotificationService`: 선호(preference) 게이팅(이벤트/채널) + 로그 기록
+- [x] 결재 이벤트 연동: 제출→현재 결재자, 승인→작성자(+다음 결재자), 반려→작성자
+- [x] 라우트: `/api/notifications/preferences`(GET/PUT), `/logs`(GET), `/api/push/subscribe`(POST/DELETE)
+- [x] 테스트 57건 (선호 게이팅, 채널 선택, 이벤트별 알림, 테넌트 격리)
+
+> 실 SDK(web-push/FCM/SMS/카카오)는 `NotificationProvider` 구현체로 주입 — 운영에서 교체.
+
+**다음 (후속)**: 업로드(Cloudinary 어댑터·첨부), 지급상태 관리, SimpleExpense/Recurring, WebPushLog/FCM.

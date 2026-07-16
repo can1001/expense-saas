@@ -7,14 +7,16 @@
 """
 
 import pytest
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
-from sqlmodel import SQLModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 import expense_api.core.models  # noqa: F401
 from expense_api.core.models.approval_policy import ApprovalPolicy
-from expense_api.core.models.budget import BudgetDetail, BudgetDetailYear
+from expense_api.core.models.budget import (
+    BudgetCategory,
+    BudgetDetail,
+    BudgetDetailYear,
+    BudgetSubcategory,
+)
 from expense_api.core.models.tenant import Tenant
 from expense_api.core.models.user import User, UserYearRole
 from expense_api.core.schemas.approval_policy import ApproverType, PolicyStepRule
@@ -26,18 +28,6 @@ from expense_api.core.service.approval_policy_engine import (
 
 YEAR = 2026
 
-
-@pytest_asyncio.fixture
-async def session() -> AsyncSession:
-    engine = create_async_engine(
-        "sqlite+aiosqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-    maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    async with maker() as s:
-        yield s
-    await engine.dispose()
 
 
 def _church_policy(tid: str) -> ApprovalPolicy:
@@ -89,7 +79,8 @@ async def _scenario(session, *, manager_username: str, manager_role: str = "team
         session.add(manager)
         await session.flush()
 
-    detail = BudgetDetail(tenantId=t.id, subcategoryId="sub1", name="간식비")
+    sub_id = await _make_subcategory(session, t.id)
+    detail = BudgetDetail(tenantId=t.id, subcategoryId=sub_id, name="간식비")
     session.add(detail)
     await session.flush()
     session.add(
@@ -98,6 +89,17 @@ async def _scenario(session, *, manager_username: str, manager_role: str = "team
     session.add(_church_policy(t.id))
     await session.flush()
     return t, applicant
+
+
+async def _make_subcategory(session, tid) -> str:
+    """FK 충족용 실제 예산(항/목) 생성 → subcategory.id 반환."""
+    cat = BudgetCategory(tenantId=tid, name="사무행정비")
+    session.add(cat)
+    await session.flush()
+    sub = BudgetSubcategory(tenantId=tid, categoryId=cat.id, name="회의비")
+    session.add(sub)
+    await session.flush()
+    return sub.id
 
 
 async def _resolve(session, t, applicant):
@@ -140,7 +142,9 @@ async def test_missing_role_raises(session: AsyncSession):
     await session.flush()
     applicant = User(tenantId=t.id, userid="a", username="신청자", role="user")
     session.add(applicant)
-    detail = BudgetDetail(tenantId=t.id, subcategoryId="s", name="간식비")
+    await session.flush()
+    sub_id = await _make_subcategory(session, t.id)
+    detail = BudgetDetail(tenantId=t.id, subcategoryId=sub_id, name="간식비")
     session.add(detail)
     await session.flush()
     session.add(
