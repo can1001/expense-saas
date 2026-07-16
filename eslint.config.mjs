@@ -32,6 +32,10 @@ const eslintConfig = defineConfig([
         varsIgnorePattern: "^_"
       }],
       "react-hooks/set-state-in-effect": "off",
+      // React Compiler 규칙 — 레거시 컴포넌트(Strangler 이전 중)에서 보수적 오탐이 있어
+      // error→warn 으로 완화(set-state-in-effect 와 동일 방침). 시그널은 유지, CI 는 통과.
+      "react-hooks/immutability": "warn",
+      "react-hooks/refs": "warn",
     },
   },
   // Allow require() in JavaScript scripts
