@@ -1,0 +1,39 @@
+# Render Blueprint — FastAPI 백엔드 (expense-api)
+#
+# 사용법: Render 대시보드에서 Docker 웹 서비스를 생성하고 Root Directory = backend 로 지정하거나,
+# 이 파일을 루트 render.yaml 에 통합해 Blueprint 로 배포한다.
+# Dockerfile(멀티스테이지 uv) + docker-entrypoint.sh(alembic upgrade head → uvicorn) 사용.
+#
+# ⚠️ 배포 모드 (backend/DEPLOY.md 참조)
+#   (a) 독립 DB   : 자체 Postgres 로 FastAPI 가 스키마 생성·시드. 지금 바로 배포 가능.
+#   (b) 공유 DB   : Next.js 와 동일 Neon. 실 로그인 커토버에 필요하나 스키마 채택(§9) 선행 필수.
+#
+# 환경변수 (대시보드에서 sync:false 는 수동 입력):
+#   RUNNING_ZONE=prod         (필수 — 미설정 시 부팅 거부)
+#   DATABASE_URL              postgresql+asyncpg://<user>:<pw>@<host>/<db>?sslmode=require
+#   SECRET_KEY                ⚠️ Next.js USER_JWT_SECRET 와 동일해야 로그인 커토버 성립
+#   CORS_ORIGINS             '["https://<프론트 도메인>"]'
+
+services:
+  - type: web
+    name: expense-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: RUNNING_ZONE
+        value: prod
+      - key: JWT_ISSUER
+        value: expense-saas    # Next.js setIssuer 와 일치 (토큰 상호검증)
+      - key: JWT_AUDIENCE
+        value: tenant-user      # Next.js setAudience 와 일치
+      - key: DATABASE_URL
+        sync: false             # Neon(공유) 또는 전용 Postgres
+      - key: SECRET_KEY
+        sync: false             # == Next.js USER_JWT_SECRET
+      - key: CORS_ORIGINS
+        sync: false             # 프론트 도메인 허용
