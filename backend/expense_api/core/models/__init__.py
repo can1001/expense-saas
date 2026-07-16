@@ -24,6 +24,11 @@ from expense_api.core.models.expense import (  # noqa: F401
     ExpenseAttachment,
     ExpenseItem,
 )
+from expense_api.core.models.notification import (  # noqa: F401
+    NotificationLog,
+    NotificationPreference,
+    PushSubscription,
+)
 from expense_api.core.models.schema_info import SchemaInfo  # noqa: F401
 from expense_api.core.models.tenant import SuperAdmin, Tenant  # noqa: F401
 from expense_api.core.models.user import Role, User, UserYearRole  # noqa: F401
@@ -49,4 +54,7 @@ __all__ = [
     "ApprovalStep",
     "ApprovalLog",
     "ApprovalPolicy",
+    "NotificationPreference",
+    "NotificationLog",
+    "PushSubscription",
 ]

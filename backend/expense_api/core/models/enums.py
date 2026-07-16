@@ -46,6 +46,26 @@ class StepStatus(str, Enum):
     SKIPPED = "SKIPPED"  # 건너뜀
 
 
+class NotificationChannel(str, Enum):
+    SMS = "SMS"
+    KAKAO = "KAKAO"
+    WEB_PUSH = "WEB_PUSH"
+
+
+class NotificationEventType(str, Enum):
+    SUBMIT = "SUBMIT"  # 결재 요청
+    APPROVE = "APPROVE"  # 승인
+    REJECT = "REJECT"  # 반려
+    WITHDRAW = "WITHDRAW"  # 회수
+    PAYMENT_COMPLETE = "PAYMENT_COMPLETE"  # 지급 완료
+
+
+class NotificationStatus(str, Enum):
+    PENDING = "PENDING"
+    SENT = "SENT"
+    FAILED = "FAILED"
+
+
 class ApprovalAction(str, Enum):
     SUBMIT = "SUBMIT"
     APPROVE = "APPROVE"
