@@ -127,12 +127,14 @@ jobs:
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/expense_test
           USER_JWT_SECRET: ci-e2e-secret-not-for-production-min-32
+          SUPER_ADMIN_JWT_SECRET: ci-e2e-superadmin-secret-not-for-prod-32
         run: npm run build
 
       - name: Run E2E tests
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/expense_test
           USER_JWT_SECRET: ci-e2e-secret-not-for-production-min-32
+          SUPER_ADMIN_JWT_SECRET: ci-e2e-superadmin-secret-not-for-prod-32
         run: npm run test:e2e
 
       - name: Upload Playwright report
@@ -165,6 +167,7 @@ jobs:
           # 빌드 시 NODE_ENV=production 이라 getUserJwtSecret() 가 미설정이면 throw.
           # 실 시크릿은 배포 환경변수로 주입되며, CI 빌드 검증용 더미.
           USER_JWT_SECRET: ci-build-secret-not-for-production-min-32
+          SUPER_ADMIN_JWT_SECRET: ci-build-superadmin-secret-not-for-prod-32
         run: npm run build
 
       - name: Upload build artifacts
@@ -225,6 +228,7 @@ jobs:
       - name: Build application
         env:
           USER_JWT_SECRET: ci-deploy-secret-not-for-production-min-32
+          SUPER_ADMIN_JWT_SECRET: ci-deploy-superadmin-secret-not-for-prod32
         run: npm run build
 
       - name: Deploy to production
