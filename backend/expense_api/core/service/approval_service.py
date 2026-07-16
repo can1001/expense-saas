@@ -321,11 +321,14 @@ class ApprovalService:
             raise WorkflowError(400, "회수할 수 없는 상태입니다.")
 
         # 결재선/단계 삭제 후 DRAFT 로 되돌림 (engine: WITHDRAW → DRAFT)
+        # (SQLite FK ON: 스텝을 먼저 flush 로 지운 뒤 라인 삭제 — 순서 보장)
         line = await self._get_line(expense_id)
         if line is not None:
             for s in await self._get_steps(line.id):
                 await self.session.delete(s)
+            await self.session.flush()
             await self.session.delete(line)
+            await self.session.flush()
 
         prev = expense.status
         expense.status = calculate_approval_status("WITHDRAW", 0, 0)  # → DRAFT

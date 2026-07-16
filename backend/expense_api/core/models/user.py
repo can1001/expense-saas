@@ -81,7 +81,7 @@ class UserYearRole(SQLModel, table=True):
 
     tenantId: str | None = Field(default=None, index=True)  # 쿼리 최적화용 (관계 없음)
 
-    userId: str = Field(foreign_key="User.id", index=True)
+    userId: str = Field(foreign_key="User.id", ondelete="CASCADE", index=True)
     year: int = Field(index=True)
     role: str = Field(index=True)  # 역할 코드
     roleId: str | None = Field(default=None, foreign_key="Role.id")
