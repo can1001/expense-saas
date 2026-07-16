@@ -16,6 +16,7 @@ from expense_api.core.schemas.approval import (
     ApprovalStepOut,
     ApproveRequest,
     DelegateRequest,
+    ModifyLineRequest,
     RejectRequest,
     SubmitRequest,
     WorkflowResult,
@@ -72,6 +73,36 @@ async def reject(
     except WorkflowError as e:
         raise HTTPException(e.status_code, e.message)
     return _result(expense)
+
+
+@router.post("/{expense_id}/resubmit", response_model=WorkflowResult)
+async def resubmit(
+    expense_id: str,
+    body: SubmitRequest,
+    user: CurrentUser = Depends(get_current_user),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> WorkflowResult:
+    try:
+        expense = await ApprovalService(session, tenant_id).resubmit(expense_id, user, body)
+    except WorkflowError as e:
+        raise HTTPException(e.status_code, e.message)
+    return _result(expense)
+
+
+@router.post("/{expense_id}/approval-line")
+async def modify_line(
+    expense_id: str,
+    body: ModifyLineRequest,
+    user: CurrentUser = Depends(get_current_user),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    try:
+        line = await ApprovalService(session, tenant_id).modify_line(expense_id, user, body.steps)
+    except WorkflowError as e:
+        raise HTTPException(e.status_code, e.message)
+    return {"expenseId": expense_id, "currentStep": line.currentStep, "totalSteps": line.totalSteps}
 
 
 @router.post("/{expense_id}/delegate")
