@@ -31,9 +31,14 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _base_claims(subject: str) -> dict:
+    # iss/aud 를 Next.js 형식과 맞춰 상호 검증 가능하게 한다.
+    return {"sub": subject, "iss": settings.JWT_ISSUER, "aud": settings.JWT_AUDIENCE, "iat": _now()}
+
+
 def create_access_token(subject: str, extra: dict | None = None) -> str:
     expire = _now() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload: dict = {"sub": subject, "type": "access", "exp": expire, "iat": _now()}
+    payload: dict = {**_base_claims(subject), "type": "access", "exp": expire}
     if extra:
         payload.update(extra)
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
@@ -41,13 +46,22 @@ def create_access_token(subject: str, extra: dict | None = None) -> str:
 
 def create_refresh_token(subject: str) -> str:
     expire = _now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    payload = {"sub": subject, "type": "refresh", "exp": expire, "iat": _now()}
+    payload = {**_base_claims(subject), "type": "refresh", "exp": expire}
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
 def decode_token(token: str) -> dict:
-    """검증 실패 시 JWTError 를 던진다."""
-    return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+    """검증 실패 시 JWTError 를 던진다.
+
+    상호호환: 서명(공유 시크릿)+만료만 강제하고 aud 는 강제하지 않는다
+    (Next.js 발급 토큰도, FastAPI 토큰도 동일 시크릿이면 수용).
+    """
+    return jwt.decode(
+        token,
+        settings.SECRET_KEY,
+        algorithms=[settings.JWT_ALGORITHM],
+        options={"verify_aud": False},
+    )
 
 
 __all__ = [
