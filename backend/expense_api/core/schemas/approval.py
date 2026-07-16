@@ -28,6 +28,12 @@ class RejectRequest(BaseModel):
     comment: str = Field(min_length=1)  # 반려 사유 필수
 
 
+class DelegateRequest(BaseModel):
+    stepNumber: int = Field(ge=1)
+    delegatedTo: str = Field(min_length=1)  # 대리인 사용자명
+    reason: str | None = None
+
+
 class ApprovalStepOut(BaseModel):
     stepNumber: int
     stepName: str
@@ -36,6 +42,8 @@ class ApprovalStepOut(BaseModel):
     approvedAt: datetime | None
     rejectedAt: datetime | None
     comment: str | None
+    isParallel: bool = False
+    delegatedTo: str | None = None
 
 
 class ApprovalLineOut(BaseModel):

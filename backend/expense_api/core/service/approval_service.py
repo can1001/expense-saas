@@ -13,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from expense_api.core.domain.approval_engine import (
     calculate_approval_status,
     calculate_next_step,
-    can_approve,
 )
 from expense_api.core.models.approval import ApprovalLine, ApprovalLog, ApprovalStep
 from expense_api.core.models.approval_policy import ApprovalPolicy
@@ -30,12 +29,13 @@ from expense_api.core.service.approval_policy_engine import (
 
 @dataclass
 class _PlannedStep:
-    stepNumber: int
+    stepNumber: int  # 결재 레벨 (병렬 시 여러 스텝이 동일)
     stepName: str
     approverName: str
     approverEmail: str | None
     approverTitle: str | None
     isAutoApproved: bool
+    isParallel: bool = False
 
 
 class WorkflowError(Exception):
@@ -123,6 +123,7 @@ class ApprovalService:
             year=expense.requestDate.year,
             applicant_user_id=expense.userId,
             budget_detail_name=await self._first_budget_detail_name(expense.id),
+            request_amount=expense.requestAmount,
         )
         try:
             calc = await ApprovalPolicyEngine(self.session).resolve(policy, ctx)
@@ -136,6 +137,7 @@ class ApprovalService:
                 approverEmail=None,
                 approverTitle=None,
                 isAutoApproved=s.isAutoApproved,
+                isParallel=s.isParallel,
             )
             for s in calc.steps
         ]
@@ -166,21 +168,21 @@ class ApprovalService:
 
         planned, first_pending = await self._plan_steps(expense, data)
         now = utcnow()
-        total = len(planned)
+        total_levels = max(p.stepNumber for p in planned)  # 병렬은 한 레벨
 
         line = ApprovalLine(
             expenseId=expense_id,
-            currentStep=min(first_pending, total),
-            totalSteps=total,
+            currentStep=min(first_pending, total_levels),
+            totalSteps=total_levels,
             isUrgent=data.isUrgent,
-            snapshot={"steps": [p.__dict__ for p in planned], "totalSteps": total},
+            snapshot={"steps": [p.__dict__ for p in planned], "totalSteps": total_levels},
         )
         self.session.add(line)
         await self.session.flush()
 
-        # 선두 연속 자동승인(전결) 단계는 선완료 처리
+        # 전결(자동승인) 스텝은 선완료. 단, firstPending 레벨까지만 (뒤 레벨은 순서대로).
         for p in planned:
-            pre_approved = p.stepNumber < first_pending
+            pre_approved = p.isAutoApproved and p.stepNumber <= first_pending
             self.session.add(
                 ApprovalStep(
                     approvalLineId=line.id,
@@ -189,21 +191,22 @@ class ApprovalService:
                     approverName=p.approverName,
                     approverEmail=p.approverEmail,
                     approverTitle=p.approverTitle,
+                    isParallel=p.isParallel,
                     status=StepStatus.APPROVED.value if pre_approved else StepStatus.PENDING.value,
                     approvedAt=now if pre_approved else None,
                     comment="전결(자동승인)" if pre_approved else None,
                 )
             )
 
-        completed = first_pending - 1  # 선완료된 단계 수
+        completed = first_pending - 1  # 선완료된 레벨 수
         prev = expense.status
-        if completed >= total:  # 전부 전결 → 최종 승인
+        if completed >= total_levels:  # 전부 전결 → 최종 승인
             expense.status = ApprovalStatus.APPROVED_FINAL.value
             expense.approvedAt = now
         elif completed > 0:
-            expense.status = calculate_approval_status("APPROVE", completed, total)
+            expense.status = calculate_approval_status("APPROVE", completed, total_levels)
         else:
-            expense.status = calculate_approval_status("SUBMIT", 0, total)  # → PENDING
+            expense.status = calculate_approval_status("SUBMIT", 0, total_levels)  # → PENDING
         expense.submittedAt = now
 
         await self._log(expense_id, ApprovalAction.SUBMIT.value, actor, prev, expense.status)
@@ -211,12 +214,20 @@ class ApprovalService:
         await self.session.refresh(expense)
         return expense
 
-    # ── 승인 ──────────────────────────────────────────────────────────
-    async def approve(self, expense_id: str, actor, comment: str | None) -> Expense:
-        expense = await self._get_expense(expense_id)
-        line = await self._get_line(expense_id)
-        if line is None:
-            raise WorkflowError(400, "결재선이 없습니다.")
+    def _actor_pending_step(
+        self, level_steps: list[ApprovalStep], actor
+    ) -> ApprovalStep | None:
+        """현재 레벨에서 actor(결재자 본인 또는 대리인)의 대기 스텝을 찾는다."""
+        for s in level_steps:
+            if s.status != StepStatus.PENDING.value:
+                continue
+            if actor.username == s.approverName or (
+                s.delegatedTo and actor.username == s.delegatedTo
+            ):
+                return s
+        return None
+
+    def _guard_in_progress(self, expense: Expense) -> None:
         if expense.status in (
             ApprovalStatus.APPROVED_FINAL.value,
             ApprovalStatus.REJECTED.value,
@@ -224,84 +235,78 @@ class ApprovalService:
         ):
             raise WorkflowError(400, "결재 진행 중인 지출결의서가 아닙니다.")
 
-        steps = await self._get_steps(line.id)
-        current = next((s for s in steps if s.stepNumber == line.currentStep), None)
-        if current is None:
-            raise WorkflowError(400, "현재 결재 단계를 찾을 수 없습니다.")
+    # ── 승인 (레벨 기반: 병렬 시 레벨 전체 승인돼야 전진) ───────────────
+    async def approve(self, expense_id: str, actor, comment: str | None) -> Expense:
+        expense = await self._get_expense(expense_id)
+        line = await self._get_line(expense_id)
+        if line is None:
+            raise WorkflowError(400, "결재선이 없습니다.")
+        self._guard_in_progress(expense)
 
-        decision = can_approve(
-            actor.username, current.approverName, line.currentStep, current.stepNumber
-        )
-        if not decision.allowed:
-            raise WorkflowError(403, decision.reason or "결재 권한이 없습니다.")
+        steps = await self._get_steps(line.id)
+        level_steps = [s for s in steps if s.stepNumber == line.currentStep]
+        mine = self._actor_pending_step(level_steps, actor)
+        if mine is None:
+            raise WorkflowError(403, "현재 단계의 지정 결재자(또는 대리인)가 아닙니다.")
 
         now = utcnow()
-        current.status = StepStatus.APPROVED.value
-        current.approvedAt = now
-        current.comment = comment
+        mine.status = StepStatus.APPROVED.value
+        mine.approvedAt = now
+        mine.comment = comment
 
-        completed_step = line.currentStep
-        nxt = calculate_next_step(line.currentStep, line.totalSteps, "APPROVE")
         prev = expense.status
-        expense.status = calculate_approval_status("APPROVE", completed_step, line.totalSteps)
+        still_pending = [s for s in level_steps if s.status == StepStatus.PENDING.value]
+        if still_pending:
+            # 병렬 레벨 부분 승인 — 레벨 미완료, 전진하지 않음
+            await self._log(
+                expense_id, ApprovalAction.APPROVE.value, actor, prev, expense.status,
+                step_number=line.currentStep, step_name=mine.stepName, comment=comment,
+            )
+            await self.session.commit()
+            await self.session.refresh(expense)
+            return expense
+
+        # 레벨 전체 승인 완료 → 전진
+        completed_level = line.currentStep
+        nxt = calculate_next_step(line.currentStep, line.totalSteps, "APPROVE")
+        expense.status = calculate_approval_status("APPROVE", completed_level, line.totalSteps)
         line.currentStep = nxt.next_step
         if nxt.is_complete:
             expense.approvedAt = now
 
         await self._log(
-            expense_id,
-            ApprovalAction.APPROVE.value,
-            actor,
-            prev,
-            expense.status,
-            step_number=completed_step,
-            step_name=current.stepName,
-            comment=comment,
+            expense_id, ApprovalAction.APPROVE.value, actor, prev, expense.status,
+            step_number=completed_level, step_name=mine.stepName, comment=comment,
         )
         await self.session.commit()
         await self.session.refresh(expense)
         await self.session.refresh(line)
         return expense
 
-    # ── 반려 ──────────────────────────────────────────────────────────
+    # ── 반려 (레벨 내 한 명이라도 반려하면 전체 반려) ──────────────────
     async def reject(self, expense_id: str, actor, comment: str) -> Expense:
         expense = await self._get_expense(expense_id)
         line = await self._get_line(expense_id)
         if line is None:
             raise WorkflowError(400, "결재선이 없습니다.")
-        if expense.status in (
-            ApprovalStatus.APPROVED_FINAL.value,
-            ApprovalStatus.REJECTED.value,
-            ApprovalStatus.DRAFT.value,
-        ):
-            raise WorkflowError(400, "결재 진행 중인 지출결의서가 아닙니다.")
+        self._guard_in_progress(expense)
 
         steps = await self._get_steps(line.id)
-        current = next((s for s in steps if s.stepNumber == line.currentStep), None)
-        if current is None:
-            raise WorkflowError(400, "현재 결재 단계를 찾을 수 없습니다.")
-        decision = can_approve(
-            actor.username, current.approverName, line.currentStep, current.stepNumber
-        )
-        if not decision.allowed:
-            raise WorkflowError(403, decision.reason or "결재 권한이 없습니다.")
+        level_steps = [s for s in steps if s.stepNumber == line.currentStep]
+        mine = self._actor_pending_step(level_steps, actor)
+        if mine is None:
+            raise WorkflowError(403, "현재 단계의 지정 결재자(또는 대리인)가 아닙니다.")
 
         now = utcnow()
-        current.status = StepStatus.REJECTED.value
-        current.rejectedAt = now
-        current.comment = comment
+        mine.status = StepStatus.REJECTED.value
+        mine.rejectedAt = now
+        mine.comment = comment
         prev = expense.status
         expense.status = calculate_approval_status("REJECT", line.currentStep, line.totalSteps)
         expense.rejectedAt = now
         await self._log(
-            expense_id,
-            ApprovalAction.REJECT.value,
-            actor,
-            prev,
-            expense.status,
-            step_number=line.currentStep,
-            step_name=current.stepName,
-            comment=comment,
+            expense_id, ApprovalAction.REJECT.value, actor, prev, expense.status,
+            step_number=line.currentStep, step_name=mine.stepName, comment=comment,
         )
         await self.session.commit()
         await self.session.refresh(expense)
@@ -329,3 +334,38 @@ class ApprovalService:
         await self.session.commit()
         await self.session.refresh(expense)
         return expense
+
+    # ── 대리결재 지정 ─────────────────────────────────────────────────
+    async def delegate(
+        self, expense_id: str, actor, step_number: int, delegated_to: str, reason: str | None
+    ) -> ApprovalStep:
+        """지정 결재자가 특정 단계를 대리인에게 위임한다. (본인 대기 스텝만)"""
+        expense = await self._get_expense(expense_id)
+        line = await self._get_line(expense_id)
+        if line is None:
+            raise WorkflowError(400, "결재선이 없습니다.")
+        self._guard_in_progress(expense)
+
+        steps = await self._get_steps(line.id)
+        target = next(
+            (
+                s
+                for s in steps
+                if s.stepNumber == step_number
+                and s.status == StepStatus.PENDING.value
+                and s.approverName == actor.username
+            ),
+            None,
+        )
+        if target is None:
+            raise WorkflowError(403, "본인이 지정된 대기 단계만 위임할 수 있습니다.")
+
+        target.delegatedTo = delegated_to
+        target.delegationReason = reason
+        await self._log(
+            expense_id, ApprovalAction.DELEGATE.value, actor, expense.status, expense.status,
+            step_number=step_number, step_name=target.stepName, comment=reason,
+        )
+        await self.session.commit()
+        await self.session.refresh(target)
+        return target

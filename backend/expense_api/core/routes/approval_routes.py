@@ -15,6 +15,7 @@ from expense_api.core.schemas.approval import (
     ApprovalLineOut,
     ApprovalStepOut,
     ApproveRequest,
+    DelegateRequest,
     RejectRequest,
     SubmitRequest,
     WorkflowResult,
@@ -73,6 +74,23 @@ async def reject(
     return _result(expense)
 
 
+@router.post("/{expense_id}/delegate")
+async def delegate(
+    expense_id: str,
+    body: DelegateRequest,
+    user: CurrentUser = Depends(get_current_user),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    try:
+        step = await ApprovalService(session, tenant_id).delegate(
+            expense_id, user, body.stepNumber, body.delegatedTo, body.reason
+        )
+    except WorkflowError as e:
+        raise HTTPException(e.status_code, e.message)
+    return {"stepNumber": step.stepNumber, "delegatedTo": step.delegatedTo}
+
+
 @router.post("/{expense_id}/withdraw", response_model=WorkflowResult)
 async def withdraw(
     expense_id: str,
@@ -118,6 +136,8 @@ async def get_approval_line(
                 approvedAt=s.approvedAt,
                 rejectedAt=s.rejectedAt,
                 comment=s.comment,
+                isParallel=s.isParallel,
+                delegatedTo=s.delegatedTo,
             )
             for s in steps
         ],
