@@ -13,6 +13,14 @@ interface TenantInfo {
   logoUrl: string | null;
 }
 
+// 로그인 백엔드 스위치 (Strangler 커토버, spec §7 · §12)
+//   true  → FastAPI (/api/py/auth/login) — 발급 토큰은 Next.js 와 상호검증(PR #13)
+//   false → 기존 Next.js (/api/auth/login) [기본]
+// ⚠️ 프로덕션에서 true 로 켜려면 FastAPI 가 동일 DB + 동일 시크릿(SECRET_KEY==USER_JWT_SECRET)으로
+//    배포돼 있어야 한다. 미충족 시 로그인/세션이 깨진다.
+const USE_PY_AUTH = process.env.NEXT_PUBLIC_USE_PY_AUTH === 'true';
+const LOGIN_URL = USE_PY_AUTH ? '/api/py/auth/login' : '/api/auth/login';
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -85,7 +93,7 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(LOGIN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userid: userid.trim(), password }),
@@ -94,7 +102,8 @@ function LoginForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || '로그인에 실패했습니다.');
+        // Next.js 는 { error }, FastAPI 는 { detail } 형식
+        setError(data.error || data.detail || '로그인에 실패했습니다.');
         return;
       }
 
