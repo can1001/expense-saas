@@ -39,20 +39,20 @@
 | `SchemaInfo` 테이블 | 없음 | 있음(Phase 0) | 생성 |
 | `ApprovalPolicy` 테이블 | 없음 | 있음(§15.3) | 생성 |
 | `Tenant.enabledModules` | **없음** | JSON | 컬럼 추가(가산적, 안전) |
-| `Role.permissions` | `text[]` | JSON(SQLite용) | ⚠️ **dual-run 중 변환 금지** — 아래 참조 |
+| `Role.permissions` | `text[]` | dialect-variant | ✅ 해결됨 — 모델이 PG=`TEXT[]`/SQLite=JSON (아래) |
 | enum 컬럼(status 등) | 네이티브 PG enum | String 취급 | 변경 불필요(값 호환, 문자열로 read/write) |
 | CASCADE FK | `onDelete: Cascade` | `ondelete=CASCADE` | 이미 일치 |
 | NotificationPreference/Log/PushSubscription | 있음 | 있음 | 일치 |
 
-### `Role.permissions` — dual-run 호환 (중요)
+### `Role.permissions` — dual-run 호환 (해결됨)
 
-전환기에는 **Next.js(Prisma, `text[]` 기대)와 FastAPI 가 같은 Neon 을 동시 사용**한다.
-DB 를 `jsonb` 로 바꾸면 Prisma 읽기가 깨진다. 따라서:
+전환기에는 **Next.js(Prisma, `text[]`)와 FastAPI 가 같은 Neon 을 동시 사용**한다.
+DB 를 `jsonb` 로 바꾸면 Prisma 읽기가 깨지므로 **DB 는 그대로 두고 FastAPI 모델을 맞춘다**:
 
-- **변환하지 말 것.** 대신 FastAPI 모델을 **dialect-variant** 로 만들어 기존 `text[]` 를 읽게 한다:
-  Postgres=`ARRAY(String)`, SQLite=`JSON` (`sa_column` 을 `.with_variant()` 로).
-  → 이 코드 변경은 별도 작업(모델 `Role.permissions` 컬럼 정의 수정 + 마이그레이션)으로 진행.
-- **완전 변환(`text[]`→`jsonb`)은 Next.js/Prisma 완전 은퇴 후**에만.
+- `Role.permissions` 컬럼이 **dialect-variant** 로 정의돼 있다 (`models/user.py`):
+  `JSON().with_variant(ARRAY(Text()), "postgresql")` → **Postgres=`TEXT[]`**(Prisma `String[]` 그대로 읽기), **SQLite=JSON**.
+- 따라서 공유 Neon 의 기존 `text[]` 컬럼을 **변환 없이** 읽는다. DB 마이그레이션 불필요.
+- (완전 `jsonb` 전환은 Next.js/Prisma 은퇴 후에만 — 그때도 선택사항.)
 
 ### 가산적 델타 (안전 — Prisma 무영향)
 

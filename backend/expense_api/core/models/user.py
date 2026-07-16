@@ -8,7 +8,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Column, UniqueConstraint, func
+from sqlalchemy import ARRAY, JSON, Column, Text, UniqueConstraint, func
 from sqlmodel import Field, SQLModel
 
 from expense_api.core.models.ids import new_id, utcnow
@@ -29,8 +29,15 @@ class Role(SQLModel, table=True):
     isActive: bool = True
 
     # RBAC permission 코드 배열 (비면 코드 프리셋으로 폴백 — permissions.py)
+    # dialect-variant: Postgres=text[](Prisma String[] 그대로 읽기), SQLite=JSON.
+    # 공유 Neon(dual-run)에서 Prisma 가 만든 text[] 컬럼을 FastAPI 가 읽을 수 있게 한다.
     permissions: list[str] = Field(
-        default_factory=list, sa_column=Column(JSON, nullable=False, server_default="[]")
+        default_factory=list,
+        sa_column=Column(
+            JSON().with_variant(ARRAY(Text()), "postgresql"),
+            nullable=False,
+            server_default="[]",
+        ),
     )
 
     createdAt: datetime = Field(
