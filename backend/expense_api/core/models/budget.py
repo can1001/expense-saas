@@ -127,7 +127,7 @@ class BudgetDetailYear(SQLModel, table=True):
     id: str = Field(default_factory=new_id, primary_key=True)
     tenantId: str | None = Field(default=None, index=True)  # 쿼리 최적화용
 
-    budgetDetailId: str = Field(foreign_key="BudgetDetail.id", index=True)
+    budgetDetailId: str = Field(foreign_key="BudgetDetail.id", ondelete="CASCADE", index=True)
     year: int = Field(index=True)
 
     managerId: str | None = Field(
@@ -156,8 +156,8 @@ class DepartmentBudgetDetail(SQLModel, table=True):
     id: str = Field(default_factory=new_id, primary_key=True)
     tenantId: str | None = Field(default=None, index=True)  # 쿼리 최적화용
 
-    departmentId: str = Field(foreign_key="Department.id", index=True)
-    budgetDetailId: str = Field(foreign_key="BudgetDetail.id", index=True)
+    departmentId: str = Field(foreign_key="Department.id", ondelete="CASCADE", index=True)
+    budgetDetailId: str = Field(foreign_key="BudgetDetail.id", ondelete="CASCADE", index=True)
     isActive: bool = True
 
     createdAt: datetime = Field(

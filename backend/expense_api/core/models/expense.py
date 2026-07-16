@@ -71,7 +71,7 @@ class ExpenseItem(SQLModel, table=True):
     id: str = Field(default_factory=new_id, primary_key=True)
     tenantId: str | None = Field(default=None, index=True)  # 쿼리 최적화용
 
-    expenseId: str = Field(foreign_key="Expense.id", index=True)
+    expenseId: str = Field(foreign_key="Expense.id", ondelete="CASCADE", index=True)
 
     budgetCategory: str = ""  # 예산(항)
     budgetSubcategory: str = ""  # 예산(목)
@@ -93,7 +93,7 @@ class ExpenseAttachment(SQLModel, table=True):
     id: str = Field(default_factory=new_id, primary_key=True)
     tenantId: str | None = Field(default=None, index=True)
 
-    expenseId: str = Field(foreign_key="Expense.id", index=True)
+    expenseId: str = Field(foreign_key="Expense.id", ondelete="CASCADE", index=True)
 
     publicId: str  # Cloudinary public_id
     url: str

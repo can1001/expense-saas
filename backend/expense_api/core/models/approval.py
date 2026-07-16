@@ -13,7 +13,7 @@ class ApprovalLine(SQLModel, table=True):
     __tablename__ = "ApprovalLine"
 
     id: str = Field(default_factory=new_id, primary_key=True)
-    expenseId: str = Field(foreign_key="Expense.id", unique=True, index=True)
+    expenseId: str = Field(foreign_key="Expense.id", ondelete="CASCADE", unique=True, index=True)
 
     snapshot: dict | None = Field(default=None, sa_column=Column(JSON))  # 제출 시점 고정
 
@@ -34,7 +34,7 @@ class ApprovalStep(SQLModel, table=True):
     __tablename__ = "ApprovalStep"
 
     id: str = Field(default_factory=new_id, primary_key=True)
-    approvalLineId: str = Field(foreign_key="ApprovalLine.id", index=True)
+    approvalLineId: str = Field(foreign_key="ApprovalLine.id", ondelete="CASCADE", index=True)
 
     stepNumber: int = Field(index=True)  # 결재 순서
     stepName: str  # 결재자 역할명
