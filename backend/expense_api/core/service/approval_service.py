@@ -156,22 +156,14 @@ class ApprovalService:
         )
         return (await self.session.execute(stmt)).scalars().first()
 
-    # ── 제출 ──────────────────────────────────────────────────────────
-    async def submit(self, expense_id: str, actor, data: SubmitRequest) -> Expense:
-        expense = await self._get_expense(expense_id)
-        if expense.userId != actor.id:
-            raise WorkflowError(403, "작성자만 제출할 수 있습니다.")
-        if expense.status != ApprovalStatus.DRAFT.value:
-            raise WorkflowError(400, "작성중(DRAFT) 상태만 제출할 수 있습니다.")
-        if await self._get_line(expense_id) is not None:
-            raise WorkflowError(409, "이미 결재선이 존재합니다.")
-
+    async def _apply_new_line(self, expense: Expense, actor, data: SubmitRequest, action: str) -> None:
+        """결재선 산출 → 생성 + 전결 선완료 + 지출 상태 반영 + 로그. (제출/재제출 공용)"""
         planned, first_pending = await self._plan_steps(expense, data)
         now = utcnow()
         total_levels = max(p.stepNumber for p in planned)  # 병렬은 한 레벨
 
         line = ApprovalLine(
-            expenseId=expense_id,
+            expenseId=expense.id,
             currentStep=min(first_pending, total_levels),
             totalSteps=total_levels,
             isUrgent=data.isUrgent,
@@ -209,7 +201,43 @@ class ApprovalService:
             expense.status = calculate_approval_status("SUBMIT", 0, total_levels)  # → PENDING
         expense.submittedAt = now
 
-        await self._log(expense_id, ApprovalAction.SUBMIT.value, actor, prev, expense.status)
+        await self._log(expense.id, action, actor, prev, expense.status)
+
+    # ── 제출 ──────────────────────────────────────────────────────────
+    async def submit(self, expense_id: str, actor, data: SubmitRequest) -> Expense:
+        expense = await self._get_expense(expense_id)
+        if expense.userId != actor.id:
+            raise WorkflowError(403, "작성자만 제출할 수 있습니다.")
+        if expense.status != ApprovalStatus.DRAFT.value:
+            raise WorkflowError(400, "작성중(DRAFT) 상태만 제출할 수 있습니다.")
+        if await self._get_line(expense_id) is not None:
+            raise WorkflowError(409, "이미 결재선이 존재합니다.")
+
+        await self._apply_new_line(expense, actor, data, ApprovalAction.SUBMIT.value)
+        await self.session.commit()
+        await self.session.refresh(expense)
+        return expense
+
+    # ── 재제출 (반려 → 재산출 후 재상신) ──────────────────────────────
+    async def resubmit(self, expense_id: str, actor, data: SubmitRequest) -> Expense:
+        expense = await self._get_expense(expense_id)
+        if expense.userId != actor.id:
+            raise WorkflowError(403, "작성자만 재제출할 수 있습니다.")
+        if expense.status != ApprovalStatus.REJECTED.value:
+            raise WorkflowError(400, "반려(REJECTED)된 지출결의서만 재제출할 수 있습니다.")
+
+        # 기존 결재선/단계 삭제 후 재산출
+        # (SQLite FK ON: 스텝을 먼저 flush 로 지운 뒤 라인 삭제 — 순서 보장)
+        line = await self._get_line(expense_id)
+        if line is not None:
+            for s in await self._get_steps(line.id):
+                await self.session.delete(s)
+            await self.session.flush()
+            await self.session.delete(line)
+            await self.session.flush()
+        expense.rejectedAt = None
+
+        await self._apply_new_line(expense, actor, data, ApprovalAction.RESUBMIT.value)
         await self.session.commit()
         await self.session.refresh(expense)
         return expense
@@ -372,3 +400,76 @@ class ApprovalService:
         await self.session.commit()
         await self.session.refresh(target)
         return target
+
+    # ── 결재선 수정 (진행 중 잔여 단계 교체 + 감사 스냅샷) ─────────────
+    @staticmethod
+    def _snapshot_steps(steps: list[ApprovalStep]) -> list[dict]:
+        return [
+            {"stepNumber": s.stepNumber, "stepName": s.stepName, "approverName": s.approverName,
+             "status": s.status, "isParallel": s.isParallel}
+            for s in steps
+        ]
+
+    async def modify_line(self, expense_id: str, actor, new_steps: list) -> ApprovalLine:
+        """currentStep 이상의 미승인 잔여 결재선을 new_steps 로 교체한다. (작성자, 진행 중)"""
+        expense = await self._get_expense(expense_id)
+        if expense.userId != actor.id:
+            raise WorkflowError(403, "작성자만 결재선을 수정할 수 있습니다.")
+        line = await self._get_line(expense_id)
+        if line is None:
+            raise WorkflowError(400, "결재선이 없습니다.")
+        self._guard_in_progress(expense)
+
+        steps = await self._get_steps(line.id)
+        # 현재 레벨이 이미 부분 승인됐다면 교체 불가 (완료 단계 훼손 방지)
+        current_level = [s for s in steps if s.stepNumber == line.currentStep]
+        if any(s.status != StepStatus.PENDING.value for s in current_level):
+            raise WorkflowError(400, "현재 단계가 이미 진행되어 결재선을 수정할 수 없습니다.")
+
+        kept = [s for s in steps if s.stepNumber < line.currentStep]  # 완료 레벨 보존
+        replaced = [s for s in steps if s.stepNumber >= line.currentStep]
+        before_snapshot = self._snapshot_steps(replaced)
+
+        # new_steps 를 현재 레벨부터 시작하도록 레벨 재배정 (병렬=동일 stepNumber 보존)
+        base = min(s.stepNumber for s in new_steps)
+        offset = line.currentStep - base
+        for s in replaced:
+            await self.session.delete(s)
+        await self.session.flush()
+
+        added: list[ApprovalStep] = []
+        for s in new_steps:
+            lvl = s.stepNumber + offset
+            step = ApprovalStep(
+                approvalLineId=line.id,
+                stepNumber=lvl,
+                stepName=s.stepName,
+                approverName=s.approverName,
+                approverEmail=s.approverEmail,
+                approverTitle=s.approverTitle,
+                status=StepStatus.PENDING.value,
+            )
+            self.session.add(step)
+            added.append(step)
+
+        new_total = max([s.stepNumber for s in kept] + [st.stepNumber for st in added])
+        line.totalSteps = new_total
+
+        # 감사 로그 (before/after 스냅샷)
+        self.session.add(
+            ApprovalLog(
+                tenantId=self.tenant_id,
+                expenseId=expense_id,
+                action=ApprovalAction.MODIFY_LINE.value,
+                actorName=actor.username,
+                actorRole=actor.role,
+                previousStatus=expense.status,
+                newStatus=expense.status,
+                stepNumber=line.currentStep,
+                beforeSnapshot={"steps": before_snapshot},
+                afterSnapshot={"steps": self._snapshot_steps(added)},
+            )
+        )
+        await self.session.commit()
+        await self.session.refresh(line)
+        return line

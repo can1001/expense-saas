@@ -34,6 +34,12 @@ class DelegateRequest(BaseModel):
     reason: str | None = None
 
 
+class ModifyLineRequest(BaseModel):
+    # 현재 레벨 이상의 미승인 잔여 결재선을 이 단계들로 교체한다.
+    # (동일 stepNumber = 병렬. 첫 레벨이 현재 레벨에 매핑되도록 재배정됨)
+    steps: list[ApprovalStepInput] = Field(min_length=1)
+
+
 class ApprovalStepOut(BaseModel):
     stepNumber: int
     stepName: str
