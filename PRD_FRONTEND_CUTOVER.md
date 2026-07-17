@@ -19,7 +19,7 @@
 - [x] C0. FastAPI 인증 쿠키 폴백 — `get_current_user`에 `user_token` 쿠키 폴백 추가 (+pytest)
 - [x] C1. 프론트 도메인 스위치 헬퍼 — `lib/api/api-base.ts` (`NEXT_PUBLIC_PY_DOMAINS` 파싱) (+vitest)
 - [x] C2. 인증 전환 — `/api/auth/me`(GET)·`/api/auth/logout`(POST) 호출처를 헬퍼 경유로 전환 + FastAPI 응답 계약 정합
-- [ ] C3. 예산 캐스케이드 전환 — `BudgetSelector` POST `/api/budget` + year-roles GET `/api/budget`
+- [x] C3. 예산 캐스케이드 전환 — `BudgetSelector` POST `/api/budget` + year-roles GET `/api/budget`
 - [ ] C4. 예산 마스터 조회 전환 — committees/departments/budget-categories/subcategories/details GET 5종
 - [ ] C5. 예산 마스터 쓰기 보강+전환 — FastAPI PATCH `/{id}` 5종 + departments DELETE 구현 후 POST/PATCH/DELETE 전환
 - [ ] C6. 지출 목록/상세 조회 전환 — FastAPI 목록 쿼리 필터 보강 + `app/expenses` GET 전환

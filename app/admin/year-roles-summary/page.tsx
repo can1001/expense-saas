@@ -21,6 +21,7 @@ import {
 } from '@/lib/constants/styles';
 import { useRoles } from '@/hooks/useRoles';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
+import { apiBase } from '@/lib/api/api-base';
 
 interface User {
   id: string;
@@ -103,7 +104,7 @@ export default function YearRolesSummaryPage() {
       // 연도별 역할, 예산 데이터, 사용자 목록 조회
       const [yearRolesRes, budgetRes, usersRes] = await Promise.all([
         fetch(`/api/users/year-roles?year=${selectedYear}`),
-        fetch('/api/budget'),
+        fetch(`${apiBase('budget')}/budget`),
         fetch('/api/users?pageSize=1000&isActive=true'),
       ]);
 

@@ -22,6 +22,7 @@ import {
 } from '@/lib/constants/styles';
 import { useRoles, getYearRoleOptions } from '@/hooks/useRoles';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
+import { apiBase } from '@/lib/api/api-base';
 
 interface User {
   id: string;
@@ -103,7 +104,7 @@ export default function YearRolesPage() {
       const [usersRes, yearRolesRes, budgetRes] = await Promise.all([
         fetch('/api/users?pageSize=1000&isActive=true'),
         fetch(`/api/users/year-roles?year=${selectedYear}`),
-        fetch('/api/budget'),
+        fetch(`${apiBase('budget')}/budget`),
       ]);
 
       if (!usersRes.ok || !yearRolesRes.ok || !budgetRes.ok) {

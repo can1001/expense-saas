@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { SELECT_BASE, INPUT_DISABLED, LABEL_BASE, LABEL_REQUIRED, SPINNER } from '@/lib/constants/styles';
 import { ChevronRight } from 'lucide-react';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
+import { apiBase } from '@/lib/api/api-base';
 
 interface BudgetSelectorProps {
   value: {
@@ -53,7 +54,7 @@ export default function BudgetSelector({
   }) => {
     try {
       setLoading('loading');
-      const response = await fetch('/api/budget', {
+      const response = await fetch(`${apiBase('budget')}/budget`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params),
