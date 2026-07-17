@@ -25,6 +25,9 @@ const { tx } = vi.hoisted(() => ({
     user: {
       create: vi.fn(),
     },
+    membership: {
+      create: vi.fn(),
+    },
   },
 }));
 
@@ -128,6 +131,10 @@ beforeEach(() => {
     id: 'user-1',
     ...data,
   }));
+  tx.membership.create.mockImplementation(async ({ data }) => ({
+    id: 'membership-1',
+    ...data,
+  }));
 });
 
 describe('defaultSettingsForOrgType', () => {
@@ -201,6 +208,15 @@ describe('provisionTenant', () => {
     expect(tx.tenant.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: { currentUsers: 1 } })
     );
+
+    // 어드민 Membership 이중 기록 (B1 — ARC-002 §2.2)
+    expect(tx.membership.create).toHaveBeenCalledTimes(1);
+    expect(tx.membership.create.mock.calls[0][0].data).toEqual({
+      userId: 'user-1',
+      tenantId: 'tenant-1',
+      role: 'TENANT_ADMIN',
+      isDefault: true,
+    });
 
     expect(result.adminUser).toEqual({
       id: 'user-1',
@@ -284,6 +300,7 @@ describe('provisionTenant', () => {
     });
 
     expect(tx.user.create).not.toHaveBeenCalled();
+    expect(tx.membership.create).not.toHaveBeenCalled();
     expect(result.adminUser).toBeNull();
     expect(result.warnings.some((w) => w.includes('어드민 계정 정보'))).toBe(true);
     // currentUsers 갱신 없음 — settings 스냅샷 update만 존재
