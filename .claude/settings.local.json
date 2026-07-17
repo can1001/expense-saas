@@ -153,7 +153,8 @@
       "Bash(pnpm run *)",
       "Bash(USER_JWT_SECRET=ci-build-secret-not-for-production-min-32 SUPER_ADMIN_JWT_SECRET=ci-build-superadmin-secret-not-for-prod-32 pnpm run build)",
       "Bash(./ralph.sh 20 *)",
-      "Bash(pnpm exec *)"
+      "Bash(pnpm exec *)",
+      "Bash(env)"
     ],
     "deny": [],
     "ask": []
