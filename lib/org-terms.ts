@@ -63,14 +63,45 @@ const TERMS_BY_ORG_TYPE: Record<OrgTypeCode, OrgTerms> = {
 };
 
 /**
+ * Tenant.settings.labels 등 저장된 레이블로 기본 용어를 부분 재정의할 때 사용.
+ * 값이 undefined인 키는 무시된다 (기본 용어 유지).
+ */
+export type OrgTermOverrides = Partial<OrgTerms>;
+
+/**
  * 조직 유형에 맞는 용어 사전 반환.
  * orgType이 없거나 알 수 없으면 기존 동작 유지를 위해 교회 용어를 기본값으로 사용한다.
+ *
+ * overrides(예: Tenant.settings.labels)가 있으면 하드코딩 사전보다 우선한다 (ARC-001 §3.3).
+ * department 재정의 시 파생 표기(departmentFull/departmentSlash)도 함께 따라가되,
+ * 명시적으로 재정의된 파생 표기가 있으면 그것이 우선한다.
  */
-export function getOrgTerms(orgType?: string | null): OrgTerms {
-  if (orgType && orgType in TERMS_BY_ORG_TYPE) {
-    return TERMS_BY_ORG_TYPE[orgType as OrgTypeCode];
+export function getOrgTerms(
+  orgType?: string | null,
+  overrides?: OrgTermOverrides | null
+): OrgTerms {
+  const base =
+    orgType && orgType in TERMS_BY_ORG_TYPE
+      ? TERMS_BY_ORG_TYPE[orgType as OrgTypeCode]
+      : CHURCH_TERMS;
+
+  if (!overrides) {
+    return base;
   }
-  return CHURCH_TERMS;
+
+  const merged: OrgTerms = { ...base };
+  if (overrides.department) {
+    merged.department = overrides.department;
+    merged.departmentFull = overrides.department;
+    merged.departmentSlash = overrides.department;
+  }
+  for (const key of Object.keys(merged) as Array<keyof OrgTerms>) {
+    const value = overrides[key];
+    if (value !== undefined) {
+      merged[key] = value;
+    }
+  }
+  return merged;
 }
 
 /** 교회 전용 기능 여부 (메뉴/라우트 노출 제어에 사용) */
