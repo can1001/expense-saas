@@ -23,6 +23,12 @@ const JWT_AUDIENCE = 'tenant-user';
 const TOKEN_EXPIRY = '24h'; // 24시간
 const COOKIE_NAME = 'user_token';
 
+// B2: 복수 소속 조직 선택용 임시 토큰 (ARC-002 §2.2)
+// tenantId 클레임 없이 짧게 발급 — 정식 인증(verifyUserToken)에서는 거부되며
+// switch-tenant(B3)의 조직 선택 단계에서만 쓴다.
+const PENDING_SELECTION_TOKEN_EXPIRY = '10m';
+export const PENDING_SELECTION_MAX_AGE_SECONDS = 10 * 60;
+
 // 사용자 세션 타입
 // roles: 유효 역할 코드 목록(단일이면 [role]). 권한은 roles+granted 로부터 파생.
 // 5개 불리언 플래그는 하위호환용 파생 값(레거시 소비자/UI). 신규 코드는 hasPermission 사용.
@@ -55,6 +61,8 @@ interface UserJWTPayload extends JWTPayload {
   granted?: string[];
   roleId: string | null;
   department: string | null;
+  // B2: 조직 선택용 임시 토큰 표식 — true면 정식 세션으로 인정하지 않는다
+  pendingTenantSelection?: boolean;
   // 레거시 토큰 호환용(구 토큰만 존재). 신규 토큰은 굽지 않는다.
   permissions?: {
     canApprove: boolean;
@@ -126,6 +134,11 @@ export async function verifyUserToken(token: string): Promise<UserSession | null
 
     const typedPayload = payload as UserJWTPayload;
 
+    // B2: 선택용 임시 토큰(tenantId 미확정)은 정식 세션으로 인정하지 않는다
+    if (typedPayload.pendingTenantSelection === true) {
+      return null;
+    }
+
     const roles =
       typedPayload.roles?.length ? typedPayload.roles : [typedPayload.role];
     const granted = typedPayload.granted ?? [];
@@ -150,6 +163,63 @@ export async function verifyUserToken(token: string): Promise<UserSession | null
       canAccessAdmin: flags.canAccessAdmin,
       canExportData: flags.canExportData,
       canRegisterUsers: flags.canRegisterUsers,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// 조직 선택 대기 세션 — 인증("누구인지")만 확정, 소속(tenantId)은 미확정 상태
+export interface PendingSelectionSession {
+  id: string;
+  userid: string;
+  username: string;
+}
+
+/**
+ * 조직 선택용 임시 토큰 생성 (B2 — 복수 소속 로그인 시)
+ * tenantId 클레임을 담지 않으며, 최종 토큰은 switch-tenant(B3)에서 발급한다.
+ */
+export async function createPendingSelectionToken(user: {
+  id: string;
+  userid: string;
+  username: string;
+}): Promise<string> {
+  return new SignJWT({
+    sub: user.id,
+    userid: user.userid,
+    username: user.username,
+    pendingTenantSelection: true,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setIssuer(JWT_ISSUER)
+    .setAudience(JWT_AUDIENCE)
+    .setExpirationTime(PENDING_SELECTION_TOKEN_EXPIRY)
+    .sign(JWT_SECRET);
+}
+
+/**
+ * 조직 선택용 임시 토큰 검증 — 임시 토큰이 아니면(정식 토큰 포함) null
+ */
+export async function verifyPendingSelectionToken(
+  token: string
+): Promise<PendingSelectionSession | null> {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET, {
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+    });
+
+    const typedPayload = payload as UserJWTPayload;
+    if (typedPayload.pendingTenantSelection !== true) {
+      return null;
+    }
+
+    return {
+      id: typedPayload.sub!,
+      userid: typedPayload.userid,
+      username: typedPayload.username,
     };
   } catch {
     return null;
@@ -341,8 +411,11 @@ export function withAdminMenu(menuPath: string, handler: UserApiHandler) {
 /**
  * 쿠키에 토큰 설정
  */
-export function createUserTokenCookie(token: string): string {
-  const maxAge = 24 * 60 * 60; // 24시간 (초)
+export function createUserTokenCookie(
+  token: string,
+  maxAgeSeconds: number = 24 * 60 * 60 // 기본 24시간 (초)
+): string {
+  const maxAge = maxAgeSeconds;
   const secure = process.env.NODE_ENV === 'production';
 
   return `${COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
