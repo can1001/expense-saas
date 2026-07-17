@@ -14,6 +14,7 @@ import {
 } from '@/lib/constants/styles';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
 import type { OrgTerms } from '@/lib/org-terms';
+import { apiBase } from '@/lib/api/api-base';
 
 interface User {
   id: string;
@@ -104,8 +105,8 @@ export default function BudgetWizardPage() {
       setLoading(true);
       const [usersRes, committeesRes, categoriesRes] = await Promise.all([
         fetch('/api/users?active=true'),
-        fetch('/api/committees'),
-        fetch('/api/budget-categories'),
+        fetch(`${apiBase('budget-master')}/committees`),
+        fetch(`${apiBase('budget-master')}/budget-categories`),
       ]);
 
       if (usersRes.ok) {
@@ -133,7 +134,7 @@ export default function BudgetWizardPage() {
 
   const fetchDepartments = async (committeeId: string) => {
     try {
-      const res = await fetch(`/api/departments?committeeId=${committeeId}`);
+      const res = await fetch(`${apiBase('budget-master')}/departments?committeeId=${committeeId}`);
       if (res.ok) {
         const data = await res.json();
         setDepartments(data.departments || []);
@@ -145,7 +146,7 @@ export default function BudgetWizardPage() {
 
   const fetchSubcategories = async (categoryId: string) => {
     try {
-      const res = await fetch(`/api/budget-subcategories?categoryId=${categoryId}`);
+      const res = await fetch(`${apiBase('budget-master')}/budget-subcategories?categoryId=${categoryId}`);
       if (res.ok) {
         const data = await res.json();
         setSubcategories(data.subcategories || []);
@@ -235,7 +236,7 @@ export default function BudgetWizardPage() {
           handleSelectDepartment(created);
           break;
         case 3:
-          const catRes = await fetch('/api/budget-categories');
+          const catRes = await fetch(`${apiBase('budget-master')}/budget-categories`);
           if (catRes.ok) {
             const data = await catRes.json();
             setCategories(data.categories || []);

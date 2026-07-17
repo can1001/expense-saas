@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Check, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
+import { apiBase } from '@/lib/api/api-base';
 import {
   BTN_SM,
   INPUT_BASE,
@@ -71,8 +72,8 @@ export default function DepartmentsPage() {
     try {
       setLoading(true);
       const [committeeRes, departmentRes] = await Promise.all([
-        fetch('/api/committees'),
-        fetch('/api/departments'),
+        fetch(`${apiBase('budget-master')}/committees`),
+        fetch(`${apiBase('budget-master')}/departments`),
       ]);
 
       if (!committeeRes.ok || !departmentRes.ok) {

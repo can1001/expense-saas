@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, GripVertical, Check, X } from 'lucide-react';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
+import { apiBase } from '@/lib/api/api-base';
 import {
   BTN_PRIMARY,
   BTN_SM,
@@ -63,7 +64,7 @@ export default function CommitteesPage() {
   const fetchCommittees = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/committees');
+      const response = await fetch(`${apiBase('budget-master')}/committees`);
       if (!response.ok) throw new Error(`${terms.committee} 목록을 불러오는데 실패했습니다.`);
       const data = await response.json();
       setCommittees(data.committees || []);
