@@ -35,7 +35,7 @@
 ### 1. 패키지 설치
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 2. 환경 변수 설정
@@ -49,22 +49,22 @@ cp .env.example .env
 
 ```bash
 # 스키마 적용
-npm run db:push
+pnpm run db:push
 
 # SuperAdmin 생성
-npm run db:seed:super-admin
+pnpm run db:seed:super-admin
 
 # 샘플 테넌트 생성 (개발용)
-npm run db:seed:tenants
+pnpm run db:seed:tenants
 
 # 예산 마스터 데이터 시드
-npm run db:seed
+pnpm run db:seed
 ```
 
 ### 4. 개발 서버 실행
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 ### 5. 접속
@@ -184,15 +184,15 @@ DELETE /api/platform/tenants/[id]   # 테넌트 삭제
 ## 개발 명령어
 
 ```bash
-npm run dev              # 개발 서버
-npm run build            # 프로덕션 빌드
-npm run start            # 프로덕션 실행
+pnpm run dev              # 개발 서버
+pnpm run build            # 프로덕션 빌드
+pnpm run start            # 프로덕션 실행
 
-npm run db:push          # 스키마 적용
-npm run db:seed          # 예산 마스터 시드
-npm run db:seed:super-admin  # SuperAdmin 생성
-npm run db:seed:tenants  # 샘플 테넌트 생성
-npm run db:studio        # Prisma Studio
+pnpm run db:push          # 스키마 적용
+pnpm run db:seed          # 예산 마스터 시드
+pnpm run db:seed:super-admin  # SuperAdmin 생성
+pnpm run db:seed:tenants  # 샘플 테넌트 생성
+pnpm run db:studio        # Prisma Studio
 ```
 
 ---
