@@ -15,9 +15,13 @@
 import type { Tenant, User, Prisma } from '@prisma/client';
 import { prismaBase } from '@/lib/prisma';
 import { hashPassword } from '@/lib/services/user-service';
-import { createTenantSchema, planLimits, type OrgType } from '@/lib/validators/tenant';
-import { getOrgTerms } from '@/lib/org-terms';
+import { createTenantSchema, planLimits } from '@/lib/validators/tenant';
+import { defaultSettingsForOrgType } from '@/lib/tenant/settings';
 import { z } from 'zod';
+
+// A6 표준화로 `lib/tenant/settings.ts`로 이동 — 기존 호출부 호환을 위한 재수출
+export { defaultSettingsForOrgType } from '@/lib/tenant/settings';
+export type { TenantSettings as TenantDefaultSettings } from '@/lib/tenant/settings';
 
 // 프로비저닝 입력 — 플랫폼 테넌트 생성 계약(createTenantSchema)과 동일
 export const provisionTenantInputSchema = createTenantSchema;
@@ -48,51 +52,6 @@ export interface ProvisionTenantResult {
   accountCategoriesCreated: number;
   approvalLinesCloned: number;
   warnings: string[];
-}
-
-// Prisma Json 입력과 호환되도록 interface가 아닌 type으로 선언
-export type TenantDefaultSettings = {
-  labels: {
-    department: string;
-    position: string;
-    budget: string;
-  };
-  features: {
-    incomeModule: boolean;
-    budgetModule: boolean;
-    vat: boolean;
-    taxInvoice: boolean;
-    offeringLink: boolean;
-  };
-};
-
-/**
- * orgType별 기본 settings (ARC-001 §3.3 표 기준).
- *
- * 운영 원칙: features 플래그는 "노출 제어"이지 "데이터 제어"가 아니다 —
- * 플래그를 꺼도 기존 데이터는 삭제하지 않고 화면만 숨긴다.
- * A6에서 `lib/tenant/settings.ts`로 표준화 예정 (타입·딥머지 헬퍼 포함).
- */
-export function defaultSettingsForOrgType(orgType: OrgType): TenantDefaultSettings {
-  const terms = getOrgTerms(orgType);
-  const isChurch = orgType === 'CHURCH';
-  const isCompany = orgType === 'COMPANY';
-
-  return {
-    labels: {
-      department: terms.department,
-      position: isChurch ? '직분' : '직급',
-      budget: '예산(회계연도)',
-    },
-    features: {
-      incomeModule: isChurch,
-      budgetModule: true,
-      // §3.3 표는 CHURCH/COMPANY만 정의 — 그 외 유형은 보수적으로 부가세·세금계산서 비활성
-      vat: isCompany,
-      taxInvoice: isCompany,
-      offeringLink: isChurch,
-    },
-  };
 }
 
 /**
