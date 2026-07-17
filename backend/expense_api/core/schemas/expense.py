@@ -65,6 +65,35 @@ class ExpenseOut(BaseModel):
     items: list[ExpenseItemOut] = []
 
 
-class ExpenseListOut(BaseModel):
-    expenses: list[ExpenseOut]
+class ExpenseListItemOut(BaseModel):
+    id: str
+    committee: str
+    department: str
+    requestAmount: int
+    applicantName: str
+    requestDate: datetime
+    createdAt: datetime
+    status: str
+    paymentStatus: str
+    approvedAt: datetime | None
+    expenseDate: datetime | None
+    version: str
+    items: list[ExpenseItemOut] = []
+
+
+class ExpensePaginationOut(BaseModel):
+    page: int
+    limit: int
     total: int
+    totalPages: int
+
+
+class ExpenseAggregatesOut(BaseModel):
+    totalCount: int
+    totalRequestAmount: int
+
+
+class ExpenseListOut(BaseModel):
+    expenses: list[ExpenseListItemOut]
+    pagination: ExpensePaginationOut
+    aggregates: ExpenseAggregatesOut

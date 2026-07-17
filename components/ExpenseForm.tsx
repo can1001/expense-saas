@@ -33,6 +33,7 @@ import {
   useExpenseFormState,
   useExpenseFormSubmit,
 } from '@/lib/hooks';
+import { apiBase } from '@/lib/api/api-base';
 
 interface SignatureData {
   type: 'signature' | 'stamp' | 'realtime';
@@ -184,7 +185,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   const fetchExpenseData = async () => {
     try {
       setFetchLoading(true);
-      const response = await fetch(`/api/expenses/${expenseId}`);
+      const response = await fetch(`${apiBase('expenses')}/expenses/${expenseId}`);
       if (!response.ok) throw new Error('데이터를 불러오는데 실패했습니다.');
       const data = await response.json();
       loadInitialData(data);
