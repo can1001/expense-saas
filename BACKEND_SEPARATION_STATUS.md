@@ -132,7 +132,10 @@
 - [ ] 문서화 마무리 (CLAUDE.md·README의 아키텍처 반영 포함)
 
 ### E. 프론트 전면 전환
-- [ ] 로그인 외 도메인(예산/지출/결재/알림)의 실제 화면을 `py-client` 경유로 전환 — 현재는 데모 페이지만 호출
+- [x] 인증(로그인 유지)·예산(캐스케이드/마스터 CRUD)·지출(목록/상세/쓰기)·결재(액션/목록/카운트/결재선)
+      화면 트래픽을 `NEXT_PUBLIC_PY_DOMAINS` 도메인별 피처 플래그로 FastAPI 경유 전환 완료
+      (`docs/TASKS_FRONTEND_CUTOVER.md` C0~C10, `PRD_FRONTEND_CUTOVER.md` F1~F3 그린)
+- [ ] 알림(push/FCM) 도메인은 범위 제외 — 미전환
 - [ ] 스펙 §14 착수 전 합의 체크리스트 잔여 항목 확정(Render 2서비스 분리 배포, ID 전략(cuid2), 토큰 저장 방식 등)
 
 ---
