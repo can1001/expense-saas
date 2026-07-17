@@ -6,9 +6,12 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { ROLE_PERMISSION_PRESETS, RoleCode } from '../../lib/auth/permissions';
 
-const prisma = new PrismaClient();
+// Prisma 7 은 driver adapter 필수 (new PrismaClient() 만으론 초기화 실패)
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+const prisma = new PrismaClient({ adapter });
 
 // 기본 비밀번호 (bcrypt 해시됨: chc2026)
 const DEFAULT_PASSWORD_HASH = '$2b$10$y66Vh2AsfiG1z5rYPzk/Ge7OGLfJA8fyhjQPwNx.hmmbbNMrOSpsu';
@@ -166,8 +169,14 @@ async function main() {
   console.log(`   ✅ ${users.length}명 사용자 시드 완료\n`);
 
   // 3. UserYearRole 시드
+  // departmentId 는 Department FK — budget-seed 가 아직 안 돌았으면 null 로 처리(순환 의존 방지).
   console.log('📅 연도별 역할(UserYearRole) 시드 중...');
+  const existingDeptIds = new Set(
+    (await prisma.department.findMany({ select: { id: true } })).map((d) => d.id)
+  );
   for (const yr of userYearRoles) {
+    const departmentId =
+      yr.departmentId && existingDeptIds.has(yr.departmentId) ? yr.departmentId : null;
     await prisma.userYearRole.upsert({
       where: { id: yr.id },
       update: {
@@ -175,9 +184,9 @@ async function main() {
         year: yr.year,
         role: yr.role,
         roleId: yr.roleId,
-        departmentId: yr.departmentId,
+        departmentId,
       },
-      create: yr,
+      create: { ...yr, departmentId },
     });
   }
   console.log(`   ✅ ${userYearRoles.length}개 연도별 역할 시드 완료\n`);
