@@ -30,6 +30,6 @@
 
 ## 최종 검증 (C1~C10 전부 [x] 이후에만)
 
-- [ ] F1. 프론트 전체 그린 — `npm run lint` + `npx vitest run` 통과
-- [ ] F2. 백엔드 전체 그린 — `cd backend && uv run pytest -q` 통과
-- [ ] F3. 빌드·회귀 — `npm run build` 통과 + 플래그 off 기본 상태에서 레거시 경로 회귀 없음 확인 (기존 테스트 무변경 통과로 증명)
+- [x] F1. 프론트 전체 그린 — `npm run lint` + `npx vitest run` 통과
+- [x] F2. 백엔드 전체 그린 — `cd backend && uv run pytest -q` 통과
+- [x] F3. 빌드·회귀 — `npm run build` 통과 + 플래그 off 기본 상태에서 레거시 경로 회귀 없음 확인 (기존 테스트 무변경 통과로 증명)
