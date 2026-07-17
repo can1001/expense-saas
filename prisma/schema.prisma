@@ -77,6 +77,7 @@ model Tenant {
   curriculums        Curriculum[]
   systemSettings     SystemSetting[]
   adminNotifications AdminNotification[]
+  accountCategories  AccountCategory[]
 
   // 메타
   createdAt DateTime @default(now())
@@ -85,6 +86,85 @@ model Tenant {
   @@index([subdomain])
   @@index([isActive])
   @@index([plan])
+}
+
+// 계정과목 종류 (수입/지출 — 데이터 속성. 노출 여부는 Tenant.settings.features로 별도 제어)
+enum CategoryKind {
+  INCOME // 수입
+  EXPENSE // 지출
+}
+
+// 계정과목 템플릿 (전역 청사진, orgType별) — 슈퍼 어드민 관리
+model AccountCategoryTemplate {
+  id String @id @default(cuid())
+
+  orgType   OrgType
+  code      String // 계정과목 코드 (예: "1001", "5101")
+  name      String // 계정과목명
+  group     String // 코드대 그룹명 (예: "헌금수입", "인건비")
+  kind      CategoryKind @default(EXPENSE)
+  sortOrder Int
+  isActive  Boolean      @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgType, code])
+}
+
+// 계정과목 (테넌트 복제본) — 템플릿과 FK로 묶지 않는다 ("복제 후 독립")
+model AccountCategory {
+  id String @id @default(cuid())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  code      String
+  name      String
+  group     String
+  kind      CategoryKind @default(EXPENSE)
+  sortOrder Int
+  isActive  Boolean      @default(true)
+
+  // 프로비저닝 출처 템플릿 id (FK 없음 — 템플릿 삭제/개편에도 복제본은 영향받지 않음)
+  sourceTemplateId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+// 결재선 템플릿 (전역 청사진) — 슈퍼 어드민 관리, 프로비저닝 시 ApprovalLine으로 복제
+model ApprovalLineTemplate {
+  id          String  @id @default(cuid())
+  orgType     OrgType
+  name        String // 결재선 이름 (예: "일반 지출 결재선")
+  description String?
+  isDefault   Boolean @default(false)
+  sortOrder   Int
+
+  steps ApprovalStepTemplate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgType])
+}
+
+// 결재선 템플릿 단계
+model ApprovalStepTemplate {
+  id         String               @id @default(cuid())
+  templateId String
+  template   ApprovalLineTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  stepOrder Int
+  roleLabel String // 결재자 역할 표기 (예: "부서장", "재정부장", "담임목사")
+
+  createdAt DateTime @default(now())
+
+  @@index([templateId])
 }
 
 // 슈퍼 관리자 (플랫폼 전체 관리)
