@@ -85,7 +85,7 @@ export default function ExpenseDetailPage() {
 
       // 지출결의서와 결재 정보를 함께 조회
       const [expenseRes, approvalRes] = await Promise.all([
-        fetch(`/api/expenses/${id}`),
+        fetch(`${apiBase('expenses')}/expenses/${id}`),
         fetch(approvalUrl),
       ]);
 

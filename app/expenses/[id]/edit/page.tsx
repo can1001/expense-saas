@@ -19,7 +19,7 @@ export default function EditExpensePage() {
       try {
         // 지출결의서 정보와 사용자 정보를 함께 조회
         const [expenseRes, userRes] = await Promise.all([
-          fetch(`/api/expenses/${id}`),
+          fetch(`${apiBase('expenses')}/expenses/${id}`),
           fetch(`${apiBase('auth')}/auth/me`),
         ]);
 

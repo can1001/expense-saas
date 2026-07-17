@@ -158,7 +158,7 @@ function ExpensesPageContent() {
         if (filters.expenseStartDate) params.set('expenseStart', filters.expenseStartDate);
         if (filters.expenseEndDate) params.set('expenseEnd', filters.expenseEndDate);
 
-        const response = await fetch(`/api/expenses?${params.toString()}`, {
+        const response = await fetch(`${apiBase('expenses')}/expenses?${params.toString()}`, {
           signal: controller.signal,
         });
 
