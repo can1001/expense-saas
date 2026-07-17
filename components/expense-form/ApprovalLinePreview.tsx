@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, User, AlertCircle, AlertTriangle, Wallet } from 'lucide-react';
 import { SECTION_CARD, SECTION_TITLE, SPINNER } from '@/lib/constants/styles';
+import { apiBase, readApiError } from '@/lib/api/api-base';
 
 interface ApprovalStep {
   stepNumber: number;
@@ -75,7 +76,7 @@ export default function ApprovalLinePreview({
           ? new Date(requestDate).getFullYear()
           : new Date().getFullYear();
 
-        const response = await fetch('/api/approval-line/calculate', {
+        const response = await fetch(`${apiBase('approvals')}/approval-line/calculate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -88,7 +89,7 @@ export default function ApprovalLinePreview({
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || '결재선 조회 실패');
+          throw new Error(readApiError(response, data));
         }
 
         const data: ApprovalLineInfo = await response.json();

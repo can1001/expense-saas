@@ -54,3 +54,45 @@ class CalculatedLineOut(BaseModel):
     firstPendingStep: int  # 선두 연속 전결 레벨 이후 첫 대기 레벨
     allAutoApproved: bool
     steps: list[ResolvedStepOut]
+
+
+class ApprovalLinePreviewItemInput(BaseModel):
+    budgetDetail: str
+
+
+class ApprovalLinePreviewRequest(BaseModel):
+    """레거시 `POST /api/approval-line/calculate` 요청 계약 (지출결의서 제출 전 미리보기)."""
+
+    budgetCategory: str = Field(min_length=1)
+    budgetSubcategory: str = Field(min_length=1)
+    items: list[ApprovalLinePreviewItemInput] = Field(min_length=1)
+    requestDate: str | None = None
+
+
+class ApprovalLinePreviewStepOut(BaseModel):
+    stepNumber: int
+    stepName: str
+    approverId: str | None
+    approverName: str
+    isAutoApproved: bool
+
+
+class ApprovalLinePreviewBudgetOut(BaseModel):
+    budgetAmount: int
+    usedAmount: int
+    remainingAmount: int
+    isOverBudget: bool
+
+
+class ApprovalLinePreviewOut(BaseModel):
+    """레거시 `ApprovalLineInfo` 응답 계약과 동일한 형태."""
+
+    budgetDetailId: str | None = None
+    budgetDetailName: str | None = None
+    managerId: str | None = None
+    managerName: str | None = None
+    isDirectApproval: bool = False
+    totalSteps: int
+    steps: list[ApprovalLinePreviewStepOut]
+    year: int
+    budget: ApprovalLinePreviewBudgetOut | None = None
