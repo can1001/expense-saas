@@ -21,6 +21,7 @@
     "db:seed:super-admin": "ts-node --project tsconfig.scripts.json prisma/seeds/super-admin-seed.ts",
     "db:seed:tenants": "ts-node --project tsconfig.scripts.json prisma/seeds/tenant-seed.ts",
     "db:seed:template:company": "ts-node --project tsconfig.scripts.json prisma/seeds/company-template-seed.ts",
+    "db:seed:template:church": "ts-node --project tsconfig.scripts.json prisma/seeds/church-template-seed.ts",
     "bulk-upload": "ts-node --project tsconfig.scripts.json scripts/bulk-upload.ts",
     "generate-template": "ts-node --project tsconfig.scripts.json scripts/generate-upload-template.ts",
     "generate-users-template": "ts-node --project tsconfig.scripts.json scripts/generate-users-template.ts",
