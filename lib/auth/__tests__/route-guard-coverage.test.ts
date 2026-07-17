@@ -34,6 +34,7 @@ const GUARD_MARKERS = [
   'withAdminMenu',
   'withSuperAdmin',
   'getUserFromRequest',
+  'verifyUserToken', // 토큰 자체 검증 라우트 (예: switch-tenant — 정식/선택용 임시 토큰 겸용)
   'getSuperAdminFromRequest',
   'getCurrentUser',
   'CRON_SECRET', // 크론 라우트는 시크릿 기반 자체 인증
