@@ -18,6 +18,7 @@ import { BTN_PRIMARY, BTN_LG, BTN_PAGINATION, BTN_PAGE_ACTIVE, BTN_PAGE_INACTIVE
 import { formatCurrency, getExpenseEditPath } from '@/lib/utils';
 import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
+import { apiBase } from '@/lib/api/api-base';
 
 interface CurrentUser {
   id: string;
@@ -96,7 +97,7 @@ function ExpensesPageContent() {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await fetch('/api/auth/me');
+      const response = await fetch(`${apiBase('auth')}/auth/me`);
       if (response.ok) {
         const data = await response.json();
         setCurrentUser(data.user);

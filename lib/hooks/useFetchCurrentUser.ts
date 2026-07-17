@@ -8,6 +8,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiBase } from '@/lib/api/api-base';
 import { User } from '@/lib/types';
 
 interface UseFetchCurrentUserOptions {
@@ -37,7 +38,7 @@ export function useFetchCurrentUser(
     const fetchCurrentUser = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/auth/me');
+        const response = await fetch(`${apiBase('auth')}/auth/me`);
         if (response.ok) {
           const data = await response.json();
           if (data.user) {

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { getAdminSidebarMenu } from '@/lib/constants/admin-menu';
 import { filterAdminMenuByRoles } from '@/lib/constants/menu-permissions';
 import { useTenant } from '@/lib/contexts/TenantContext';
+import { apiBase } from '@/lib/api/api-base';
 
 interface AdminSidebarProps {
   isOpen?: boolean;
@@ -23,7 +24,7 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
   useEffect(() => {
     const fetchUserRoles = async () => {
       try {
-        const response = await fetch('/api/auth/me');
+        const response = await fetch(`${apiBase('auth')}/auth/me`);
         const data = await response.json();
         if (response.ok && data.user) {
           // roles 배열 사용, 없으면 role을 배열로 변환

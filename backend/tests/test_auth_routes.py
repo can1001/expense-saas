@@ -76,10 +76,12 @@ async def test_login_success_and_me(client: AsyncClient):
     r2 = await client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert r2.status_code == 200
     data = r2.json()
-    assert data["userid"] == "admin"
-    assert data["role"] == "admin"
+    assert data["user"]["userid"] == "admin"
+    assert data["user"]["role"] == "admin"
     # admin 은 프리셋 폴백으로 전체 권한 → expense:create 포함
-    assert "expense:create" in data["permissions"]
+    assert "expense:create" in data["user"]["permissionCodes"]
+    assert data["user"]["permissions"]["canApprove"] is True
+    assert data["tenant"]["subdomain"] == "demo"
 
 
 async def test_login_wrong_password(client: AsyncClient):
@@ -103,7 +105,7 @@ async def test_me_accepts_user_token_cookie_fallback(client: AsyncClient):
 
     r2 = await client.get("/api/auth/me", cookies={"user_token": token})
     assert r2.status_code == 200
-    assert r2.json()["userid"] == "admin"
+    assert r2.json()["user"]["userid"] == "admin"
 
 
 async def test_me_rejects_invalid_user_token_cookie(client: AsyncClient):

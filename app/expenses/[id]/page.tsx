@@ -20,6 +20,7 @@ import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_SECONDARY, BTN_DANGER, BT
 import { APPROVED_EDIT_ROLES } from '@/lib/constants/menu-permissions';
 import { ArrowLeft, Printer, FileSpreadsheet, Edit2, Trash2, Copy } from 'lucide-react';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
+import { apiBase } from '@/lib/api/api-base';
 
 export default function ExpenseDetailPage() {
   const terms = useOrgTerms();
@@ -58,7 +59,7 @@ export default function ExpenseDetailPage() {
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const response = await fetch('/api/auth/me');
+        const response = await fetch(`${apiBase('auth')}/auth/me`);
         if (response.ok) {
           const data = await response.json();
           if (data.user) {

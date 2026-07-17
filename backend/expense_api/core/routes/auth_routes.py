@@ -3,16 +3,20 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from expense_api.core.auth.permissions import derive_legacy_flags
 from expense_api.core.config.settings import settings
 from expense_api.core.dependencies.auth import COOKIE_NAME, CurrentUser, get_current_user
 from expense_api.core.dependencies.authz import effective_permissions
 from expense_api.core.db.session import get_session
+from expense_api.core.repository.tenant_repository import TenantRepository
 from expense_api.core.schemas.auth import (
     LoginRequest,
     LoginResponse,
     LoginTenant,
     LoginUser,
     MeResponse,
+    MeTenant,
+    MeUser,
     UserPermissionFlags,
 )
 from expense_api.core.security.rate_limit import (
@@ -99,19 +103,34 @@ async def me_route(
     session: AsyncSession = Depends(get_session),
 ) -> MeResponse:
     perms = await effective_permissions(user, session)
+    flags = derive_legacy_flags(user.roles, user.granted)
+
+    tenant = None
+    if user.tenantId:
+        tenant_row = await TenantRepository(session).get(user.tenantId)
+        if tenant_row:
+            tenant = MeTenant(
+                id=tenant_row.id, name=tenant_row.name, subdomain=tenant_row.subdomain
+            )
+
     return MeResponse(
-        id=user.id,
-        userid=user.userid,
-        username=user.username,
-        role=user.role,
-        roles=user.roles,
-        tenantId=user.tenantId,
-        department=user.department,
-        permissions=sorted(perms),
+        user=MeUser(
+            id=user.id,
+            userid=user.userid,
+            username=user.username,
+            role=user.role,
+            roles=user.roles,
+            department=user.department,
+            departmentId=None,
+            permissions=UserPermissionFlags(**flags),
+            permissionCodes=sorted(perms),
+            canRegisterUsers=flags["canRegisterUsers"],
+        ),
+        tenant=tenant,
     )
 
 
 @router.post("/logout")
 async def logout_route(response: Response) -> dict:
     response.delete_cookie(COOKIE_NAME)
-    return {"success": True}
+    return {"success": True, "message": "로그아웃 되었습니다."}
