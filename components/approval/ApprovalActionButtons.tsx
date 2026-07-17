@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, XCircle, RotateCcw, Send } from 'lucide-react';
 import { SignatureSelector } from '@/components/signature';
+import { apiBase } from '@/lib/api/api-base';
 
 interface SignatureData {
   type: 'signature' | 'stamp' | 'realtime';
@@ -70,7 +71,7 @@ export default function ApprovalActionButtons({
   const submitWithSignature = async (signature: SignatureData) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/expenses/${expenseId}/submit`, {
+      const response = await fetch(`${apiBase('approvals')}/expenses/${expenseId}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ signature }),
@@ -121,7 +122,7 @@ export default function ApprovalActionButtons({
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/expenses/${expenseId}/submit`, {
+      const response = await fetch(`${apiBase('approvals')}/expenses/${expenseId}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -154,7 +155,7 @@ export default function ApprovalActionButtons({
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/expenses/${expenseId}/withdraw`, {
+      const response = await fetch(`${apiBase('approvals')}/expenses/${expenseId}/withdraw`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -204,8 +205,8 @@ export default function ApprovalActionButtons({
     try {
       const endpoint =
         action === 'approve'
-          ? `/api/expenses/${expenseId}/approve`
-          : `/api/expenses/${expenseId}/reject`;
+          ? `${apiBase('approvals')}/expenses/${expenseId}/approve`
+          : `${apiBase('approvals')}/expenses/${expenseId}/reject`;
 
       const response = await fetch(endpoint, {
         method: 'POST',

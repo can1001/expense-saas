@@ -65,3 +65,4 @@ class WorkflowResult(BaseModel):
     status: str  # 지출결의서 상태
     currentStep: int | None = None
     totalSteps: int | None = None
+    message: str | None = None  # 레거시 계약: approve/reject 알림 문구

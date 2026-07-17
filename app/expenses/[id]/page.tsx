@@ -20,7 +20,7 @@ import { SECTION_CARD, SECTION_TITLE, BTN_PRIMARY, BTN_SECONDARY, BTN_DANGER, BT
 import { APPROVED_EDIT_ROLES } from '@/lib/constants/menu-permissions';
 import { ArrowLeft, Printer, FileSpreadsheet, Edit2, Trash2, Copy } from 'lucide-react';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
-import { apiBase } from '@/lib/api/api-base';
+import { apiBase, pyEnabled } from '@/lib/api/api-base';
 
 export default function ExpenseDetailPage() {
   const terms = useOrgTerms();
@@ -79,9 +79,10 @@ export default function ExpenseDetailPage() {
       setError(null);
 
       // 결재 정보 조회 시 사용자 이름 전달 (예산 현황 조회용)
+      const approvalBase = apiBase('approvals');
       const approvalUrl = currentUser?.username
-        ? `/api/expenses/${id}/approval?approverName=${encodeURIComponent(currentUser.username)}`
-        : `/api/expenses/${id}/approval`;
+        ? `${approvalBase}/expenses/${id}/approval?approverName=${encodeURIComponent(currentUser.username)}`
+        : `${approvalBase}/expenses/${id}/approval`;
 
       // 지출결의서와 결재 정보를 함께 조회
       const [expenseRes, approvalRes] = await Promise.all([
@@ -99,7 +100,9 @@ export default function ExpenseDetailPage() {
       // 결재 정보는 없을 수도 있음 (DRAFT 상태)
       if (approvalRes.ok) {
         const approvalInfo = await approvalRes.json();
-        setApprovalData(approvalInfo);
+        // FastAPI GET /{id}/approval 은 ApprovalLineOut(평탄 구조)만 반환 —
+        // 레거시 { approvalLine, budgetInfo, logs } 래핑에 맞춰 정규화 (budgetInfo/logs는 미제공)
+        setApprovalData(pyEnabled('approvals') ? { approvalLine: approvalInfo } : approvalInfo);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
