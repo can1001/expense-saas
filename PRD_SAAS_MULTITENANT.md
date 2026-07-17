@@ -30,7 +30,7 @@ RALPH_BRANCH=20260718-saas-multitenant \
 
 ## Phase A — 템플릿 · 프로비저닝 (ARC-001)
 
-- [ ] A1. 스키마 추가 — `CategoryKind`, `AccountCategoryTemplate`, `AccountCategory`, `ApprovalLineTemplate`/`ApprovalStepTemplate` (기존 모델 무변경)
+- [x] A1. 스키마 추가 — `CategoryKind`, `AccountCategoryTemplate`, `AccountCategory`, `ApprovalLineTemplate`/`ApprovalStepTemplate` (기존 모델 무변경)
 - [ ] A2. COMPANY 템플릿 시드 스크립트 — 기존 청연컨설팅 계정과목 승격 (upsert, 실행은 M1)
 - [ ] A3. CHURCH 템플릿 시드 스크립트 — 계정과목 46건 + 결재선 템플릿 2종 (upsert, 실행은 M1)
 - [ ] A4. `provisionTenant()` 트랜잭션 서비스 + 단위 테스트
