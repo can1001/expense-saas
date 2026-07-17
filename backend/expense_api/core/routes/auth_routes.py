@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from expense_api.core.config.settings import settings
-from expense_api.core.dependencies.auth import CurrentUser, get_current_user
+from expense_api.core.dependencies.auth import COOKIE_NAME, CurrentUser, get_current_user
 from expense_api.core.dependencies.authz import effective_permissions
 from expense_api.core.db.session import get_session
 from expense_api.core.schemas.auth import (
@@ -24,8 +24,6 @@ from expense_api.core.security.rate_limit import (
 from expense_api.core.service.auth_service import LoginError, login
 
 router = APIRouter()
-
-_COOKIE_NAME = "user_token"
 
 
 def _client_ip(request: Request) -> str:
@@ -68,7 +66,7 @@ async def login_route(
     user = result.user
     # HttpOnly 쿠키로도 토큰 발급 (프론트 호환). prod 에서만 Secure (리뷰 #3)
     response.set_cookie(
-        _COOKIE_NAME,
+        COOKIE_NAME,
         result.token,
         httponly=True,
         samesite="lax",
@@ -115,5 +113,5 @@ async def me_route(
 
 @router.post("/logout")
 async def logout_route(response: Response) -> dict:
-    response.delete_cookie(_COOKIE_NAME)
+    response.delete_cookie(COOKIE_NAME)
     return {"success": True}

@@ -1,12 +1,12 @@
 """인증 의존성.
 
-get_current_user: Bearer 토큰 → DB User 조회 → 활성/테넌트 일치 검증 →
-현재 사용자(CurrentUser) 반환. (lib/auth/user.ts getUserFromRequest 이전)
+get_current_user: Bearer 토큰(또는 user_token 쿠키 폴백) → DB User 조회 →
+활성/테넌트 일치 검증 → 현재 사용자(CurrentUser) 반환. (lib/auth/user.ts getUserFromRequest 이전)
 """
 
 from dataclasses import dataclass, field
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Cookie, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +14,10 @@ from expense_api.core.db.session import get_session
 from expense_api.core.models.user import User
 from expense_api.core.security.jwt import JWTError, decode_token
 
-_bearer = HTTPBearer(auto_error=True)
+# Next.js lib/auth/user.ts COOKIE_NAME 과 동일 — auth_routes.py 쿠키 발급/삭제도 이 이름을 쓴다.
+COOKIE_NAME = "user_token"
+
+_bearer = HTTPBearer(auto_error=False)
 
 
 @dataclass
@@ -31,12 +34,18 @@ class CurrentUser:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
     session: AsyncSession = Depends(get_session),
+    user_token: str | None = Cookie(default=None),
 ) -> CurrentUser:
+    # 0) Bearer 헤더 우선, 없으면 user_token 쿠키로 폴백
+    token = credentials.credentials if credentials else user_token
+    if not token:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "인증 정보가 없습니다.")
+
     # 1) 토큰 검증
     try:
-        payload = decode_token(credentials.credentials)
+        payload = decode_token(token)
     except JWTError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "유효하지 않은 토큰입니다.")
     # refresh 토큰만 거부. type 이 없는 Next.js 발급 토큰도 수용(상호호환).
