@@ -1,0 +1,107 @@
+[23:07:22] 🚀 Ralph Loop 시작 (최대 20회 / model=claude-sonnet-5)
+[23:07:22] 📋 로그 파일: ralph_log_cutover_20260717_230722.txt
+[23:07:22] 📌 PRD 파일: PRD_FRONTEND_CUTOVER.md
+[23:07:22] 🛑 중단하려면: kill $(cat ralph_cutover.pid)
+---
+[23:07:22] 🔄 Iteration 1 / 20
+[23:07:22] 📌 미완료 TASK: 14개
+TASK: C0
+STATUS: COMPLETED
+COMMIT: 07ef570
+[23:09:03] ⏳ 다음 반복까지 10초 대기...
+[23:09:13] 🔄 Iteration 2 / 20
+[23:09:13] 📌 미완료 TASK: 13개
+C1 complete and committed.
+
+TASK: C1
+STATUS: COMPLETED
+COMMIT: b7def6b
+[23:11:05] ⏳ 다음 반복까지 10초 대기...
+[23:11:15] 🔄 Iteration 3 / 20
+[23:11:15] 📌 미완료 TASK: 12개
+Task C2 completed and committed.
+
+TASK: C2
+STATUS: COMPLETED
+COMMIT: 662f748
+[23:19:35] ⏳ 다음 반복까지 10초 대기...
+[23:19:45] 🔄 Iteration 4 / 20
+[23:19:45] 📌 미완료 TASK: 11개
+C3 completed and committed.
+
+TASK: C3
+STATUS: COMPLETED
+COMMIT: ca5cc64
+[23:22:09] ⏳ 다음 반복까지 10초 대기...
+[23:22:19] 🔄 Iteration 5 / 20
+[23:22:19] 📌 미완료 TASK: 10개
+TASK: C4
+STATUS: COMPLETED
+COMMIT: 09c2cab
+[23:28:44] ⏳ 다음 반복까지 10초 대기...
+[23:28:55] 🔄 Iteration 6 / 20
+[23:28:55] 📌 미완료 TASK: 9개
+Committed successfully.
+
+TASK: C5
+STATUS: COMPLETED
+COMMIT: 21bc947
+[23:38:48] ⏳ 다음 반복까지 10초 대기...
+[23:38:58] 🔄 Iteration 7 / 20
+[23:38:58] 📌 미완료 TASK: 8개
+C6 completed and committed. One note worth flagging: while replicating the legacy team-leader department filter faithfully, I confirmed (and captured in a test) that it has a pre-existing bug — the filter compares against a `"committee/department"` composite string while `Expense.department` only ever stores the plain department name, so team leaders with an explicit `UserYearRole.departmentId` never actually see their department's expenses in the legacy app either. Per the loop's "legacy contract first" rule I replicated this exactly rather than fixing it, since that's out of scope here.
+
+```
+TASK: C6
+STATUS: COMPLETED
+COMMIT: 88d9a76
+```
+[00:17:21] ⏳ 다음 반복까지 10초 대기...
+[00:17:31] 🔄 Iteration 8 / 20
+[00:17:31] 📌 미완료 TASK: 7개
+TASK: C7
+STATUS: COMPLETED
+COMMIT: 21ce7a3
+
+Implemented FastAPI `PUT`/`DELETE /api/expenses/{id}` (item replace, amount recalc, status/ownership rules, MODIFY_CONTENT audit log) with 12 new pytest tests, and switched `ExpenseForm.tsx` POST/PUT + the detail page's DELETE to route through `apiBase('expenses')`. Backend (109 tests), vitest (2066 tests), and lint all pass. Next up: C8 (결재 액션 전환).
+[00:26:51] ⏳ 다음 반복까지 10초 대기...
+[00:27:01] 🔄 Iteration 9 / 20
+[00:27:01] 📌 미완료 TASK: 6개
+C8 completed and committed.
+
+TASK: C8
+STATUS: COMPLETED
+COMMIT: f3a9fcc
+[00:36:27] ⏳ 다음 반복까지 10초 대기...
+[00:36:37] 🔄 Iteration 10 / 20
+[00:36:37] 📌 미완료 TASK: 5개
+Committed successfully. C10 remains incomplete, so I won't output the completion promise.
+
+TASK: C9
+STATUS: COMPLETED
+COMMIT: 5361de9
+[00:44:59] ⏳ 다음 반복까지 10초 대기...
+[00:45:09] 🔄 Iteration 11 / 20
+[00:45:09] 📌 미완료 TASK: 4개
+C10 완료: 결재선 계산을 FastAPI 경유로 전환하고 레거시 응답 계약(budgetDetailId/managerName/isDirectApproval/budget)에 맞춰 백엔드를 보강했습니다. 백엔드 130개, 프론트 2066개 테스트 모두 통과. C0~C10 전 태스크가 완료되어 다음 iteration에서 최종 검증(F1~F3)을 진행하면 됩니다.
+
+TASK: C10
+STATUS: COMPLETED
+COMMIT: 054879c
+[00:52:58] ⏳ 다음 반복까지 10초 대기...
+[00:53:08] 🔄 Iteration 12 / 20
+[00:53:08] 📌 미완료 TASK: 3개
+C0~C10과 F1~F3 모두 완료되었습니다.
+
+TASK: F1-F3
+STATUS: COMPLETED
+COMMIT: 5c17f83
+
+<promise>COMPLETE</promise>
+[00:59:15] 🎉 모든 TASK 완료! Ralph Loop 종료
+[00:59:15] 📊 최종 결과:
+[00:59:15]    완료 TASK: 14개
+[00:59:15]    미완료 TASK: 0
+0개
+[00:59:15]    이번 세션 commits: 15개
+[00:59:15] ✨ Ralph Loop 종료
