@@ -21,7 +21,7 @@ const JWT_SECRET = getUserJwtSecret();
 const JWT_ISSUER = 'expense-saas';
 const JWT_AUDIENCE = 'tenant-user';
 const TOKEN_EXPIRY = '24h'; // 24시간
-const COOKIE_NAME = 'user_token';
+export const COOKIE_NAME = 'user_token';
 
 // B2: 복수 소속 조직 선택용 임시 토큰 (ARC-002 §2.2)
 // tenantId 클레임 없이 짧게 발급 — 정식 인증(verifyUserToken)에서는 거부되며
@@ -227,6 +227,33 @@ export async function verifyPendingSelectionToken(
 }
 
 /**
+ * 세션 사용자의 활성 상태·테넌트 유효성 확인 (getUserFromRequest/getCurrentUserSession 공용)
+ * - 기본: User.tenantId와 토큰의 tenantId 일치 (기존 동작)
+ * - B3 조직 전환: 불일치 시 Membership 소속으로 검증 — switch-tenant로 발급된 토큰의
+ *   tenantId는 User.tenantId(백필 전 호환용으로 유지)와 다를 수 있다.
+ *   Membership 조회 실패(테이블 미생성 등)는 기존과 동일하게 거부한다.
+ */
+async function isValidSessionUser(session: UserSession): Promise<boolean> {
+  const user = await prismaBase.user.findUnique({
+    where: { id: session.id },
+    select: { isActive: true, tenantId: true },
+  });
+  if (!user?.isActive) return false;
+  if (user.tenantId === session.tenantId) return true;
+
+  try {
+    const membership = await prismaBase.membership.findUnique({
+      where: {
+        userId_tenantId: { userId: session.id, tenantId: session.tenantId },
+      },
+    });
+    return membership !== null;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * 요청에서 사용자 세션 가져오기
  */
 export async function getUserFromRequest(request: NextRequest): Promise<UserSession | null> {
@@ -235,15 +262,8 @@ export async function getUserFromRequest(request: NextRequest): Promise<UserSess
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
     const session = await verifyUserToken(token);
-    if (session) {
-      // DB에서 활성 상태 확인
-      const user = await prismaBase.user.findUnique({
-        where: { id: session.id },
-        select: { isActive: true, tenantId: true },
-      });
-      if (user?.isActive && user.tenantId === session.tenantId) {
-        return session;
-      }
+    if (session && (await isValidSessionUser(session))) {
+      return session;
     }
   }
 
@@ -252,15 +272,8 @@ export async function getUserFromRequest(request: NextRequest): Promise<UserSess
   const cookieToken = cookieStore.get(COOKIE_NAME)?.value;
   if (cookieToken) {
     const session = await verifyUserToken(cookieToken);
-    if (session) {
-      // DB에서 활성 상태 확인
-      const user = await prismaBase.user.findUnique({
-        where: { id: session.id },
-        select: { isActive: true, tenantId: true },
-      });
-      if (user?.isActive && user.tenantId === session.tenantId) {
-        return session;
-      }
+    if (session && (await isValidSessionUser(session))) {
+      return session;
     }
   }
 
@@ -280,12 +293,7 @@ export async function getCurrentUserSession(): Promise<UserSession | null> {
   const session = await verifyUserToken(token);
   if (!session) return null;
 
-  // DB에서 활성 상태 확인
-  const user = await prismaBase.user.findUnique({
-    where: { id: session.id },
-    select: { isActive: true, tenantId: true },
-  });
-  if (user?.isActive && user.tenantId === session.tenantId) {
+  if (await isValidSessionUser(session)) {
     return session;
   }
 
