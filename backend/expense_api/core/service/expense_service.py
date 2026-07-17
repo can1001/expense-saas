@@ -11,9 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from expense_api.core.auth.permissions import PERMISSIONS, has_permission
 from expense_api.core.dependencies.auth import CurrentUser
 from expense_api.core.domain.amount import calculate_amount, calculate_request_amount
+from expense_api.core.models.approval import ApprovalLog
 from expense_api.core.models.budget import Committee, Department
-from expense_api.core.models.enums import ApprovalStatus, PaymentStatus
+from expense_api.core.models.enums import ApprovalAction, ApprovalStatus, PaymentStatus
 from expense_api.core.models.expense import Expense, ExpenseItem
+from expense_api.core.models.ids import utcnow
 from expense_api.core.models.user import UserYearRole
 from expense_api.core.repository.expense_repository import ExpenseRepository
 from expense_api.core.schemas.expense import (
@@ -24,6 +26,7 @@ from expense_api.core.schemas.expense import (
     ExpenseListOut,
     ExpenseOut,
     ExpensePaginationOut,
+    UpdateExpenseRequest,
 )
 
 # 연도별 역할 우선순위 (낮을수록 높은 우선순위) — lib/services/user-service.ts ROLE_PRIORITY 와 동일
@@ -35,6 +38,16 @@ _ROLE_PRIORITY = {
     "team_leader": 4,
     "user": 99,
 }
+
+# 기본 수정/삭제 가능 상태 — app/api/expenses/[id]/route.ts BASIC_EDITABLE·EDITABLE_STATUSES 와 동일
+_BASIC_EDITABLE_STATUSES = {"DRAFT", "REJECTED", "WITHDRAWN"}
+
+
+class ExpenseServiceError(Exception):
+    def __init__(self, status_code: int, message: str):
+        self.status_code = status_code
+        self.message = message
+        super().__init__(message)
 
 
 def _derive_request_team(committee: str, department: str) -> str:
@@ -278,3 +291,152 @@ class ExpenseService:
             return None
         items = await self.repo.list_items(expense_id)
         return to_out(expense, items)
+
+    async def update(self, expense_id: str, user: CurrentUser, data: UpdateExpenseRequest) -> ExpenseOut:
+        """지출결의서 수정. (app/api/expenses/[id]/route.ts PUT 이전)
+
+        항목은 전체 교체(삭제 후 재작성), 금액은 서버 재계산. DRAFT/REJECTED/WITHDRAWN 은
+        소유자(또는 EXPENSE_EDIT_APPROVED 역할 우회)가, APPROVED_FINAL+지급대기는
+        EXPENSE_EDIT_APPROVED 역할만 수정 가능.
+        """
+        expense = await self.repo.get(expense_id)
+        if expense is None:
+            raise ExpenseServiceError(404, "지출결의서를 찾을 수 없습니다.")
+
+        is_basic_editable = expense.status in _BASIC_EDITABLE_STATUSES
+        is_approved_pending = (
+            expense.status == ApprovalStatus.APPROVED_FINAL.value
+            and expense.paymentStatus == PaymentStatus.PENDING.value
+        )
+        is_owner = expense.userId == user.id
+
+        can_bypass_ownership = False
+        if not is_owner or is_approved_pending:
+            effective_role, _ = await self._resolve_effective_role(user, utcnow().year)
+            can_bypass_ownership = has_permission([effective_role], PERMISSIONS.EXPENSE_EDIT_APPROVED)
+
+        can_edit_approved_pending = is_approved_pending and can_bypass_ownership
+        owner_bypass_used = is_basic_editable and not is_owner and can_bypass_ownership
+
+        if is_basic_editable and not is_owner and not can_bypass_ownership:
+            raise ExpenseServiceError(403, "수정 권한이 없습니다.")
+        if not is_basic_editable and not can_edit_approved_pending:
+            raise ExpenseServiceError(403, "이 상태에서는 수정할 수 없습니다.")
+
+        final_committee = data.committee or expense.committee
+        final_department = data.department or expense.department
+        derived_request_team = _derive_request_team(final_committee, final_department)
+        if not derived_request_team:
+            raise ExpenseServiceError(400, "청구팀을 생성할 수 없습니다. 위원회/사역팀을 확인해주세요.")
+
+        if data.requestTeam and data.requestTeam.strip() and data.requestTeam != derived_request_team:
+            raise ExpenseServiceError(400, "청구팀은 선택한 위원회/사역팀과 동일해야 합니다.")
+
+        should_update_request_team = (
+            data.committee is not None or data.department is not None or data.requestTeam is not None
+        )
+
+        # 기존 항목 삭제 (레거시와 동일하게 items 미전달 시에도 무조건 삭제됨)
+        await self.repo.delete_items(expense_id)
+
+        amounts: list[int] = []
+        if data.items:
+            for idx, it in enumerate(data.items):
+                amount = calculate_amount(it.unitPrice, it.quantity)
+                amounts.append(amount)
+                self.session.add(
+                    ExpenseItem(
+                        tenantId=self.tenant_id,
+                        expenseId=expense_id,
+                        budgetCategory=it.budgetCategory,
+                        budgetSubcategory=it.budgetSubcategory,
+                        budgetDetail=it.budgetDetail,
+                        description=it.description,
+                        unitPrice=it.unitPrice,
+                        quantity=it.quantity,
+                        amount=amount,
+                        order=it.order or (idx + 1),
+                    )
+                )
+        request_amount = calculate_request_amount(amounts) if amounts else None
+
+        # 상태 처리: 최종승인 + 지급대기 상태에서는 상태 변경하지 않음
+        if not can_edit_approved_pending:
+            if data.status == "PENDING":
+                expense.status = ApprovalStatus.PENDING.value
+                expense.submittedAt = utcnow()
+            elif data.status == "DRAFT":
+                expense.status = ApprovalStatus.DRAFT.value
+
+        if data.committee:
+            expense.committee = data.committee
+        if data.department:
+            expense.department = data.department
+        if data.expenseDate is not None:
+            expense.expenseDate = data.expenseDate
+        if request_amount is not None:
+            expense.requestAmount = request_amount
+        if data.requestDate:
+            expense.requestDate = data.requestDate
+        if should_update_request_team:
+            expense.requestTeam = derived_request_team
+        if data.applicantName:
+            expense.applicantName = data.applicantName
+        if data.applicantTitle is not None:
+            expense.applicantTitle = data.applicantTitle
+        if data.bankName:
+            expense.bankName = data.bankName
+        if data.accountNumber:
+            expense.accountNumber = data.accountNumber
+        if data.accountHolder:
+            expense.accountHolder = data.accountHolder
+
+        self.session.add(expense)
+        await self.session.flush()
+
+        # 감사 로그: 최종승인 후 수정 또는 관리 역할 소유권 우회 수정
+        if can_edit_approved_pending or owner_bypass_used:
+            actor_name = user.username or data.applicantName or expense.applicantName
+            self.session.add(
+                ApprovalLog(
+                    tenantId=self.tenant_id,
+                    expenseId=expense_id,
+                    action=ApprovalAction.MODIFY_CONTENT.value,
+                    actorName=actor_name,
+                    previousStatus=expense.status,
+                    newStatus=expense.status,
+                    comment="최종승인 후 내용 수정" if can_edit_approved_pending else "관리 역할 소유권 우회 수정",
+                    metadata_={
+                        "modifiedAt": utcnow().isoformat(),
+                        **({"bypassedOwnerId": expense.userId} if owner_bypass_used else {}),
+                    },
+                )
+            )
+
+        await self.session.commit()
+        await self.session.refresh(expense)
+        items = await self.repo.list_items(expense_id)
+        return to_out(expense, items)
+
+    async def delete(self, expense_id: str, user: CurrentUser) -> None:
+        """지출결의서 삭제. (app/api/expenses/[id]/route.ts DELETE 이전)
+
+        DRAFT/REJECTED/WITHDRAWN 만 삭제 가능. 소유자 또는 EXPENSE_EDIT_APPROVED 역할 우회.
+        """
+        expense = await self.repo.get(expense_id)
+        if expense is None:
+            raise ExpenseServiceError(404, "지출결의서를 찾을 수 없습니다.")
+
+        if expense.status not in _BASIC_EDITABLE_STATUSES:
+            raise ExpenseServiceError(403, "제출된 지출결의서는 삭제할 수 없습니다.")
+
+        is_owner = expense.userId == user.id
+        can_bypass_ownership = False
+        if not is_owner:
+            effective_role, _ = await self._resolve_effective_role(user, utcnow().year)
+            can_bypass_ownership = has_permission([effective_role], PERMISSIONS.EXPENSE_EDIT_APPROVED)
+        if not is_owner and not can_bypass_ownership:
+            raise ExpenseServiceError(403, "삭제 권한이 없습니다.")
+
+        await self.repo.delete(expense)
+        await self.session.commit()

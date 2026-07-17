@@ -134,7 +134,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
   // 폼 제출 훅
   const { handleSubmit: handleFormSubmit } = useExpenseFormSubmit({
     expenseId,
-    apiEndpoint: '/api/expenses',
+    apiEndpoint: `${apiBase('expenses')}/expenses`,
     redirectPath: '/expenses',
     attachments,
     setLoading,
@@ -271,7 +271,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       try {
         setLoading(true);
         // 먼저 저장 (PUT - 최종승인 상태에서는 상태 유지)
-        const saveResponse = await fetch(`/api/expenses/${expenseId}`, {
+        const saveResponse = await fetch(`${apiBase('expenses')}/expenses/${expenseId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -310,7 +310,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
       setLoading(true);
 
       // 1. DRAFT 상태로 먼저 생성
-      const createResponse = await fetch('/api/expenses', {
+      const createResponse = await fetch(`${apiBase('expenses')}/expenses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

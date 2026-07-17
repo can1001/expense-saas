@@ -14,8 +14,13 @@ from expense_api.core.dependencies.auth import CurrentUser, get_current_user
 from expense_api.core.dependencies.authz import effective_permissions, require_permission
 from expense_api.core.dependencies.tenant import require_tenant_id
 from expense_api.core.models.ids import utcnow
-from expense_api.core.schemas.expense import CreateExpenseRequest, ExpenseListOut, ExpenseOut
-from expense_api.core.service.expense_service import ExpenseService
+from expense_api.core.schemas.expense import (
+    CreateExpenseRequest,
+    ExpenseListOut,
+    ExpenseOut,
+    UpdateExpenseRequest,
+)
+from expense_api.core.service.expense_service import ExpenseService, ExpenseServiceError
 
 router = APIRouter()
 
@@ -96,3 +101,33 @@ async def get_expense(
     if PERMISSIONS.EXPENSE_READ_ALL not in perms and expense.userId != user.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "이 지출결의서를 조회할 권한이 없습니다.")
     return expense
+
+
+@router.put("/{expense_id}", response_model=ExpenseOut)
+async def update_expense(
+    expense_id: str,
+    body: UpdateExpenseRequest,
+    user: CurrentUser = Depends(get_current_user),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> ExpenseOut:
+    svc = ExpenseService(session, tenant_id)
+    try:
+        return await svc.update(expense_id, user, body)
+    except ExpenseServiceError as e:
+        raise HTTPException(e.status_code, e.message) from e
+
+
+@router.delete("/{expense_id}", status_code=status.HTTP_200_OK)
+async def delete_expense(
+    expense_id: str,
+    user: CurrentUser = Depends(get_current_user),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    svc = ExpenseService(session, tenant_id)
+    try:
+        await svc.delete(expense_id, user)
+    except ExpenseServiceError as e:
+        raise HTTPException(e.status_code, e.message) from e
+    return {"success": True}
