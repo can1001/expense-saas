@@ -20,6 +20,8 @@ from expense_api.core.models.budget import (
     Committee,
     Department,
 )
+from expense_api.core.models.ids import utcnow
+from expense_api.core.models.user import User, UserYearRole
 
 router = APIRouter()
 
@@ -57,7 +59,41 @@ class CommitteeCreate(BaseModel):
 async def list_committees(
     tenant_id: str = Depends(require_tenant_id), session: AsyncSession = Depends(get_session)
 ) -> dict:
-    return {"committees": await _list(session, Committee, tenant_id)}
+    committees = await _list(session, Committee, tenant_id)
+    if not committees:
+        return {"committees": []}
+
+    leader_ids = {c["leaderId"] for c in committees if c.get("leaderId")}
+    leaders: dict[str, str] = {}
+    if leader_ids:
+        rows = (
+            await session.execute(select(User.id, User.username).where(User.id.in_(leader_ids)))
+        ).all()
+        leaders = {row[0]: row[1] for row in rows}
+
+    counts = dict(
+        (
+            await session.execute(
+                select(Department.committeeId, func.count(Department.id))
+                .where(
+                    Department.tenantId == tenant_id,
+                    Department.committeeId.in_([c["id"] for c in committees]),
+                )
+                .group_by(Department.committeeId)
+            )
+        ).all()
+    )
+
+    for c in committees:
+        leader_id = c.get("leaderId")
+        c["leader"] = (
+            {"id": leader_id, "username": leaders[leader_id]}
+            if leader_id and leader_id in leaders
+            else None
+        )
+        c["_count"] = {"departments": counts.get(c["id"], 0)}
+
+    return {"committees": committees}
 
 
 @router.post("/committees", status_code=status.HTTP_201_CREATED)
@@ -93,11 +129,51 @@ class DepartmentCreate(BaseModel):
 @router.get("/departments")
 async def list_departments(
     committeeId: str | None = None,
+    year: int | None = None,
     tenant_id: str = Depends(require_tenant_id),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     extra = {"committeeId": committeeId} if committeeId else {}
-    return {"departments": await _list(session, Department, tenant_id, **extra)}
+    departments = await _list(session, Department, tenant_id, **extra)
+    if not departments:
+        return {"departments": []}
+
+    committee_ids = {d["committeeId"] for d in departments}
+    committee_names = dict(
+        (
+            await session.execute(select(Committee.id, Committee.name).where(Committee.id.in_(committee_ids)))
+        ).all()
+    )
+
+    target_year = year or utcnow().year
+    leader_rows = (
+        await session.execute(
+            select(UserYearRole.departmentId, User.id, User.username)
+            .join(User, User.id == UserYearRole.userId)
+            .where(
+                UserYearRole.departmentId.in_([d["id"] for d in departments]),
+                UserYearRole.year == target_year,
+                UserYearRole.role == "team_leader",
+            )
+        )
+    ).all()
+    leaders = {row[0]: (row[1], row[2]) for row in leader_rows}
+
+    return {
+        "departments": [
+            {
+                "id": d["id"],
+                "name": d["name"],
+                "committeeId": d["committeeId"],
+                "committeeName": committee_names.get(d["committeeId"], ""),
+                "sortOrder": d["sortOrder"],
+                "isActive": d["isActive"],
+                "leaderId": leaders[d["id"]][0] if d["id"] in leaders else None,
+                "leaderName": leaders[d["id"]][1] if d["id"] in leaders else None,
+            }
+            for d in departments
+        ]
+    }
 
 
 @router.post("/departments", status_code=status.HTTP_201_CREATED)
@@ -132,9 +208,31 @@ class CategoryCreate(BaseModel):
 
 @router.get("/budget-categories")
 async def list_categories(
-    tenant_id: str = Depends(require_tenant_id), session: AsyncSession = Depends(get_session)
+    includeInactive: bool = False,
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
 ) -> dict:
-    return {"categories": await _list(session, BudgetCategory, tenant_id)}
+    extra = {} if includeInactive else {"isActive": True}
+    categories = await _list(session, BudgetCategory, tenant_id, **extra)
+    if not categories:
+        return {"categories": []}
+
+    counts = dict(
+        (
+            await session.execute(
+                select(BudgetSubcategory.categoryId, func.count(BudgetSubcategory.id))
+                .where(
+                    BudgetSubcategory.tenantId == tenant_id,
+                    BudgetSubcategory.categoryId.in_([c["id"] for c in categories]),
+                )
+                .group_by(BudgetSubcategory.categoryId)
+            )
+        ).all()
+    )
+    for c in categories:
+        c["_count"] = {"subcategories": counts.get(c["id"], 0)}
+
+    return {"categories": categories}
 
 
 @router.post("/budget-categories", status_code=status.HTTP_201_CREATED)
@@ -169,11 +267,41 @@ class SubcategoryCreate(BaseModel):
 @router.get("/budget-subcategories")
 async def list_subcategories(
     categoryId: str | None = None,
+    includeInactive: bool = False,
     tenant_id: str = Depends(require_tenant_id),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    extra = {"categoryId": categoryId} if categoryId else {}
-    return {"subcategories": await _list(session, BudgetSubcategory, tenant_id, **extra)}
+    stmt = select(BudgetSubcategory).where(BudgetSubcategory.tenantId == tenant_id)
+    if categoryId:
+        stmt = stmt.where(BudgetSubcategory.categoryId == categoryId)
+    if not includeInactive:
+        stmt = (
+            stmt.join(BudgetCategory, BudgetCategory.id == BudgetSubcategory.categoryId)
+            .where(BudgetSubcategory.isActive == True)  # noqa: E712
+            .where(BudgetCategory.isActive == True)  # noqa: E712
+        )
+    stmt = stmt.order_by(BudgetSubcategory.sortOrder)
+    rows = (await session.execute(stmt)).scalars().all()
+    subcategories = [r.model_dump() for r in rows]
+    if not subcategories:
+        return {"subcategories": []}
+
+    counts = dict(
+        (
+            await session.execute(
+                select(BudgetDetail.subcategoryId, func.count(BudgetDetail.id))
+                .where(
+                    BudgetDetail.tenantId == tenant_id,
+                    BudgetDetail.subcategoryId.in_([s["id"] for s in subcategories]),
+                )
+                .group_by(BudgetDetail.subcategoryId)
+            )
+        ).all()
+    )
+    for s in subcategories:
+        s["_count"] = {"details": counts.get(s["id"], 0)}
+
+    return {"subcategories": subcategories}
 
 
 @router.post("/budget-subcategories", status_code=status.HTTP_201_CREATED)

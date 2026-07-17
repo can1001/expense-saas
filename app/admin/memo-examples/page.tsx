@@ -17,6 +17,7 @@ import {
   SPINNER_MD,
 } from '@/lib/constants/styles';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
+import { apiBase } from '@/lib/api/api-base';
 
 interface Committee {
   id: string;
@@ -73,8 +74,8 @@ export default function MemoExamplesPage() {
     try {
       const [detailsRes, committeesRes, departmentsRes] = await Promise.all([
         fetch(`/api/budget-details/year?year=${currentYear}`),
-        fetch('/api/committees'),
-        fetch('/api/departments'),
+        fetch(`${apiBase('budget-master')}/committees`),
+        fetch(`${apiBase('budget-master')}/departments`),
       ]);
 
       const detailsData = await detailsRes.json();

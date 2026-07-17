@@ -7,6 +7,7 @@ import {
   SPINNER_LG,
   FLEX_CENTER,
 } from '@/lib/constants/styles';
+import { apiBase } from '@/lib/api/api-base';
 
 interface BudgetCategory {
   id: string;
@@ -55,8 +56,8 @@ export default function BudgetItemsPage() {
       setError(null);
 
       const [catRes, subcatRes, detailRes] = await Promise.all([
-        fetch('/api/budget-categories?includeInactive=true'),
-        fetch('/api/budget-subcategories?includeInactive=true'),
+        fetch(`${apiBase('budget-master')}/budget-categories?includeInactive=true`),
+        fetch(`${apiBase('budget-master')}/budget-subcategories?includeInactive=true`),
         fetch(`/api/budget-details/year?year=${new Date().getFullYear()}&includeInactive=true`),
       ]);
 
