@@ -17,7 +17,7 @@
 ## 태스크 (의존성 순 — 위에서부터 하나씩)
 
 - [x] C0. FastAPI 인증 쿠키 폴백 — `get_current_user`에 `user_token` 쿠키 폴백 추가 (+pytest)
-- [ ] C1. 프론트 도메인 스위치 헬퍼 — `lib/api/api-base.ts` (`NEXT_PUBLIC_PY_DOMAINS` 파싱) (+vitest)
+- [x] C1. 프론트 도메인 스위치 헬퍼 — `lib/api/api-base.ts` (`NEXT_PUBLIC_PY_DOMAINS` 파싱) (+vitest)
 - [ ] C2. 인증 전환 — `/api/auth/me`(GET)·`/api/auth/logout`(POST) 호출처를 헬퍼 경유로 전환 + FastAPI 응답 계약 정합
 - [ ] C3. 예산 캐스케이드 전환 — `BudgetSelector` POST `/api/budget` + year-roles GET `/api/budget`
 - [ ] C4. 예산 마스터 조회 전환 — committees/departments/budget-categories/subcategories/details GET 5종
