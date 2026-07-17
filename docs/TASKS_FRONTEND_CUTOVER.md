@@ -9,7 +9,7 @@
 2. **플래그 off = 무변경**: `NEXT_PUBLIC_PY_DOMAINS` 미설정 시 모든 fetch가 기존 `/api/*` 그대로 나가야 한다. 기존 vitest 스위트(2,000+)가 무변경 통과하는 것이 그 증거다.
 3. **인증은 쿠키**: 화면은 Authorization 헤더를 만들지 않는다. `/api/py/*` rewrites 프록시가 `user_token` 쿠키를 그대로 전달하고, FastAPI가 쿠키 폴백(C0)으로 인증한다.
 4. **테넌트 스코핑**: FastAPI 리포지토리는 `TenantScopedRepository` 경유 — 신규 엔드포인트도 반드시 이 베이스를 쓴다.
-5. 백엔드 파일 수정 시 반드시 `cd backend && uv run pytest -q`도 Verify에 포함한다.
+5. 백엔드 파일 수정 시 반드시 `cd backend && RUNNING_ZONE=local uv run pytest -q`도 Verify에 포함한다.
 
 ---
 
@@ -24,7 +24,7 @@
 - Bearer 없이 `user_token` 쿠키만으로 보호 엔드포인트(예: `/api/auth/me`) 200
 - 둘 다 없으면 401, 만료/위조 쿠키면 401
 
-**Verify**: `cd backend && uv run pytest -q`
+**Verify**: `cd backend && RUNNING_ZONE=local uv run pytest -q`
 
 ---
 
@@ -57,7 +57,7 @@
 - 플래그 off: 기존 테스트 무변경 통과
 - 플래그 on(`auth`): me·logout이 `/api/py/auth/*`로 나가고 응답 필드가 레거시와 동일 (훅/컴포넌트 코드 로직 무수정)
 
-**Verify**: `pnpm exec vitest run && pnpm run lint` (+백엔드 수정 시 `cd backend && uv run pytest -q`)
+**Verify**: `pnpm exec vitest run && pnpm run lint` (+백엔드 수정 시 `cd backend && RUNNING_ZONE=local uv run pytest -q`)
 
 ---
 
@@ -97,7 +97,7 @@
 - pytest: PATCH 부분수정·isActive 토글·타테넌트 404/403, departments DELETE 정상+참조 무결성
 - 플래그 on 시 마스터 생성/수정/토글/삭제가 FastAPI 경유로 동작, off 시 무변경
 
-**Verify**: `cd backend && uv run pytest -q && cd .. && pnpm exec vitest run && pnpm run lint`
+**Verify**: `cd backend && RUNNING_ZONE=local uv run pytest -q && cd .. && pnpm exec vitest run && pnpm run lint`
 
 ---
 
@@ -109,7 +109,7 @@
 
 **Acceptance**: pytest 필터 케이스 통과. 플래그 on 시 목록/상세/편집 로드가 FastAPI 경유, off 무변경.
 
-**Verify**: `cd backend && uv run pytest -q && cd .. && pnpm exec vitest run && pnpm run lint`
+**Verify**: `cd backend && RUNNING_ZONE=local uv run pytest -q && cd .. && pnpm exec vitest run && pnpm run lint`
 
 ---
 
@@ -123,7 +123,7 @@
 
 **Acceptance**: pytest — PUT 항목 교체·금액 재계산·상태 규칙·테넌트 격리, DELETE 규칙. 플래그 on 시 생성/수정/삭제 FastAPI 경유, off 무변경.
 
-**Verify**: `cd backend && uv run pytest -q && cd .. && pnpm exec vitest run && pnpm run lint`
+**Verify**: `cd backend && RUNNING_ZONE=local uv run pytest -q && cd .. && pnpm exec vitest run && pnpm run lint`
 
 ---
 
@@ -149,7 +149,7 @@
 
 **Acceptance**: pytest — 결재자 기준 목록·상태 필터·카운트·테넌트 격리. 플래그 on 시 결재함 화면 FastAPI 경유, off 무변경.
 
-**Verify**: `cd backend && uv run pytest -q && cd .. && pnpm exec vitest run && pnpm run lint`
+**Verify**: `cd backend && RUNNING_ZONE=local uv run pytest -q && cd .. && pnpm exec vitest run && pnpm run lint`
 
 ---
 
@@ -171,7 +171,7 @@
 
 ## F2. 백엔드 전체 그린
 
-**Verify**: `cd backend && uv run pytest -q` — 전체 통과.
+**Verify**: `cd backend && RUNNING_ZONE=local uv run pytest -q` — 전체 통과.
 
 ## F3. 빌드·회귀
 

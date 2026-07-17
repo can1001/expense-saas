@@ -39,7 +39,7 @@
 task 본문의 **Verify** 명령을 실행한다. 예:
 
 ```bash
-cd backend && uv run pytest -q
+cd backend && RUNNING_ZONE=local uv run pytest -q
 pnpm exec vitest run
 pnpm run lint
 ```
