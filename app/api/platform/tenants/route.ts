@@ -3,14 +3,13 @@ import { prismaBase, Prisma } from '@/lib/prisma';
 import {
   createTenantSchema,
   listTenantsQuerySchema,
-  planLimits,
 } from '@/lib/validators/tenant';
 import { handleApiError, ApiError } from '@/lib/api/error-handler';
 import { withSuperAdmin } from '@/lib/auth/super-admin';
 import { logPlatformActivity } from '@/lib/platform/activity-log';
-import { seedDefaultData } from '@/lib/tenant/seed-default-data';
+import { seedDefaultData, SeedDefaultDataResult } from '@/lib/tenant/seed-default-data';
 import { ROLE_PERMISSION_PRESETS, RoleCode } from '@/lib/auth/permissions';
-import bcrypt from 'bcryptjs';
+import { provisionTenant } from '@/lib/services/provision-tenant';
 
 // GET /api/platform/tenants - 테넌트 목록 조회
 export const GET = withSuperAdmin(async (request: NextRequest) => {
@@ -128,72 +127,34 @@ export const POST = withSuperAdmin(async (request: NextRequest, { superAdmin }) 
       }
     }
 
-    // 요금제에 따른 기본 제한 설정
-    const limits = planLimits[data.plan];
+    // provisionTenant() 경유 (ARC-001 §4) — 단일 트랜잭션으로
+    // 테넌트 생성 + orgType 템플릿(계정과목·결재선) 복제 + 초기 관리자 계정 생성.
+    // 기존 관례(기본 역할 생성, Budget 5단계 기본 계정과목 시딩)는 extend 훅으로 같은 트랜잭션에서 유지한다.
+    let seedResult: SeedDefaultDataResult | null = null;
+    const result = await provisionTenant(data, {
+      extend: async (tx, tenant) => {
+        // 기본 역할 생성 (permission 프리셋 기반)
+        const roles = [
+          { code: 'admin', name: '관리자', description: '시스템 전체 관리 권한', sortOrder: 0 },
+          { code: 'finance_head', name: '재정팀장', description: '재정 관리 및 최종 결재 권한', stepNumber: 3, sortOrder: 1 },
+          { code: 'accountant', name: '회계', description: '회계 처리 및 2차 결재 권한', stepNumber: 2, sortOrder: 2 },
+          { code: 'team_leader', name: '팀장', description: '팀 관리 및 1차 결재 권한', stepNumber: 1, sortOrder: 3 },
+          { code: 'user', name: '사용자', description: '일반 사용자 (지출결의서 작성)', sortOrder: 4 },
+        ].map((r) => ({
+          ...r,
+          tenantId: tenant.id,
+          permissions: [...(ROLE_PERMISSION_PRESETS[r.code as RoleCode] ?? [])],
+        }));
 
-    // 트랜잭션으로 테넌트, 초기 관리자, 기본 계정과목 생성
-    const result = await prismaBase.$transaction(async (tx) => {
-      // 1. 테넌트 생성
-      const newTenant = await tx.tenant.create({
-        data: {
-          name: data.name,
-          subdomain: data.subdomain,
-          customDomain: data.customDomain,
+        await tx.role.createMany({ data: roles });
+
+        // 조직 유형에 따른 기본 계정과목(Budget 5단계) 생성
+        seedResult = await seedDefaultData({
+          tenantId: tenant.id,
           orgType: data.orgType,
-          description: data.description,
-          logoUrl: data.logoUrl,
-          plan: data.plan,
-          maxUsers: limits.maxUsers,
-          maxStorageMB: limits.maxStorageMB,
-          planStartAt: new Date(),
-        },
-      });
-
-      // 2. 기본 역할 생성 (permission 프리셋 기반)
-      const roles = [
-        { code: 'admin', name: '관리자', description: '시스템 전체 관리 권한', sortOrder: 0 },
-        { code: 'finance_head', name: '재정팀장', description: '재정 관리 및 최종 결재 권한', stepNumber: 3, sortOrder: 1 },
-        { code: 'accountant', name: '회계', description: '회계 처리 및 2차 결재 권한', stepNumber: 2, sortOrder: 2 },
-        { code: 'team_leader', name: '팀장', description: '팀 관리 및 1차 결재 권한', stepNumber: 1, sortOrder: 3 },
-        { code: 'user', name: '사용자', description: '일반 사용자 (지출결의서 작성)', sortOrder: 4 },
-      ].map((r) => ({
-        ...r,
-        tenantId: newTenant.id,
-        permissions: [...(ROLE_PERMISSION_PRESETS[r.code as RoleCode] ?? [])],
-      }));
-
-      await tx.role.createMany({ data: roles });
-
-      // 3. 조직 유형에 따른 기본 계정과목 생성
-      const seedResult = await seedDefaultData({
-        tenantId: newTenant.id,
-        orgType: data.orgType,
-        tx,
-      });
-
-      // 4. 초기 관리자 계정 생성 (제공된 경우)
-      if (data.adminEmail && data.adminName && data.adminPassword) {
-        const hashedPassword = await bcrypt.hash(data.adminPassword, 10);
-
-        await tx.user.create({
-          data: {
-            tenantId: newTenant.id,
-            userid: data.adminEmail,
-            username: data.adminName,
-            password: hashedPassword,
-            role: 'admin',
-            isActive: true,
-          },
+          tx,
         });
-
-        // 현재 사용자 수 업데이트
-        await tx.tenant.update({
-          where: { id: newTenant.id },
-          data: { currentUsers: 1 },
-        });
-      }
-
-      return { tenant: newTenant, seedResult };
+      },
     });
 
     // 활동 로그 기록
@@ -211,7 +172,12 @@ export const POST = withSuperAdmin(async (request: NextRequest, { superAdmin }) 
         plan: result.tenant.plan,
         orgType: result.tenant.orgType,
         hasInitialAdmin: !!(data.adminEmail),
-        defaultDataSeeded: result.seedResult,
+        defaultDataSeeded: seedResult,
+        templatesCloned: {
+          accountCategories: result.accountCategoriesCreated,
+          approvalLines: result.approvalLinesCloned,
+        },
+        provisionWarnings: result.warnings,
       },
     });
 

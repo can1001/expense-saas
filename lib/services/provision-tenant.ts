@@ -12,7 +12,7 @@
  * 4. 테넌트 어드민 User 생성 (hashPassword 관례 사용)
  */
 
-import type { Tenant, User } from '@prisma/client';
+import type { Tenant, User, Prisma } from '@prisma/client';
 import { prismaBase } from '@/lib/prisma';
 import { hashPassword } from '@/lib/services/user-service';
 import { createTenantSchema, planLimits, type OrgType } from '@/lib/validators/tenant';
@@ -33,6 +33,14 @@ export type ApprovalLineSnapshot = {
   sourceTemplateId: string;
   steps: Array<{ stepOrder: number; roleLabel: string }>;
 };
+
+export interface ProvisionTenantOptions {
+  /**
+   * 코어 프로비저닝(테넌트·계정과목·결재선·어드민) 이후 같은 트랜잭션에서 실행할 추가 단계.
+   * 호출측 고유 관례(기본 역할 생성, Budget 5단계 기본 데이터 시딩 등)를 원자성을 깨지 않고 유지하기 위한 훅.
+   */
+  extend?: (tx: Prisma.TransactionClient, tenant: Tenant) => Promise<void>;
+}
 
 export interface ProvisionTenantResult {
   tenant: Tenant;
@@ -93,7 +101,10 @@ export function defaultSettingsForOrgType(orgType: OrgType): TenantDefaultSettin
  * - 해당 orgType의 템플릿이 0건이어도 Tenant/User는 생성하고 warnings로 알린다.
  * - 어느 단계든 실패하면 트랜잭션 전체가 롤백된다 (부분 생성 방지).
  */
-export async function provisionTenant(input: ProvisionTenantInput): Promise<ProvisionTenantResult> {
+export async function provisionTenant(
+  input: ProvisionTenantInput,
+  options?: ProvisionTenantOptions
+): Promise<ProvisionTenantResult> {
   const data = provisionTenantInputSchema.parse(input);
   const limits = planLimits[data.plan];
   const warnings: string[] = [];
@@ -206,6 +217,11 @@ export async function provisionTenant(input: ProvisionTenantInput): Promise<Prov
       warnings.push(
         '어드민 계정 정보(adminEmail/adminName/adminPassword)가 없어 어드민 User를 생성하지 않았습니다.'
       );
+    }
+
+    // 5. 호출측 추가 단계 — 같은 트랜잭션에서 실행해 부분 생성 방지 원칙을 유지한다
+    if (options?.extend) {
+      await options.extend(tx, tenant);
     }
 
     return { tenant, adminUser, accountCategoriesCreated, approvalLinesCloned };

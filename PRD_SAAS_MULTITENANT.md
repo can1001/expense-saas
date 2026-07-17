@@ -34,7 +34,7 @@ RALPH_BRANCH=20260718-saas-multitenant \
 - [x] A2. COMPANY 템플릿 시드 스크립트 — 기존 청연컨설팅 계정과목 승격 (upsert, 실행은 M1)
 - [x] A3. CHURCH 템플릿 시드 스크립트 — 계정과목 46건 + 결재선 템플릿 2종 (upsert, 실행은 M1)
 - [x] A4. `provisionTenant()` 트랜잭션 서비스 + 단위 테스트
-- [ ] A5. 플랫폼 어드민 테넌트 생성 API를 `provisionTenant()` 경유로 전환
+- [x] A5. 플랫폼 어드민 테넌트 생성 API를 `provisionTenant()` 경유로 전환
 - [ ] A6. `Tenant.settings` labels/features 표준화 — 타입·기본값·조회 헬퍼 (`lib/org-terms.ts` 통합)
 
 ## Phase B — Membership · 서버 주도 설정 (ARC-002)
