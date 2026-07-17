@@ -13,7 +13,7 @@ import { formatCurrency } from '@/lib/utils';
 import { ArrowLeft, Building2, User, CreditCard, FileText, Clock } from 'lucide-react';
 import { MobileItemCard } from '@/components/ui/Accordion';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
-import { apiBase } from '@/lib/api/api-base';
+import { apiBase, pyEnabled } from '@/lib/api/api-base';
 
 export default function ApprovalDetailPage() {
   const terms = useOrgTerms();
@@ -51,13 +51,14 @@ export default function ApprovalDetailPage() {
       setError(null);
 
       // 결재 API URL 구성 (결재자인 경우 예산 정보 포함)
+      const approvalBase = apiBase('approvals');
       const approvalUrl = username
-        ? `/api/expenses/${id}/approval?approverName=${encodeURIComponent(username)}`
-        : `/api/expenses/${id}/approval`;
+        ? `${approvalBase}/expenses/${id}/approval?approverName=${encodeURIComponent(username)}`
+        : `${approvalBase}/expenses/${id}/approval`;
 
       // 지출결의서와 결재 정보를 함께 조회
       const [expenseRes, approvalRes] = await Promise.all([
-        fetch(`/api/expenses/${id}`),
+        fetch(`${apiBase('expenses')}/expenses/${id}`),
         fetch(approvalUrl),
       ]);
 
@@ -70,7 +71,9 @@ export default function ApprovalDetailPage() {
 
       if (approvalRes.ok) {
         const approvalInfo = await approvalRes.json();
-        setApprovalData(approvalInfo);
+        // FastAPI GET /{id}/approval 은 ApprovalLineOut(평탄 구조)만 반환 —
+        // 레거시 { approvalLine, budgetInfo, logs } 래핑에 맞춰 정규화 (budgetInfo/logs는 미제공)
+        setApprovalData(pyEnabled('approvals') ? { approvalLine: approvalInfo } : approvalInfo);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');

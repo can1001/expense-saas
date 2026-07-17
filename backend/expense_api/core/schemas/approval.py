@@ -4,6 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from expense_api.core.schemas.expense import ExpenseItemOut
+
 
 class ApprovalStepInput(BaseModel):
     stepNumber: int = Field(ge=1)
@@ -66,3 +68,61 @@ class WorkflowResult(BaseModel):
     currentStep: int | None = None
     totalSteps: int | None = None
     message: str | None = None  # 레거시 계약: approve/reject 알림 문구
+
+
+# ── 결재함 목록 / 대기건수 (app/api/approvals, app/api/approvals/pending-count 이전) ──
+
+
+class ApprovalListExpenseOut(BaseModel):
+    id: str
+    committee: str
+    department: str
+    budgetCategory: str
+    budgetSubcategory: str
+    requestAmount: int
+    applicantName: str
+    status: str
+    submittedAt: datetime | None
+    createdAt: datetime
+    items: list[ExpenseItemOut]
+
+
+class ApprovalListLineOut(BaseModel):
+    id: str
+    currentStep: int
+    totalSteps: int
+    isUrgent: bool
+    steps: list[ApprovalStepOut]
+
+
+class ApprovalListMyStepOut(BaseModel):
+    stepNumber: int
+    stepName: str
+    status: str
+    approvedAt: datetime | None
+    rejectedAt: datetime | None
+    comment: str | None
+
+
+class ApprovalListItemOut(BaseModel):
+    id: str  # expenseId (레거시 계약)
+    expense: ApprovalListExpenseOut
+    approvalLine: ApprovalListLineOut
+    myStep: ApprovalListMyStepOut | None
+    isMyTurn: bool
+
+
+class ApprovalListPaginationOut(BaseModel):
+    page: int
+    limit: int
+    total: int
+    totalPages: int
+
+
+class ApprovalListOut(BaseModel):
+    approvals: list[ApprovalListItemOut]
+    pagination: ApprovalListPaginationOut
+
+
+class PendingCountOut(BaseModel):
+    count: int

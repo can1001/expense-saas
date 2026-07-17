@@ -25,7 +25,7 @@
 - [x] C6. 지출 목록/상세 조회 전환 — FastAPI 목록 쿼리 필터 보강 + `app/expenses` GET 전환
 - [x] C7. 지출 쓰기 보강+전환 — FastAPI PUT/DELETE `/api/expenses/{id}` 구현 후 `ExpenseForm` POST/PUT + 상세 DELETE 전환
 - [x] C8. 결재 액션 전환 — submit/approve/reject/withdraw POST 4종 + `/{id}/approval` GET
-- [ ] C9. 결재 목록/카운트 보강+전환 — FastAPI `/api/approvals`·`/api/approvals/pending-count` 구현 후 화면 전환
+- [x] C9. 결재 목록/카운트 보강+전환 — FastAPI `/api/approvals`·`/api/approvals/pending-count` 구현 후 화면 전환
 - [ ] C10. 결재선 계산 전환 — `ApprovalLinePreview` POST `/api/approval-line/calculate`
 
 ## 최종 검증 (C1~C10 전부 [x] 이후에만)

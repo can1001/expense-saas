@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { apiBase } from '@/lib/api/api-base';
 
 interface UsePendingApprovalCountOptions {
   /** 폴링 간격 (ms). 기본값: 60000 (1분) */
@@ -41,7 +42,7 @@ export function usePendingApprovalCount(
 
   const fetchCount = useCallback(async () => {
     try {
-      const response = await fetch('/api/approvals/pending-count');
+      const response = await fetch(`${apiBase('approvals')}/approvals/pending-count`);
       if (response.ok) {
         const data = await response.json();
         setCount(data.count ?? 0);
