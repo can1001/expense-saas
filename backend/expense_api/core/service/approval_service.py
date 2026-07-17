@@ -19,11 +19,28 @@ from expense_api.core.models.approval_policy import ApprovalPolicy
 from expense_api.core.models.enums import ApprovalAction, ApprovalStatus, StepStatus
 from expense_api.core.models.expense import Expense, ExpenseItem
 from expense_api.core.models.ids import utcnow
-from expense_api.core.schemas.approval import SubmitRequest
+from expense_api.core.schemas.approval import (
+    ApprovalListExpenseOut,
+    ApprovalListItemOut,
+    ApprovalListLineOut,
+    ApprovalListMyStepOut,
+    ApprovalListOut,
+    ApprovalListPaginationOut,
+    ApprovalStepOut,
+    SubmitRequest,
+)
+from expense_api.core.schemas.expense import ExpenseItemOut
 from expense_api.core.service.approval_policy_engine import (
     ApprovalPolicyEngine,
     ExpenseContext,
     PolicyResolutionError,
+)
+
+# 결재 대기 중으로 취급하는 지출결의서 상태 — app/api/approvals(/pending-count) 이전
+_IN_PROGRESS_STATUSES = (
+    ApprovalStatus.PENDING.value,
+    ApprovalStatus.APPROVED_STEP_1.value,
+    ApprovalStatus.APPROVED_STEP_2.value,
 )
 
 
@@ -66,6 +83,14 @@ class ApprovalService:
             select(ApprovalStep)
             .where(ApprovalStep.approvalLineId == line_id)
             .order_by(ApprovalStep.stepNumber)
+        )
+        return list((await self.session.execute(stmt)).scalars().all())
+
+    async def _list_items(self, expense_id: str) -> list[ExpenseItem]:
+        stmt = (
+            select(ExpenseItem)
+            .where(ExpenseItem.expenseId == expense_id)
+            .order_by(ExpenseItem.order)
         )
         return list((await self.session.execute(stmt)).scalars().all())
 
@@ -473,3 +498,142 @@ class ApprovalService:
         await self.session.commit()
         await self.session.refresh(line)
         return line
+
+    # ── 결재함 목록 (app/api/approvals/route.ts 이전) ──────────────────
+    async def _lines_for_approver(
+        self, approver_name: str, status_filter: str
+    ) -> list[ApprovalLine]:
+        step_filters = [ApprovalStep.approverName == approver_name]
+        if status_filter == "pending":
+            step_filters.append(ApprovalStep.status == StepStatus.PENDING.value)
+        elif status_filter == "completed":
+            step_filters.append(
+                ApprovalStep.status.in_([StepStatus.APPROVED.value, StepStatus.REJECTED.value])
+            )
+
+        stmt = (
+            select(ApprovalLine)
+            .join(ApprovalStep, ApprovalStep.approvalLineId == ApprovalLine.id)
+            .join(Expense, Expense.id == ApprovalLine.expenseId)
+            .where(Expense.tenantId == self.tenant_id, *step_filters)
+        )
+        if status_filter == "pending":
+            stmt = stmt.where(Expense.status.in_(_IN_PROGRESS_STATUSES))
+        stmt = stmt.distinct().order_by(ApprovalLine.createdAt.desc())
+        return list((await self.session.execute(stmt)).scalars().all())
+
+    async def list_for_approver(
+        self, approver_name: str, status_filter: str, page: int, limit: int
+    ) -> ApprovalListOut:
+        """결재자 기준 결재함 목록. status: pending(내 차례) | completed(내가 처리함) | all."""
+        lines = await self._lines_for_approver(approver_name, status_filter)
+
+        entries: list[ApprovalListItemOut] = []
+        for line in lines:
+            expense = await self._get_expense(line.expenseId)
+            steps = await self._get_steps(line.id)
+            current_step = next((s for s in steps if s.stepNumber == line.currentStep), None)
+            is_my_turn = bool(current_step and current_step.approverName == approver_name)
+            if status_filter == "pending" and not is_my_turn:
+                continue
+
+            my_step = next((s for s in steps if s.approverName == approver_name), None)
+            items = await self._list_items(expense.id)
+            first_item = items[0] if items else None
+
+            entries.append(
+                ApprovalListItemOut(
+                    id=expense.id,
+                    expense=ApprovalListExpenseOut(
+                        id=expense.id,
+                        committee=expense.committee,
+                        department=expense.department,
+                        budgetCategory=first_item.budgetCategory if first_item else "",
+                        budgetSubcategory=first_item.budgetSubcategory if first_item else "",
+                        requestAmount=expense.requestAmount,
+                        applicantName=expense.applicantName,
+                        status=expense.status,
+                        submittedAt=expense.submittedAt,
+                        createdAt=expense.createdAt,
+                        items=[
+                            ExpenseItemOut(
+                                id=i.id,
+                                budgetCategory=i.budgetCategory,
+                                budgetSubcategory=i.budgetSubcategory,
+                                budgetDetail=i.budgetDetail,
+                                description=i.description,
+                                unitPrice=i.unitPrice,
+                                quantity=i.quantity,
+                                amount=i.amount,
+                                order=i.order,
+                            )
+                            for i in items
+                        ],
+                    ),
+                    approvalLine=ApprovalListLineOut(
+                        id=line.id,
+                        currentStep=line.currentStep,
+                        totalSteps=line.totalSteps,
+                        isUrgent=line.isUrgent,
+                        steps=[
+                            ApprovalStepOut(
+                                stepNumber=s.stepNumber,
+                                stepName=s.stepName,
+                                approverName=s.approverName,
+                                status=s.status,
+                                approvedAt=s.approvedAt,
+                                rejectedAt=s.rejectedAt,
+                                comment=s.comment,
+                                isParallel=s.isParallel,
+                                delegatedTo=s.delegatedTo,
+                            )
+                            for s in steps
+                        ],
+                    ),
+                    myStep=(
+                        ApprovalListMyStepOut(
+                            stepNumber=my_step.stepNumber,
+                            stepName=my_step.stepName,
+                            status=my_step.status,
+                            approvedAt=my_step.approvedAt,
+                            rejectedAt=my_step.rejectedAt,
+                            comment=my_step.comment,
+                        )
+                        if my_step is not None
+                        else None
+                    ),
+                    isMyTurn=is_my_turn,
+                )
+            )
+
+        total = len(entries)
+        offset = (page - 1) * limit
+        paginated = entries[offset : offset + limit]
+        total_pages = (total + limit - 1) // limit if limit else 0
+        return ApprovalListOut(
+            approvals=paginated,
+            pagination=ApprovalListPaginationOut(
+                page=page, limit=limit, total=total, totalPages=total_pages
+            ),
+        )
+
+    # ── 결재 대기 건수 (app/api/approvals/pending-count/route.ts 이전) ──
+    async def count_pending_for_approver(self, approver_name: str) -> int:
+        lines = await self._lines_for_approver(approver_name, "pending")
+        count = 0
+        for line in lines:
+            stmt = (
+                select(ApprovalStep)
+                .where(
+                    ApprovalStep.approvalLineId == line.id,
+                    ApprovalStep.approverName == approver_name,
+                )
+                .order_by(ApprovalStep.stepNumber)
+            )
+            approver_steps = list((await self.session.execute(stmt)).scalars().all())
+            my_pending_step = next(
+                (s for s in approver_steps if s.status == StepStatus.PENDING.value), None
+            )
+            if my_pending_step and my_pending_step.stepNumber == line.currentStep:
+                count += 1
+        return count

@@ -92,7 +92,7 @@ export default function ApprovalsPage() {
       setLoading(true);
       setError(null);
       const response = await fetch(
-        `/api/approvals?approverName=${encodeURIComponent(user.username)}&status=${statusFilter}`
+        `${apiBase('approvals')}/approvals?approverName=${encodeURIComponent(user.username)}&status=${statusFilter}`
       );
 
       if (!response.ok) {
