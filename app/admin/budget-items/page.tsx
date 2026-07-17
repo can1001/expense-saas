@@ -116,12 +116,13 @@ export default function BudgetItemsPage() {
   ) => {
     setToggling(`${type}-${id}`);
     try {
+      const base = apiBase('budget-master');
       const endpoint =
         type === 'category'
-          ? `/api/budget-categories/${id}`
+          ? `${base}/budget-categories/${id}`
           : type === 'subcategory'
-            ? `/api/budget-subcategories/${id}`
-            : `/api/budget-details/${id}`;
+            ? `${base}/budget-subcategories/${id}`
+            : `${base}/budget-details/${id}`;
 
       const response = await fetch(endpoint, {
         method: 'PATCH',

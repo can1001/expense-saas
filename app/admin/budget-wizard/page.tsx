@@ -191,22 +191,23 @@ export default function BudgetWizardPage() {
     try {
       let endpoint = '';
       const body: Record<string, unknown> = { name: newName.trim() };
+      const base = apiBase('budget-master');
 
       switch (currentStep) {
         case 1:
-          endpoint = '/api/committees';
+          endpoint = `${base}/committees`;
           if (newLeaderId) body.leaderId = newLeaderId;
           break;
         case 2:
-          endpoint = '/api/departments';
+          endpoint = `${base}/departments`;
           body.committeeId = selectedCommittee?.id;
           if (newLeaderId) body.leaderId = newLeaderId;
           break;
         case 3:
-          endpoint = '/api/budget-categories';
+          endpoint = `${base}/budget-categories`;
           break;
         case 4:
-          endpoint = '/api/budget-subcategories';
+          endpoint = `${base}/budget-subcategories`;
           body.categoryId = selectedCategory?.id;
           break;
       }

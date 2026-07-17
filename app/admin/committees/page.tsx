@@ -84,7 +84,7 @@ export default function CommitteesPage() {
     if (!newName.trim()) return;
     setSaving(true);
     try {
-      const response = await fetch('/api/committees', {
+      const response = await fetch(`${apiBase('budget-master')}/committees`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -111,7 +111,7 @@ export default function CommitteesPage() {
     if (!editName.trim()) return;
     setSaving(true);
     try {
-      const response = await fetch(`/api/committees/${id}`, {
+      const response = await fetch(`${apiBase('budget-master')}/committees/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -135,7 +135,7 @@ export default function CommitteesPage() {
 
   const handleToggleActive = async (id: string, currentActive: boolean) => {
     try {
-      const response = await fetch(`/api/committees/${id}`, {
+      const response = await fetch(`${apiBase('budget-master')}/committees/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !currentActive }),

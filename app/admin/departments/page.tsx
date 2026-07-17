@@ -117,7 +117,7 @@ export default function DepartmentsPage() {
     setSaving(true);
     try {
       // 1. 부서 추가 (leaderId 없이)
-      const response = await fetch('/api/departments', {
+      const response = await fetch(`${apiBase('budget-master')}/departments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -160,7 +160,7 @@ export default function DepartmentsPage() {
     setSaving(true);
     try {
       // 1. 부서명 수정 (leaderId 제외)
-      const response = await fetch(`/api/departments/${dept.id}`, {
+      const response = await fetch(`${apiBase('budget-master')}/departments/${dept.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -214,7 +214,7 @@ export default function DepartmentsPage() {
 
   const handleToggleActive = async (id: string, currentActive: boolean) => {
     try {
-      const response = await fetch(`/api/departments/${id}`, {
+      const response = await fetch(`${apiBase('budget-master')}/departments/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !currentActive }),

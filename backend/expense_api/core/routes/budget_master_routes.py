@@ -1,7 +1,5 @@
-"""예산 마스터 CRUD 라우터 — 위원회/부서/항/목/세목 목록·생성.
+"""예산 마스터 CRUD 라우터 — 위원회/부서/항/목/세목 목록·생성·수정·삭제.
 (app/api/committees, departments, budget-categories, budget-subcategories, budget-details 이전)
-
-Phase 2 골격: GET 목록 + POST 생성. 수정/삭제(PUT/DELETE)는 후속.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -19,6 +17,7 @@ from expense_api.core.models.budget import (
     BudgetSubcategory,
     Committee,
     Department,
+    DepartmentBudgetDetail,
 )
 from expense_api.core.models.ids import utcnow
 from expense_api.core.models.user import User, UserYearRole
@@ -47,6 +46,13 @@ async def _list(session: AsyncSession, model, tenant_id: str, **extra) -> list[d
     stmt = stmt.order_by(model.sortOrder)
     rows = (await session.execute(stmt)).scalars().all()
     return [r.model_dump() for r in rows]
+
+
+async def _get_or_404(session: AsyncSession, model, entity_id: str, tenant_id: str, message: str):
+    entity = await session.get(model, entity_id)
+    if entity is None or entity.tenantId != tenant_id:
+        raise HTTPException(404, message)
+    return entity
 
 
 # ── 위원회 ────────────────────────────────────────────────────────────
@@ -115,6 +121,42 @@ async def create_committee(
         leaderId=body.leaderId or None,
     )
     session.add(entity)
+    await session.commit()
+    await session.refresh(entity)
+    return entity.model_dump()
+
+
+class CommitteeUpdate(BaseModel):
+    name: str | None = None
+    isActive: bool | None = None
+    sortOrder: int | None = None
+    leaderId: str | None = None
+
+
+@router.patch("/committees/{committee_id}")
+async def update_committee(
+    committee_id: str,
+    body: CommitteeUpdate,
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+    _=Depends(require_permission(PERMISSIONS.COMMITTEE_MANAGE)),
+) -> dict:
+    entity = await _get_or_404(session, Committee, committee_id, tenant_id, "위원회를 찾을 수 없습니다.")
+    fields = body.model_fields_set
+
+    if "name" in fields:
+        new_name = (body.name or "").strip()
+        if body.name and new_name != entity.name:
+            if await _exists_by_name(session, Committee, tenant_id, new_name):
+                raise HTTPException(409, "이미 존재하는 위원회명입니다.")
+        entity.name = new_name
+    if "isActive" in fields:
+        entity.isActive = body.isActive
+    if "sortOrder" in fields:
+        entity.sortOrder = body.sortOrder
+    if "leaderId" in fields:
+        entity.leaderId = body.leaderId or None
+
     await session.commit()
     await session.refresh(entity)
     return entity.model_dump()
@@ -201,6 +243,81 @@ async def create_department(
     return entity.model_dump()
 
 
+class DepartmentUpdate(BaseModel):
+    name: str | None = None
+    isActive: bool | None = None
+    sortOrder: int | None = None
+    committeeId: str | None = None
+
+
+@router.patch("/departments/{department_id}")
+async def update_department(
+    department_id: str,
+    body: DepartmentUpdate,
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+    _=Depends(require_permission(PERMISSIONS.DEPARTMENT_MANAGE)),
+) -> dict:
+    entity = await _get_or_404(session, Department, department_id, tenant_id, "사역팀을 찾을 수 없습니다.")
+    fields = body.model_fields_set
+    target_committee_id = body.committeeId if "committeeId" in fields else entity.committeeId
+
+    if "name" in fields:
+        new_name = (body.name or "").strip()
+        if body.name and new_name != entity.name:
+            if await _exists_by_name(
+                session, Department, tenant_id, new_name, committeeId=target_committee_id
+            ):
+                raise HTTPException(409, "같은 위원회 내에 이미 존재하는 사역팀명입니다.")
+        entity.name = new_name
+    if "isActive" in fields:
+        entity.isActive = body.isActive
+    if "sortOrder" in fields:
+        entity.sortOrder = body.sortOrder
+    if "committeeId" in fields:
+        entity.committeeId = body.committeeId
+
+    await session.commit()
+    await session.refresh(entity)
+    return entity.model_dump()
+
+
+@router.delete("/departments/{department_id}")
+async def delete_department(
+    department_id: str,
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+    _=Depends(require_permission(PERMISSIONS.DEPARTMENT_MANAGE)),
+) -> dict:
+    entity = await _get_or_404(session, Department, department_id, tenant_id, "사역팀을 찾을 수 없습니다.")
+
+    detail_count = (
+        await session.execute(
+            select(func.count(DepartmentBudgetDetail.id)).where(
+                DepartmentBudgetDetail.departmentId == department_id
+            )
+        )
+    ).scalar_one()
+    if detail_count > 0:
+        raise HTTPException(
+            400, "연결된 예산 세목이 있는 사역팀은 삭제할 수 없습니다. 비활성화를 사용해주세요."
+        )
+
+    year_role_count = (
+        await session.execute(
+            select(func.count(UserYearRole.id)).where(UserYearRole.departmentId == department_id)
+        )
+    ).scalar_one()
+    if year_role_count > 0:
+        raise HTTPException(
+            400, "연결된 팀장 역할이 있는 사역팀은 삭제할 수 없습니다. 비활성화를 사용해주세요."
+        )
+
+    await session.delete(entity)
+    await session.commit()
+    return {"success": True}
+
+
 # ── 예산(항) ──────────────────────────────────────────────────────────
 class CategoryCreate(BaseModel):
     name: str
@@ -253,6 +370,41 @@ async def create_category(
         sortOrder=await _next_sort_order(session, BudgetCategory, tenant_id),
     )
     session.add(entity)
+    await session.commit()
+    await session.refresh(entity)
+    return entity.model_dump()
+
+
+class CategoryUpdate(BaseModel):
+    name: str | None = None
+    isActive: bool | None = None
+    sortOrder: int | None = None
+
+
+@router.patch("/budget-categories/{category_id}")
+async def update_category(
+    category_id: str,
+    body: CategoryUpdate,
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+    _=Depends(require_permission(PERMISSIONS.BUDGET_MASTER_MANAGE)),
+) -> dict:
+    entity = await _get_or_404(
+        session, BudgetCategory, category_id, tenant_id, "예산(항)을 찾을 수 없습니다."
+    )
+    fields = body.model_fields_set
+
+    if "name" in fields:
+        new_name = (body.name or "").strip()
+        if body.name and new_name != entity.name:
+            if await _exists_by_name(session, BudgetCategory, tenant_id, new_name):
+                raise HTTPException(409, "이미 존재하는 예산(항)입니다.")
+        entity.name = new_name
+    if "isActive" in fields:
+        entity.isActive = body.isActive
+    if "sortOrder" in fields:
+        entity.sortOrder = body.sortOrder
+
     await session.commit()
     await session.refresh(entity)
     return entity.model_dump()
@@ -330,6 +482,47 @@ async def create_subcategory(
     return entity.model_dump()
 
 
+class SubcategoryUpdate(BaseModel):
+    name: str | None = None
+    isActive: bool | None = None
+    sortOrder: int | None = None
+    categoryId: str | None = None
+
+
+@router.patch("/budget-subcategories/{subcategory_id}")
+async def update_subcategory(
+    subcategory_id: str,
+    body: SubcategoryUpdate,
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+    _=Depends(require_permission(PERMISSIONS.BUDGET_MASTER_MANAGE)),
+) -> dict:
+    entity = await _get_or_404(
+        session, BudgetSubcategory, subcategory_id, tenant_id, "예산(목)을 찾을 수 없습니다."
+    )
+    fields = body.model_fields_set
+    target_category_id = body.categoryId if "categoryId" in fields else entity.categoryId
+
+    if "name" in fields:
+        new_name = (body.name or "").strip()
+        if body.name and new_name != entity.name:
+            if await _exists_by_name(
+                session, BudgetSubcategory, tenant_id, new_name, categoryId=target_category_id
+            ):
+                raise HTTPException(409, "같은 예산(항) 내에 이미 존재하는 예산(목)입니다.")
+        entity.name = new_name
+    if "isActive" in fields:
+        entity.isActive = body.isActive
+    if "sortOrder" in fields:
+        entity.sortOrder = body.sortOrder
+    if "categoryId" in fields:
+        entity.categoryId = body.categoryId
+
+    await session.commit()
+    await session.refresh(entity)
+    return entity.model_dump()
+
+
 # ── 예산(세목) ────────────────────────────────────────────────────────
 class DetailCreate(BaseModel):
     subcategoryId: str
@@ -371,6 +564,53 @@ async def create_detail(
         sortOrder=await _next_sort_order(session, BudgetDetail, tenant_id),
     )
     session.add(entity)
+    await session.commit()
+    await session.refresh(entity)
+    return entity.model_dump()
+
+
+class DetailUpdate(BaseModel):
+    name: str | None = None
+    isActive: bool | None = None
+    sortOrder: int | None = None
+    subcategoryId: str | None = None
+    accountCode: str | None = None
+    description: str | None = None
+
+
+@router.patch("/budget-details/{detail_id}")
+async def update_detail(
+    detail_id: str,
+    body: DetailUpdate,
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+    _=Depends(require_permission(PERMISSIONS.BUDGET_MASTER_MANAGE)),
+) -> dict:
+    entity = await _get_or_404(
+        session, BudgetDetail, detail_id, tenant_id, "예산(세목)을 찾을 수 없습니다."
+    )
+    fields = body.model_fields_set
+    target_subcategory_id = body.subcategoryId if "subcategoryId" in fields else entity.subcategoryId
+
+    if "name" in fields:
+        new_name = (body.name or "").strip()
+        if body.name and new_name != entity.name:
+            if await _exists_by_name(
+                session, BudgetDetail, tenant_id, new_name, subcategoryId=target_subcategory_id
+            ):
+                raise HTTPException(409, "같은 예산(목) 내에 이미 존재하는 예산(세목)입니다.")
+        entity.name = new_name
+    if "isActive" in fields:
+        entity.isActive = body.isActive
+    if "sortOrder" in fields:
+        entity.sortOrder = body.sortOrder
+    if "subcategoryId" in fields:
+        entity.subcategoryId = body.subcategoryId
+    if "accountCode" in fields:
+        entity.accountCode = (body.accountCode or "").strip() or None
+    if "description" in fields:
+        entity.description = (body.description or "").strip() or None
+
     await session.commit()
     await session.refresh(entity)
     return entity.model_dump()
