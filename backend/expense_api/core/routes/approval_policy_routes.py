@@ -1,7 +1,8 @@
 """결재 정책 라우터 — 정책 CRUD + 결재선 미리보기. (spec §15.3)"""
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,11 +12,21 @@ from expense_api.core.dependencies.auth import CurrentUser, get_current_user
 from expense_api.core.dependencies.authz import require_permission
 from expense_api.core.dependencies.tenant import require_tenant_id
 from expense_api.core.models.approval_policy import ApprovalPolicy
-from expense_api.core.models.expense import Expense
+from expense_api.core.models.budget import (
+    BudgetCategory,
+    BudgetDetail,
+    BudgetDetailYear,
+    BudgetSubcategory,
+)
+from expense_api.core.models.ids import utcnow
+from expense_api.core.models.user import User, UserYearRole
 from expense_api.core.schemas.approval_policy import (
+    ApprovalLinePreviewBudgetOut,
+    ApprovalLinePreviewOut,
+    ApprovalLinePreviewRequest,
+    ApprovalLinePreviewStepOut,
     ApprovalPolicyCreate,
     ApprovalPolicyOut,
-    CalculatedLineOut,
 )
 from expense_api.core.service.approval_policy_engine import (
     ApprovalPolicyEngine,
@@ -85,76 +96,134 @@ async def create_policy(
     return _to_out(policy)
 
 
-class CalculateRequest(BaseModel):
-    expenseId: str
-    policyId: str | None = None
+async def _load_default_policy(session: AsyncSession, tenant_id: str) -> ApprovalPolicy | None:
+    stmt = select(ApprovalPolicy).where(
+        ApprovalPolicy.tenantId == tenant_id,
+        ApprovalPolicy.isDefault == True,  # noqa: E712
+        ApprovalPolicy.isActive == True,  # noqa: E712
+    )
+    return (await session.execute(stmt)).scalars().first()
 
 
-@router.post("/approval-line/calculate", response_model=CalculatedLineOut)
+async def _year_role_user(
+    session: AsyncSession, tenant_id: str, year: int, role: str
+) -> User | None:
+    stmt = (
+        select(User)
+        .join(UserYearRole, UserYearRole.userId == User.id)
+        .where(
+            User.tenantId == tenant_id,
+            User.isActive == True,  # noqa: E712
+            UserYearRole.year == year,
+            UserYearRole.role == role,
+        )
+    )
+    return (await session.execute(stmt)).scalars().first()
+
+
+@router.post("/approval-line/calculate", response_model=ApprovalLinePreviewOut)
 async def calculate_line(
-    body: CalculateRequest,
+    body: ApprovalLinePreviewRequest,
     user: CurrentUser = Depends(get_current_user),
     tenant_id: str = Depends(require_tenant_id),
     session: AsyncSession = Depends(get_session),
-) -> CalculatedLineOut:
-    """제출 전 결재선 미리보기 — 정책을 지출 컨텍스트로 resolve."""
-    expense = (
+) -> ApprovalLinePreviewOut:
+    """제출 전 결재선 미리보기 — 예산 항/목/세목 이름 기준으로 정책을 resolve. (레거시 계약)"""
+    year = utcnow().year
+    if body.requestDate:
+        try:
+            year = datetime.fromisoformat(body.requestDate).year
+        except ValueError:
+            pass
+
+    budget_detail_name = body.items[0].budgetDetail
+    detail = (
         (
             await session.execute(
-                select(Expense).where(Expense.tenantId == tenant_id, Expense.id == body.expenseId)
-            )
-        )
-        .scalars()
-        .first()
-    )
-    if expense is None:
-        raise HTTPException(404, "지출결의서를 찾을 수 없습니다.")
-
-    # 정책 로드
-    if body.policyId:
-        policy = await session.get(ApprovalPolicy, body.policyId)
-        if policy is None or policy.tenantId != tenant_id:
-            raise HTTPException(404, "결재 정책을 찾을 수 없습니다.")
-    else:
-        policy = (
-            (
-                await session.execute(
-                    select(ApprovalPolicy).where(
-                        ApprovalPolicy.tenantId == tenant_id,
-                        ApprovalPolicy.isDefault == True,  # noqa: E712
-                        ApprovalPolicy.isActive == True,  # noqa: E712
-                    )
+                select(BudgetDetail)
+                .join(BudgetSubcategory, BudgetSubcategory.id == BudgetDetail.subcategoryId)
+                .join(BudgetCategory, BudgetCategory.id == BudgetSubcategory.categoryId)
+                .where(
+                    BudgetDetail.tenantId == tenant_id,
+                    BudgetDetail.name == budget_detail_name,
+                    BudgetSubcategory.name == body.budgetSubcategory,
+                    BudgetCategory.name == body.budgetCategory,
                 )
             )
-            .scalars()
-            .first()
-        )
-        if policy is None:
-            raise HTTPException(400, "기본 결재 정책이 없습니다.")
-
-    # 첫 항목 세목명
-    from expense_api.core.models.expense import ExpenseItem
-
-    detail_name = (
-        (
-            await session.execute(
-                select(ExpenseItem.budgetDetail)
-                .where(ExpenseItem.expenseId == expense.id)
-                .order_by(ExpenseItem.order)
-                .limit(1)
-            )
         )
         .scalars()
         .first()
     )
+
+    policy = await _load_default_policy(session, tenant_id)
+    if policy is None:
+        raise HTTPException(400, "기본 결재 정책이 없습니다.")
 
     ctx = ExpenseContext(
         tenant_id=tenant_id,
-        year=expense.requestDate.year,
-        applicant_user_id=expense.userId,
-        budget_detail_name=detail_name,
+        year=year,
+        applicant_user_id=user.id,
+        budget_detail_name=detail.name if detail else None,
     )
     try:
-        return await ApprovalPolicyEngine(session).resolve(policy, ctx)
+        calc = await ApprovalPolicyEngine(session).resolve(policy, ctx)
     except PolicyResolutionError as e:
         raise HTTPException(400, e.message)
+
+    steps = [
+        ApprovalLinePreviewStepOut(
+            stepNumber=s.stepNumber,
+            stepName=s.stepName,
+            approverId=s.approverId,
+            approverName=s.approverName,
+            isAutoApproved=s.isAutoApproved,
+        )
+        for s in calc.steps
+    ]
+
+    if detail is None:
+        return ApprovalLinePreviewOut(
+            totalSteps=calc.totalSteps,
+            steps=steps,
+            year=year,
+        )
+
+    detail_year = (
+        (
+            await session.execute(
+                select(BudgetDetailYear).where(
+                    BudgetDetailYear.budgetDetailId == detail.id,
+                    BudgetDetailYear.year == year,
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    manager = (
+        await session.get(User, detail_year.managerId)
+        if detail_year and detail_year.managerId
+        else None
+    )
+    finance_head = await _year_role_user(session, tenant_id, year, "finance_head")
+    is_direct_approval = bool(manager and finance_head and manager.id == finance_head.id)
+
+    budget_amount = detail_year.budgetAmount if detail_year else 0
+    used_amount = detail_year.usedAmount if detail_year else 0
+
+    return ApprovalLinePreviewOut(
+        budgetDetailId=detail.id,
+        budgetDetailName=detail.name,
+        managerId=manager.id if manager else None,
+        managerName=manager.username if manager else None,
+        isDirectApproval=is_direct_approval,
+        totalSteps=calc.totalSteps,
+        steps=steps,
+        year=year,
+        budget=ApprovalLinePreviewBudgetOut(
+            budgetAmount=budget_amount,
+            usedAmount=used_amount,
+            remainingAmount=budget_amount - used_amount,
+            isOverBudget=used_amount > budget_amount,
+        ),
+    )
