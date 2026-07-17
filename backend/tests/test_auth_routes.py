@@ -97,6 +97,38 @@ async def test_me_rejects_invalid_token(client: AsyncClient):
     assert r.status_code == 401
 
 
+async def test_me_accepts_user_token_cookie_fallback(client: AsyncClient):
+    r = await client.post("/api/auth/login", json={"userid": "admin", "password": "admin123"})
+    token = r.json()["token"]
+
+    r2 = await client.get("/api/auth/me", cookies={"user_token": token})
+    assert r2.status_code == 200
+    assert r2.json()["userid"] == "admin"
+
+
+async def test_me_rejects_invalid_user_token_cookie(client: AsyncClient):
+    r = await client.get("/api/auth/me", cookies={"user_token": "not.a.jwt"})
+    assert r.status_code == 401
+
+
+async def test_me_rejects_when_neither_header_nor_cookie(client: AsyncClient):
+    r = await client.get("/api/auth/me")
+    assert r.status_code == 401
+
+
+async def test_bearer_header_takes_precedence_over_cookie(client: AsyncClient):
+    # 쿠키는 만료/위조된 값이어도 Bearer 헤더가 있으면 헤더로 인증한다
+    r = await client.post("/api/auth/login", json={"userid": "admin", "password": "admin123"})
+    token = r.json()["token"]
+
+    r2 = await client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+        cookies={"user_token": "not.a.jwt"},
+    )
+    assert r2.status_code == 200
+
+
 async def test_login_rate_limit_blocks_after_5_failures(client: AsyncClient):
     # 5회 실패 → 6회차 429 (리뷰 #1)
     for _ in range(5):
