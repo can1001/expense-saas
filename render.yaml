@@ -8,7 +8,7 @@
 # ─────────────────────────────────────────────────────────────────────────
 # [RBAC Phase 5 배포] Role 불리언 컬럼 제거 — 이 릴리스에서 1회 수행
 #   웹 서비스(대시보드) Build Command 를 이 릴리스에 한해 아래로 설정:
-#     npm install && npx prisma generate && npm run build && npm run deploy:migrate
+#     pnpm install && pnpm exec prisma generate && pnpm run build && pnpm run deploy:migrate
 #   (deploy:migrate = prisma db push --accept-data-loss + 역할 permissions 백필)
 #   신 코드 배포와 DB 마이그레이션을 반드시 같은 릴리스에서 수행할 것.
 #   상세: docs/RBAC_PHASE5_MIGRATION.md

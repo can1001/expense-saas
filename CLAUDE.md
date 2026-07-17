@@ -5,11 +5,11 @@ Korean expense management system (지출결의서 관리 시스템) built with N
 ## Quick Start
 
 ```bash
-npm run dev          # Development server (localhost:3000)
-npm run build        # Production build (--webpack for PWA)
-npm run db:push      # Push schema to database
-npm run db:seed      # Seed 204 budget items
-npm run db:studio    # Open Prisma Studio
+pnpm run dev          # Development server (localhost:3000)
+pnpm run build        # Production build (--webpack for PWA)
+pnpm run db:push      # Push schema to database
+pnpm run db:seed      # Seed 204 budget items
+pnpm run db:studio    # Open Prisma Studio
 ```
 
 ## Tech Stack
@@ -90,7 +90,7 @@ min-h-[44px]      → Touch target (WCAG)
 
 ### Adding Budget Field
 1. Update `prisma/schema.prisma`
-2. `npm run db:push`
+2. `pnpm run db:push`
 3. Update `prisma/seed.ts`
 4. Modify `components/BudgetSelector.tsx`
 5. Update `/api/budget/route.ts`
@@ -117,10 +117,10 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
 ## Deployment (Render)
 
-- Build: `npm install && npx prisma generate && npm run build`
-- Start: `npm start`
+- Build: `pnpm install && pnpm exec prisma generate && pnpm run build`
+- Start: `pnpm start`
 - Node: 24.x
-- First deploy: `npm run db:push && npm run db:seed`
+- First deploy: `pnpm run db:push && pnpm run db:seed`
 
 ## Known Limitations
 

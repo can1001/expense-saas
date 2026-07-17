@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start -p $PORT",
-    "postinstall": "npx prisma generate",
+    "postinstall": "prisma generate",
     "lint": "eslint",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -15,7 +15,7 @@
     "db:studio": "prisma studio",
     "db:migrate": "prisma migrate dev",
     "db:backfill:roles": "ts-node --project tsconfig.scripts.json prisma/scripts/backfill-role-permissions.ts",
-    "deploy:migrate": "prisma db push --accept-data-loss && npm run db:backfill:roles",
+    "deploy:migrate": "prisma db push --accept-data-loss && pnpm run db:backfill:roles",
     "db:seed": "ts-node --project tsconfig.scripts.json prisma/seeds/budget-seed.ts",
     "db:seed:users": "ts-node --project tsconfig.scripts.json prisma/seeds/users-seed.ts",
     "db:seed:super-admin": "ts-node --project tsconfig.scripts.json prisma/seeds/super-admin-seed.ts",
@@ -30,14 +30,15 @@
     "screenshots:headed": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts --headed",
     "screenshots:mobile": "ts-node --project tsconfig.scripts.json scripts/screenshots/index.ts --mobile",
     "test:push": "ts-node --project tsconfig.scripts.json scripts/test-push-notification.ts",
-    "test:push:browser": "npx playwright test scripts/test-push-browser.ts --headed",
-    "test:e2e": "npx playwright test",
-    "test:e2e:ui": "npx playwright test --ui",
-    "test:e2e:headed": "npx playwright test --headed"
+    "test:push:browser": "playwright test scripts/test-push-browser.ts --headed",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed"
   },
+  "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=24.0.0",
-    "npm": ">=10.0.0"
+    "pnpm": ">=10.0.0"
   },
   "dependencies": {
     "@capacitor/push-notifications": "^8.1.1",
@@ -72,10 +73,19 @@
     "web-push": "^3.6.7",
     "zod": "^4.1.13"
   },
-  "overrides": {
-    "serialize-javascript": "^7.0.5",
-    "exceljs": {
-      "uuid": "^14.0.0"
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@firebase/util",
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "protobufjs",
+      "sharp",
+      "unrs-resolver"
+    ],
+    "overrides": {
+      "serialize-javascript": "^7.0.5",
+      "exceljs>uuid": "^14.0.0"
     }
   },
   "devDependencies": {
