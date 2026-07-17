@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prismaBase } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
 import {
+  createPendingSelectionToken,
   createUserToken,
   createUserTokenCookie,
   deriveLegacyFlags,
+  PENDING_SELECTION_MAX_AGE_SECONDS,
   UserSession,
 } from '@/lib/auth/user';
+import { getMemberships } from '@/lib/services/membership';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { findTenantBySubdomain } from '@/lib/tenant';
 import bcrypt from 'bcryptjs';
@@ -146,6 +149,48 @@ export async function POST(request: NextRequest) {
     // 로그인 성공 - Rate limit 초기화
     clearLoginAttempts(rateLimitKey);
 
+    // Membership 조회 (ARC-002 §2.2, B2)
+    // DB push/백필(M1·M2) 전에는 Membership 테이블이 없을 수 있으므로
+    // 조회 실패는 0건으로 간주 — 0건이면 기존 User.tenantId 동작 그대로 (회귀 방지 최우선)
+    const memberships = await getMemberships(user.id).catch(() => []);
+
+    // 복수 소속: 최종 토큰 대신 선택용 임시 토큰 발급 → 최종 토큰은 switch-tenant(B3)에서
+    // (서브도메인 지정 로그인은 대상 조직이 이미 확정이므로 기존처럼 바로 발급)
+    if (!tenant && memberships.length > 1) {
+      const pendingToken = await createPendingSelectionToken({
+        id: user.id,
+        userid: user.userid,
+        username: user.username,
+      });
+
+      const response = NextResponse.json({
+        success: true,
+        message: '소속 조직을 선택해주세요.',
+        requiresTenantSelection: true,
+        memberships: memberships.map((m) => ({
+          tenantId: m.tenantId,
+          tenantName: m.tenant.name,
+          orgType: m.tenant.orgType,
+          role: m.role,
+        })),
+        token: pendingToken,
+      });
+
+      response.headers.set(
+        'Set-Cookie',
+        createUserTokenCookie(pendingToken, PENDING_SELECTION_MAX_AGE_SECONDS)
+      );
+
+      return response;
+    }
+
+    // 단일 소속은 Membership의 tenantId로, 0건은 기존 User.tenantId 그대로
+    // (서브도메인 지정 로그인은 이미 해당 테넌트로 스코프된 조회 결과이므로 기존 값 유지)
+    const sessionTenantId =
+      !tenant && memberships.length === 1
+        ? memberships[0].tenantId
+        : user.tenantId || '';
+
     // roles-only: 유효 역할 코드로부터 권한 파생 (JWT에 권한을 굽지 않음)
     const roles = [user.role];
     const granted = user.canRegisterUsers ? [PERMISSIONS.USER_REGISTER] : [];
@@ -154,7 +199,7 @@ export async function POST(request: NextRequest) {
     // 세션 생성
     const session: UserSession = {
       id: user.id,
-      tenantId: user.tenantId || '',
+      tenantId: sessionTenantId,
       userid: user.userid,
       username: user.username,
       role: user.role,
