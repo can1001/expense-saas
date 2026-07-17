@@ -131,7 +131,7 @@ export default function ExpenseDetailPage() {
 
     try {
       setDeleteLoading(true);
-      const response = await fetch(`/api/expenses/${id}`, {
+      const response = await fetch(`${apiBase('expenses')}/expenses/${id}`, {
         method: 'DELETE',
       });
 

@@ -4,7 +4,7 @@ from __future__ import annotations  # list 메서드가 builtin list 애노테�
 
 from datetime import datetime
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from expense_api.core.models.expense import Expense, ExpenseItem
@@ -171,3 +171,9 @@ class ExpenseRepository:
             .order_by(ExpenseItem.order)
         )
         return list((await self.session.execute(stmt)).scalars().all())
+
+    async def delete_items(self, expense_id: str) -> None:
+        await self.session.execute(delete(ExpenseItem).where(ExpenseItem.expenseId == expense_id))
+
+    async def delete(self, expense: Expense) -> None:
+        await self.session.delete(expense)

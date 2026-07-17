@@ -30,6 +30,26 @@ class CreateExpenseRequest(BaseModel):
     accountHolder: str = Field(min_length=1)
 
 
+class UpdateExpenseRequest(BaseModel):
+    """지출결의서 수정 요청 — 레거시 updateExpenseSchema(createExpenseSchema.partial())와 동일하게 전 필드 선택.
+
+    status 는 레거시 route.ts 처럼 스키마 밖에서 처리하는 passthrough 필드(DRAFT|PENDING).
+    """
+
+    committee: str | None = Field(default=None, min_length=1, max_length=50)
+    department: str | None = Field(default=None, min_length=1, max_length=50)
+    expenseDate: datetime | None = None
+    items: list[ExpenseItemInput] | None = None
+    requestDate: datetime | None = None
+    requestTeam: str | None = None
+    applicantName: str | None = Field(default=None, min_length=1)
+    applicantTitle: str | None = None
+    bankName: str | None = Field(default=None, min_length=1)
+    accountNumber: str | None = Field(default=None, min_length=1)
+    accountHolder: str | None = Field(default=None, min_length=1)
+    status: str | None = None
+
+
 class ExpenseItemOut(BaseModel):
     id: str
     budgetCategory: str
