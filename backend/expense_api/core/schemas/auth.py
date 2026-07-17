@@ -39,12 +39,25 @@ class LoginResponse(BaseModel):
     token: str
 
 
-class MeResponse(BaseModel):
+class MeUser(BaseModel):
     id: str
     userid: str
     username: str
     role: str
     roles: list[str]
-    tenantId: str | None = None
     department: str | None = None
-    permissions: list[str]  # effective permission 코드 목록
+    departmentId: str | None = None
+    permissions: UserPermissionFlags
+    permissionCodes: list[str]  # effective permission 코드 목록
+    canRegisterUsers: bool
+
+
+class MeTenant(BaseModel):
+    id: str
+    name: str
+    subdomain: str
+
+
+class MeResponse(BaseModel):
+    user: MeUser
+    tenant: MeTenant | None = None

@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import AdminSidebar from './AdminSidebar';
 import { Menu } from 'lucide-react';
 import { canAccessAdminMenuPathWithRoles, canAccessAdminMenuWithRoles } from '@/lib/constants/menu-permissions';
+import { apiBase } from '@/lib/api/api-base';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -21,7 +22,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   useEffect(() => {
     const checkAuthorization = async () => {
       try {
-        const response = await fetch('/api/auth/me');
+        const response = await fetch(`${apiBase('auth')}/auth/me`);
         const data = await response.json();
 
         if (!response.ok || !data.user) {

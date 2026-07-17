@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import ApprovalStatusBadge from '@/components/approval/ApprovalStatusBadge';
 import { formatCurrency } from '@/lib/utils';
 import { Clock, CheckCircle, FileText, User, Building2, Calendar } from 'lucide-react';
+import { apiBase } from '@/lib/api/api-base';
 
 interface UserInfo {
   id: string;
@@ -66,7 +67,7 @@ export default function ApprovalsPage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch('/api/auth/me');
+        const response = await fetch(`${apiBase('auth')}/auth/me`);
         const data = await response.json();
         if (response.ok && data.user) {
           setUser(data.user);

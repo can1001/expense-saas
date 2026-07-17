@@ -6,6 +6,7 @@ import { Key, PenLine, Bell, History, Send } from 'lucide-react';
 import Header from '@/components/Header';
 import { SECTION_CARD, PADDING_CARD } from '@/lib/constants/styles';
 import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
+import { apiBase } from '@/lib/api/api-base';
 
 export default function MyPage() {
   const [canSendNotification, setCanSendNotification] = useState(false);
@@ -13,7 +14,7 @@ export default function MyPage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch('/api/auth/me');
+        const response = await fetch(`${apiBase('auth')}/auth/me`);
         const data = await response.json();
         if (response.ok && data.user) {
           setCanSendNotification(roleHasPermission(data.user.role, PERMISSIONS.NOTIFICATION_SEND));

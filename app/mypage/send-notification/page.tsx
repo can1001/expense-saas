@@ -33,6 +33,7 @@ import {
   TABLE_CELL,
 } from '@/lib/constants/styles';
 import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
+import { apiBase } from '@/lib/api/api-base';
 
 interface UserInfo {
   id: string;
@@ -111,7 +112,7 @@ export default function SendNotificationPage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch('/api/auth/me');
+        const response = await fetch(`${apiBase('auth')}/auth/me`);
         const data = await response.json();
         if (response.ok && data.user) {
           setUser(data.user);

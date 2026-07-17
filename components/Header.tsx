@@ -9,6 +9,7 @@ import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount';
 import { canShowUserRegisterMenu, canAccessAdminMenuWithRoles, canAccessRecurringExpenseMenuWithRoles } from '@/lib/constants/menu-permissions';
 import QuickUserRegister from '@/components/QuickUserRegister';
 import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
+import { apiBase } from '@/lib/api/api-base';
 
 interface UserInfo {
   id: string;
@@ -293,7 +294,7 @@ export default function Header() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch('/api/auth/me');
+        const response = await fetch(`${apiBase('auth')}/auth/me`);
         const data = await response.json();
         if (response.ok && data.user) {
           setUser(data.user);
@@ -339,7 +340,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch(`${apiBase('auth')}/auth/logout`, { method: 'POST' });
       setUser(null);
       router.push('/login');
       router.refresh();

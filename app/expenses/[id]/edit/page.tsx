@@ -6,6 +6,7 @@ import ExpenseForm from '@/components/ExpenseForm';
 import Header from '@/components/Header';
 import { SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 import { APPROVED_EDIT_ROLES } from '@/lib/constants/menu-permissions';
+import { apiBase } from '@/lib/api/api-base';
 
 export default function EditExpensePage() {
   const params = useParams();
@@ -19,7 +20,7 @@ export default function EditExpensePage() {
         // 지출결의서 정보와 사용자 정보를 함께 조회
         const [expenseRes, userRes] = await Promise.all([
           fetch(`/api/expenses/${id}`),
-          fetch('/api/auth/me'),
+          fetch(`${apiBase('auth')}/auth/me`),
         ]);
 
         if (!expenseRes.ok) {

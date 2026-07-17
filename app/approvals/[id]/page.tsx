@@ -13,6 +13,7 @@ import { formatCurrency } from '@/lib/utils';
 import { ArrowLeft, Building2, User, CreditCard, FileText, Clock } from 'lucide-react';
 import { MobileItemCard } from '@/components/ui/Accordion';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
+import { apiBase } from '@/lib/api/api-base';
 
 export default function ApprovalDetailPage() {
   const terms = useOrgTerms();
@@ -30,7 +31,7 @@ export default function ApprovalDetailPage() {
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const response = await fetch('/api/auth/me');
+        const response = await fetch(`${apiBase('auth')}/auth/me`);
         if (response.ok) {
           const data = await response.json();
           if (data.user) {
