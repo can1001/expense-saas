@@ -21,7 +21,7 @@ from expense_api.core.schemas.approval import (
     SubmitRequest,
     WorkflowResult,
 )
-from expense_api.core.models.enums import NotificationEventType
+from expense_api.core.models.enums import ApprovalStatus, NotificationEventType
 from expense_api.core.service.approval_service import ApprovalService, WorkflowError
 from expense_api.core.service.notification_service import NotificationService
 
@@ -62,12 +62,23 @@ async def approve(
     tenant_id: str = Depends(require_tenant_id),
     session: AsyncSession = Depends(get_session),
 ) -> WorkflowResult:
+    svc = ApprovalService(session, tenant_id)
+    line_before = await svc._get_line(expense_id)
+    completed_step = line_before.currentStep if line_before is not None else None
     try:
-        expense = await ApprovalService(session, tenant_id).approve(expense_id, user, body.comment)
+        expense = await svc.approve(expense_id, user, body.comment)
     except WorkflowError as e:
         raise HTTPException(e.status_code, e.message)
     await _notify(session, tenant_id, expense, NotificationEventType.APPROVE.value)
-    return _result(expense)
+    is_complete = expense.status == ApprovalStatus.APPROVED_FINAL.value
+    message = (
+        "최종 승인이 완료되었습니다."
+        if is_complete
+        else f"{completed_step}차 결재가 승인되었습니다."
+    )
+    result = _result(expense)
+    result.message = message
+    return result
 
 
 @router.post("/{expense_id}/reject", response_model=WorkflowResult)
@@ -83,7 +94,9 @@ async def reject(
     except WorkflowError as e:
         raise HTTPException(e.status_code, e.message)
     await _notify(session, tenant_id, expense, NotificationEventType.REJECT.value, body.comment)
-    return _result(expense)
+    result = _result(expense)
+    result.message = "지출결의서가 반려되었습니다."
+    return result
 
 
 @router.post("/{expense_id}/resubmit", response_model=WorkflowResult)

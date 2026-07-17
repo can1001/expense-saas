@@ -365,7 +365,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
 
     try {
       setSubmitLoading(true);
-      const submitResponse = await fetch(`/api/expenses/${idToSubmit}/submit`, {
+      const submitResponse = await fetch(`${apiBase('approvals')}/expenses/${idToSubmit}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ signature: signatureData }),
@@ -415,7 +415,7 @@ export default function ExpenseForm({ expenseId, initialData }: ExpenseFormProps
 
     try {
       setSubmitLoading(true);
-      const submitResponse = await fetch(`/api/expenses/${idToSubmit}/submit`, {
+      const submitResponse = await fetch(`${apiBase('approvals')}/expenses/${idToSubmit}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ signature }),
