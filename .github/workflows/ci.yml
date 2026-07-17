@@ -74,14 +74,13 @@ jobs:
           fail_ci_if_error: false
 
   # E2E 테스트
-  # 전략: Strangler 이전 중 e2e 는 유예(기본 skip). 유지보수자 방침("E2E는 각 도메인
-  # 프록시 전환 시점에 추가")과 일치. 현재 Prisma 시드 스크립트(db:seed/users)에
-  # 기존 FK/초기화 이슈가 있어 실패한다.
-  # 재활성화: 리포 변수 RUN_E2E=true 설정(Settings > Variables) + 시드 이슈 수정.
+  # 시드 스크립트의 순환 의존/어댑터 이슈를 수정해 재활성화됨:
+  #   - users-seed: PrismaPg 어댑터(Prisma 7 필수)
+  #   - budget-seed.managerId / users-seed.userYearRole.departmentId: 상대가 아직
+  #     시드 안 됐으면 null 처리(budget↔users 순환 FK 방지)
   e2e:
     runs-on: ubuntu-latest
     name: E2E Tests
-    if: ${{ vars.RUN_E2E == 'true' }}
     services:
       postgres:
         image: postgres:16
@@ -216,8 +215,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     name: Deploy
-    # e2e 는 유예(기본 skip)라 게이트에서 제외. 재활성화 시 다시 추가.
-    needs: [lint, test, coverage, build]
+    needs: [lint, test, coverage, e2e, build]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

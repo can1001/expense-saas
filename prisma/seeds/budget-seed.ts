@@ -5374,9 +5374,18 @@ async function main() {
   console.log(`   ✅ ${departmentBudgetDetails.length}개 완료\n`);
 
   // 7. BudgetDetailYear
+  // managerId 는 User FK — 유저가 아직 시드되지 않았으면(예: budget→users 순서) null 로 처리해
+  // 순환 의존(budget↔users)으로 인한 FK 위반을 방지한다. 유저는 이후 users-seed 가 채운다.
   console.log('📅 연도별 세목설정(BudgetDetailYear) 시드 중...');
+  const existingUserIds = new Set(
+    (await prisma.user.findMany({ select: { id: true } })).map((u) => u.id)
+  );
   for (const y of budgetDetailYears) {
-    await prisma.budgetDetailYear.upsert({ where: { id: y.id }, update: y, create: y });
+    const data = {
+      ...y,
+      managerId: y.managerId && existingUserIds.has(y.managerId) ? y.managerId : null,
+    };
+    await prisma.budgetDetailYear.upsert({ where: { id: y.id }, update: data, create: data });
   }
   console.log(`   ✅ ${budgetDetailYears.length}개 완료\n`);
 
