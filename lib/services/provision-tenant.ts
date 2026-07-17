@@ -168,6 +168,16 @@ export async function provisionTenant(
         username: createdUser.username,
       };
 
+      // 어드민 소속 이중 기록 (ARC-002 §2.2) — User.tenantId와 함께 Membership도 생성
+      await tx.membership.create({
+        data: {
+          userId: createdUser.id,
+          tenantId: tenant.id,
+          role: 'TENANT_ADMIN',
+          isDefault: true,
+        },
+      });
+
       tenant = await tx.tenant.update({
         where: { id: tenant.id },
         data: { currentUsers: 1 },

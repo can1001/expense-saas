@@ -32,6 +32,9 @@ const { tx, tenantStore } = vi.hoisted(() => {
       user: {
         create: vi.fn(),
       },
+      membership: {
+        create: vi.fn(),
+      },
       role: {
         createMany: vi.fn(),
       },
@@ -169,6 +172,7 @@ beforeEach(() => {
   tx.accountCategory.createMany.mockResolvedValue({ count: categoryTemplates.length });
   tx.approvalLineTemplate.findMany.mockResolvedValue(lineTemplates);
   tx.user.create.mockImplementation(async ({ data }) => ({ id: 'user-1', ...data }));
+  tx.membership.create.mockImplementation(async ({ data }) => ({ id: 'membership-1', ...data }));
   tx.role.createMany.mockResolvedValue({ count: 5 });
 });
 

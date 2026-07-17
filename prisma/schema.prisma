@@ -78,6 +78,7 @@ model Tenant {
   systemSettings     SystemSetting[]
   adminNotifications AdminNotification[]
   accountCategories  AccountCategory[]
+  memberships        Membership[]
 
   // 메타
   createdAt DateTime @default(now())
@@ -858,6 +859,7 @@ model User {
   recitations            RecitationSubmission[]  @relation("StudentRecitation") // 청나잇 암송 제출
   approvedRecitations    RecitationSubmission[]  @relation("RecitationApprover") // 승인한 암송들
   recurringExpenses      RecurringExpense[] // 등록한 자동이체 템플릿들
+  memberships            Membership[] // 소속 테넌트들 (ARC-002 §2.2)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -869,6 +871,28 @@ model User {
   @@index([department])
   @@index([isActive])
   @@index([phoneNumber])
+}
+
+// 사용자-테넌트 소속 (ARC-002 §2.2)
+// User ↔ Membership ↔ Tenant 점진 전환 — User.tenantId는 기존 코드 전체가 참조하므로 유지하고
+// Membership은 추가 전용으로 이중 기록한다 (백필: scripts/backfill-memberships.ts, 실행은 M2 게이트)
+model Membership {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  role      String // TENANT_ADMIN / MEMBER
+  isDefault Boolean @default(false) // 로그인 시 기본 진입 조직
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, tenantId])
+  @@index([tenantId])
 }
 
 // 연도별 사용자 역할 (finance_head, accountant, team_leader, admin_assistant)

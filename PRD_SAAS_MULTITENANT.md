@@ -39,7 +39,7 @@ RALPH_BRANCH=20260718-saas-multitenant \
 
 ## Phase B — Membership · 서버 주도 설정 (ARC-002)
 
-- [ ] B1. `Membership` 모델 추가 + 백필 스크립트 (`User.tenantId` 유지, 이중 기록)
+- [x] B1. `Membership` 모델 추가 + 백필 스크립트 (`User.tenantId` 유지, 이중 기록)
 - [ ] B2. 로그인 확장 — Membership 조회, 복수 소속 시 조직 선택 응답
 - [ ] B3. `POST /api/auth/switch-tenant` — Membership 검증 + 새 tenantId 클레임 토큰 재발급
 - [ ] B4. `GET /api/me/config` — tenant + labels + features + branding
