@@ -16,6 +16,7 @@ const API_ROOT = join(process.cwd(), 'app', 'api');
  * 각 항목은 왜 공개인지 이유를 남긴다.
  */
 const PUBLIC_ALLOWLIST: Record<string, string> = {
+  'auth/kakao/route.ts': '카카오 로그인 (서버측 kapi 토큰 검증 자체 보호)',
   'auth/login/route.ts': '로그인 (rate-limit 자체 보호)',
   'auth/logout/route.ts': '로그아웃 (쿠키 만료)',
   'auth/signup/route.ts': '회원가입',
