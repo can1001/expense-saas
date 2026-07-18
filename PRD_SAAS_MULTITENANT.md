@@ -63,7 +63,7 @@ RALPH_BRANCH=20260718-saas-multitenant \
 
 ## 수동 게이트 (사용자 실행 — 루프 대상 아님)
 
-- [ ] M1. dev DB에 `pnpm exec prisma db push` + 템플릿 시드 실행 (A1~A3 이후)
-- [ ] M2. Membership 백필 실행 + 검증 (B1 이후)
-- [ ] M3. 카카오 개발자 콘솔 — 앱 등록, 리다이렉트 URI/키 해시, (권장) OIDC 활성화, `.env`에 키 설정 (C2 이전이면 좋음)
+- [x] M1. dev DB에 `pnpm exec prisma db push` + 템플릿 시드 실행 (A1~A3 이후) — 2026-07-18 완료 (COMPANY 82건·CHURCH 46건, 결재선 3종, Role permissions 백필 23건)
+- [x] M2. Membership 백필 실행 + 검증 (B1 이후) — 2026-07-18 완료 (Membership 12건 + AuthAccount 12건, 충돌 0)
+- [x] M3. 카카오 개발자 콘솔 — 앱 등록, 리다이렉트 URI/키 해시, (권장) OIDC 활성화, `.env`에 키 설정 (C2 이전이면 좋음) — 2026-07-18 완료 (앱 ID 1517130, JS SDK 도메인 3종 등록, .env 키 설정 + KakaoSdkLoader 추가. OIDC는 코드 미지원이라 OFF 유지)
 - [ ] M4. 청연컨설팅(COMPANY) 재프로비저닝 + 청연교회(CHURCH) 파일럿 프로비저닝 (전체 완료 후)
