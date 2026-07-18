@@ -44,7 +44,7 @@
     (API 응답 필드·DB 값·주석 내 도메인 설명은 제외, 화면 표시 문자열만)
   - Acceptance: Header 메뉴·recurring-expenses 페이지 타이틀이 "정기 지출"로 표기, 기능 무변화
   - Verify: `pnpm vitest run && pnpm run lint`
-- [ ] **P6 (S)**: HomeClient의 `/youth-night` 잔여 링크 제거
+- [x] **P6 (S)**: HomeClient의 `/youth-night` 잔여 링크 제거
   - Files: `components/HomeClient.tsx`
   - Description: Header에서 이미 주석 처리된 청나잇 메뉴의 잔여 카드 링크 제거. 다른 카드는 건드리지 않음.
   - Verify: `pnpm vitest run && pnpm run lint`
