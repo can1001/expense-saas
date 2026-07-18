@@ -9,7 +9,7 @@ import {
   PENDING_SELECTION_MAX_AGE_SECONDS,
   UserSession,
 } from '@/lib/auth/user';
-import { getMemberships } from '@/lib/services/membership';
+import { getMemberships, membershipRoleToRoleCode } from '@/lib/services/membership';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { findTenantBySubdomain } from '@/lib/tenant';
 import bcrypt from 'bcryptjs';
@@ -110,15 +110,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 테넌트 활성 상태 확인
-    if (user.tenant && !user.tenant.isActive) {
-      recordLoginFailure(rateLimitKey);
-      return NextResponse.json(
-        { error: '이 조직은 현재 이용할 수 없습니다.' },
-        { status: 403 }
-      );
-    }
-
     // 활성 상태 확인
     if (!user.isActive) {
       recordLoginFailure(rateLimitKey);
@@ -154,6 +145,16 @@ export async function POST(request: NextRequest) {
     // 조회 실패는 0건으로 간주 — 0건이면 기존 User.tenantId 동작 그대로 (회귀 방지 최우선)
     const memberships = await getMemberships(user.id).catch(() => []);
 
+    // 홈 테넌트 비활성 처리 — 진입할 활성 조직이 전혀 없을 때만 차단한다.
+    // getMemberships는 활성 테넌트만 반환하므로, 소속이 하나라도 있으면 그 활성 조직으로 진입한다.
+    // (서브도메인 지정 로그인은 findTenantBySubdomain이 이미 활성 테넌트만 반환하므로 무관)
+    if (!tenant && memberships.length === 0 && user.tenant && !user.tenant.isActive) {
+      return NextResponse.json(
+        { error: '이 조직은 현재 이용할 수 없습니다.' },
+        { status: 403 }
+      );
+    }
+
     // 복수 소속: 최종 토큰 대신 선택용 임시 토큰 발급 → 최종 토큰은 switch-tenant(B3)에서
     // (서브도메인 지정 로그인은 대상 조직이 이미 확정이므로 기존처럼 바로 발급)
     if (!tenant && memberships.length > 1) {
@@ -186,14 +187,27 @@ export async function POST(request: NextRequest) {
 
     // 단일 소속은 Membership의 tenantId로, 0건은 기존 User.tenantId 그대로
     // (서브도메인 지정 로그인은 이미 해당 테넌트로 스코프된 조회 결과이므로 기존 값 유지)
-    const sessionTenantId =
-      !tenant && memberships.length === 1
-        ? memberships[0].tenantId
-        : user.tenantId || '';
+    const soleMembership =
+      !tenant && memberships.length === 1 ? memberships[0] : null;
+    const sessionTenantId = soleMembership
+      ? soleMembership.tenantId
+      : user.tenantId || '';
+
+    // 세션 테넌트에서의 역할 결정 (switch-tenant와 동일한 권한 상승 방지 규칙):
+    // 유일 소속이 홈이 아닌 게스트 테넌트면 홈 User.role/roleId/부서·개별권한을 넘기지 않고
+    // Membership.role에서만 파생한다. 홈 테넌트(또는 0건 폴백)는 기존 User 값 유지.
+    const isGuestTenant =
+      soleMembership !== null && soleMembership.tenantId !== user.tenantId;
+    const effectiveRole = isGuestTenant
+      ? membershipRoleToRoleCode(soleMembership!.role)
+      : user.role;
+    const effectiveRoleId = isGuestTenant ? null : user.roleId;
+    const effectiveDepartment = isGuestTenant ? null : user.department;
+    const canRegisterUsers = isGuestTenant ? false : user.canRegisterUsers;
 
     // roles-only: 유효 역할 코드로부터 권한 파생 (JWT에 권한을 굽지 않음)
-    const roles = [user.role];
-    const granted = user.canRegisterUsers ? [PERMISSIONS.USER_REGISTER] : [];
+    const roles = [effectiveRole];
+    const granted = canRegisterUsers ? [PERMISSIONS.USER_REGISTER] : [];
     const flags = deriveLegacyFlags(roles, granted);
 
     // 세션 생성
@@ -202,16 +216,32 @@ export async function POST(request: NextRequest) {
       tenantId: sessionTenantId,
       userid: user.userid,
       username: user.username,
-      role: user.role,
+      role: effectiveRole,
       roles,
-      roleId: user.roleId,
-      department: user.department,
+      roleId: effectiveRoleId,
+      department: effectiveDepartment,
       granted,
       ...flags,
     };
 
     // JWT 토큰 생성
     const token = await createUserToken(session);
+
+    // 응답의 tenant/user는 발급 토큰의 tenantId와 일치시킨다 — 게스트 테넌트로 자동 진입한 경우
+    // 홈 테넌트 정보를 보여주면 클라이언트 표시·캐시와 토큰 스코프가 어긋난다.
+    const responseTenant = isGuestTenant
+      ? {
+          id: soleMembership!.tenant.id,
+          name: soleMembership!.tenant.name,
+          subdomain: soleMembership!.tenant.subdomain,
+        }
+      : user.tenant
+        ? {
+            id: user.tenant.id,
+            name: user.tenant.name,
+            subdomain: user.tenant.subdomain,
+          }
+        : null;
 
     // 응답 생성
     const response = NextResponse.json({
@@ -221,8 +251,8 @@ export async function POST(request: NextRequest) {
         id: user.id,
         userid: user.userid,
         username: user.username,
-        role: user.role,
-        department: user.department,
+        role: effectiveRole,
+        department: effectiveDepartment,
         permissions: {
           canApprove: session.canApprove,
           canManageExpense: session.canManageExpense,
@@ -231,11 +261,7 @@ export async function POST(request: NextRequest) {
           canRegisterUsers: session.canRegisterUsers,
         },
       },
-      tenant: user.tenant ? {
-        id: user.tenant.id,
-        name: user.tenant.name,
-        subdomain: user.tenant.subdomain,
-      } : null,
+      tenant: responseTenant,
       token,
     });
 

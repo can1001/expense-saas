@@ -77,6 +77,7 @@ describe('findUserByProvider', () => {
 describe('linkAuthAccount', () => {
   it('연결이 없으면 새 AuthAccount를 생성한다', async () => {
     mockAuthAccount.findUnique.mockResolvedValue(null);
+    mockAuthAccount.findFirst.mockResolvedValue(null); // 같은 provider 기존 연결 없음
     mockAuthAccount.create.mockResolvedValue(authAccount);
 
     const result = await linkAuthAccount('user-1', 'kakao', '12345678');
@@ -85,6 +86,18 @@ describe('linkAuthAccount', () => {
       data: { userId: 'user-1', provider: 'kakao', providerUserId: '12345678' },
     });
     expect(result).toEqual(authAccount);
+  });
+
+  it('같은 provider의 다른 계정이 이미 연결돼 있으면 거부한다 (provider당 1개, 해제 불능 상태 방지)', async () => {
+    // 연결하려는 회원번호는 미사용이지만
+    mockAuthAccount.findUnique.mockResolvedValue(null);
+    // 이 유저에 이미 다른 카카오 계정이 연결돼 있음
+    mockAuthAccount.findFirst.mockResolvedValue({ ...authAccount, providerUserId: '99999999' });
+
+    await expect(linkAuthAccount('user-1', 'kakao', '12345678')).rejects.toThrow(
+      '이미 연결된 인증 수단이 있습니다. 기존 연결을 해제한 후 다시 시도해주세요.'
+    );
+    expect(mockAuthAccount.create).not.toHaveBeenCalled();
   });
 
   it('같은 유저에 이미 연결돼 있으면 기존 연결을 반환한다 (멱등)', async () => {
@@ -150,16 +163,17 @@ describe('unlinkAuthAccount (C4)', () => {
     expect(mockAuthAccount.delete).toHaveBeenCalledWith({ where: { id: 'auth-1' } });
   });
 
-  it('비밀번호가 없어도 다른 provider 연결이 있으면 해제할 수 있다', async () => {
+  it('비밀번호가 없어도 다른 인증 수단이 남아 있으면 해제할 수 있다', async () => {
     mockAuthAccount.findFirst.mockResolvedValue(authAccount);
     mockUser.findUnique.mockResolvedValue({ password: null });
     mockAuthAccount.count.mockResolvedValue(1);
 
     await expect(unlinkAuthAccount('user-1', 'kakao')).resolves.toBeUndefined();
 
-    // 다른 provider 수 계산은 해제 대상 provider를 제외한다
+    // 남은 수단 계산은 provider가 아니라 해제 대상 행 id를 제외한다
+    // (같은 provider의 다른 계정이 남아도 유효한 로그인 수단이므로)
     expect(mockAuthAccount.count).toHaveBeenCalledWith({
-      where: { userId: 'user-1', provider: { not: 'kakao' } },
+      where: { userId: 'user-1', id: { not: 'auth-1' } },
     });
     expect(mockAuthAccount.delete).toHaveBeenCalledWith({ where: { id: 'auth-1' } });
   });

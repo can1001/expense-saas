@@ -1,6 +1,8 @@
-import { prisma } from '../prisma';
+import { prisma, prismaBase } from '../prisma';
 import { User, UserYearRole, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { getTenantIdOptional } from '../tenant-context';
+import { roleCodeToMembershipRole } from './membership';
 
 // 역할 코드 타입 (Role.code와 동일)
 export type UserRole = 'admin' | 'finance_head' | 'accountant' | 'finance_member' | 'team_leader' | 'admin_assistant' | 'user';
@@ -244,16 +246,37 @@ export async function createUser(data: {
     roleId = roleRef?.id;
   }
 
-  return prisma.user.create({
-    data: {
-      userid: data.userid,
-      username: data.username,
-      role: data.role ?? 'user',
-      roleId,
-      department: data.department,
-      phoneNumber: data.phoneNumber,
-      password: hashedPassword,
-    },
+  const role = data.role ?? 'user';
+  const userData = {
+    userid: data.userid,
+    username: data.username,
+    role,
+    roleId,
+    department: data.department,
+    phoneNumber: data.phoneNumber,
+    password: hashedPassword,
+  };
+
+  // 테넌트 컨텍스트가 있으면 User + Membership을 한 트랜잭션으로 이중 기록한다 (ARC-002 §2.2).
+  // Membership이 없으면 /api/me/memberships·switch-tenant에서 사용자가 누락되므로,
+  // 백필(M2)에 의존하지 않고 생성 시점에 소속을 함께 기록한다.
+  // 컨텍스트가 없는 경로(공개 회원가입·플랫폼/시드)는 tenantId가 없어 기존처럼 User만 생성한다.
+  const tenantId = getTenantIdOptional();
+  if (!tenantId) {
+    return prisma.user.create({ data: userData });
+  }
+
+  return prismaBase.$transaction(async (tx) => {
+    const user = await tx.user.create({ data: { ...userData, tenantId } });
+    await tx.membership.create({
+      data: {
+        userId: user.id,
+        tenantId,
+        role: roleCodeToMembershipRole(role),
+        isDefault: true, // 신규 사용자의 첫(유일) 소속이므로 기본 진입 조직
+      },
+    });
+    return user;
   });
 }
 

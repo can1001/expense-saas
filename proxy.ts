@@ -16,16 +16,22 @@ const platformApiPaths = ['/api/platform', '/api/super-admin'];
 // 반드시 lib/auth/user.ts의 JWT_SECRET(서명 키)과 동일하게 getUserJwtSecret으로 해석해야
 // 검증이 성공한다. AC7: 프로덕션 미설정 시 부팅 실패(하드코딩 폴백 제거).
 
-// JWT 토큰 검증 (lib/auth/user.ts의 issuer/audience와 일치)
-async function verifySessionToken(token: string): Promise<boolean> {
+// JWT 토큰 상태 판정 (lib/auth/user.ts의 issuer/audience와 일치)
+// - 'valid'   : 정식 세션 토큰
+// - 'pending' : B2 조직 선택용 임시 토큰(pendingTenantSelection) — 아직 소속 미확정,
+//               정식 세션 아님. 선택 완료(switch-tenant) 전까지 /login에 머물러야 한다.
+// - 'invalid' : 서명·만료 등 검증 실패
+async function verifySessionToken(
+  token: string
+): Promise<'valid' | 'pending' | 'invalid'> {
   try {
-    await jwtVerify(token, getUserJwtSecret(), {
+    const { payload } = await jwtVerify(token, getUserJwtSecret(), {
       issuer: 'expense-saas',
       audience: 'tenant-user',
     });
-    return true;
+    return payload.pendingTenantSelection === true ? 'pending' : 'valid';
   } catch {
-    return false;
+    return 'invalid';
   }
 }
 
@@ -123,21 +129,25 @@ export async function proxy(request: NextRequest) {
     }
 
     // JWT 토큰 유효성 검증
-    const isValid = await verifySessionToken(session.value);
-    if (!isValid) {
-      // 무효한 토큰 - 쿠키 삭제 후 로그인 페이지로 리다이렉트
+    const status = await verifySessionToken(session.value);
+    if (status !== 'valid') {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('from', pathname);
       const response = NextResponse.redirect(loginUrl);
-      response.cookies.delete('user_token');
+      // 조직 선택용 임시 토큰(pending)은 선택 완료에 필요하므로 쿠키를 지우지 않는다.
+      // 서명·만료 등 진짜 무효 토큰만 쿠키를 삭제한다.
+      if (status === 'invalid') {
+        response.cookies.delete('user_token');
+      }
       return response;
     }
   }
 
   // 로그인 상태에서 로그인 페이지 접근 시 리다이렉트
+  // 임시 토큰(pending)은 아직 조직 선택 전이므로 리다이렉트하지 않고 /login에 머문다.
   if (authPaths.includes(pathname) && session?.value) {
-    const isValid = await verifySessionToken(session.value);
-    if (isValid) {
+    const status = await verifySessionToken(session.value);
+    if (status === 'valid') {
       return NextResponse.redirect(new URL('/expenses', request.url));
     }
   }

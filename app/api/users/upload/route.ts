@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { prisma, prismaBase } from '@/lib/prisma';
 import { UserApiHandler, withPermissions } from '@/lib/auth/user';
 import { PERMISSIONS } from '@/lib/auth/permissions';
+import { getTenantIdOptional } from '@/lib/tenant-context';
+import { roleCodeToMembershipRole } from '@/lib/services/membership';
 
 // 역할 코드 타입 (Role.code와 동일)
 type UserRole = 'admin' | 'finance_head' | 'accountant' | 'finance_member' | 'team_leader' | 'admin_assistant' | 'user';
@@ -349,18 +351,42 @@ const handlePost: UserApiHandler = async (request) => {
     // 실제 DB 작업
     const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
 
-    // 생성
+    // 생성 — User 생성과 Membership 이중 기록(ARC-002 §2.2)을 한 트랜잭션으로 묶는다.
+    // 대량 경로도 생성 시점에 소속을 함께 기록해 /api/me/memberships·switch-tenant 누락을 막는다.
+    const tenantId = getTenantIdOptional();
     if (toCreate.length > 0) {
-      await prisma.user.createMany({
-        data: toCreate.map((row) => ({
-          userid: row.userid,
-          username: row.username,
-          role: row.role as UserRole,
-          department: row.department || null,
-          isActive: row.isActive === true || row.isActive === 'true',
-          password: hashedPassword,
-        })),
-        skipDuplicates: true,
+      await prismaBase.$transaction(async (tx) => {
+        await tx.user.createMany({
+          data: toCreate.map((row) => ({
+            userid: row.userid,
+            username: row.username,
+            role: row.role as UserRole,
+            department: row.department || null,
+            isActive: row.isActive === true || row.isActive === 'true',
+            password: hashedPassword,
+            ...(tenantId ? { tenantId } : {}),
+          })),
+          skipDuplicates: true,
+        });
+
+        // 테넌트 컨텍스트가 있을 때만 소속 기록 (없으면 tenantId 없는 사용자 — 기존 동작 유지)
+        if (tenantId) {
+          const createdUsers = await tx.user.findMany({
+            where: { tenantId, userid: { in: toCreate.map((r) => r.userid) } },
+            select: { id: true, role: true },
+          });
+          if (createdUsers.length > 0) {
+            await tx.membership.createMany({
+              data: createdUsers.map((u) => ({
+                userId: u.id,
+                tenantId,
+                role: roleCodeToMembershipRole(u.role),
+                isDefault: true,
+              })),
+              skipDuplicates: true,
+            });
+          }
+        }
       });
     }
 

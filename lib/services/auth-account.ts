@@ -57,6 +57,16 @@ export async function linkAuthAccount(
     return existing;
   }
 
+  // provider당 1개만 연결 — 같은 provider의 다른 계정이 이미 있으면 거부한다.
+  // (스키마 유니크는 (provider, providerUserId) 전역뿐이라 한 유저에 카카오 계정 2개가
+  //  연결될 수 있고, 그 경우 어느 쪽도 해제 불가 상태에 빠진다.)
+  const providerLinked = await prismaBase.authAccount.findFirst({
+    where: { userId, provider },
+  });
+  if (providerLinked) {
+    throw new Error('이미 연결된 인증 수단이 있습니다. 기존 연결을 해제한 후 다시 시도해주세요.');
+  }
+
   return prismaBase.authAccount.create({
     data: { userId, provider, providerUserId },
   });
@@ -89,11 +99,13 @@ export async function unlinkAuthAccount(
     where: { id: userId },
     select: { password: true },
   });
-  const otherProviderCount = await prismaBase.authAccount.count({
-    where: { userId, provider: { not: provider } },
+  // 해제 대상을 제외한 남은 인증 수단 수 — provider가 아니라 행 id 기준으로 센다.
+  // (같은 provider의 다른 계정이 남아 있어도 유효한 로그인 수단이므로 마지막 수단이 아니다.)
+  const otherAccountCount = await prismaBase.authAccount.count({
+    where: { userId, id: { not: account.id } },
   });
 
-  if (!user?.password && otherProviderCount === 0) {
+  if (!user?.password && otherAccountCount === 0) {
     throw new LastAuthMethodError(
       '마지막 로그인 수단은 해제할 수 없습니다. 비밀번호를 먼저 설정해주세요.'
     );
