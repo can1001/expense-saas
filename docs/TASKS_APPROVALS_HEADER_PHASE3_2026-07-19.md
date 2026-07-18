@@ -49,7 +49,7 @@
     필터(대기중/처리완료/전체) 3버튼 동작만 그대로 유지. `isBudgetManager`는 서버 컴포넌트(`app/page.tsx`)
     전용 DB count로만 파생 가능해 클라이언트 `/auth/me`에는 없음(API 응답 확인, `app/api/auth/me/route.ts`)
     → 신규 API 금지 원칙에 따라 결재함 사이드바 메뉴는 역할 기반(`canAccessApprovalMenu`)만으로 노출.
-- [ ] **A3 (S)**: 결재함 상세 적용
+- [x] **A3 (S)**: 결재함 상세 적용
   - Files: `app/approvals/[id]/page.tsx`
   - Description: AppShell 적용 + Header 제거, `ApprovalStatusBadge` 사용처를 `StatusPill`로 교체
     (다른 화면 사용처는 grep 확인 후 그대로 둠). `ApprovalActionButtons` 동작 무변경.
