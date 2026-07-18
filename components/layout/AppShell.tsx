@@ -12,6 +12,8 @@ interface AppShellProps {
   title: string;
   /** 탑바 우측 액션 슬롯 (CTA 버튼 등) */
   actions?: ReactNode;
+  /** 탑바 최우측 슬롯 (벨·아바타 메뉴·테넌트 전환 등 — actions 오른쪽에 배치) */
+  topbarExtra?: ReactNode;
   /** 모바일 햄버거 클릭 → 사이드바 드로어 열기 */
   onOpenMobileMenu?: () => void;
   /**
@@ -31,6 +33,7 @@ export default function AppShell({
   sidebar,
   title,
   actions,
+  topbarExtra,
   onOpenMobileMenu,
   withHeader = false,
   children,
@@ -65,6 +68,7 @@ export default function AppShell({
               <p className="text-xs text-gray-500">{fiscalYearLabel}</p>
             </div>
             {actions && <div className="flex items-center gap-2">{actions}</div>}
+            {topbarExtra && <div className="flex items-center gap-2">{topbarExtra}</div>}
           </div>
 
           <main className="min-h-[calc(100vh-56px)] overflow-auto p-4 sm:p-6">{children}</main>
