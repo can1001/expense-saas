@@ -79,6 +79,7 @@ model Tenant {
   adminNotifications AdminNotification[]
   accountCategories  AccountCategory[]
   memberships        Membership[]
+  invitations        Invitation[]
 
   // 메타
   createdAt DateTime @default(now())
@@ -910,6 +911,27 @@ model AuthAccount {
 
   @@unique([provider, providerUserId])
   @@index([userId])
+}
+
+// 초대 (ARC-003 §4.2, C3)
+// 초대 토큰이 본인 증명 — 카카오 이메일 매칭 같은 자동 병합 없이
+// 토큰 보유자를 초대된 테넌트에 합류시킨다. email은 안내/기록용이며 계정 매칭에 쓰지 않는다.
+model Invitation {
+  id String @id @default(cuid())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  email       String? // 초대 대상 표시용 (기록) — 매칭 조건 아님
+  role        String    @default("MEMBER") // 수락 시 Membership.role로 복사 (TENANT_ADMIN/MEMBER)
+  token       String    @unique // 랜덤 32바이트 hex — 초대 링크로 전달되는 본인 증명
+  expiresAt   DateTime
+  acceptedAt  DateTime? // null이면 미사용 — 수락 시 선점 기록 (재사용 방지)
+  invitedById String? // 초대한 유저 id (참고용)
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 // 연도별 사용자 역할 (finance_head, accountant, team_leader, admin_assistant)
