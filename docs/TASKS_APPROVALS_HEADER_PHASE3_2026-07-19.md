@@ -54,8 +54,38 @@
   - Description: AppShell 적용 + Header 제거, `ApprovalStatusBadge` 사용처를 `StatusPill`로 교체
     (다른 화면 사용처는 grep 확인 후 그대로 둠). `ApprovalActionButtons` 동작 무변경.
   - Verify: `pnpm vitest run && pnpm run lint`
-- [ ] **F (S)**: 최종 검증
+- [x] **F (S)**: 최종 검증
   - Description: `pnpm vitest run` + `pnpm run build` + `pnpm run lint` 실행, 스펙 5절 Success Criteria
     전 항목을 **실제 코드 grep/Read로 대조**하고 각 항목 옆에 확인 근거(파일:라인)를 남긴다.
     미충족 항목은 고친 후 재검증. 문서 체크만 하고 끝내는 것 금지.
   - Verify: 세 명령 모두 성공 + Success Criteria 전 항목 근거 기록
+  - 결과: `pnpm vitest run` 124 files / 2355 tests 전부 통과, `pnpm run build` exit 0,
+    `pnpm run lint` 0 errors / 88 warnings(전부 Phase 3 이전 기존 파일 — Topbar/AppShell/
+    ApprovalLineDisplay/approvals 페이지/SidebarUserCard/StatusPill grep 결과 warning 0건).
+    스펙 5절 Success Criteria 대조:
+    - [x] Header 제거 + 탑바 대체: `components/dashboard/DashboardShell.tsx`,
+      `components/admin/AdminLayout.tsx`, `app/approvals/page.tsx`,
+      `app/approvals/[id]/page.tsx`에서 `<Header` import/사용 0건(grep), 대신 4개 파일 모두
+      `AppShell` 사용 + Dashboard/AdminLayout은 `topbarExtra`에 TenantSwitcher 버튼·`TopbarBell`·
+      `TopbarUserMenu` 배치(`components/dashboard/DashboardShell.tsx:73-85`,
+      `components/admin/AdminLayout.tsx:80-92`)
+    - [x] 탑바 아바타 메뉴 = 기존 Header 드롭다운과 동일 항목·권한: `TopbarUserMenu.tsx:79-143`의
+      비밀번호 변경/서명·도장 관리/알림 설정/알림 히스토리/알림 발송(`roleHasPermission(...NOTIFICATION_SEND)`)
+      /사용자 등록(`canShowUserRegisterMenu`)/로그아웃이 `Header.tsx:502-578`의 데스크톱 드롭다운과
+      항목·조건 1:1 동일(조직 전환만 별도 `topbarExtra` 슬롯으로 이동 — H4에서 의도적 분리, 스펙 3.1 반영)
+    - [x] 로그아웃 공통 훅, 중복 구현 없음: `lib/hooks/useLogout.ts:13`을
+      `components/layout/SidebarUserCard.tsx:20`과 `components/layout/TopbarUserMenu.tsx:32`가
+      동일하게 `useLogout()` 호출로 재사용(grep 결과 두 곳 모두 동일 훅, 중복 fetch 로직 없음)
+    - [x] 결재함 목록 딥그린 사이드바+StatusPill, 필터 유지: `app/approvals/page.tsx:200`
+      `AppShell` 적용(사이드바는 AppShell 내부 고정), `:89-99` `ExpenseStatusPill`이 `StatusPill`
+      래핑, `:246/257/267` 대기중·처리완료·전체 필터 버튼 그대로 존재(A2 결과 메모: 원래 무한스크롤·
+      별도 모바일 카드 없었음 확인됨)
+    - [x] 결재함 상세 스테퍼(그린/앰버/레드) + 액션 무변경: `components/approval/
+      ApprovalLineDisplay.tsx:58`(완료 `bg-brand-500`), `:74`(대기 `ring-status-pending-bar`),
+      `:65,151,266`(반려 `status-rejected`/`status-pending-bar`) 확인. `ApprovalActionButtons.tsx`는
+      Phase 3 기간 중 커밋 이력 없음(`git log` 최종 커밋 `e2628cc`, Phase 3 이전) → 동작 무변경
+    - [x] Header 잔여 사용처 회귀 없음: `grep -rl "components/Header'"` 결과 `app/expenses/*`,
+      `app/mypage/*`, `app/youth-night/*`, `app/recurring-expenses/*`, `components/HomeClient.tsx`
+      등 24개 파일 여전히 Header 사용 중이며 Header.tsx 자체는 Phase 3 커밋에서 미수정
+      (H1은 SidebarUserCard만 변경, H2/H3는 신규 파일만 추가)
+    - [x] 세 검증 명령 전부 성공: 상단 결과 참조
