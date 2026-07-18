@@ -290,6 +290,30 @@ describe('POST /api/auth/switch-tenant (B3)', () => {
       expect(response.status).toBe(200);
       expect(mockVerifyUserToken).toHaveBeenCalledWith('cookie-token');
     });
+
+    it('배정 기본 비번 계정은 조직 선택(전환) 응답에도 mustChangePassword를 실어 강제 변경을 놓치지 않는다', async () => {
+      mockVerifyUserToken.mockResolvedValue(fullSession);
+      mockPrisma.user.findUnique.mockResolvedValue({ ...dbUser, mustChangePassword: true });
+
+      const response = await POST(
+        createSwitchRequest({ tenantId: 'tenant-2' }, { bearer: 'valid-token' })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.mustChangePassword).toBe(true);
+    });
+
+    it('일반 계정 전환 응답에는 mustChangePassword가 없다', async () => {
+      mockVerifyUserToken.mockResolvedValue(fullSession);
+
+      const response = await POST(
+        createSwitchRequest({ tenantId: 'tenant-2' }, { bearer: 'valid-token' })
+      );
+      const data = await response.json();
+
+      expect(data.mustChangePassword).toBeUndefined();
+    });
   });
 
   describe('선택용 임시 토큰(B2)으로 전환', () => {

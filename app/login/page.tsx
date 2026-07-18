@@ -184,6 +184,13 @@ function LoginForm() {
         return;
       }
 
+      // 배정된 기본 비번 계정: 조직 선택 후에도 비밀번호 변경 화면으로 강제 이동
+      if (data.mustChangePassword) {
+        router.push('/mypage/password?required=1');
+        router.refresh();
+        return;
+      }
+
       void refreshMeConfig();
       router.push(from);
       router.refresh();
