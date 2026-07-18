@@ -3,11 +3,12 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown, Bell, History, Send, UserPlus, Moon, Repeat } from 'lucide-react';
+import { FileText, CheckSquare, Home, LogOut, User, Settings, Menu, X, Key, PenLine, ChevronDown, Bell, History, Send, UserPlus, Moon, Repeat, ArrowLeftRight } from 'lucide-react';
 import { useRoles } from '@/hooks/useRoles';
 import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount';
 import { canShowUserRegisterMenu, canAccessAdminMenuWithRoles, canAccessRecurringExpenseMenuWithRoles } from '@/lib/constants/menu-permissions';
 import QuickUserRegister from '@/components/QuickUserRegister';
+import TenantSwitcher, { useMemberships } from '@/components/TenantSwitcher';
 import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 import { apiBase } from '@/lib/api/api-base';
 
@@ -41,6 +42,8 @@ function MobileDrawer({
   getRoleName,
   pendingCount,
   onOpenUserRegister,
+  canSwitchTenant,
+  onOpenTenantSwitcher,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -52,6 +55,8 @@ function MobileDrawer({
   getRoleName: (code: string) => string;
   pendingCount: number;
   onOpenUserRegister: () => void;
+  canSwitchTenant: boolean;
+  onOpenTenantSwitcher: () => void;
 }) {
   // 내 정보 아코디언 상태 (기본 접힘)
   const [isMyInfoOpen, setIsMyInfoOpen] = useState(false);
@@ -183,6 +188,20 @@ function MobileDrawer({
               사용자 등록
             </button>
           )}
+
+          {/* 조직 전환 (복수 소속 사용자만, B5) */}
+          {user && canSwitchTenant && (
+            <button
+              onClick={() => {
+                onClose();
+                onOpenTenantSwitcher();
+              }}
+              className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <ArrowLeftRight className="w-5 h-5" />
+              조직 전환
+            </button>
+          )}
         </nav>
 
         {/* 내 정보 (아코디언) */}
@@ -281,7 +300,12 @@ export default function Header() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isUserRegisterOpen, setIsUserRegisterOpen] = useState(false);
+  const [isTenantSwitcherOpen, setIsTenantSwitcherOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // 소속 조직 목록 (B5) — 복수 소속일 때만 조직 전환 메뉴 노출
+  const { memberships } = useMemberships(!!user);
+  const canSwitchTenant = memberships.length > 1;
 
   // Role 테이블에서 역할 정보 가져오기
   const { getRoleName } = useRoles();
@@ -529,6 +553,18 @@ export default function Header() {
                           사용자 등록
                         </button>
                       )}
+                      {canSwitchTenant && (
+                        <button
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            setIsTenantSwitcherOpen(true);
+                          }}
+                          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <ArrowLeftRight className="w-4 h-4" />
+                          조직 전환
+                        </button>
+                      )}
                       <div className="border-t border-gray-200 my-1" />
                       <button
                         onClick={() => {
@@ -580,12 +616,21 @@ export default function Header() {
         getRoleName={getRoleName}
         pendingCount={pendingCount}
         onOpenUserRegister={() => setIsUserRegisterOpen(true)}
+        canSwitchTenant={canSwitchTenant}
+        onOpenTenantSwitcher={() => setIsTenantSwitcherOpen(true)}
       />
 
       {/* 사용자 등록 모달 */}
       <QuickUserRegister
         isOpen={isUserRegisterOpen}
         onClose={() => setIsUserRegisterOpen(false)}
+      />
+
+      {/* 조직 전환 모달 (복수 소속 사용자만 트리거 노출, B5) */}
+      <TenantSwitcher
+        isOpen={isTenantSwitcherOpen}
+        onClose={() => setIsTenantSwitcherOpen(false)}
+        memberships={memberships}
       />
     </>
   );

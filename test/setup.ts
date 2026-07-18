@@ -11,6 +11,36 @@ afterEach(() => {
   cleanup();
 });
 
+// Node 22+ 내장 localStorage 전역(--localstorage-file 미설정 시 메서드 없는 객체)이
+// jsdom의 Web Storage를 가리는 문제 보정 — 메서드가 없을 때만 메모리 구현으로 대체
+function createMemoryStorage(): Storage {
+  const store = new Map<string, string>();
+  return {
+    get length() {
+      return store.size;
+    },
+    clear: () => {
+      store.clear();
+    },
+    getItem: (key: string) => (store.has(key) ? store.get(key)! : null),
+    key: (index: number) => Array.from(store.keys())[index] ?? null,
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    setItem: (key: string, value: string) => {
+      store.set(key, String(value));
+    },
+  } as Storage;
+}
+
+for (const name of ['localStorage', 'sessionStorage'] as const) {
+  if (typeof window !== 'undefined' && typeof window[name]?.setItem !== 'function') {
+    const storage = createMemoryStorage();
+    Object.defineProperty(window, name, { value: storage, configurable: true });
+    Object.defineProperty(globalThis, name, { value: storage, configurable: true });
+  }
+}
+
 // Next.js headers 모킹 (cookies, headers 등)
 // 기본값은 빈 쿠키 저장소, 각 테스트에서 필요 시 오버라이드 가능
 export const mockCookieStore = {

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { getAdminSidebarMenu } from '@/lib/constants/admin-menu';
 import { filterAdminMenuByRoles } from '@/lib/constants/menu-permissions';
 import { useTenant } from '@/lib/contexts/TenantContext';
+import { useMeConfig } from '@/lib/contexts/MeConfigContext';
 import { apiBase } from '@/lib/api/api-base';
 
 interface AdminSidebarProps {
@@ -18,6 +19,8 @@ interface AdminSidebarProps {
 export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
   const { orgType } = useTenant();
+  // 서버 주도 기능 플래그 (B5) — 없으면 getAdminSidebarMenu가 orgType 분기로 폴백
+  const { config } = useMeConfig();
   const [userRoles, setUserRoles] = useState<string[] | null>(null);
 
   // 사용자 역할 조회 (다중 역할 지원)
@@ -40,12 +43,12 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
 
   // 조직 유형별 메뉴 + 역할 기반 필터링 (다중 역할 지원)
   const filteredMenu = useMemo(() => {
-    const baseMenu = getAdminSidebarMenu(orgType);
+    const baseMenu = getAdminSidebarMenu(orgType, config?.features);
     if (userRoles && userRoles.length > 0) {
       return filterAdminMenuByRoles(baseMenu, userRoles);
     }
     return baseMenu;
-  }, [orgType, userRoles]);
+  }, [orgType, config, userRoles]);
 
   // 현재 경로가 메뉴 항목과 일치하는지 확인 (하위 경로 포함)
   const isActive = (href: string) => {

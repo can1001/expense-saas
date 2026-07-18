@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ADMIN_SIDEBAR_MENU } from '../admin-menu';
+import { ADMIN_SIDEBAR_MENU, getAdminSidebarMenu } from '../admin-menu';
+import type { TenantFeatures } from '@/lib/tenant/settings';
 
 describe('admin-menu', () => {
   describe('ADMIN_SIDEBAR_MENU structure', () => {
@@ -168,6 +169,39 @@ describe('admin-menu', () => {
       });
       const uniqueHrefs = new Set(allHrefs);
       expect(uniqueHrefs.size).toBe(allHrefs.length);
+    });
+  });
+
+  // 서버 주도 features 기반 수입 메뉴 노출 제어 (ARC-002 §4.2, B5)
+  describe('getAdminSidebarMenu features 분기', () => {
+    const hasIncomeGroup = (menu: ReturnType<typeof getAdminSidebarMenu>) =>
+      menu.some((group) => group.title === '수입 관리');
+
+    const makeFeatures = (incomeModule: boolean): TenantFeatures => ({
+      incomeModule,
+      budgetModule: true,
+      vat: false,
+      taxInvoice: false,
+      offeringLink: false,
+    });
+
+    it('features 미지정 시 기존 orgType 분기 유지 (회귀 없음)', () => {
+      expect(hasIncomeGroup(getAdminSidebarMenu('CHURCH'))).toBe(true);
+      expect(hasIncomeGroup(getAdminSidebarMenu('COMPANY'))).toBe(false);
+      // orgType 미확정(로딩 중)도 기존 동작(노출) 유지
+      expect(hasIncomeGroup(getAdminSidebarMenu(null))).toBe(true);
+    });
+
+    it('incomeModule=false면 CHURCH여도 수입 관리 미노출', () => {
+      expect(
+        hasIncomeGroup(getAdminSidebarMenu('CHURCH', makeFeatures(false)))
+      ).toBe(false);
+    });
+
+    it('incomeModule=true면 COMPANY여도 수입 관리 노출', () => {
+      expect(
+        hasIncomeGroup(getAdminSidebarMenu('COMPANY', makeFeatures(true)))
+      ).toBe(true);
     });
   });
 });

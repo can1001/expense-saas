@@ -36,6 +36,7 @@ import {
   LucideIcon,
 } from 'lucide-react';
 import { getOrgTerms, isChurchOnlyFeatureVisible } from '@/lib/org-terms';
+import type { TenantFeatures } from '@/lib/tenant/settings';
 
 export interface SidebarItem {
   href: string;
@@ -51,9 +52,16 @@ export interface SidebarGroup {
 /**
  * 조직 유형에 맞는 어드민 사이드바 메뉴 생성
  * - orgType 미지정 시 교회 기준(기존 동작)
+ * - features(서버 주도 설정, B5)가 있으면 incomeModule 플래그로 수입 메뉴 노출을
+ *   제어한다. 없으면(미로그인/조회 전) 기존 orgType 분기 그대로 — 회귀 방지.
  */
-export function getAdminSidebarMenu(orgType?: string | null): SidebarGroup[] {
+export function getAdminSidebarMenu(
+  orgType?: string | null,
+  features?: TenantFeatures | null
+): SidebarGroup[] {
   const terms = getOrgTerms(orgType);
+  const incomeMenuVisible =
+    features?.incomeModule ?? isChurchOnlyFeatureVisible(orgType);
 
   const menu: SidebarGroup[] = [
     {
@@ -118,8 +126,8 @@ export function getAdminSidebarMenu(orgType?: string | null): SidebarGroup[] {
         { href: '/admin/expense-upload', label: '지출결의서 일괄 업로드', icon: Upload },
       ],
     },
-    // 수입 관리(헌금)는 교회 전용
-    ...(isChurchOnlyFeatureVisible(orgType)
+    // 수입 관리(헌금) — features.incomeModule 우선, 없으면 교회 전용 분기
+    ...(incomeMenuVisible
       ? [
           {
             title: '수입 관리',
