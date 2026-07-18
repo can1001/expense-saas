@@ -22,7 +22,7 @@
     (데스크톱 우측 1/3, 모바일 하단).
   - Acceptance: 90% 임계값에서 ProgressBar 앰버 전환 + 배너, 부서 0곳이면 배너 없음
   - Verify: `pnpm vitest run components/dashboard/ && pnpm run lint`
-- [ ] **P3 (M)**: 홈 역할 분기 + 전역 사이드바 적용
+- [x] **P3 (M)**: 홈 역할 분기 + 전역 사이드바 적용
   - Files: `app/page.tsx`, `components/dashboard/DashboardShell.tsx` (신규 — AppShell+전역 Sidebar 조립)
   - Description: `app/page.tsx`에서 `canAccessAdminMenuWithRoles(user.roles || [user.role])`이면
     `DashboardShell`(AppShell withHeader + `getGlobalSidebarMenu(user, {pendingApprovalCount})` 기반
