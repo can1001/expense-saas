@@ -113,6 +113,7 @@ const handlePost: UserApiHandler = async (request) => {
       department,
       password,
       phoneNumber,
+      mustChangePassword: true, // 관리자 배정 초기 비번 — 첫 로그인에 변경 강제
     });
 
     return NextResponse.json(user, { status: 201 });

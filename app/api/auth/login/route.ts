@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
         department: true,
         isActive: true,
         canRegisterUsers: true,
+        mustChangePassword: true,
         tenant: {
           select: {
             id: true,
@@ -193,7 +194,11 @@ export async function POST(request: NextRequest) {
         }
       : user.tenant;
 
-    return issueSessionResponse(session, responseTenant, { message: '로그인 성공' });
+    return issueSessionResponse(session, responseTenant, {
+      message: '로그인 성공',
+      // 배정된 기본 비번 계정이면 클라이언트가 비번 변경 화면으로 유도 (첫 로그인 강제 변경)
+      ...(user.mustChangePassword ? { extra: { mustChangePassword: true } } : {}),
+    });
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'ZodError') {
       return NextResponse.json(

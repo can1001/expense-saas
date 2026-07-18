@@ -235,6 +235,8 @@ export async function createUser(data: {
   department?: string;
   password?: string;
   phoneNumber?: string;
+  /** 배정된 비밀번호로 생성 시 true — 첫 로그인에 변경 강제 */
+  mustChangePassword?: boolean;
 }): Promise<User> {
   const plainPassword = data.password || DEFAULT_PASSWORD;
   const hashedPassword = await hashPassword(plainPassword);
@@ -255,6 +257,7 @@ export async function createUser(data: {
     department: data.department,
     phoneNumber: data.phoneNumber,
     password: hashedPassword,
+    mustChangePassword: data.mustChangePassword ?? false,
   };
 
   // 테넌트 컨텍스트가 있으면 User + Membership을 한 트랜잭션으로 이중 기록한다 (ARC-002 §2.2).
@@ -294,6 +297,7 @@ export async function updateUser(
     phoneNumber?: string | null;
     isActive?: boolean;
     canRegisterUsers?: boolean;
+    mustChangePassword?: boolean;
   }
 ): Promise<User> {
   const updateData = { ...data };

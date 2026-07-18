@@ -56,8 +56,8 @@ const handlePost: UserApiHandler = async (request, { user }) => {
       );
     }
 
-    // 5. 새 비밀번호로 업데이트
-    await updateUser(userId, { password: newPassword });
+    // 5. 새 비밀번호로 업데이트 — 배정 비번 강제 변경 플래그도 함께 해제
+    await updateUser(userId, { password: newPassword, mustChangePassword: false });
 
     return NextResponse.json({
       success: true,

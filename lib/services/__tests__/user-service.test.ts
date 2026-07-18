@@ -542,8 +542,21 @@ describe('user-service', () => {
           role: 'user',
           department: undefined,
           password: 'hashed_chc2026', // 기본 비밀번호(chc2026)가 해시됨
+          mustChangePassword: false, // 명시하지 않으면 기본 false
         },
       });
+    });
+
+    it('mustChangePassword: true를 넘기면 create 데이터에 반영된다 (배정 비번 강제 변경)', async () => {
+      vi.mocked(prisma.user.create).mockResolvedValue({ ...mockUser, userid: 'assigned' });
+
+      await createUser({ userid: 'assigned', username: '배정', mustChangePassword: true });
+
+      expect(prisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ mustChangePassword: true }),
+        })
+      );
     });
 
     it('테넌트 컨텍스트가 있으면 User와 Membership을 함께 생성한다 (ARC-002 §2.2)', async () => {
