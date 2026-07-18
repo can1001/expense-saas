@@ -16,8 +16,14 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { config } from 'dotenv';
 
-const prisma = new PrismaClient();
+// .env 파일 로드 (Prisma 7: 어댑터에 연결 문자열 직접 전달)
+config();
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+const prisma = new PrismaClient({ adapter });
 
 const isDryRun = process.argv.includes('--dry-run');
 
