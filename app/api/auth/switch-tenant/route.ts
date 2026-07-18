@@ -10,7 +10,8 @@ import {
   verifyUserToken,
   UserSession,
 } from '@/lib/auth/user';
-import { assertMembership } from '@/lib/services/membership';
+import { assertMembership, membershipRoleToRoleCode } from '@/lib/services/membership';
+import type { Membership } from '@prisma/client';
 import { fcmProvider } from '@/lib/services/notification/fcm-provider';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { z } from 'zod';
@@ -50,8 +51,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Membership 검증 — 미소속이면 403 (토큰·쿠키 무변경)
+    let membership: Membership;
     try {
-      await assertMembership(userId, tenantId);
+      membership = await assertMembership(userId, tenantId);
     } catch {
       return NextResponse.json(
         { error: '해당 조직에 소속되어 있지 않습니다.' },
@@ -70,6 +72,7 @@ export async function POST(request: NextRequest) {
           role: true,
           roleId: true,
           department: true,
+          tenantId: true,
           isActive: true,
           canRegisterUsers: true,
         },
@@ -101,8 +104,23 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. 새 tenantId 클레임으로 정식 토큰 재발급 (로그인과 동일한 roles-only 방식)
-    const roles = [user.role];
-    const granted = user.canRegisterUsers ? [PERMISSIONS.USER_REGISTER] : [];
+    //
+    // 대상 테넌트에서의 역할 결정 (권한 상승 방지):
+    // - 홈 테넌트(User.tenantId와 동일): 기존 User.role/roleId/department·개별 권한을 그대로 유지.
+    //   백필로 세밀한 역할(finance_head 등)이 Membership에는 MEMBER로만 남으므로 홈은 User가 진실.
+    // - 게스트 소속(홈이 아닌 테넌트): Membership.role(TENANT_ADMIN/MEMBER)에서만 역할을 파생하고
+    //   홈 테넌트의 roleId/department/canRegisterUsers는 넘기지 않는다 — 홈 관리자 권한이
+    //   다른 테넌트로 상승하는 것을 막고, 타 테넌트 Role 행 참조(roleId) 유출도 방지.
+    const isHomeTenant = tenant.id === user.tenantId;
+    const effectiveRole = isHomeTenant
+      ? user.role
+      : membershipRoleToRoleCode(membership.role);
+    const effectiveRoleId = isHomeTenant ? user.roleId : null;
+    const effectiveDepartment = isHomeTenant ? user.department : null;
+    const canRegisterUsers = isHomeTenant ? user.canRegisterUsers : false;
+
+    const roles = [effectiveRole];
+    const granted = canRegisterUsers ? [PERMISSIONS.USER_REGISTER] : [];
     const flags = deriveLegacyFlags(roles, granted);
 
     const newSession: UserSession = {
@@ -110,10 +128,10 @@ export async function POST(request: NextRequest) {
       tenantId: tenant.id,
       userid: user.userid,
       username: user.username,
-      role: user.role,
+      role: effectiveRole,
       roles,
-      roleId: user.roleId,
-      department: user.department,
+      roleId: effectiveRoleId,
+      department: effectiveDepartment,
       granted,
       ...flags,
     };
@@ -132,8 +150,8 @@ export async function POST(request: NextRequest) {
         id: user.id,
         userid: user.userid,
         username: user.username,
-        role: user.role,
-        department: user.department,
+        role: effectiveRole,
+        department: effectiveDepartment,
         permissions: {
           canApprove: newSession.canApprove,
           canManageExpense: newSession.canManageExpense,

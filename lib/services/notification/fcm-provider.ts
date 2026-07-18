@@ -178,6 +178,17 @@ export class FcmProvider {
         where: { token },
       });
 
+      // 소유권 검증 — 이미 다른 유저에게 등록된 토큰 행은 재할당하지 않는다.
+      // (기기 식별자 token만 알면 타인의 행을 자기 테넌트로 넘겨 피해자 기기에 크로스테넌트
+      //  푸시를 유발할 수 있으므로 차단. unsubscribe()와 동일한 소유권 기준.)
+      // 같은 유저의 재등록(플랫폼·tenantId 갱신)은 정상 경로로 계속 허용된다.
+      if (existing && existing.userId !== userId) {
+        console.warn(
+          `[FcmProvider] 토큰 소유권 불일치로 재할당 거부 (token owner=${existing.userId}, 요청 userId=${userId})`
+        );
+        return null;
+      }
+
       if (existing) {
         const updated = await prismaBase.fcmToken.update({
           where: { id: existing.id },

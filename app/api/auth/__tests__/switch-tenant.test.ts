@@ -43,6 +43,8 @@ vi.mock('@/lib/auth/user', () => ({
 // Mock @/lib/services/membership
 vi.mock('@/lib/services/membership', () => ({
   assertMembership: vi.fn(),
+  membershipRoleToRoleCode: (role: string) =>
+    role === 'TENANT_ADMIN' ? 'admin' : 'user',
 }));
 
 // Mock FCM 재구독 (B6) — 전환 성공 시에만 호출되는지 검증
@@ -227,9 +229,11 @@ describe('POST /api/auth/switch-tenant (B3)', () => {
         user: {
           id: 'user-1',
           userid: 'testuser',
+          // 게스트 소속(홈이 아닌 tenant-2)으로 전환 — 역할은 Membership(MEMBER)에서 파생,
+          // 홈 부서는 넘기지 않는다 (권한 상승·홈 속성 유출 방지)
           username: '테스트유저',
           role: 'user',
-          department: '개발팀',
+          department: null,
           permissions: {
             canApprove: false,
             canManageExpense: false,
@@ -340,6 +344,88 @@ describe('POST /api/auth/switch-tenant (B3)', () => {
       expect(response.status).toBe(403);
       expect(data.error).toBe('이 조직은 현재 이용할 수 없습니다.');
       expect(mockCreateUserToken).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('역할 파생 (권한 상승 방지)', () => {
+    it('홈 admin이 게스트 테넌트(MEMBER)로 전환하면 admin 권한이 넘어가지 않는다', async () => {
+      // 홈 테넌트 admin 사용자 — User.role='admin', roleId·부서 보유
+      mockVerifyUserToken.mockResolvedValue({ ...fullSession, role: 'admin' });
+      mockPrisma.user.findUnique.mockResolvedValue({
+        ...dbUser,
+        role: 'admin',
+        roleId: 'role-admin',
+        tenantId: 'tenant-1', // 홈은 tenant-1
+        canRegisterUsers: true,
+      });
+      // tenant-2에는 MEMBER로만 소속
+      mockAssertMembership.mockResolvedValue({ ...membership, role: 'MEMBER' });
+
+      const response = await POST(
+        createSwitchRequest({ tenantId: 'tenant-2' }, { bearer: 'valid-token' })
+      );
+
+      expect(response.status).toBe(200);
+      // 새 토큰은 게스트 테넌트 기준: role='user', roleId=null, 부서·개별권한 제거
+      expect(mockCreateUserToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: 'tenant-2',
+          role: 'user',
+          roles: ['user'],
+          roleId: null,
+          department: null,
+          granted: [],
+          canAccessAdmin: false,
+          canManageExpense: false,
+          canRegisterUsers: false,
+        })
+      );
+    });
+
+    it('게스트 테넌트에 TENANT_ADMIN으로 소속되면 admin 역할이 부여된다', async () => {
+      mockVerifyUserToken.mockResolvedValue(fullSession);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        ...dbUser,
+        role: 'user',
+        tenantId: 'tenant-1',
+      });
+      mockAssertMembership.mockResolvedValue({ ...membership, role: 'TENANT_ADMIN' });
+
+      const response = await POST(
+        createSwitchRequest({ tenantId: 'tenant-2' }, { bearer: 'valid-token' })
+      );
+
+      expect(response.status).toBe(200);
+      expect(mockCreateUserToken).toHaveBeenCalledWith(
+        expect.objectContaining({ tenantId: 'tenant-2', role: 'admin', roles: ['admin'] })
+      );
+    });
+
+    it('홈 테넌트로 전환하면 기존 User.role/부서가 유지된다', async () => {
+      // 홈(tenant-2 == User.tenantId)로 전환 — 세밀한 역할 보존
+      mockVerifyUserToken.mockResolvedValue({ ...fullSession, role: 'finance_head' });
+      mockPrisma.user.findUnique.mockResolvedValue({
+        ...dbUser,
+        role: 'finance_head',
+        roleId: 'role-finance',
+        department: '재정팀',
+        tenantId: 'tenant-2', // 홈이 곧 전환 대상
+      });
+      mockAssertMembership.mockResolvedValue({ ...membership, role: 'MEMBER' });
+
+      const response = await POST(
+        createSwitchRequest({ tenantId: 'tenant-2' }, { bearer: 'valid-token' })
+      );
+
+      expect(response.status).toBe(200);
+      expect(mockCreateUserToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: 'tenant-2',
+          role: 'finance_head',
+          roleId: 'role-finance',
+          department: '재정팀',
+        })
+      );
     });
   });
 });
