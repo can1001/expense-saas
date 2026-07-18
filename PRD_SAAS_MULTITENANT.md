@@ -49,7 +49,7 @@ RALPH_BRANCH=20260718-saas-multitenant \
 
 ## Phase C — 카카오 로그인 (ARC-003)
 
-- [ ] C1. `AuthAccount` 모델 + 기존 이메일 로그인 `provider: "email"` 통합
+- [x] C1. `AuthAccount` 모델 + 기존 이메일 로그인 `provider: "email"` 통합
 - [ ] C2. `POST /api/auth/kakao` — 서버측 카카오 토큰 검증 + 자체 JWT 발급 (kapi 모킹 테스트)
 - [ ] C3. 초대 플로우 — `Invitation` 모델/API + 초대 토큰·카카오 로그인 결합
 - [ ] C4. "카카오 계정 연결" 메뉴 + 테넌트 미소속 안내 화면

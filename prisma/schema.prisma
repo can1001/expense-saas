@@ -860,6 +860,7 @@ model User {
   approvedRecitations    RecitationSubmission[]  @relation("RecitationApprover") // 승인한 암송들
   recurringExpenses      RecurringExpense[] // 등록한 자동이체 템플릿들
   memberships            Membership[] // 소속 테넌트들 (ARC-002 §2.2)
+  authAccounts           AuthAccount[] // 연결된 인증 수단들 (ARC-003 §3)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -893,6 +894,22 @@ model Membership {
 
   @@unique([userId, tenantId])
   @@index([tenantId])
+}
+
+// 인증 수단 연결 (ARC-003 §3)
+// 인증("누구인지")과 소속(Membership)의 분리 — User에 kakaoId 등을 직접 추가하지 않고
+// 별도 테이블로 분리해 네이버·구글 추가 시 스키마 변경이 없게 한다.
+// 하나의 User에 복수 AuthAccount 연결 가능 (이메일 + 카카오 병행).
+model AuthAccount {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider       String // "kakao" | "email" | "naver" | "google" ...
+  providerUserId String // 카카오 회원번호(id), 이메일 로그인은 userid
+  createdAt      DateTime @default(now())
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
 }
 
 // 연도별 사용자 역할 (finance_head, accountant, team_leader, admin_assistant)
