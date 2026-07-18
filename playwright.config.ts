@@ -3,9 +3,12 @@ import { defineConfig, devices } from '@playwright/test';
 // E2E 전용 로컬 테스트 DB — 라이브 DB(.env의 DATABASE_URL)와 분리
 // 셋업: createdb expense_e2e && prisma db push --url $E2E_DATABASE_URL
 //       && db:seed:users && db:seed && db:seed:e2e (모두 DATABASE_URL 오버라이드로 실행)
+// CI 에서는 워크플로우가 주입한 DATABASE_URL(서비스 컨테이너의 테스트 DB)을 그대로 쓴다
 const E2E_DATABASE_URL =
   process.env.E2E_DATABASE_URL ??
-  'postgresql://wandosea@localhost:5432/expense_e2e';
+  (process.env.CI
+    ? (process.env.DATABASE_URL ?? '')
+    : 'postgresql://wandosea@localhost:5432/expense_e2e');
 
 export default defineConfig({
   testDir: './e2e',
