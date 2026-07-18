@@ -1,12 +1,8 @@
 import { NextResponse } from 'next/server';
 import { handleApiError } from '@/lib/api/error-handler';
 import { withAuth, UserApiHandler } from '@/lib/auth/user';
-import {
-  isKakaoConfigured,
-  KakaoConfigError,
-  KakaoTokenError,
-  verifyKakaoAccessToken,
-} from '@/lib/services/kakao';
+import { isKakaoConfigured } from '@/lib/services/kakao';
+import { verifyKakaoTokenOrError } from '@/lib/auth/kakao-verify';
 import {
   AuthAccountNotLinkedError,
   getAuthAccount,
@@ -52,19 +48,9 @@ const handlePost: UserApiHandler = async (request, { user }) => {
     const { kakaoAccessToken } = linkKakaoSchema.parse(body);
 
     // 서버측 카카오 토큰 검증 — 클라이언트가 보낸 토큰을 그대로 신뢰하지 않는다
-    let providerUserId: string;
-    try {
-      ({ providerUserId } = await verifyKakaoAccessToken(kakaoAccessToken));
-    } catch (error) {
-      if (error instanceof KakaoConfigError) {
-        return NextResponse.json({ error: error.message }, { status: 503 });
-      }
-      if (error instanceof KakaoTokenError) {
-        // 검증 실패(만료·위조) — 연결 미수행
-        return NextResponse.json({ error: error.message }, { status: 401 });
-      }
-      throw error;
-    }
+    const verified = await verifyKakaoTokenOrError(kakaoAccessToken);
+    if (verified.error) return verified.error;
+    const providerUserId = verified.providerUserId;
 
     // 세션 유저에 연결 — 이미 다른 유저에 연결된 카카오 계정이면 거부 (계정 탈취 방지)
     try {

@@ -2,12 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { handleApiError } from '@/lib/api/error-handler';
 import { deriveLegacyFlags, UserSession } from '@/lib/auth/user';
 import { issueSessionResponse } from '@/lib/auth/login-session';
-import {
-  isKakaoConfigured,
-  KakaoConfigError,
-  KakaoTokenError,
-  verifyKakaoAccessToken,
-} from '@/lib/services/kakao';
+import { isKakaoConfigured } from '@/lib/services/kakao';
+import { verifyKakaoTokenOrError } from '@/lib/auth/kakao-verify';
 import { findUserByProvider } from '@/lib/services/auth-account';
 import {
   acceptInvitation,
@@ -45,19 +41,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      let providerUserId: string;
-      try {
-        ({ providerUserId } = await verifyKakaoAccessToken(kakaoAccessToken));
-      } catch (error) {
-        if (error instanceof KakaoConfigError) {
-          return NextResponse.json({ error: error.message }, { status: 503 });
-        }
-        if (error instanceof KakaoTokenError) {
-          // 검증 실패(만료·위조) — 초대 소진·계정 생성·토큰 발급 없음
-          return NextResponse.json({ error: error.message }, { status: 401 });
-        }
-        throw error;
-      }
+      const verified = await verifyKakaoTokenOrError(kakaoAccessToken);
+      if (verified.error) return verified.error;
+      const providerUserId = verified.providerUserId;
 
       // 기존 카카오 연결 유저면 Membership만 추가, 아니면 신규 User + AuthAccount(kakao)
       // (이메일 매칭 자동 병합 없음 — 초대 토큰만이 본인 증명, 공통 원칙 3)

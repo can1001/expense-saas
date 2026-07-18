@@ -6,13 +6,8 @@ import {
   buildTenantSession,
   issueSessionResponse,
 } from '@/lib/auth/login-session';
-import {
-  isKakaoConfigured,
-  isKakaoOidcEnabled,
-  KakaoConfigError,
-  KakaoTokenError,
-  verifyKakaoAccessToken,
-} from '@/lib/services/kakao';
+import { isKakaoConfigured, isKakaoOidcEnabled } from '@/lib/services/kakao';
+import { verifyKakaoTokenOrError } from '@/lib/auth/kakao-verify';
 import { findUserByProvider } from '@/lib/services/auth-account';
 import { getMemberships } from '@/lib/services/membership';
 import { z } from 'zod';
@@ -48,19 +43,9 @@ export async function POST(request: NextRequest) {
     const { kakaoAccessToken } = kakaoLoginSchema.parse(body);
 
     // 1. 서버측 카카오 토큰 검증 — 클라이언트가 보낸 토큰을 그대로 신뢰하지 않는다
-    let providerUserId: string;
-    try {
-      ({ providerUserId } = await verifyKakaoAccessToken(kakaoAccessToken));
-    } catch (error) {
-      if (error instanceof KakaoConfigError) {
-        return NextResponse.json({ error: error.message }, { status: 503 });
-      }
-      if (error instanceof KakaoTokenError) {
-        // 검증 실패(만료·위조) — 자체 토큰 미발급
-        return NextResponse.json({ error: error.message }, { status: 401 });
-      }
-      throw error;
-    }
+    const verified = await verifyKakaoTokenOrError(kakaoAccessToken);
+    if (verified.error) return verified.error;
+    const providerUserId = verified.providerUserId;
 
     // 2. AuthAccount 연결 조회 — 이메일 매칭 자동 병합 금지 (공통 원칙 3, ARC-003 §4)
     const user = await findUserByProvider('kakao', providerUserId);
