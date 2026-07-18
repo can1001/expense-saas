@@ -3,17 +3,26 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import Header from '@/components/Header';
-import ApprovalStatusBadge from '@/components/approval/ApprovalStatusBadge';
+import { ArrowLeftRight, Clock, CheckCircle, FileText, User, Building2, Calendar } from 'lucide-react';
+import AppShell from '@/components/layout/AppShell';
+import Sidebar from '@/components/layout/Sidebar';
+import SidebarUserCard from '@/components/layout/SidebarUserCard';
+import TopbarBell from '@/components/layout/TopbarBell';
+import TopbarUserMenu, { TopbarUserMenuUser } from '@/components/layout/TopbarUserMenu';
+import TenantSwitcher, { useMemberships } from '@/components/TenantSwitcher';
+import StatusPill, { StatusPillVariant } from '@/components/ui/StatusPill';
+import { getGlobalSidebarMenu } from '@/lib/constants/global-menu';
+import { canAccessApprovalMenu } from '@/lib/constants/menu-permissions';
+import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount';
 import { formatCurrency } from '@/lib/utils';
-import { Clock, CheckCircle, FileText, User, Building2, Calendar } from 'lucide-react';
 import { apiBase } from '@/lib/api/api-base';
 
-interface UserInfo {
+interface UserInfo extends TopbarUserMenuUser {
   id: string;
   userid: string;
   username: string;
   role: string;
+  roles?: string[];
   department?: string;
 }
 
@@ -54,6 +63,42 @@ interface ApprovalItem {
   isMyTurn: boolean;
 }
 
+// 지출결의서 상태 → StatusPill 매핑 (ApprovalLineDisplay.tsx의 패턴과 동일)
+const EXPENSE_STATUS_PILL: Partial<Record<string, StatusPillVariant>> = {
+  PENDING: 'pending',
+  APPROVED_STEP_1: 'pending',
+  APPROVED_STEP_2: 'pending',
+  IN_PROGRESS: 'pending',
+  APPROVED_FINAL: 'approved',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+};
+
+const EXPENSE_STATUS_LABEL: Record<string, string> = {
+  DRAFT: '작성중',
+  PENDING: '1차 결재대기',
+  APPROVED_STEP_1: '2차 결재대기',
+  APPROVED_STEP_2: '3차 결재대기',
+  APPROVED_FINAL: '최종승인',
+  IN_PROGRESS: '결재진행중',
+  APPROVED: '승인완료',
+  REJECTED: '반려',
+  WITHDRAWN: '회수',
+};
+
+function ExpenseStatusPill({ status }: { status: string }) {
+  const variant = EXPENSE_STATUS_PILL[status];
+  const label = EXPENSE_STATUS_LABEL[status] ?? status;
+  if (!variant) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-500">
+        {label}
+      </span>
+    );
+  }
+  return <StatusPill variant={variant}>{label}</StatusPill>;
+}
+
 export default function ApprovalsPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserInfo | null>(null);
@@ -62,6 +107,8 @@ export default function ApprovalsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'pending' | 'completed' | 'all'>('pending');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isTenantSwitcherOpen, setIsTenantSwitcherOpen] = useState(false);
 
   // 로그인 사용자 정보 가져오기
   useEffect(() => {
@@ -116,6 +163,13 @@ export default function ApprovalsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, statusFilter]);
 
+  const userRoles = user?.roles ?? (user ? [user.role] : []);
+  const canApprove = userRoles.some((role) => canAccessApprovalMenu(role));
+  const { count: pendingApprovalCount } = usePendingApprovalCount({ enabled: canApprove });
+  const sidebarConfig = getGlobalSidebarMenu({ roles: userRoles }, { pendingApprovalCount });
+  const { memberships } = useMemberships(!!user);
+  const canSwitchTenant = memberships.length > 1;
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
     return format(new Date(dateString), 'yyyy-MM-dd HH:mm');
@@ -124,31 +178,56 @@ export default function ApprovalsPage() {
   const getStepStatusColor = (status: string) => {
     switch (status) {
       case 'APPROVED':
-        return 'text-green-600';
+        return 'text-status-approved';
       case 'REJECTED':
-        return 'text-red-600';
+        return 'text-status-rejected';
       case 'PENDING':
-        return 'text-yellow-600';
+        return 'text-status-pending';
       default:
         return 'text-gray-600';
     }
   };
 
+  if (userLoading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-surface-bg">
+        <div className="text-gray-500">불러오는 중...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* 페이지 헤더 */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">결재함</h1>
-          <p className="text-gray-600">결재 대기 중인 지출결의서를 확인하고 처리하세요.</p>
-        </div>
-
+    <AppShell
+      title="결재함"
+      onOpenMobileMenu={() => setIsSidebarOpen(true)}
+      topbarExtra={
+        <>
+          {canSwitchTenant && (
+            <button
+              onClick={() => setIsTenantSwitcherOpen(true)}
+              aria-label="조직 전환"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+            >
+              <ArrowLeftRight className="h-5 w-5" />
+            </button>
+          )}
+          <TopbarBell />
+          <TopbarUserMenu user={user} />
+        </>
+      }
+      sidebar={
+        <Sidebar
+          config={sidebarConfig}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          footer={<SidebarUserCard />}
+        />
+      }
+    >
+      <div className="max-w-7xl mx-auto">
         {/* 필터 영역 */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-surface-border p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center gap-4">
-            {/* 상태 필터 */}
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <FileText className="w-4 h-4 inline mr-1" />
@@ -159,7 +238,7 @@ export default function ApprovalsPage() {
                   onClick={() => setStatusFilter('pending')}
                   className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                     statusFilter === 'pending'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-brand-700 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -170,7 +249,7 @@ export default function ApprovalsPage() {
                   onClick={() => setStatusFilter('completed')}
                   className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                     statusFilter === 'completed'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-brand-700 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -181,7 +260,7 @@ export default function ApprovalsPage() {
                   onClick={() => setStatusFilter('all')}
                   className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
                     statusFilter === 'all'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-brand-700 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -193,22 +272,22 @@ export default function ApprovalsPage() {
         </div>
 
         {/* 결재 목록 */}
-        {userLoading || loading ? (
+        {loading ? (
           <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
           </div>
         ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <p className="text-red-600">{error}</p>
+          <div className="bg-status-rejected-bg border border-status-rejected rounded-lg p-6 text-center">
+            <p className="text-status-rejected">{error}</p>
             <button
               onClick={fetchApprovals}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              className="mt-4 px-4 py-2 bg-status-rejected text-white rounded-lg hover:opacity-90"
             >
               다시 시도
             </button>
           </div>
         ) : approvals.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <div className="bg-white rounded-lg shadow-sm border border-surface-border p-12 text-center">
             <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">
               {statusFilter === 'pending'
@@ -226,8 +305,8 @@ export default function ApprovalsPage() {
                 onClick={() => router.push(`/approvals/${item.id}`)}
                 className={`bg-white rounded-lg shadow-sm border-2 p-6 cursor-pointer transition-all hover:shadow-md ${
                   item.isMyTurn
-                    ? 'border-blue-500 hover:border-blue-600'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-brand-500 hover:border-brand-600'
+                    : 'border-surface-border hover:border-gray-300'
                 }`}
               >
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -235,16 +314,16 @@ export default function ApprovalsPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       {item.isMyTurn && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+                        <span className="px-2 py-1 bg-brand-100 text-brand-700 text-xs font-semibold rounded-full">
                           결재 대기
                         </span>
                       )}
                       {item.approvalLine.isUrgent && (
-                        <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
+                        <span className="px-2 py-1 bg-status-rejected-bg text-status-rejected text-xs font-semibold rounded-full">
                           긴급
                         </span>
                       )}
-                      <ApprovalStatusBadge status={item.expense.status} size="sm" />
+                      <ExpenseStatusPill status={item.expense.status} />
                     </div>
 
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -279,7 +358,7 @@ export default function ApprovalsPage() {
                       </div>
                       <div>
                         <span className="text-gray-500">청구금액</span>
-                        <p className="font-semibold text-blue-600">
+                        <p className="font-semibold text-brand-700">
                           {formatCurrency(item.expense.requestAmount)}
                         </p>
                       </div>
@@ -297,11 +376,11 @@ export default function ApprovalsPage() {
                           <div
                             className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
                               step.status === 'APPROVED'
-                                ? 'bg-green-100 text-green-700'
+                                ? 'bg-brand-500 text-white'
                                 : step.status === 'REJECTED'
-                                ? 'bg-red-100 text-red-700'
+                                ? 'bg-status-rejected text-white'
                                 : step.stepNumber === item.approvalLine.currentStep
-                                ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500'
+                                ? 'bg-white text-status-pending-bar ring-2 ring-status-pending-bar'
                                 : 'bg-gray-100 text-gray-500'
                             }`}
                             title={`${step.stepName}: ${step.approverName}`}
@@ -311,7 +390,7 @@ export default function ApprovalsPage() {
                           {index < item.approvalLine.steps.length - 1 && (
                             <div
                               className={`w-4 h-0.5 ${
-                                step.status === 'APPROVED' ? 'bg-green-300' : 'bg-gray-300'
+                                step.status === 'APPROVED' ? 'bg-brand-500' : 'bg-gray-300'
                               }`}
                             />
                           )}
@@ -334,7 +413,12 @@ export default function ApprovalsPage() {
             ))}
           </div>
         )}
-      </main>
-    </div>
+      </div>
+      <TenantSwitcher
+        isOpen={isTenantSwitcherOpen}
+        onClose={() => setIsTenantSwitcherOpen(false)}
+        memberships={memberships}
+      />
+    </AppShell>
   );
 }

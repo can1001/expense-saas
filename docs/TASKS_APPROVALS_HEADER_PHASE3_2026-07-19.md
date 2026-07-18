@@ -39,11 +39,16 @@
     완료 노드 `bg-brand-500`+체크, 진행선 그린/회색, 대기 노드 `status-pending-bar` 3px 링,
     반려 `status-rejected`. 승인 시각·서명·코멘트 정보량 유지. 기존 테스트 있으면 통과 유지.
   - Verify: `pnpm vitest run components/approval/ && pnpm run lint`
-- [ ] **A2 (M)**: 결재함 목록 리디자인
+- [x] **A2 (M)**: 결재함 목록 리디자인
   - Files: `app/approvals/page.tsx` (+필요 시 하위 컴포넌트 분리 1개)
   - Description: AppShell(전역 사이드바, title="결재함") 적용 + Header 제거. 상태 표기를 `StatusPill`로
     통일. 기존 필터·정렬·무한스크롤·모바일 카드 동작 유지 (데이터 fetch 로직 무변경).
   - Verify: `pnpm vitest run && pnpm run build`
+  - 결과: 원래 페이지에는 정렬·무한스크롤·별도 모바일 카드 컴포넌트가 없었음(grep 확인 —
+    `hooks/useInfiniteScroll` 미사용, 반응형 grid 하나로 처리) → 없는 기능은 추가하지 않고 기존
+    필터(대기중/처리완료/전체) 3버튼 동작만 그대로 유지. `isBudgetManager`는 서버 컴포넌트(`app/page.tsx`)
+    전용 DB count로만 파생 가능해 클라이언트 `/auth/me`에는 없음(API 응답 확인, `app/api/auth/me/route.ts`)
+    → 신규 API 금지 원칙에 따라 결재함 사이드바 메뉴는 역할 기반(`canAccessApprovalMenu`)만으로 노출.
 - [ ] **A3 (S)**: 결재함 상세 적용
   - Files: `app/approvals/[id]/page.tsx`
   - Description: AppShell 적용 + Header 제거, `ApprovalStatusBadge` 사용처를 `StatusPill`로 교체
