@@ -8,6 +8,7 @@ import StatCard from '@/components/ui/StatCard';
 import StatusPill, { StatusPillVariant } from '@/components/ui/StatusPill';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { StatCardSkeleton, TableSkeleton } from '@/components/ui/Skeleton';
+import DepartmentBudgetPanel from '@/components/dashboard/DepartmentBudgetPanel';
 import { getFiscalYear } from '@/lib/utils/fiscal-year';
 
 interface RecentExpense {
@@ -115,7 +116,9 @@ export default function DashboardClient() {
         <StatCard icon={CreditCard} label="지급 대기" value={`${kpi.pendingPayments}건`} />
       </div>
 
-      <div className="rounded-2xl border border-surface-border bg-white shadow-sm">
+      {/* 데스크톱: 테이블 2/3 + 부서별 집행 패널 1/3, 모바일: 패널이 하단 */}
+      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="rounded-2xl border border-surface-border bg-white shadow-sm lg:col-span-2">
         <div className="flex items-center justify-between border-b border-surface-border px-4 py-3">
           <h2 className="text-sm font-semibold text-gray-900">최근 지출결의서</h2>
           <Link href="/expenses" className="text-xs font-medium text-brand-600 hover:underline">
@@ -160,6 +163,9 @@ export default function DashboardClient() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <DepartmentBudgetPanel />
       </div>
     </div>
   );
