@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
           tenantId: true,
           isActive: true,
           canRegisterUsers: true,
+          mustChangePassword: true,
         },
       }),
       prismaBase.tenant.findUnique({
@@ -118,7 +119,11 @@ export async function POST(request: NextRequest) {
         subdomain: tenant.subdomain,
         orgType: tenant.orgType,
       },
-      { message: '조직이 전환되었습니다.' }
+      {
+        message: '조직이 전환되었습니다.',
+        // 배정 기본 비번 계정이 복수 소속(조직 선택)으로 진입한 경우에도 강제 변경을 놓치지 않게
+        ...(user.mustChangePassword ? { extra: { mustChangePassword: true } } : {}),
+      }
     );
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'ZodError') {
