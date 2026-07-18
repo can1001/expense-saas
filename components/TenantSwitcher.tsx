@@ -111,7 +111,9 @@ export default function TenantSwitcher({
         return;
       }
 
-      // 이전 테넌트의 설정 캐시 제거 후 전체 리로드 — 새 토큰 기준으로 재조회
+      // 이전 테넌트의 설정 캐시 제거 후 전체 리로드 — 새 토큰 기준으로 재조회.
+      // FCM은 서버(switch-tenant)가 토픽을 재스코프하고, 리로드 시
+      // FcmAutoRegister가 재등록해 새 테넌트 구독을 확정한다 (B6).
       clearMeConfigCache();
       try {
         window.sessionStorage.removeItem(ORG_TYPE_CACHE_KEY);

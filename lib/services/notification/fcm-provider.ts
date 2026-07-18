@@ -6,8 +6,9 @@
  */
 
 import type { Messaging } from 'firebase-admin/messaging';
-import { prisma } from '@/lib/prisma';
+import { prisma, prismaBase } from '@/lib/prisma';
 import { NotificationEventType } from '@prisma/client';
+import { tenantTopics } from './fcm-topic';
 
 const SERVICE_ACCOUNT_JSON = process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '';
 
@@ -161,21 +162,28 @@ export class FcmProvider {
     }
   }
 
+  // 디바이스 토큰은 테넌트 경계를 넘나드는 기기 식별자(token @unique)이므로
+  // 테넌트 컨텍스트 자동 필터를 우회(prismaBase)해서 조회/이동한다.
+  // 이전 테넌트에서 등록된 동일 토큰을 현재 테넌트로 재스코프하기 위함 (B6).
   async subscribe(
     userId: string,
+    tenantId: string | null,
     token: string,
     platform: 'android' | 'ios',
     deviceModel?: string,
     appVersion?: string
   ): Promise<{ id: string } | null> {
     try {
-      const existing = await prisma.fcmToken.findUnique({ where: { token } });
+      const existing = await prismaBase.fcmToken.findUnique({
+        where: { token },
+      });
 
       if (existing) {
-        const updated = await prisma.fcmToken.update({
+        const updated = await prismaBase.fcmToken.update({
           where: { id: existing.id },
           data: {
             userId,
+            tenantId,
             platform,
             deviceModel,
             appVersion,
@@ -184,12 +192,14 @@ export class FcmProvider {
             lastUsedAt: new Date(),
           },
         });
+        await this.syncTokenTopics(token, existing.tenantId, tenantId);
         return { id: updated.id };
       }
 
-      const created = await prisma.fcmToken.create({
-        data: { userId, token, platform, deviceModel, appVersion },
+      const created = await prismaBase.fcmToken.create({
+        data: { userId, tenantId, token, platform, deviceModel, appVersion },
       });
+      await this.syncTokenTopics(token, null, tenantId);
       return { id: created.id };
     } catch (error) {
       console.error('[FcmProvider] 토큰 등록 실패:', error);
@@ -197,9 +207,83 @@ export class FcmProvider {
     }
   }
 
+  /**
+   * 조직 전환(B3/B5) 시 사용자의 활성 FCM 토큰을 새 테넌트로 재스코프한다.
+   * 이전 테넌트 토픽 구독 해제 → 새 테넌트 토픽 구독 → tenantId 갱신 순.
+   *
+   * FCM 미설정(서비스 계정 없음) 상태에서도 DB의 tenantId는 갱신되며,
+   * 어떤 실패도 throw하지 않는다 — 조직 전환 자체를 막지 않기 위함.
+   */
+  async resubscribeTenantTopics(
+    userId: string,
+    newTenantId: string
+  ): Promise<{ moved: number }> {
+    let moved = 0;
+    try {
+      const tokens = await prismaBase.fcmToken.findMany({
+        where: { userId, isActive: true },
+      });
+
+      for (const row of tokens) {
+        if (row.tenantId === newTenantId) continue;
+        await this.syncTokenTopics(row.token, row.tenantId, newTenantId);
+        await prismaBase.fcmToken.update({
+          where: { id: row.id },
+          data: { tenantId: newTenantId },
+        });
+        moved += 1;
+      }
+    } catch (error) {
+      console.error('[FcmProvider] 조직 전환 토픽 재구독 실패:', error);
+    }
+    return { moved };
+  }
+
+  /**
+   * 토큰의 테넌트 토픽 구독 동기화 — 이전 테넌트 토픽 해제 후 새 테넌트 토픽 구독.
+   * 해제 실패가 구독을 막지 않도록 단계별로 오류를 흡수한다.
+   */
+  private async syncTokenTopics(
+    token: string,
+    previousTenantId: string | null,
+    nextTenantId: string | null
+  ): Promise<void> {
+    if (previousTenantId === nextTenantId) return;
+
+    const messaging = await getMessagingInstance();
+    if (!messaging) return; // 미설정 시 토픽 없음 — DB tenantId 갱신만으로 충분
+
+    if (previousTenantId) {
+      for (const topic of tenantTopics(previousTenantId)) {
+        try {
+          await messaging.unsubscribeFromTopic(token, topic);
+        } catch (error) {
+          console.error(`[FcmProvider] 토픽 구독 해제 실패 (${topic}):`, error);
+        }
+      }
+    }
+
+    if (nextTenantId) {
+      for (const topic of tenantTopics(nextTenantId)) {
+        try {
+          await messaging.subscribeToTopic(token, topic);
+        } catch (error) {
+          console.error(`[FcmProvider] 토픽 구독 실패 (${topic}):`, error);
+        }
+      }
+    }
+  }
+
   async unsubscribe(userId: string, token: string): Promise<boolean> {
     try {
-      await prisma.fcmToken.deleteMany({ where: { userId, token } });
+      // 삭제 전 테넌트 토픽 구독도 해제 — 삭제된 토큰의 토픽 구독 잔류 방지 (B6)
+      const existing = await prismaBase.fcmToken.findUnique({
+        where: { token },
+      });
+      if (existing && existing.userId === userId) {
+        await this.syncTokenTopics(token, existing.tenantId, null);
+      }
+      await prismaBase.fcmToken.deleteMany({ where: { userId, token } });
       return true;
     } catch (error) {
       console.error('[FcmProvider] 토큰 해제 실패:', error);

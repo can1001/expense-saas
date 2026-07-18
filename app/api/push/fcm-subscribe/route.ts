@@ -27,8 +27,11 @@ const handlePost: UserApiHandler = async (request, { user }) => {
       );
     }
 
+    // tenantId는 토큰 클레임에서만 취한다 (공통 원칙 2) — 등록 시 저장되어
+    // 테넌트 토픽 구독과 발송 스코프의 기준이 된다 (B6)
     const result = await fcmProvider.subscribe(
       currentUser.id,
+      currentUser.tenantId,
       token,
       platform,
       deviceModel,

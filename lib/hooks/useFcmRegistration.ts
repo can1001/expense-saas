@@ -26,6 +26,9 @@ interface UseFcmRegistrationReturn {
  * - Capacitor WebView가 아닌 일반 브라우저에서는 status='unsupported'로 no-op.
  * - 토큰 획득 후 자동으로 POST /api/push/fcm-subscribe.
  * - 알림 탭 시 notification.data.url로 라우팅.
+ * - 조직 전환(B6): 서버가 switch-tenant에서 토큰/토픽을 즉시 재스코프하고,
+ *   전환 후 전체 리로드 시 Providers의 autoRegister가 재등록(fcm-subscribe)을
+ *   다시 호출해 새 테넌트 기준으로 구독을 갱신한다.
  *
  * 웹 푸시(usePushNotification)와 병행 사용 가능.
  */
