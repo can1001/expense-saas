@@ -1,5 +1,6 @@
 # 구현 태스크: 홈 회계 대시보드 (Phase 2)
 
+> 완료: 2026-07-19
 > 스펙(단일 truth): `docs/SPEC_DASHBOARD_PHASE2_2026-07-18.md`
 > 각 태스크 완료 시 검증 통과 후 체크(`[x]`) + 한글 커밋. 위에서부터 순서대로 진행 (의존성 순).
 
@@ -48,7 +49,7 @@
   - Files: `components/HomeClient.tsx`
   - Description: Header에서 이미 주석 처리된 청나잇 메뉴의 잔여 카드 링크 제거. 다른 카드는 건드리지 않음.
   - Verify: `pnpm vitest run && pnpm run lint`
-- [ ] **P7 (S)**: 최종 검증
+- [x] **P7 (S)**: 최종 검증
   - Description: `pnpm vitest run` 전체 + `pnpm run build` + `pnpm run lint` 실행, 스펙 5절 Success Criteria
     전 항목 대조. 실패 항목 있으면 고치고 재검증. 통과 시 본 문서 상단에 "완료: YYYY-MM-DD" 추기.
   - Verify: 세 명령 모두 성공
