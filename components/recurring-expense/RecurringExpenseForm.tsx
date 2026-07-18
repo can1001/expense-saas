@@ -28,7 +28,7 @@ import {
  * 조직 유형별 용어(terms)를 받아 검증 메시지를 생성한다.
  */
 const createRecurringExpenseFormSchema = (terms: { committee: string; departmentSlash: string }) => z.object({
-  name: z.string().min(1, '자동이체 이름을 입력해주세요'),
+  name: z.string().min(1, '정기 지출 이름을 입력해주세요'),
   description: z.string().optional(),
   committee: z.string().min(1, `${terms.committee}를 선택해주세요`),
   department: z.string().min(1, `${terms.departmentSlash}를 선택해주세요`),
@@ -196,7 +196,7 @@ export function RecurringExpenseForm({ initialData }: RecurringExpenseFormProps)
         <div className="space-y-4">
           <div>
             <label htmlFor="name" className={`${LABEL_BASE} ${LABEL_REQUIRED}`}>
-              자동이체 이름
+              정기 지출 이름
             </label>
             <input
               type="text"

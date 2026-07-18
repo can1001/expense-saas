@@ -58,7 +58,7 @@ export default function RecurringExpensesPage() {
 
     const response = await fetch(`/api/recurring-expenses?${params}`);
     if (!response.ok) {
-      throw new Error('자동이체 목록을 불러오는데 실패했습니다.');
+      throw new Error('정기 지출 목록을 불러오는데 실패했습니다.');
     }
     const result = await response.json();
     return {
@@ -109,7 +109,7 @@ export default function RecurringExpensesPage() {
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">자동이체 관리</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">정기 지출 관리</h1>
             <p className="mt-1 text-gray-600">
               정기적으로 자동 생성되는 지출결의서를 관리합니다.
             </p>
@@ -128,7 +128,7 @@ export default function RecurringExpensesPage() {
               className={BTN_PRIMARY}
             >
               <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">새 자동이체</span>
+              <span className="hidden sm:inline">새 정기 지출</span>
             </Link>
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function RecurringExpensesPage() {
         {/* 초기 로딩 스켈레톤 */}
         {isLoading && <ExpenseListSkeleton count={5} />}
 
-        {/* 자동이체 목록 */}
+        {/* 정기 지출 목록 */}
         {!isLoading && !error && (
           <>
             {recurringExpenses.length === 0 ? (
@@ -202,14 +202,14 @@ export default function RecurringExpensesPage() {
                   {debouncedSearch
                     ? `"${debouncedSearch}"에 대한 검색 결과가 없습니다.`
                     : statusFilter === 'ALL'
-                      ? '등록된 자동이체가 없습니다.'
-                      : `${STATUS_LABELS[statusFilter]} 상태의 자동이체가 없습니다.`
+                      ? '등록된 정기 지출이 없습니다.'
+                      : `${STATUS_LABELS[statusFilter]} 상태의 정기 지출이 없습니다.`
                   }
                 </p>
                 {!debouncedSearch && statusFilter === 'ALL' && (
                   <Link href="/recurring-expenses/new" className={BTN_PRIMARY}>
                     <Plus className="w-5 h-5" />
-                    첫 자동이체 등록하기
+                    첫 정기 지출 등록하기
                   </Link>
                 )}
                 {debouncedSearch && (

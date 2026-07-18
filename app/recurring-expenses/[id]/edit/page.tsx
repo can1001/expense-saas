@@ -46,9 +46,9 @@ export default function EditRecurringExpensePage({ params }: PageProps) {
       const response = await fetch(`/api/recurring-expenses/${id}`);
       if (!response.ok) {
         if (response.status === 404) {
-          throw new Error('자동이체를 찾을 수 없습니다.');
+          throw new Error('정기 지출을 찾을 수 없습니다.');
         }
-        throw new Error('자동이체 정보를 불러오는데 실패했습니다.');
+        throw new Error('정기 지출 정보를 불러오는데 실패했습니다.');
       }
       const data = await response.json();
       setRecurringExpense(data);
@@ -69,9 +69,9 @@ export default function EditRecurringExpensePage({ params }: PageProps) {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 헤더 */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">자동이체 수정</h1>
+          <h1 className="text-3xl font-bold text-gray-900">정기 지출 수정</h1>
           <p className="mt-2 text-gray-600">
-            자동이체 정보를 수정합니다.
+            정기 지출 정보를 수정합니다.
           </p>
         </div>
 

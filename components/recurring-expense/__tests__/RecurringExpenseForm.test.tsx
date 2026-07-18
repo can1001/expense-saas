@@ -60,7 +60,7 @@ describe('RecurringExpenseForm', () => {
     it('자동이체 이름 필드를 표시해야 함', () => {
       render(<RecurringExpenseForm />);
 
-      expect(screen.getByLabelText(/자동이체 이름/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/정기 지출 이름/i)).toBeInTheDocument();
     });
 
     it('예산 선택 필드를 표시해야 함', () => {
@@ -144,14 +144,14 @@ describe('RecurringExpenseForm', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/자동이체 이름을 입력해주세요/i)).toBeInTheDocument();
+        expect(screen.getByText(/정기 지출 이름을 입력해주세요/i)).toBeInTheDocument();
       });
     });
 
     it('예산 미선택 시 에러 표시', async () => {
       render(<RecurringExpenseForm />);
 
-      const nameInput = screen.getByLabelText(/자동이체 이름/i);
+      const nameInput = screen.getByLabelText(/정기 지출 이름/i);
       await userEvent.type(nameInput, '월 임대료');
 
       const submitButton = screen.getByRole('button', { name: /등록/i });
@@ -173,7 +173,7 @@ describe('RecurringExpenseForm', () => {
       render(<RecurringExpenseForm />);
 
       // 필수 필드 입력
-      await userEvent.type(screen.getByLabelText(/자동이체 이름/i), '월 임대료');
+      await userEvent.type(screen.getByLabelText(/정기 지출 이름/i), '월 임대료');
 
       // 예산 선택
       fireEvent.click(screen.getByText('예산 선택'));
@@ -206,7 +206,7 @@ describe('RecurringExpenseForm', () => {
       render(<RecurringExpenseForm />);
 
       // 필수 필드 입력
-      await userEvent.type(screen.getByLabelText(/자동이체 이름/i), '월 임대료');
+      await userEvent.type(screen.getByLabelText(/정기 지출 이름/i), '월 임대료');
       fireEvent.click(screen.getByText('예산 선택'));
       await userEvent.type(screen.getByLabelText(/수취인/i), '홍길동');
       await userEvent.type(screen.getByLabelText(/은행명/i), '국민은행');
@@ -229,7 +229,7 @@ describe('RecurringExpenseForm', () => {
       render(<RecurringExpenseForm />);
 
       // 필수 필드 입력
-      await userEvent.type(screen.getByLabelText(/자동이체 이름/i), '월 임대료');
+      await userEvent.type(screen.getByLabelText(/정기 지출 이름/i), '월 임대료');
       fireEvent.click(screen.getByText('예산 선택'));
       await userEvent.type(screen.getByLabelText(/수취인/i), '홍길동');
       await userEvent.type(screen.getByLabelText(/은행명/i), '국민은행');
@@ -254,7 +254,7 @@ describe('RecurringExpenseForm', () => {
       render(<RecurringExpenseForm />);
 
       // 필수 필드 입력
-      await userEvent.type(screen.getByLabelText(/자동이체 이름/i), '월 임대료');
+      await userEvent.type(screen.getByLabelText(/정기 지출 이름/i), '월 임대료');
       fireEvent.click(screen.getByText('예산 선택'));
       await userEvent.type(screen.getByLabelText(/수취인/i), '홍길동');
       await userEvent.type(screen.getByLabelText(/은행명/i), '국민은행');
@@ -316,7 +316,7 @@ describe('RecurringExpenseForm', () => {
 
       render(<RecurringExpenseForm />);
 
-      await userEvent.type(screen.getByLabelText(/자동이체 이름/i), '월 임대료');
+      await userEvent.type(screen.getByLabelText(/정기 지출 이름/i), '월 임대료');
       fireEvent.click(screen.getByText('예산 선택'));
       await userEvent.type(screen.getByLabelText(/수취인/i), '홍길동');
       await userEvent.type(screen.getByLabelText(/은행명/i), '국민은행');
@@ -363,7 +363,7 @@ describe('RecurringExpenseForm', () => {
     it('기존 데이터로 폼 초기화', () => {
       render(<RecurringExpenseForm initialData={existingData} />);
 
-      expect(screen.getByLabelText(/자동이체 이름/i)).toHaveValue('기존 자동이체');
+      expect(screen.getByLabelText(/정기 지출 이름/i)).toHaveValue('기존 자동이체');
       expect(screen.getByLabelText(/수취인/i)).toHaveValue('홍길동');
       expect(screen.getByLabelText(/기본 금액/i)).toHaveValue('500,000');
     });

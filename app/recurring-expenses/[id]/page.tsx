@@ -58,9 +58,9 @@ export default function RecurringExpenseDetailPage({ params }: PageProps) {
       const response = await fetch(`/api/recurring-expenses/${id}`);
       if (!response.ok) {
         if (response.status === 404) {
-          throw new Error('자동이체를 찾을 수 없습니다.');
+          throw new Error('정기 지출을 찾을 수 없습니다.');
         }
-        throw new Error('자동이체 정보를 불러오는데 실패했습니다.');
+        throw new Error('정기 지출 정보를 불러오는데 실패했습니다.');
       }
       const data = await response.json();
       setRecurringExpense(data);

@@ -39,7 +39,7 @@
     (`apiBase('auth')/auth/logout` POST 후 `/login` 이동)을 그대로 따른다.
   - Acceptance: ESC/외부 클릭으로 메뉴 닫힘, 텍스트 대비는 사이드바 토큰(`text-side-text` 등) 사용
   - Verify: `pnpm vitest run components/layout/ && pnpm run lint`
-- [ ] **P5 (S)**: "자동이체" → "정기 지출" 라벨 통일
+- [x] **P5 (S)**: "자동이체" → "정기 지출" 라벨 통일
   - Files: `grep -rn "자동이체" components app lib --include='*.tsx' --include='*.ts'`로 사용자 노출 라벨만 찾아 변경
     (API 응답 필드·DB 값·주석 내 도메인 설명은 제외, 화면 표시 문자열만)
   - Acceptance: Header 메뉴·recurring-expenses 페이지 타이틀이 "정기 지출"로 표기, 기능 무변화
