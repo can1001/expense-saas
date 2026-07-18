@@ -11,6 +11,7 @@ import {
   UserSession,
 } from '@/lib/auth/user';
 import { assertMembership } from '@/lib/services/membership';
+import { fcmProvider } from '@/lib/services/notification/fcm-provider';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { z } from 'zod';
 
@@ -118,6 +119,10 @@ export async function POST(request: NextRequest) {
     };
 
     const newToken = await createUserToken(newSession);
+
+    // 5. FCM 토큰/토픽 테넌트 재스코프 (B6) — 이전 테넌트 토픽 해제 → 새 테넌트 구독.
+    // resubscribeTenantTopics는 내부에서 오류를 흡수하므로 전환 자체를 막지 않는다.
+    await fcmProvider.resubscribeTenantTopics(user.id, tenant.id);
 
     // 응답: 최소 유저/테넌트 정보 (로그인/me 응답 관례)
     const response = NextResponse.json({

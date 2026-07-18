@@ -44,7 +44,7 @@ RALPH_BRANCH=20260718-saas-multitenant \
 - [x] B3. `POST /api/auth/switch-tenant` — Membership 검증 + 새 tenantId 클레임 토큰 재발급
 - [x] B4. `GET /api/me/config` — tenant + labels + features + branding
 - [x] B5. 조직 선택/전환 UI + 서버 설정 기반 렌더링 (레이블 맵, `incomeModule` 노출 제어)
-- [ ] B6. FCM 토픽 테넌트 스코프 + 조직 전환 시 재구독
+- [x] B6. FCM 토픽 테넌트 스코프 + 조직 전환 시 재구독
 - [ ] B7. 보안 점검 — 요청 바디/쿼리의 tenantId 수신 경로 전수 제거
 
 ## Phase C — 카카오 로그인 (ARC-003)

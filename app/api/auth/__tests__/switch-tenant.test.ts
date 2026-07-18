@@ -45,6 +45,13 @@ vi.mock('@/lib/services/membership', () => ({
   assertMembership: vi.fn(),
 }));
 
+// Mock FCM 재구독 (B6) — 전환 성공 시에만 호출되는지 검증
+vi.mock('@/lib/services/notification/fcm-provider', () => ({
+  fcmProvider: {
+    resubscribeTenantTopics: vi.fn().mockResolvedValue({ moved: 0 }),
+  },
+}));
+
 // Import after mocking
 import { POST } from '../switch-tenant/route';
 import { prismaBase } from '@/lib/prisma';
@@ -55,8 +62,10 @@ import {
   createUserTokenCookie,
 } from '@/lib/auth/user';
 import { assertMembership } from '@/lib/services/membership';
+import { fcmProvider } from '@/lib/services/notification/fcm-provider';
 
 const mockPrisma = prismaBase as any;
+const mockResubscribe = fcmProvider.resubscribeTenantTopics as any;
 const mockVerifyUserToken = verifyUserToken as any;
 const mockVerifyPendingToken = verifyPendingSelectionToken as any;
 const mockCreateUserToken = createUserToken as any;
@@ -131,6 +140,7 @@ beforeEach(() => {
   mockCreateUserToken.mockResolvedValue('new-jwt-token');
   mockCreateUserTokenCookie.mockReturnValue('user_token=new-jwt-token; Path=/; HttpOnly');
   mockAssertMembership.mockResolvedValue(membership);
+  mockResubscribe.mockResolvedValue({ moved: 0 });
   mockPrisma.user.findUnique.mockResolvedValue(dbUser);
   mockPrisma.tenant.findUnique.mockResolvedValue(targetTenant);
 });
@@ -239,6 +249,31 @@ describe('POST /api/auth/switch-tenant (B3)', () => {
       // 쿠키도 새 토큰으로 갱신
       expect(mockCreateUserTokenCookie).toHaveBeenCalledWith('new-jwt-token');
       expect(response.headers.get('Set-Cookie')).toContain('new-jwt-token');
+    });
+
+    it('전환 성공 시 FCM 토큰/토픽이 새 테넌트로 재구독된다 (B6)', async () => {
+      mockVerifyUserToken.mockResolvedValue(fullSession);
+
+      const response = await POST(
+        createSwitchRequest({ tenantId: 'tenant-2' }, { bearer: 'valid-token' })
+      );
+
+      expect(response.status).toBe(200);
+      expect(mockResubscribe).toHaveBeenCalledWith('user-1', 'tenant-2');
+    });
+
+    it('미소속(403) 전환 실패 시 FCM 재구독을 호출하지 않는다 (B6)', async () => {
+      mockVerifyUserToken.mockResolvedValue(fullSession);
+      mockAssertMembership.mockRejectedValue(
+        new Error('해당 조직에 소속되어 있지 않습니다.')
+      );
+
+      const response = await POST(
+        createSwitchRequest({ tenantId: 'tenant-evil' }, { bearer: 'valid-token' })
+      );
+
+      expect(response.status).toBe(403);
+      expect(mockResubscribe).not.toHaveBeenCalled();
     });
 
     it('쿠키 토큰으로도 동작한다', async () => {
