@@ -33,7 +33,7 @@
     사용자 정보는 기존 fetch 패턴(`/auth/me`) 재사용.
   - Acceptance: 두 화면에서 상단 Header 미표시 + 로그아웃·테넌트 전환 동작, 다른 화면은 Header 유지
   - Verify: `pnpm vitest run && pnpm run build`
-- [ ] **A1 (M)**: 결재선 스테퍼 재스타일
+- [x] **A1 (M)**: 결재선 스테퍼 재스타일
   - Files: `components/approval/ApprovalLineDisplay.tsx`, `components/approval/__tests__/ApprovalLineDisplay.test.tsx`
   - Description: props 인터페이스 무변경으로 내부 렌더링을 목업 스테퍼 스타일로 —
     완료 노드 `bg-brand-500`+체크, 진행선 그린/회색, 대기 노드 `status-pending-bar` 3px 링,
