@@ -11,7 +11,7 @@ async function login(page: any) {
   await page.goto('/login');
   await page.getByRole('textbox', { name: '아이디' }).fill(TEST_USER.userid);
   await page.getByLabel('비밀번호').fill(TEST_USER.password);
-  await page.getByRole('button', { name: '로그인' }).click();
+  await page.getByRole('button', { name: '로그인', exact: true }).click();
   await expect(page).toHaveURL('/', { timeout: 15000 });
 }
 

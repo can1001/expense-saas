@@ -25,7 +25,7 @@ async function login(page: Page, userid: string, password: string) {
   await page.goto('/login');
   await page.getByPlaceholder(/아이디/i).fill(userid);
   await page.getByPlaceholder(/비밀번호/i).fill(password);
-  await page.getByRole('button', { name: /로그인/i }).click();
+  await page.getByRole('button', { name: /^로그인$/ }).click();
   await expect(page).toHaveURL('/', { timeout: 15000 });
   // 헤더가 로드되고 사용자 정보가 반영될 때까지 대기
   await page.waitForLoadState('networkidle');
