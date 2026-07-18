@@ -5,7 +5,7 @@
 
 ## 태스크
 
-- [ ] **P1 (M)**: 대시보드 KPI + 최근 결의서 — `DashboardClient` 골격
+- [x] **P1 (M)**: 대시보드 KPI + 최근 결의서 — `DashboardClient` 골격
   - Files: `components/dashboard/DashboardClient.tsx`, `components/dashboard/__tests__/DashboardClient.test.tsx`
   - Description: `'use client'`. `/api/admin/dashboard?year=${getFiscalYear()}` fetch →
     StatCard 4장(대기 결재 `kpi.pendingApprovals`건 / 이번 달 지출 `kpi.monthlyExpense`원 /
