@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { User, LogOut } from 'lucide-react';
 import { apiBase } from '@/lib/api/api-base';
+import { useLogout } from '@/lib/hooks/useLogout';
 
 interface SidebarUserInfo {
   username: string;
@@ -17,7 +17,7 @@ interface SidebarUserInfo {
  * `Header.tsx`의 `/auth/me` 조회·로그아웃 패턴을 그대로 따른다.
  */
 export default function SidebarUserCard() {
-  const router = useRouter();
+  const handleLogout = useLogout();
   const [user, setUser] = useState<SidebarUserInfo | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -56,15 +56,6 @@ export default function SidebarUserCard() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isMenuOpen]);
-
-  const handleLogout = async () => {
-    try {
-      await fetch(`${apiBase('auth')}/auth/logout`, { method: 'POST' });
-      router.push('/login');
-    } catch {
-      // 에러 처리
-    }
-  };
 
   if (!user) return null;
 
