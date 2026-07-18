@@ -154,7 +154,17 @@
       "Bash(USER_JWT_SECRET=ci-build-secret-not-for-production-min-32 SUPER_ADMIN_JWT_SECRET=ci-build-superadmin-secret-not-for-prod-32 pnpm run build)",
       "Bash(./ralph.sh 20 *)",
       "Bash(pnpm exec *)",
-      "Bash(env)"
+      "Bash(env)",
+      "Bash(git rebase *)",
+      "Bash(gh run *)",
+      "mcp__plugin_imessage_imessage__reply",
+      "Bash(pg_dump --version)",
+      "Bash(brew info *)",
+      "Bash(brew install *)",
+      "Bash(/opt/homebrew/opt/libpq/bin/pg_dump --version)",
+      "Bash(mkdir -p ~/backups/expense-saas)",
+      "Bash(cp /private/tmp/claude-501/-Users-wandosea-Documents-GitHub-expense-saas/1e2e7aec-8e38-4f2b-ad49-114b72b14c54/scratchpad/neon-backup-before-m1-20260718.dump ~/backups/expense-saas/)",
+      "Read(//Users/wandosea/backups/**)"
     ],
     "deny": [],
     "ask": []
