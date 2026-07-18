@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import Sidebar from '@/components/layout/Sidebar';
+import SidebarUserCard from '@/components/layout/SidebarUserCard';
 import DashboardClient from '@/components/dashboard/DashboardClient';
 import { getGlobalSidebarMenu } from '@/lib/constants/global-menu';
 import { canAccessApprovalMenu } from '@/lib/constants/menu-permissions';
@@ -49,6 +50,7 @@ export default function DashboardShell({ user }: DashboardShellProps) {
           config={sidebarConfig}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
+          footer={<SidebarUserCard />}
         />
       }
     >

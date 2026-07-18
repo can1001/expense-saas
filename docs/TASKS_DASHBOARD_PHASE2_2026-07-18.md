@@ -32,7 +32,7 @@
   - Acceptance: 일반 사용자 경로는 코드 변경 없음(HomeClient props 동일), 서버 컴포넌트에서 클라이언트로
     user 전달 시 기존 HomeClient 인터페이스 재사용
   - Verify: `pnpm vitest run && pnpm run build`
-- [ ] **P4 (S)**: 사이드바 사용자 카드
+- [x] **P4 (S)**: 사이드바 사용자 카드
   - Files: `components/layout/SidebarUserCard.tsx`, `components/layout/__tests__/SidebarUserCard.test.tsx`, `components/dashboard/DashboardShell.tsx`
   - Description: Sidebar `footer` 슬롯용 카드 — 아바타(이름 첫 글자, `bg-brand-500`)·이름·이메일(없으면 userid),
     클릭 시 메뉴(마이페이지 `/mypage`, 로그아웃). 로그아웃은 `Header.tsx`의 기존 패턴
