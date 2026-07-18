@@ -12,6 +12,19 @@ pnpm run db:seed      # Seed 204 budget items
 pnpm run db:studio    # Open Prisma Studio
 ```
 
+### Backend (FastAPI)
+
+The `backend/` FastAPI app has a `RUNNING_ZONE` guard (`require_running_zone()` in
+`main.py`) that `sys.exit(1)`s at import time unless `RUNNING_ZONE` is set to `local`
+or `prod` as a real process env var. Tests import `main`, so the guard fires there too —
+you MUST prefix the zone (a bare `uv run pytest` aborts with `SystemExit: 1`):
+
+```bash
+cd backend
+RUNNING_ZONE=local uv run pytest   # tests use in-memory SQLite; no real DB needed
+uv run ruff check                  # lint
+```
+
 ## Tech Stack
 
 - **Framework**: Next.js 16.0.5 (App Router), React 19, TypeScript
