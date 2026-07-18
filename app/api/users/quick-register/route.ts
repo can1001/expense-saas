@@ -53,6 +53,7 @@ const handlePost: UserApiHandler = async (request, { user }) => {
       username: trimmedName,
       role: 'user',
       password: DEFAULT_PASSWORD,
+      mustChangePassword: true, // 공유 기본 비번 — 첫 로그인에 변경 강제
     });
 
     return NextResponse.json({

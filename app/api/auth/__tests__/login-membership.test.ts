@@ -251,6 +251,34 @@ describe('POST /api/auth/login — Membership 확장 (B2)', () => {
       );
     });
 
+    it('배정 기본 비번 계정(mustChangePassword)은 응답에 플래그를 실어 변경을 유도한다', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue({ ...validUser, mustChangePassword: true });
+      mockGetMemberships.mockResolvedValue([
+        membershipOf('tenant-1', '테스트테넌트', 'COMPANY'),
+      ]);
+
+      const response = await POST(
+        createLoginRequest({ userid: 'testuser', password: 'correct' })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.mustChangePassword).toBe(true);
+    });
+
+    it('일반 계정 로그인 응답에는 mustChangePassword가 없다', async () => {
+      mockGetMemberships.mockResolvedValue([
+        membershipOf('tenant-1', '테스트테넌트', 'COMPANY'),
+      ]);
+
+      const response = await POST(
+        createLoginRequest({ userid: 'testuser', password: 'correct' })
+      );
+      const data = await response.json();
+
+      expect(data.mustChangePassword).toBeUndefined();
+    });
+
     it('무소속 + 홈 테넌트 없음(tenantId null)이면 세션을 발급하지 않고 403', async () => {
       mockPrisma.user.findFirst.mockResolvedValue({
         ...validUser,

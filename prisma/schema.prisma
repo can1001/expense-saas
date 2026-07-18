@@ -837,6 +837,10 @@ model User {
   department String? // 소속 부서 (참고용)
   isActive   Boolean @default(true) // 활성 상태
 
+  // 공유 기본 비밀번호(quick-register·대량 업로드·관리자 배정)로 생성된 계정은 true —
+  // 첫 로그인 시 비밀번호 변경 화면으로 강제 이동, 변경 완료 시 false로 해제
+  mustChangePassword Boolean @default(false)
+
   // 연락처 정보
   phoneNumber String? // 휴대폰 번호 (010-xxxx-xxxx)
 

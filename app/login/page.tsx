@@ -147,6 +147,13 @@ function LoginForm() {
         return;
       }
 
+      // 배정된 기본 비번 계정: 첫 로그인 시 비밀번호 변경 화면으로 강제 이동
+      if (data.mustChangePassword) {
+        router.push('/mypage/password?required=1');
+        router.refresh();
+        return;
+      }
+
       // 단일 소속: 기존 흐름 그대로 진입 + 서버 주도 설정 재조회
       void refreshMeConfig();
       router.push(from);

@@ -371,6 +371,7 @@ const handlePost: UserApiHandler = async (request) => {
             department: row.department || null,
             isActive: row.isActive === true || row.isActive === 'true',
             password: hashedPassword,
+            mustChangePassword: true, // 공유 기본 비번 — 첫 로그인에 변경 강제
             ...(tenantId ? { tenantId } : {}),
           })),
           skipDuplicates: true,
