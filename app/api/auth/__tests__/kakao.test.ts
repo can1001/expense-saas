@@ -18,6 +18,12 @@ vi.mock('@/lib/prisma', () => ({
     tenant: {
       findUnique: vi.fn(),
     },
+    // 자동 병합 부재 회귀 검증용 — 라우트가 User를 직접 조회하지 않음을 확인 (C5)
+    user: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -198,6 +204,28 @@ describe('POST /api/auth/kakao — 계정 연결 (C2)', () => {
       linked: false,
       message: '연결된 계정이 없습니다. 초대를 받은 후 이용할 수 있습니다.',
     });
+    expect(mockCreateUserToken).not.toHaveBeenCalled();
+    expect(response.headers.get('Set-Cookie')).toBeNull();
+  });
+
+  it('카카오 email이 기존 유저와 같아도 미연결이면 linked: false — 자동 병합 없음 (C5)', async () => {
+    // 기존 유저(linkedUser)와 email이 같은 카카오 계정이라도 매칭 키는
+    // (provider, providerUserId)뿐 — email 기반 User 조회·연결 경로가 없다
+    // (docs/AUTH_ACCOUNT_MATCHING_POLICY.md)
+    mockVerifyToken.mockResolvedValue({ providerUserId: '99999999' });
+    mockFindUserByProvider.mockResolvedValue(null);
+
+    const response = await POST(createKakaoRequest({ kakaoAccessToken: 'valid' }));
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.linked).toBe(false);
+    // 조회는 회원번호 단일 경로 — User 테이블 직접 조회(email/userid 매칭) 없음
+    expect(mockFindUserByProvider).toHaveBeenCalledExactlyOnceWith('kakao', '99999999');
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    expect(mockPrisma.user.findFirst).not.toHaveBeenCalled();
+    expect(mockPrisma.user.findMany).not.toHaveBeenCalled();
+    // 병합·세션 생성 부재 — JWT·쿠키 미발급
     expect(mockCreateUserToken).not.toHaveBeenCalled();
     expect(response.headers.get('Set-Cookie')).toBeNull();
   });
