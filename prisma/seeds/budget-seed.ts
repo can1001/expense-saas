@@ -5380,14 +5380,22 @@ async function main() {
   const existingUserIds = new Set(
     (await prisma.user.findMany({ select: { id: true } })).map((u) => u.id)
   );
+  // budgetDetailId 는 BudgetDetail FK — export 시 isActive 필터로 세목이 빠진 경우
+  // 이를 참조하는 연도 행이 남아 FK 위반이 나므로, 세목이 없는 행은 건너뛴다.
+  const existingDetailIds = new Set(budgetDetails.map((d) => d.id));
+  let skipped = 0;
   for (const y of budgetDetailYears) {
+    if (!existingDetailIds.has(y.budgetDetailId)) {
+      skipped++;
+      continue;
+    }
     const data = {
       ...y,
       managerId: y.managerId && existingUserIds.has(y.managerId) ? y.managerId : null,
     };
     await prisma.budgetDetailYear.upsert({ where: { id: y.id }, update: data, create: data });
   }
-  console.log(`   ✅ ${budgetDetailYears.length}개 완료\n`);
+  console.log(`   ✅ ${budgetDetailYears.length - skipped}개 완료 (세목 없음 ${skipped}개 건너뜀)\n`);
 
   console.log('🎉 모든 예산 시드 완료!');
 }
