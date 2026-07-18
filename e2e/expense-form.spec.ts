@@ -13,7 +13,7 @@ async function login(page: Page) {
   await page.goto('/login');
   await page.getByRole('textbox', { name: '아이디' }).fill(TEST_USER.userid);
   await page.getByLabel('비밀번호').fill(TEST_USER.password);
-  await page.getByRole('button', { name: '로그인' }).click();
+  await page.getByRole('button', { name: '로그인', exact: true }).click();
   await expect(page).toHaveURL('/', { timeout: 15000 });
 }
 
@@ -132,9 +132,10 @@ test.describe('간편 지출결의서 작성', () => {
 
   test('페이지 표시 확인', async ({ page }) => {
     await page.goto('/expenses/simple/new');
-    await expect(page.getByRole('heading', { name: /새 지출결의서 작성.*간편/i })).toBeVisible();
+    // 2단계 마법사 UI — Step 1: 세부 항목, Step 2: 청구 정보
+    await expect(page.getByRole('heading', { name: '간편 지출결의서' })).toBeVisible();
     await expect(page.getByText('세부 항목')).toBeVisible();
-    await expect(page.getByText('청구 정보')).toBeVisible();
+    await expect(page.getByText('총 청구금액')).toBeVisible();
   });
 
   test('항목 추가 및 삭제', async ({ page }) => {
@@ -181,6 +182,17 @@ test.describe('간편 지출결의서 작성', () => {
   test('은행 정보 입력', async ({ page }) => {
     await page.goto('/expenses/simple/new');
 
+    // Step 1 필수 항목(세목·적요·단가·수량)을 채워야 Step 2(은행 정보)로 이동 가능
+    const searchInput = page.getByPlaceholder(/세목명.*검색/i);
+    await searchInput.fill('식대');
+    await page.waitForTimeout(500);
+    const selectBox = page.locator('select').filter({ hasText: /세목을 선택/ });
+    await selectBox.selectOption({ index: 1 });
+    await page.getByPlaceholder('예: 11월분 식대').fill('E2E 테스트 식대');
+    await page.locator('input[type="text"][inputmode="numeric"]').first().fill('10000');
+    await page.locator('input[type="number"]').first().fill('1');
+    await page.getByRole('button', { name: /다음/ }).click();
+
     // "직접 입력" 탭 클릭 (저장된 계좌가 아닌 직접 입력 모드로 전환)
     await page.getByRole('button', { name: '직접 입력' }).click();
 
@@ -211,7 +223,8 @@ test.describe('간편 지출결의서 작성', () => {
 
     // 첫 번째 항목 입력 (단가: numeric, 수량: number type)
     const firstItem = items.first();
-    await firstItem.locator('input[inputmode="numeric"]').fill('10000');
+    // 수량(input[type=number])도 inputmode=numeric 이므로 단가는 type=text 로 한정
+    await firstItem.locator('input[type="text"][inputmode="numeric"]').fill('10000');
     await firstItem.locator('input[type="number"]').fill('2');
 
     // 자동 계산 대기
@@ -223,7 +236,7 @@ test.describe('간편 지출결의서 작성', () => {
 
     // 두 번째 항목 입력
     const secondItem = items.nth(1);
-    await secondItem.locator('input[inputmode="numeric"]').fill('5000');
+    await secondItem.locator('input[type="text"][inputmode="numeric"]').fill('5000');
     await secondItem.locator('input[type="number"]').fill('3');
 
     // 자동 계산 대기

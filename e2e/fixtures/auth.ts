@@ -45,7 +45,7 @@ export const test = base.extend<{ authenticatedPage: typeof base }>({
     await page.goto('/login');
     await page.getByPlaceholder(/아이디/i).fill(TEST_USER.userid);
     await page.getByPlaceholder(/비밀번호/i).fill(TEST_USER.password);
-    await page.getByRole('button', { name: /로그인/i }).click();
+    await page.getByRole('button', { name: /^로그인$/ }).click();
 
     // Wait for redirect to home
     await expect(page).toHaveURL('/', { timeout: 10000 });
