@@ -23,6 +23,16 @@ interface MembershipChoice {
   role: string;
 }
 
+// 카카오 JS SDK (전역 로드 시) 최소 타입 — 의존성 추가 없이 window에서 참조한다
+interface KakaoSdk {
+  Auth?: {
+    login?: (options: {
+      success: (authObj: { access_token: string }) => void;
+      fail: () => void;
+    }) => void;
+  };
+}
+
 // 로그인 백엔드 스위치 (Strangler 커토버, spec §7 · §12)
 //   true  → FastAPI (/api/py/auth/login) — 발급 토큰은 Next.js 와 상호검증(PR #13)
 //   false → 기존 Next.js (/api/auth/login) [기본]
@@ -45,6 +55,9 @@ function LoginForm() {
   // 복수 소속: 로그인 후 조직 선택 화면 표시 (ARC-002 §2.2, B5)
   const [pendingMemberships, setPendingMemberships] = useState<MembershipChoice[] | null>(null);
   const [selectingTenantId, setSelectingTenantId] = useState<string | null>(null);
+  // 초대 없는 카카오 신규 진입: 테넌트 미소속 안내 화면 (ARC-003 §4.2, C4)
+  const [noInvitation, setNoInvitation] = useState(false);
+  const [kakaoLoading, setKakaoLoading] = useState(false);
   // 보안: 클라이언트 하이드레이션 완료 여부 (JS 로드 전 폼 제출 시 비밀번호 URL 노출 방지)
   const [isHydrated, setIsHydrated] = useState(false);
   // 로그인/조직 선택 후 서버 주도 설정 재조회 (B5)
@@ -172,6 +185,98 @@ function LoginForm() {
       setSelectingTenantId(null);
     }
   };
+
+  // 카카오 로그인 응답 처리 — linked: false면 초대 안내, 복수 소속이면 조직 선택 (C4)
+  const submitKakaoLogin = async (kakaoAccessToken: string) => {
+    setKakaoLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/auth/kakao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kakaoAccessToken }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || '카카오 로그인에 실패했습니다.');
+        return;
+      }
+
+      // 연결된 계정 없음 → "초대를 받아야 사용할 수 있습니다" 안내 (자동 가입 없음)
+      if (data.linked === false) {
+        setNoInvitation(true);
+        return;
+      }
+
+      // 복수 소속: 조직 선택 화면으로 전환 — 최종 토큰은 switch-tenant(B3)에서 발급
+      if (data.requiresTenantSelection && Array.isArray(data.memberships)) {
+        setPendingMemberships(data.memberships);
+        return;
+      }
+
+      void refreshMeConfig();
+      router.push(from);
+      router.refresh();
+    } catch {
+      setError('카카오 로그인 처리 중 오류가 발생했습니다.');
+    } finally {
+      setKakaoLoading(false);
+    }
+  };
+
+  // 카카오 인가 — SDK가 로드된 환경에서만 동작 (미설정 시 안내, M3 게이트)
+  const handleKakaoLogin = () => {
+    const kakao = (window as unknown as { Kakao?: KakaoSdk }).Kakao;
+
+    if (!kakao?.Auth?.login) {
+      setError('카카오 로그인이 아직 설정되지 않았습니다. 아이디/비밀번호로 로그인해주세요.');
+      return;
+    }
+
+    kakao.Auth.login({
+      success: (authObj) => {
+        // 카카오 토큰은 서버 검증용으로만 전달 — 세션은 자체 JWT (ARC-003 §2)
+        void submitKakaoLogin(authObj.access_token);
+      },
+      fail: () => {
+        setError('카카오 인증에 실패했습니다. 다시 시도해주세요.');
+      },
+    });
+  };
+
+  // 초대 없는 카카오 신규 진입 — 테넌트 미소속 안내 화면 (ARC-003 §4.2)
+  if (noInvitation) {
+    return (
+      <div className="max-w-md w-full space-y-6 p-8 bg-white rounded-lg shadow-lg">
+        <div>
+          <h1 className="text-center text-2xl font-bold text-gray-900">
+            초대가 필요합니다
+          </h1>
+          <p className="mt-4 text-center text-sm text-gray-600">
+            연결된 계정이 없습니다. 이 시스템은 조직의 초대를 받아야 사용할 수
+            있습니다.
+          </p>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            소속 조직의 관리자에게 초대 링크를 요청해주세요. 초대 링크에서
+            카카오로 시작하면 계정이 연결됩니다.
+          </p>
+        </div>
+
+        <button
+          onClick={() => {
+            setNoInvitation(false);
+            setError('');
+          }}
+          className="w-full py-3 text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg transition-colors min-h-[44px]"
+        >
+          로그인 화면으로 돌아가기
+        </button>
+      </div>
+    );
+  }
 
   // 복수 소속 — 조직 선택 화면 (단일 소속은 이 화면을 거치지 않는다)
   if (pendingMemberships) {
@@ -336,6 +441,16 @@ function LoginForm() {
           }`}
         >
           {loading ? '로그인 중...' : '로그인'}
+        </button>
+
+        {/* 카카오 로그인 — 카카오 디자인 가이드 색상 (#FEE500), C4 */}
+        <button
+          type="button"
+          onClick={handleKakaoLogin}
+          disabled={loading || kakaoLoading}
+          className="w-full flex justify-center items-center py-3 px-4 rounded-lg text-lg font-medium text-[#191919] bg-[#FEE500] hover:bg-[#F5DC00] transition-colors min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {kakaoLoading ? '카카오 로그인 중...' : '카카오로 로그인'}
         </button>
 
         <div className="hidden text-center text-sm text-gray-600">
