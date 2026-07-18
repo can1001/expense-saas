@@ -15,6 +15,12 @@ import { prismaBase } from '@/lib/prisma';
 export const AUTH_PROVIDERS = ['email', 'kakao', 'naver', 'google'] as const;
 export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
 
+/** 해제 대상 연결이 없음 — 라우트에서 404로 매핑 */
+export class AuthAccountNotLinkedError extends Error {}
+
+/** 마지막 로그인 수단 해제 시도 — 라우트에서 400으로 매핑 (ARC-003 §4.2, C4) */
+export class LastAuthMethodError extends Error {}
+
 /**
  * (provider, providerUserId)로 연결된 유저 조회 — 연결이 없으면 null.
  * 소셜 로그인 시 "누구인지"만 판별하고, 소속 결정은 호출측(Membership)이 담당한다.
@@ -54,4 +60,44 @@ export async function linkAuthAccount(
   return prismaBase.authAccount.create({
     data: { userId, provider, providerUserId },
   });
+}
+
+/** 유저의 특정 provider 연결 조회 — 연결 상태 표시(C4 화면)와 해제 검증에 사용 */
+export async function getAuthAccount(
+  userId: string,
+  provider: AuthProvider
+): Promise<AuthAccount | null> {
+  return prismaBase.authAccount.findFirst({
+    where: { userId, provider },
+  });
+}
+
+/**
+ * 인증 수단 연결 해제 — 마지막 로그인 수단이면 거부한다 (ARC-003 §4.2, C4).
+ * "마지막 수단" 판정: 비밀번호(이메일 로그인)도 없고 다른 provider 연결도 없는 경우.
+ */
+export async function unlinkAuthAccount(
+  userId: string,
+  provider: AuthProvider
+): Promise<void> {
+  const account = await getAuthAccount(userId, provider);
+  if (!account) {
+    throw new AuthAccountNotLinkedError('연결된 인증 수단이 없습니다.');
+  }
+
+  const user = await prismaBase.user.findUnique({
+    where: { id: userId },
+    select: { password: true },
+  });
+  const otherProviderCount = await prismaBase.authAccount.count({
+    where: { userId, provider: { not: provider } },
+  });
+
+  if (!user?.password && otherProviderCount === 0) {
+    throw new LastAuthMethodError(
+      '마지막 로그인 수단은 해제할 수 없습니다. 비밀번호를 먼저 설정해주세요.'
+    );
+  }
+
+  await prismaBase.authAccount.delete({ where: { id: account.id } });
 }

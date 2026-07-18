@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Key, PenLine, Bell, History, Send } from 'lucide-react';
+import { Key, PenLine, Bell, History, Send, MessageCircle } from 'lucide-react';
 import Header from '@/components/Header';
 import { SECTION_CARD, PADDING_CARD } from '@/lib/constants/styles';
 import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
@@ -53,6 +53,39 @@ export default function MyPage() {
             </div>
             <svg
               className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </div>
+        </Link>
+
+        {/* 카카오 계정 연결 (ARC-003 §4.2, C4) */}
+        <Link
+          href="/mypage/kakao"
+          className={`group ${SECTION_CARD} hover:shadow-lg transition-all hover:-translate-y-0.5`}
+        >
+          <div className={`${PADDING_CARD} flex items-center gap-4`}>
+            <div className="w-12 h-12 bg-[#FEE500] rounded-lg flex items-center justify-center">
+              <MessageCircle className="w-6 h-6 text-[#191919]" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-gray-900 group-hover:text-yellow-600 transition-colors">
+                카카오 계정 연결
+              </h2>
+              <p className="text-sm text-gray-600">
+                카카오 계정을 연결해 간편하게 로그인합니다
+              </p>
+            </div>
+            <svg
+              className="w-5 h-5 text-gray-400 group-hover:text-yellow-500 transition-colors"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
