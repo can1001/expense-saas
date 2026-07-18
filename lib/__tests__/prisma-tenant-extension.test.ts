@@ -51,6 +51,11 @@ describe('prisma-tenant-extension', () => {
       expect(TENANT_SCOPED_MODELS).toContain('recurringExpense');
     });
 
+    it('should include per-tenant account category (ARC-001)', () => {
+      // AccountCategory는 tenantId를 가진 테넌트별 데이터 — 리스트 누락 시 크로스테넌트 누출 위험
+      expect(TENANT_SCOPED_MODELS).toContain('accountCategory');
+    });
+
     it('should include template model', () => {
       expect(TENANT_SCOPED_MODELS).toContain('expenseTemplate');
     });
