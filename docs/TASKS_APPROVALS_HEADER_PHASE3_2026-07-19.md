@@ -5,7 +5,7 @@
 
 ## 태스크
 
-- [ ] **H1 (S)**: 로그아웃 공통 훅 추출
+- [x] **H1 (S)**: 로그아웃 공통 훅 추출
   - Files: `lib/hooks/useLogout.ts`(신규 — 기존 훅 위치 관례 grep으로 확인), `components/layout/SidebarUserCard.tsx`, 테스트 1개
   - Description: Header.tsx·SidebarUserCard에 중복된 로그아웃 로직(`apiBase('auth')/auth/logout` POST →
     `/login` 이동)을 훅으로 추출하고 SidebarUserCard가 사용하도록 교체. Header.tsx는 건드리지 않는다.

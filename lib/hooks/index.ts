@@ -5,6 +5,7 @@
  */
 
 export { useFetchCurrentUser } from './useFetchCurrentUser';
+export { useLogout } from './useLogout';
 export { useExpenseFormState } from './useExpenseFormState';
 export { useExpenseFormSubmit } from './useExpenseFormSubmit';
 export { useBudgetPreferences } from './useBudgetPreferences';
