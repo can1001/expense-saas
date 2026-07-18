@@ -18,6 +18,41 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ─────────────────────────────────────────────
+ * 디자인 토큰 (docs/DESIGN_SYSTEM_2026-07-18.md 4.1절)
+ * 컴포넌트는 아래 시맨틱 토큰 유틸리티(bg-brand-600 등)만 사용한다.
+ * 기존 blue/indigo 클래스는 화면 단위 마이그레이션 전까지 공존.
+ * ───────────────────────────────────────────── */
+@theme {
+  /* Brand — Deep Green */
+  --color-brand-50: #EDF7F1;
+  --color-brand-100: #D7F0E2;
+  --color-brand-500: #1DA463; /* 체크·프로그레스·포지티브 강조 */
+  --color-brand-600: #178A55; /* 프라이머리 */
+  --color-brand-700: #166B4A; /* CTA 버튼 */
+  --color-brand-800: #1A4732;
+  --color-brand-900: #123324; /* 사이드바 hover/사용자 카드 */
+  --color-brand-950: #0B231A; /* 사이드바 배경 */
+
+  /* Status — 결재 상태 (대기/승인/반려) */
+  --color-status-pending: #B45309;
+  --color-status-pending-bg: #FEF3C7;
+  --color-status-pending-bar: #D97706; /* 흰 배경 대비 3:1 확보용 바 채움색 */
+  --color-status-approved: #15803D;
+  --color-status-approved-bg: #DCFCE7;
+  --color-status-rejected: #B91C1C;
+  --color-status-rejected-bg: #FEE2E2;
+
+  /* Surface */
+  --color-surface-bg: #F5F7F6; /* 본문 배경 (그레이그린) */
+  --color-surface-border: #E5EAE7;
+  --color-surface-track: #ECF0EE; /* 프로그레스 바 트랙 */
+
+  /* Sidebar 전용 (양 테마 공통 다크그린) */
+  --color-side-text: #C8DAD0;
+  --color-side-dim: #7E978A;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
