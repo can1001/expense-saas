@@ -80,6 +80,15 @@ export async function POST(request: NextRequest) {
       ? soleMembership.tenantId
       : user.tenantId || '';
 
+    // 소속 조직을 확정할 수 없으면(무소속·무테넌트) 세션을 발급하지 않는다 (login과 동일).
+    // 빈 tenantId 토큰은 테넌트 필터 우회 위험이 있으므로 애초에 만들지 않는다.
+    if (!sessionTenantId) {
+      return NextResponse.json(
+        { error: '소속 조직을 확인할 수 없습니다. 관리자에게 문의하세요.' },
+        { status: 403 }
+      );
+    }
+
     const tenant = await prismaBase.tenant.findUnique({
       where: { id: sessionTenantId },
       select: { id: true, name: true, subdomain: true, isActive: true },

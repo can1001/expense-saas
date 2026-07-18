@@ -54,8 +54,12 @@ async function requestWithToken(tenantId: string): Promise<NextRequest> {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // User.tenantId는 tenant-1 (백필 전 호환용 유지값)
-  mockPrisma.user.findUnique.mockResolvedValue({ isActive: true, tenantId: 'tenant-1' });
+  // User.tenantId는 tenant-1 (백필 전 호환용 유지값), 홈 테넌트는 활성
+  mockPrisma.user.findUnique.mockResolvedValue({
+    isActive: true,
+    tenantId: 'tenant-1',
+    tenant: { isActive: true },
+  });
   mockPrisma.membership.findFirst.mockResolvedValue(null);
 });
 
@@ -114,10 +118,28 @@ describe('getUserFromRequest — Membership 폴백 (B3)', () => {
   });
 
   it('비활성 사용자는 일치 여부와 무관하게 거부한다', async () => {
-    mockPrisma.user.findUnique.mockResolvedValue({ isActive: false, tenantId: 'tenant-1' });
+    mockPrisma.user.findUnique.mockResolvedValue({
+      isActive: false,
+      tenantId: 'tenant-1',
+      tenant: { isActive: true },
+    });
 
     const session = await getUserFromRequest(await requestWithToken('tenant-1'));
 
     expect(session).toBeNull();
+  });
+
+  it('홈 테넌트가 비활성이면 일치해도 거부한다 (비활성 시 즉시 무효, 게스트 경로와 동일)', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      isActive: true,
+      tenantId: 'tenant-1',
+      tenant: { isActive: false },
+    });
+
+    const session = await getUserFromRequest(await requestWithToken('tenant-1'));
+
+    expect(session).toBeNull();
+    // 홈 일치 경로에서 걸러지므로 Membership 폴백 조회는 하지 않는다
+    expect(mockPrisma.membership.findFirst).not.toHaveBeenCalled();
   });
 });

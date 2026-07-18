@@ -166,6 +166,15 @@ export async function POST(request: NextRequest) {
       ? soleMembership.tenantId
       : user.tenantId || '';
 
+    // 소속 조직을 확정할 수 없으면(무소속·무테넌트) 세션을 발급하지 않는다.
+    // 빈 tenantId 토큰은 테넌트 필터가 우회되는 위험이 있으므로 애초에 만들지 않는다.
+    if (!sessionTenantId) {
+      return NextResponse.json(
+        { error: '소속 조직을 확인할 수 없습니다. 관리자에게 문의하세요.' },
+        { status: 403 }
+      );
+    }
+
     // 홈/게스트 역할 파생은 공용 헬퍼로 일원화 (로그인·카카오·조직전환 동일 규칙, 권한 상승 방지)
     const session = buildTenantSession(
       user,
