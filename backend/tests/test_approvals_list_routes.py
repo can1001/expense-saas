@@ -223,7 +223,7 @@ async def test_list_pagination(client: AsyncClient):
 
 
 async def test_list_requires_approve_permission(client: AsyncClient):
-    admin_headers = await _login(client, "admin", "admin123")
+    await _login(client, "admin", "admin123")
     tid = await _tenant_id(client)
     await _create_user(client, tid, userid="plain", username="일반사용자", role="user")
 
