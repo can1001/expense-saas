@@ -391,12 +391,12 @@ export default function Header() {
       icon: CheckSquare,
       active: pathname.startsWith('/approvals'),
     },
-    // 자동이체 메뉴 (재정팀 전용)
+    // 정기 지출 메뉴 (재정팀 전용)
     ...(user && canAccessRecurringExpenseMenuWithRoles(user.roles || [user.role])
       ? [
           {
             href: '/recurring-expenses',
-            label: '자동이체',
+            label: '정기 지출',
             icon: Repeat,
             active: pathname.startsWith('/recurring-expenses'),
           },

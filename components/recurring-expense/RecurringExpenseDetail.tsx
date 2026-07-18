@@ -236,8 +236,8 @@ export function RecurringExpenseDetail({ recurringExpense, onStatusChange, onGen
         isOpen={isCancelDialogOpen}
         onClose={() => setIsCancelDialogOpen(false)}
         onConfirm={handleCancel}
-        title="자동이체 취소"
-        message="이 자동이체를 취소하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+        title="정기 지출 취소"
+        message="이 정기 지출을 취소하시겠습니까? 이 작업은 되돌릴 수 없습니다."
         confirmText="취소하기"
         cancelText="돌아가기"
         variant="danger"

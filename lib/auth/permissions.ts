@@ -126,8 +126,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   [PERMISSIONS.EXPENSE_BULK_UPLOAD]: '지출결의서 일괄 업로드',
   [PERMISSIONS.EXPENSE_EXPORT]: '지출 내보내기',
   [PERMISSIONS.SIMPLE_EXPENSE_USE]: '간편 지출결의서',
-  [PERMISSIONS.RECURRING_READ]: '자동이체 조회',
-  [PERMISSIONS.RECURRING_MANAGE_ALL]: '자동이체 전체 관리',
+  [PERMISSIONS.RECURRING_READ]: '정기 지출 조회',
+  [PERMISSIONS.RECURRING_MANAGE_ALL]: '정기 지출 전체 관리',
   [PERMISSIONS.ADMIN_DASHBOARD_READ]: '관리자 대시보드',
   [PERMISSIONS.REPORT_BUDGET_EXEC_READ]: '사역비 집행 현황',
   [PERMISSIONS.REPORT_HR_ADMIN_READ]: '인사/행정비 현황',
@@ -168,7 +168,7 @@ export const PERMISSION_GROUPS: { title: string; permissions: Permission[] }[] =
     ],
   },
   {
-    title: '자동이체',
+    title: '정기 지출',
     permissions: [PERMISSIONS.RECURRING_READ, PERMISSIONS.RECURRING_MANAGE_ALL],
   },
   {
