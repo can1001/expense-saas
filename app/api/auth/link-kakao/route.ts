@@ -4,6 +4,7 @@ import { withAuth, UserApiHandler } from '@/lib/auth/user';
 import { isKakaoConfigured } from '@/lib/services/kakao';
 import { verifyKakaoTokenOrError } from '@/lib/auth/kakao-verify';
 import {
+  AuthAccountConflictError,
   AuthAccountNotLinkedError,
   getAuthAccount,
   LastAuthMethodError,
@@ -52,11 +53,11 @@ const handlePost: UserApiHandler = async (request, { user }) => {
     if (verified.error) return verified.error;
     const providerUserId = verified.providerUserId;
 
-    // 세션 유저에 연결 — 이미 다른 유저에 연결된 카카오 계정이면 거부 (계정 탈취 방지)
+    // 세션 유저에 연결 — 이미 다른 유저 연결·같은 provider 중복 연결이면 409 (계정 탈취 방지)
     try {
       await linkAuthAccount(user.id, 'kakao', providerUserId);
     } catch (error) {
-      if (error instanceof Error && error.message === '이미 다른 계정에 연결된 인증 수단입니다.') {
+      if (error instanceof AuthAccountConflictError) {
         return NextResponse.json({ error: error.message }, { status: 409 });
       }
       throw error;

@@ -251,6 +251,24 @@ describe('POST /api/auth/login — Membership 확장 (B2)', () => {
       );
     });
 
+    it('무소속 + 홈 테넌트 없음(tenantId null)이면 세션을 발급하지 않고 403', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue({
+        ...validUser,
+        tenantId: null,
+        tenant: null,
+      });
+      mockGetMemberships.mockResolvedValue([]);
+
+      const response = await POST(
+        createLoginRequest({ userid: 'testuser', password: 'correct' })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('소속 조직을 확인할 수 없습니다. 관리자에게 문의하세요.');
+      expect(mockCreateUserToken).not.toHaveBeenCalled();
+    });
+
     it('홈 테넌트가 비활성이어도 활성 소속이 있으면 그 조직으로 로그인된다', async () => {
       // 홈 tenant-1이 비활성화된 사용자
       mockPrisma.user.findFirst.mockResolvedValue({

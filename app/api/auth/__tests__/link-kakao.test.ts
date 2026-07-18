@@ -30,9 +30,11 @@ vi.mock('@/lib/services/kakao', () => {
 vi.mock('@/lib/services/auth-account', () => {
   class AuthAccountNotLinkedError extends Error {}
   class LastAuthMethodError extends Error {}
+  class AuthAccountConflictError extends Error {}
   return {
     AuthAccountNotLinkedError,
     LastAuthMethodError,
+    AuthAccountConflictError,
     getAuthAccount: vi.fn(),
     linkAuthAccount: vi.fn(),
     unlinkAuthAccount: vi.fn(),
@@ -47,6 +49,7 @@ import {
   verifyKakaoAccessToken,
 } from '@/lib/services/kakao';
 import {
+  AuthAccountConflictError,
   AuthAccountNotLinkedError,
   getAuthAccount,
   LastAuthMethodError,
@@ -201,7 +204,7 @@ describe('POST /api/auth/link-kakao — 카카오 연결', () => {
 
   it('이미 다른 유저에 연결된 카카오 계정이면 409 (계정 탈취 방지)', async () => {
     mockLinkAuthAccount.mockRejectedValue(
-      new Error('이미 다른 계정에 연결된 인증 수단입니다.')
+      new AuthAccountConflictError('이미 다른 계정에 연결된 인증 수단입니다.')
     );
 
     const response = await POST(
@@ -212,6 +215,21 @@ describe('POST /api/auth/link-kakao — 카카오 연결', () => {
 
     expect(response.status).toBe(409);
     expect(data.error).toBe('이미 다른 계정에 연결된 인증 수단입니다.');
+  });
+
+  it('같은 유저에 카카오가 이미 연결돼 있으면 409 (provider당 1개)', async () => {
+    mockLinkAuthAccount.mockRejectedValue(
+      new AuthAccountConflictError('이미 연결된 인증 수단이 있습니다. 기존 연결을 해제한 후 다시 시도해주세요.')
+    );
+
+    const response = await POST(
+      createPostRequest({ kakaoAccessToken: 'valid' }),
+      mockRouteContext
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(data.error).toBe('이미 연결된 인증 수단이 있습니다. 기존 연결을 해제한 후 다시 시도해주세요.');
   });
 
   it('검증 통과 시 세션 유저에 연결한다 — 이메일 매칭 자동 병합 없음', async () => {

@@ -22,6 +22,12 @@ export class AuthAccountNotLinkedError extends Error {}
 export class LastAuthMethodError extends Error {}
 
 /**
+ * 인증 수단 연결 충돌 — 라우트에서 409로 매핑.
+ * 이미 다른 유저에 연결됐거나(계정 탈취 방지) 같은 provider가 이미 연결된 경우.
+ */
+export class AuthAccountConflictError extends Error {}
+
+/**
  * (provider, providerUserId)로 연결된 유저 조회 — 연결이 없으면 null.
  * 소셜 로그인 시 "누구인지"만 판별하고, 소속 결정은 호출측(Membership)이 담당한다.
  */
@@ -52,7 +58,7 @@ export async function linkAuthAccount(
 
   if (existing) {
     if (existing.userId !== userId) {
-      throw new Error('이미 다른 계정에 연결된 인증 수단입니다.');
+      throw new AuthAccountConflictError('이미 다른 계정에 연결된 인증 수단입니다.');
     }
     return existing;
   }
@@ -64,7 +70,9 @@ export async function linkAuthAccount(
     where: { userId, provider },
   });
   if (providerLinked) {
-    throw new Error('이미 연결된 인증 수단이 있습니다. 기존 연결을 해제한 후 다시 시도해주세요.');
+    throw new AuthAccountConflictError(
+      '이미 연결된 인증 수단이 있습니다. 기존 연결을 해제한 후 다시 시도해주세요.'
+    );
   }
 
   return prismaBase.authAccount.create({

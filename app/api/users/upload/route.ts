@@ -6,6 +6,7 @@ import { UserApiHandler, withPermissions } from '@/lib/auth/user';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { getTenantIdOptional } from '@/lib/tenant-context';
 import { roleCodeToMembershipRole } from '@/lib/services/membership';
+import { getAllRoles } from '@/lib/services/user-service';
 
 // 역할 코드 타입 (Role.code와 동일)
 type UserRole = 'admin' | 'finance_head' | 'accountant' | 'finance_member' | 'team_leader' | 'admin_assistant' | 'user';
@@ -354,6 +355,11 @@ const handlePost: UserApiHandler = async (request) => {
     // 생성 — User 생성과 Membership 이중 기록(ARC-002 §2.2)을 한 트랜잭션으로 묶는다.
     // 대량 경로도 생성 시점에 소속을 함께 기록해 /api/me/memberships·switch-tenant 누락을 막는다.
     const tenantId = getTenantIdOptional();
+    // 역할 코드 → roleId 맵 (단일 createUser와 동일하게 roleRef를 채운다).
+    // 누락 시 커스텀 Role.permissions 대신 코드 프리셋으로 폴백돼 어드민 생성 유저와 동작이 갈린다.
+    const rolesByCode = new Map<string, string>(
+      (await getAllRoles()).map((r) => [r.code, r.id] as [string, string])
+    );
     if (toCreate.length > 0) {
       await prismaBase.$transaction(async (tx) => {
         await tx.user.createMany({
@@ -361,6 +367,7 @@ const handlePost: UserApiHandler = async (request) => {
             userid: row.userid,
             username: row.username,
             role: row.role as UserRole,
+            roleId: rolesByCode.get(row.role as string) ?? null,
             department: row.department || null,
             isActive: row.isActive === true || row.isActive === 'true',
             password: hashedPassword,
@@ -377,6 +384,8 @@ const handlePost: UserApiHandler = async (request) => {
           });
           if (createdUsers.length > 0) {
             await tx.membership.createMany({
+              // isDefault: true — 대량 생성은 항상 신규 유저(테넌트 내 userid 유니크)의 첫 소속이므로 안전.
+              // 기존 유저 재사용 경로가 생기면 이 불변식을 재검토해야 한다(이중 default 위험).
               data: createdUsers.map((u) => ({
                 userId: u.id,
                 tenantId,
