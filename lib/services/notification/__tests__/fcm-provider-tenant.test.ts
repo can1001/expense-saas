@@ -132,6 +132,30 @@ describe('subscribe — tenantId 저장 + 토픽 구독', () => {
     expect(mockMessaging.subscribeToTopic).not.toHaveBeenCalled();
     expect(mockMessaging.unsubscribeFromTopic).not.toHaveBeenCalled();
   });
+
+  it('다른 유저에게 등록된 토큰은 재할당하지 않는다 (크로스테넌트 탈취 방지)', async () => {
+    // 피해자 소유 토큰 행 — 공격자가 token 문자열만으로 자기 테넌트로 넘기려는 시도
+    mockPrismaBase.fcmToken.findUnique.mockResolvedValue({
+      id: 'fcm-victim',
+      userId: 'victim-user',
+      tenantId: 'tenant-victim',
+      token: 'device-token-1',
+      platform: 'android',
+    });
+
+    const result = await fcmProvider.subscribe(
+      'attacker-user',
+      'tenant-attacker',
+      'device-token-1',
+      'android'
+    );
+
+    expect(result).toBeNull();
+    // 행 갱신·토픽 이동 없음 — 피해자 기기가 공격자 테넌트 토픽으로 넘어가지 않는다
+    expect(mockPrismaBase.fcmToken.update).not.toHaveBeenCalled();
+    expect(mockMessaging.subscribeToTopic).not.toHaveBeenCalled();
+    expect(mockMessaging.unsubscribeFromTopic).not.toHaveBeenCalled();
+  });
 });
 
 describe('resubscribeTenantTopics — 조직 전환 재구독', () => {

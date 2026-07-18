@@ -231,6 +231,8 @@ export async function verifyPendingSelectionToken(
  * - 기본: User.tenantId와 토큰의 tenantId 일치 (기존 동작)
  * - B3 조직 전환: 불일치 시 Membership 소속으로 검증 — switch-tenant로 발급된 토큰의
  *   tenantId는 User.tenantId(백필 전 호환용으로 유지)와 다를 수 있다.
+ *   단, 비활성화된 테넌트의 Membership은 인정하지 않는다 (getMemberships·로그인 가드와 동일):
+ *   테넌트가 비활성화되면 해당 테넌트로 스코프된 기존 토큰도 즉시 무효가 되어야 한다.
  *   Membership 조회 실패(테이블 미생성 등)는 기존과 동일하게 거부한다.
  */
 async function isValidSessionUser(session: UserSession): Promise<boolean> {
@@ -242,10 +244,13 @@ async function isValidSessionUser(session: UserSession): Promise<boolean> {
   if (user.tenantId === session.tenantId) return true;
 
   try {
-    const membership = await prismaBase.membership.findUnique({
+    const membership = await prismaBase.membership.findFirst({
       where: {
-        userId_tenantId: { userId: session.id, tenantId: session.tenantId },
+        userId: session.id,
+        tenantId: session.tenantId,
+        tenant: { isActive: true },
       },
+      select: { id: true },
     });
     return membership !== null;
   } catch {

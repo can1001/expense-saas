@@ -212,6 +212,58 @@ describe('POST /api/auth/accept-invitation — 일반 가입 (C3)', () => {
     expect(data.tenant).toEqual({ id: 'tenant-A', name: '청연컨설팅', subdomain: 'chungyeon' });
     expect(response.headers.get('Set-Cookie')).toContain('user_token=mock-jwt-token');
   });
+
+  it('발급 토큰의 역할은 Membership.role에서 파생된다 (초대 tier 반영)', async () => {
+    // TENANT_ADMIN 초대 → 발급 토큰 role='admin' (신규 유저 User.role='user'여도 관리자 권한)
+    mockAcceptInvitation.mockResolvedValue({
+      ...acceptResult,
+      membership: { ...acceptResult.membership, role: 'TENANT_ADMIN' },
+    });
+
+    const response = await POST(
+      createAcceptRequest({
+        inviteToken: 'valid-token',
+        userid: 'newadmin',
+        username: '신규관리자',
+        password: 'pass1234',
+      })
+    );
+
+    expect(response.status).toBe(201);
+    expect(mockCreateUserToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'tenant-A',
+        role: 'admin',
+        roles: ['admin'],
+        roleId: null,
+        department: null,
+      })
+    );
+  });
+
+  it('MEMBER 초대는 홈 admin이라도 일반 역할만 부여된다 (권한 상승 방지)', async () => {
+    // 기존 유저(홈 테넌트 admin)가 MEMBER로 초대 수락 → 발급 토큰 role='user'
+    mockFindUserByProvider.mockResolvedValue(null);
+    mockAcceptInvitation.mockResolvedValue({
+      ...acceptResult,
+      user: { ...acceptedUser, id: 'user-9', role: 'admin', roleId: 'role-admin' },
+      membership: { ...acceptResult.membership, role: 'MEMBER' },
+    });
+
+    const response = await POST(
+      createAcceptRequest({
+        inviteToken: 'valid-token',
+        userid: 'existingadmin',
+        username: '기존관리자',
+        password: 'pass1234',
+      })
+    );
+
+    expect(response.status).toBe(201);
+    expect(mockCreateUserToken).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: 'tenant-A', role: 'user', roles: ['user'] })
+    );
+  });
 });
 
 describe('POST /api/auth/accept-invitation — 카카오 (C3)', () => {

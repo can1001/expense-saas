@@ -18,7 +18,7 @@ import {
   AcceptInvitationResult,
   InvitationError,
 } from '@/lib/services/invitation';
-import { PERMISSIONS } from '@/lib/auth/permissions';
+import { membershipRoleToRoleCode } from '@/lib/services/membership';
 import { z } from 'zod';
 
 const acceptInvitationSchema = z.object({
@@ -103,8 +103,14 @@ export async function POST(request: NextRequest) {
     const { user, membership, tenant } = result;
 
     // 자체 JWT 발급 — 수락한 테넌트로 즉시 로그인 (tenantId는 토큰 안에만, 공통 원칙 2)
-    const roles = [user.role];
-    const granted = user.canRegisterUsers ? [PERMISSIONS.USER_REGISTER] : [];
+    //
+    // 역할은 방금 생성된 Membership.role(=invitation.role)에서만 파생한다 (권한 상승/미부여 방지):
+    // - 기존 유저의 홈 User.role(예: 다른 테넌트의 admin)이 초대받은 테넌트로 넘어오지 않게 하고,
+    // - TENANT_ADMIN으로 초대된 신규 유저가 User.role='user'로 생성돼도 관리자 권한을 받게 한다.
+    // roleId/department는 초대 테넌트 기준 값이 아직 없으므로 null (홈 값 유출 금지).
+    const effectiveRole = membershipRoleToRoleCode(membership.role);
+    const roles = [effectiveRole];
+    const granted: string[] = [];
     const flags = deriveLegacyFlags(roles, granted);
 
     const session: UserSession = {
@@ -112,10 +118,10 @@ export async function POST(request: NextRequest) {
       tenantId: membership.tenantId,
       userid: user.userid,
       username: user.username,
-      role: user.role,
+      role: effectiveRole,
       roles,
-      roleId: user.roleId,
-      department: user.department,
+      roleId: null,
+      department: null,
       granted,
       ...flags,
     };
@@ -130,8 +136,8 @@ export async function POST(request: NextRequest) {
           id: user.id,
           userid: user.userid,
           username: user.username,
-          role: user.role,
-          department: user.department,
+          role: effectiveRole,
+          department: null,
         },
         tenant: {
           id: tenant.id,
