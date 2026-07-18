@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleApiError } from '@/lib/api/error-handler';
-import {
-  createUserToken,
-  createUserTokenCookie,
-  deriveLegacyFlags,
-  UserSession,
-} from '@/lib/auth/user';
+import { deriveLegacyFlags, UserSession } from '@/lib/auth/user';
+import { issueSessionResponse } from '@/lib/auth/login-session';
 import {
   isKakaoConfigured,
   KakaoConfigError,
@@ -126,32 +122,11 @@ export async function POST(request: NextRequest) {
       ...flags,
     };
 
-    const token = await createUserToken(session);
-
-    const response = NextResponse.json(
-      {
-        success: true,
-        message: '초대를 수락했습니다.',
-        user: {
-          id: user.id,
-          userid: user.userid,
-          username: user.username,
-          role: effectiveRole,
-          department: null,
-        },
-        tenant: {
-          id: tenant.id,
-          name: tenant.name,
-          subdomain: tenant.subdomain,
-        },
-        token,
-      },
-      { status: 201 }
+    return issueSessionResponse(
+      session,
+      { id: tenant.id, name: tenant.name, subdomain: tenant.subdomain },
+      { message: '초대를 수락했습니다.', status: 201 }
     );
-
-    response.headers.set('Set-Cookie', createUserTokenCookie(token));
-
-    return response;
   } catch (error: unknown) {
     if (error instanceof InvitationError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
