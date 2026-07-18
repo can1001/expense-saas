@@ -3,6 +3,8 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { Building2 } from 'lucide-react';
+import { useMeConfig } from '@/lib/contexts/MeConfigContext';
 
 // 테넌트 정보 타입
 interface TenantInfo {
@@ -11,6 +13,14 @@ interface TenantInfo {
   subdomain: string;
   orgType: string;
   logoUrl: string | null;
+}
+
+// 복수 소속 로그인 시 조직 선택 항목 (B2 로그인 응답의 memberships)
+interface MembershipChoice {
+  tenantId: string;
+  tenantName: string;
+  orgType: string;
+  role: string;
 }
 
 // 로그인 백엔드 스위치 (Strangler 커토버, spec §7 · §12)
@@ -32,8 +42,13 @@ function LoginForm() {
   const [rememberUserId, setRememberUserId] = useState(false);
   const [tenant, setTenant] = useState<TenantInfo | null>(null);
   const [tenantLoading, setTenantLoading] = useState(true);
+  // 복수 소속: 로그인 후 조직 선택 화면 표시 (ARC-002 §2.2, B5)
+  const [pendingMemberships, setPendingMemberships] = useState<MembershipChoice[] | null>(null);
+  const [selectingTenantId, setSelectingTenantId] = useState<string | null>(null);
   // 보안: 클라이언트 하이드레이션 완료 여부 (JS 로드 전 폼 제출 시 비밀번호 URL 노출 방지)
   const [isHydrated, setIsHydrated] = useState(false);
+  // 로그인/조직 선택 후 서버 주도 설정 재조회 (B5)
+  const { refresh: refreshMeConfig } = useMeConfig();
 
   const from = searchParams.get('from') || '/';
   const registered = searchParams.get('registered');
@@ -113,6 +128,14 @@ function LoginForm() {
         localStorage.removeItem('rememberedUserId');
       }
 
+      // 복수 소속: 조직 선택 화면으로 전환 — 최종 토큰은 switch-tenant(B3)에서 발급
+      if (data.requiresTenantSelection && Array.isArray(data.memberships)) {
+        setPendingMemberships(data.memberships);
+        return;
+      }
+
+      // 단일 소속: 기존 흐름 그대로 진입 + 서버 주도 설정 재조회
+      void refreshMeConfig();
       router.push(from);
       router.refresh();
     } catch {
@@ -121,6 +144,87 @@ function LoginForm() {
       setLoading(false);
     }
   };
+
+  // 조직 선택 → switch-tenant 호출로 최종 토큰 발급 후 진입 (ARC-002 §3.2)
+  const handleSelectTenant = async (tenantId: string) => {
+    setError('');
+    setSelectingTenantId(tenantId);
+
+    try {
+      const response = await fetch('/api/auth/switch-tenant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || '조직 선택에 실패했습니다.');
+        setSelectingTenantId(null);
+        return;
+      }
+
+      void refreshMeConfig();
+      router.push(from);
+      router.refresh();
+    } catch {
+      setError('조직 선택 처리 중 오류가 발생했습니다.');
+      setSelectingTenantId(null);
+    }
+  };
+
+  // 복수 소속 — 조직 선택 화면 (단일 소속은 이 화면을 거치지 않는다)
+  if (pendingMemberships) {
+    return (
+      <div className="max-w-md w-full space-y-6 p-8 bg-white rounded-lg shadow-lg">
+        <div>
+          <h1 className="text-center text-2xl font-bold text-gray-900">
+            소속 조직 선택
+          </h1>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            여러 조직에 소속되어 있습니다. 이용할 조직을 선택해주세요.
+          </p>
+        </div>
+
+        <ul className="space-y-2">
+          {pendingMemberships.map((membership) => (
+            <li key={membership.tenantId}>
+              <button
+                onClick={() => handleSelectTenant(membership.tenantId)}
+                disabled={!!selectingTenantId}
+                className="flex items-center gap-3 w-full px-4 py-3 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-gray-50 transition-colors min-h-[44px] disabled:opacity-50"
+              >
+                <Building2 className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                <span className="flex-1 font-medium text-gray-900">
+                  {membership.tenantName}
+                </span>
+                {selectingTenantId === membership.tenantId && (
+                  <span className="text-xs text-gray-500">입장 중...</span>
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {error && (
+          <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        <button
+          onClick={() => {
+            setPendingMemberships(null);
+            setSelectingTenantId(null);
+            setError('');
+          }}
+          className="w-full py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          다른 계정으로 로그인
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
