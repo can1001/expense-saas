@@ -44,8 +44,10 @@ while [ $count -lt $MAX_ITERATIONS ]; do
   count=$((count+1))
   log "🔄 Iteration $count / $MAX_ITERATIONS"
 
-  # 미완료 TASK 확인
-  remaining=$(grep -c "\- \[ \]" "$PRD_FILE" 2>/dev/null || echo "0")
+  # 미완료 TASK 확인 — grep -c는 매치 0이어도 "0"을 출력하며 exit 1이므로
+  # `|| echo 0`을 쓰면 "0\n0" 두 줄이 되어 정수 비교가 깨진다. 빈 값만 보정한다.
+  remaining=$(grep -c "\- \[ \]" "$PRD_FILE" 2>/dev/null)
+  remaining=${remaining:-0}
   log "📌 미완료 TASK: ${remaining}개"
 
   if [ "$remaining" -eq "0" ]; then
@@ -80,9 +82,11 @@ if [ $count -ge $MAX_ITERATIONS ]; then
   log "⏰ 최대 반복 횟수 도달 ($MAX_ITERATIONS회) - 종료"
 fi
 
+done_count=$(grep -c '\- \[x\]' "$PRD_FILE" 2>/dev/null)
+open_count=$(grep -c '\- \[ \]' "$PRD_FILE" 2>/dev/null)
 log "📊 최종 결과:"
-log "   완료 TASK: $(grep -c '\- \[x\]' "$PRD_FILE" 2>/dev/null || echo 0)개"
-log "   미완료 TASK: $(grep -c '\- \[ \]' "$PRD_FILE" 2>/dev/null || echo 0)개"
+log "   완료 TASK: ${done_count:-0}개"
+log "   미완료 TASK: ${open_count:-0}개"
 log "   이번 세션 commits: $(git log --oneline main..$WORK_BRANCH 2>/dev/null | wc -l | tr -d ' ')개"
 
 rm -f "$PID_FILE"
