@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import Header from '@/components/Header';
+import { ArrowLeftRight } from 'lucide-react';
 import AdminSidebar from './AdminSidebar';
 import AppShell from '@/components/layout/AppShell';
+import TopbarBell from '@/components/layout/TopbarBell';
+import TopbarUserMenu, { TopbarUserMenuUser } from '@/components/layout/TopbarUserMenu';
+import TenantSwitcher, { useMemberships } from '@/components/TenantSwitcher';
 import { canAccessAdminMenuPathWithRoles, canAccessAdminMenuWithRoles } from '@/lib/constants/menu-permissions';
 import { apiBase } from '@/lib/api/api-base';
 
@@ -15,6 +18,8 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [topbarUser, setTopbarUser] = useState<TopbarUserMenuUser | null>(null);
+  const [isTenantSwitcherOpen, setIsTenantSwitcherOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -46,6 +51,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           return;
         }
 
+        setTopbarUser(data.user);
         setIsAuthorized(true);
       } catch {
         router.push('/login');
@@ -55,23 +61,37 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     checkAuthorization();
   }, [pathname, router]);
 
+  const { memberships } = useMemberships(!!topbarUser);
+  const canSwitchTenant = memberships.length > 1;
+
   // 권한 확인 중 로딩
   if (isAuthorized === null) {
     return (
-      <div className="min-h-screen bg-surface-bg">
-        <Header />
-        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-          <div className="text-gray-500">권한 확인 중...</div>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-surface-bg">
+        <div className="text-gray-500">권한 확인 중...</div>
       </div>
     );
   }
 
   return (
     <AppShell
-      withHeader
       title="관리"
       onOpenMobileMenu={() => setIsSidebarOpen(true)}
+      topbarExtra={
+        <>
+          {canSwitchTenant && (
+            <button
+              onClick={() => setIsTenantSwitcherOpen(true)}
+              aria-label="조직 전환"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+            >
+              <ArrowLeftRight className="h-5 w-5" />
+            </button>
+          )}
+          <TopbarBell />
+          {topbarUser && <TopbarUserMenu user={topbarUser} />}
+        </>
+      }
       sidebar={
         <AdminSidebar
           isOpen={isSidebarOpen}
@@ -80,6 +100,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       }
     >
       {children}
+      <TenantSwitcher
+        isOpen={isTenantSwitcherOpen}
+        onClose={() => setIsTenantSwitcherOpen(false)}
+        memberships={memberships}
+      />
     </AppShell>
   );
 }
