@@ -22,6 +22,8 @@ services:
   - type: cron
     name: expense-recurring-process
     runtime: node
+    # Neon DB(ap-southeast-1)와 같은 리전 — 기본값 Oregon(US West) 사용 금지
+    region: singapore
     # Render Cron 스케줄은 UTC 기준
     # UTC 18:00 = KST 03:00 (매일 새벽 3시)
     schedule: "0 18 * * *"
