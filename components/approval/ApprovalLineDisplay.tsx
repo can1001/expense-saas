@@ -1,6 +1,8 @@
 'use client';
 
-import { CheckCircle, Clock, XCircle, AlertCircle } from 'lucide-react';
+import { Check, X, Clock, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import StatusPill, { StatusPillVariant } from '@/components/ui/StatusPill';
 
 /**
  * 결재선 표시 컴포넌트
@@ -37,6 +39,54 @@ interface ApprovalLineDisplayProps {
   expenseStatus: string;
 }
 
+const STATUS_PILL_VARIANT: Partial<Record<string, StatusPillVariant>> = {
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  PENDING: 'pending',
+};
+
+const STATUS_TEXT: Record<string, string> = {
+  APPROVED: '승인',
+  REJECTED: '반려',
+  PENDING: '대기',
+  SKIPPED: '건너뜀',
+};
+
+function StepNode({ status, isCurrent }: { status: string; isCurrent: boolean }) {
+  if (status === 'APPROVED') {
+    return (
+      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-brand-500 text-white">
+        <Check className="h-5 w-5" strokeWidth={3} />
+      </div>
+    );
+  }
+  if (status === 'REJECTED') {
+    return (
+      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-status-rejected text-white">
+        <X className="h-5 w-5" strokeWidth={3} />
+      </div>
+    );
+  }
+  if (status === 'PENDING') {
+    return (
+      <div
+        className={cn(
+          'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white text-status-pending-bar ring-[3px] ring-status-pending-bar',
+          isCurrent && 'animate-pulse'
+        )}
+      >
+        <Clock className="h-5 w-5" />
+      </div>
+    );
+  }
+  // SKIPPED 등 기타
+  return (
+    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gray-50 text-gray-300 ring-2 ring-gray-200">
+      <Clock className="h-5 w-5" />
+    </div>
+  );
+}
+
 export default function ApprovalLineDisplay({
   approvalLine,
   expenseStatus,
@@ -50,48 +100,6 @@ export default function ApprovalLineDisplay({
       </div>
     );
   }
-
-  const getStatusIcon = (status: string, isCurrent: boolean) => {
-    if (status === 'APPROVED') {
-      return <CheckCircle className="w-6 h-6 text-green-500" />;
-    } else if (status === 'REJECTED') {
-      return <XCircle className="w-6 h-6 text-red-500" />;
-    } else if (status === 'PENDING' && isCurrent) {
-      return <Clock className="w-6 h-6 text-blue-500 animate-pulse" />;
-    } else {
-      return <Clock className="w-6 h-6 text-gray-300" />;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'APPROVED':
-        return '승인';
-      case 'REJECTED':
-        return '반려';
-      case 'PENDING':
-        return '대기';
-      case 'SKIPPED':
-        return '건너뜀';
-      default:
-        return status;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'APPROVED':
-        return 'text-green-600 bg-green-50';
-      case 'REJECTED':
-        return 'text-red-600 bg-red-50';
-      case 'PENDING':
-        return 'text-gray-600 bg-gray-50';
-      case 'SKIPPED':
-        return 'text-gray-400 bg-gray-50';
-      default:
-        return 'text-gray-600 bg-gray-50';
-    }
-  };
 
   const formatDate = (date: Date | null | undefined) => {
     if (!date) return '';
@@ -128,32 +136,35 @@ export default function ApprovalLineDisplay({
           const isCurrent = step.stepNumber === approvalLine.currentStep;
           const isCompleted = step.status === 'APPROVED';
           const isRejected = step.status === 'REJECTED';
+          const pillVariant = STATUS_PILL_VARIANT[step.status];
 
           return (
             <div
               key={step.id}
-              className={`relative flex items-start gap-4 p-4 rounded-lg border-2 transition-all ${
-                isCurrent
-                  ? 'border-blue-500 bg-blue-50'
-                  : isCompleted
-                  ? 'border-green-200 bg-green-50'
+              className={cn(
+                'relative flex items-start gap-4 p-4 rounded-lg border-2 transition-all',
+                isCompleted
+                  ? 'border-brand-500 bg-brand-50'
                   : isRejected
-                  ? 'border-red-200 bg-red-50'
-                  : 'border-gray-200 bg-gray-50'
-              }`}
+                  ? 'border-status-rejected bg-status-rejected-bg'
+                  : isCurrent
+                  ? 'border-status-pending-bar bg-status-pending-bg'
+                  : 'border-surface-border bg-white'
+              )}
             >
               {/* 연결선 */}
               {index < approvalLine.steps.length - 1 && (
                 <div
-                  className={`absolute left-7 top-16 w-0.5 h-8 ${
-                    isCompleted ? 'bg-green-300' : 'bg-gray-300'
-                  }`}
+                  className={cn(
+                    'absolute left-9 top-14 h-8 w-0.5',
+                    isCompleted ? 'bg-brand-500' : 'bg-surface-border'
+                  )}
                 />
               )}
 
               {/* 아이콘 */}
-              <div className="flex-shrink-0 relative z-10">
-                {getStatusIcon(step.status, isCurrent)}
+              <div className="relative z-10">
+                <StepNode status={step.status} isCurrent={isCurrent} />
               </div>
 
               {/* 정보 */}
@@ -186,13 +197,13 @@ export default function ApprovalLineDisplay({
                   </div>
 
                   {/* 상태 배지 */}
-                  <span
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                      step.status
-                    )}`}
-                  >
-                    {getStatusText(step.status)}
-                  </span>
+                  {pillVariant ? (
+                    <StatusPill variant={pillVariant}>{STATUS_TEXT[step.status]}</StatusPill>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold text-gray-400 bg-gray-50">
+                      {STATUS_TEXT[step.status] ?? step.status}
+                    </span>
+                  )}
                 </div>
 
                 {/* 서명/도장 표시 */}
@@ -215,7 +226,7 @@ export default function ApprovalLineDisplay({
                       </p>
                     )}
                     {step.rejectedAt && (
-                      <p className="text-xs text-red-600">
+                      <p className="text-xs text-status-rejected">
                         반려: {formatDate(step.rejectedAt)}
                       </p>
                     )}
@@ -230,7 +241,7 @@ export default function ApprovalLineDisplay({
                 {/* 현재 진행 중 표시 */}
                 {isCurrent && !['APPROVED', 'APPROVED_FINAL'].includes(expenseStatus) && expenseStatus !== 'REJECTED' && (
                   <div className="mt-2">
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-600">
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-status-pending-bar">
                       <Clock className="w-3 h-3" />
                       결재 대기 중
                     </span>
@@ -244,16 +255,16 @@ export default function ApprovalLineDisplay({
 
       {/* 최종 상태 메시지 */}
       {['APPROVED', 'APPROVED_FINAL'].includes(expenseStatus) && (
-        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-sm font-medium text-green-800 text-center">
+        <div className="mt-4 p-4 bg-brand-50 border border-brand-500 rounded-lg">
+          <p className="text-sm font-medium text-brand-700 text-center">
             ✓ 모든 결재가 완료되었습니다
           </p>
         </div>
       )}
 
       {expenseStatus === 'REJECTED' && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm font-medium text-red-800 text-center">
+        <div className="mt-4 p-4 bg-status-rejected-bg border border-status-rejected rounded-lg">
+          <p className="text-sm font-medium text-status-rejected text-center">
             ✗ 지출결의서가 반려되었습니다
           </p>
         </div>
