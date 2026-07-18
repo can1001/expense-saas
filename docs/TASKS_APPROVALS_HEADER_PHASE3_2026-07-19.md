@@ -26,7 +26,7 @@
   - 결과: 사용자별 미확인 알림 카운트 훅/API 없음 확인
     (`app/api/admin/notifications`는 관리자 발송 이력 조회용, `NotificationLog`/`AdminNotification`
     모델에 읽음 여부 필드 없음 — `prisma/schema.prisma:1159`, `1380`) → dot 미구현, 링크만 렌더.
-- [ ] **H4 (M)**: AppShell 채택 화면에서 Header 제거
+- [x] **H4 (M)**: AppShell 채택 화면에서 Header 제거
   - Files: `components/dashboard/DashboardShell.tsx`, `components/admin/AdminLayout.tsx`
   - Description: 두 화면에서 `withHeader` 제거하고 탑바에 TenantSwitcher(권한자만 — Header에서 노출 조건
     확인)·TopbarBell·TopbarUserMenu 배치. AdminLayout 로딩 화면의 Header도 대체.
