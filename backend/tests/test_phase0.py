@@ -24,6 +24,42 @@ def test_make_sync_url_passthrough():
     assert make_sync_url("sqlite:///./x.db") == "sqlite:///./x.db"
 
 
+# ── make_async_url: 표준 URL → 비동기 드라이버 (앱 엔진용) ──────────────
+def test_make_async_url_plain_postgres():
+    from expense_api.core.db.engine import make_async_url
+
+    # prod 경로: Render/Neon 이 주입하는 표준 URL → asyncpg 명시
+    assert (
+        make_async_url("postgresql://u:p@h:5432/db")
+        == "postgresql+asyncpg://u:p@h:5432/db"
+    )
+    # postgres:// 단축 스킴도 동일 처리
+    assert make_async_url("postgres://u:p@h/db") == "postgresql+asyncpg://u:p@h/db"
+
+
+def test_make_async_url_neon_query_params():
+    from expense_api.core.db.engine import make_async_url
+
+    # Neon URL: sslmode → ssl 변환, channel_binding 제거 (asyncpg 미지원)
+    url = "postgresql://u:p@h/db?sslmode=require&channel_binding=require"
+    assert make_async_url(url) == "postgresql+asyncpg://u:p@h/db?ssl=require"
+
+
+def test_make_async_url_passthrough():
+    from expense_api.core.db.engine import make_async_url
+
+    assert make_async_url("sqlite+aiosqlite:///./dev.db") == "sqlite+aiosqlite:///./dev.db"
+    assert (
+        make_async_url("postgresql+asyncpg://u:p@h/db") == "postgresql+asyncpg://u:p@h/db"
+    )
+
+
+def test_make_async_url_sqlite_plain():
+    from expense_api.core.db.engine import make_async_url
+
+    assert make_async_url("sqlite:///./x.db") == "sqlite+aiosqlite:///./x.db"
+
+
 # ── zone 조건부 기본 DATABASE_URL ────────────────────────────────────
 def test_zone_conditional_default_url(monkeypatch):
     from expense_api.core.config.settings import _default_database_url
