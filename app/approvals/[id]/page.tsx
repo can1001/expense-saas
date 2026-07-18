@@ -3,17 +3,72 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { format } from 'date-fns';
-import Header from '@/components/Header';
-import ApprovalStatusBadge from '@/components/approval/ApprovalStatusBadge';
 import ApprovalLineDisplay from '@/components/approval/ApprovalLineDisplay';
 import ApprovalActionButtons from '@/components/approval/ApprovalActionButtons';
 import { BudgetInfoPanel } from '@/components/approval/BudgetInfoPanel';
 import { Expense } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
-import { ArrowLeft, Building2, User, CreditCard, FileText, Clock } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, Building2, User, CreditCard, FileText, Clock } from 'lucide-react';
 import { MobileItemCard } from '@/components/ui/Accordion';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
 import { apiBase, pyEnabled } from '@/lib/api/api-base';
+import AppShell from '@/components/layout/AppShell';
+import Sidebar from '@/components/layout/Sidebar';
+import SidebarUserCard from '@/components/layout/SidebarUserCard';
+import TopbarBell from '@/components/layout/TopbarBell';
+import TopbarUserMenu, { TopbarUserMenuUser } from '@/components/layout/TopbarUserMenu';
+import TenantSwitcher, { useMemberships } from '@/components/TenantSwitcher';
+import StatusPill, { StatusPillVariant } from '@/components/ui/StatusPill';
+import { getGlobalSidebarMenu } from '@/lib/constants/global-menu';
+import { canAccessApprovalMenu } from '@/lib/constants/menu-permissions';
+import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount';
+
+interface CurrentUser extends TopbarUserMenuUser {
+  userid: string;
+  username: string;
+  role: string;
+  roles?: string[];
+}
+
+// 지출결의서 상태 → StatusPill 매핑 (app/approvals/page.tsx의 ExpenseStatusPill과 동일한 대조표)
+const EXPENSE_STATUS_PILL: Partial<Record<string, StatusPillVariant>> = {
+  PENDING: 'pending',
+  APPROVED_STEP_1: 'pending',
+  APPROVED_STEP_2: 'pending',
+  IN_PROGRESS: 'pending',
+  APPROVED_FINAL: 'approved',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+};
+
+const EXPENSE_STATUS_LABEL: Record<string, string> = {
+  DRAFT: '작성중',
+  PENDING: '1차 결재대기',
+  APPROVED_STEP_1: '2차 결재대기',
+  APPROVED_STEP_2: '3차 결재대기',
+  APPROVED_FINAL: '최종승인',
+  IN_PROGRESS: '결재진행중',
+  APPROVED: '승인완료',
+  REJECTED: '반려',
+  WITHDRAWN: '회수',
+};
+
+function ExpenseStatusPill({ status }: { status: string }) {
+  const variant = EXPENSE_STATUS_PILL[status];
+  const label = EXPENSE_STATUS_LABEL[status] ?? status;
+  if (!variant) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-500">
+        {label}
+      </span>
+    );
+  }
+  return (
+    <StatusPill variant={variant} className="px-3 py-1 text-sm">
+      {label}
+    </StatusPill>
+  );
+}
 
 export default function ApprovalDetailPage() {
   const terms = useOrgTerms();
@@ -25,7 +80,9 @@ export default function ApprovalDetailPage() {
   const [approvalData, setApprovalData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<{ userid: string; username: string; role: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isTenantSwitcherOpen, setIsTenantSwitcherOpen] = useState(false);
 
   // 로그인한 사용자 정보 가져오기
   useEffect(() => {
@@ -101,6 +158,13 @@ export default function ApprovalDetailPage() {
     return currentStep?.approverName;
   };
 
+  const userRoles = currentUser?.roles ?? (currentUser ? [currentUser.role] : []);
+  const canApprove = userRoles.some((role) => canAccessApprovalMenu(role));
+  const { count: pendingApprovalCount } = usePendingApprovalCount({ enabled: canApprove });
+  const sidebarConfig = getGlobalSidebarMenu({ roles: userRoles }, { pendingApprovalCount });
+  const { memberships } = useMemberships(!!currentUser);
+  const canSwitchTenant = memberships.length > 1;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -131,10 +195,36 @@ export default function ApprovalDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-
-      <main className="max-w-5xl mx-auto px-4 py-8">
+    <AppShell
+      title="결재함 상세"
+      onOpenMobileMenu={() => setIsSidebarOpen(true)}
+      topbarExtra={
+        currentUser ? (
+          <>
+            {canSwitchTenant && (
+              <button
+                onClick={() => setIsTenantSwitcherOpen(true)}
+                aria-label="조직 전환"
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+              >
+                <ArrowLeftRight className="h-5 w-5" />
+              </button>
+            )}
+            <TopbarBell />
+            <TopbarUserMenu user={currentUser} />
+          </>
+        ) : undefined
+      }
+      sidebar={
+        <Sidebar
+          config={sidebarConfig}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          footer={<SidebarUserCard />}
+        />
+      }
+    >
+      <div className="max-w-5xl mx-auto">
         {/* 뒤로가기 */}
         <button
           onClick={() => router.push('/approvals')}
@@ -149,7 +239,7 @@ export default function ApprovalDetailPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <ApprovalStatusBadge status={expense.status || 'DRAFT'} size="lg" />
+                <ExpenseStatusPill status={expense.status || 'DRAFT'} />
                 {approvalData?.approvalLine?.isUrgent && (
                   <span className="px-3 py-1 bg-red-100 text-red-700 text-sm font-semibold rounded-full">
                     긴급
@@ -487,7 +577,12 @@ export default function ApprovalDetailPage() {
             )}
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+      <TenantSwitcher
+        isOpen={isTenantSwitcherOpen}
+        onClose={() => setIsTenantSwitcherOpen(false)}
+        memberships={memberships}
+      />
+    </AppShell>
   );
 }
