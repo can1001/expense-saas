@@ -3,7 +3,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { prisma } from '../../prisma';
+import { prisma, prismaBase } from '../../prisma';
+import { withTenant } from '../../tenant-context';
 import type { User, UserYearRole } from '@prisma/client';
 import type { UserRole } from '../user-service';
 
@@ -72,6 +73,12 @@ vi.mock('../../prisma', () => ({
     role: {
       findMany: vi.fn(),
     },
+  },
+  prismaBase: {
+    // $transaction(cb)는 tx 핸들을 넘겨 콜백을 실행하도록 모킹
+    $transaction: vi.fn(),
+    user: { create: vi.fn() },
+    membership: { create: vi.fn() },
   },
 }));
 
@@ -536,6 +543,57 @@ describe('user-service', () => {
           department: undefined,
           password: 'hashed_chc2026', // 기본 비밀번호(chc2026)가 해시됨
         },
+      });
+    });
+
+    it('테넌트 컨텍스트가 있으면 User와 Membership을 함께 생성한다 (ARC-002 §2.2)', async () => {
+      // $transaction은 tx 핸들로 콜백을 실행하도록 모킹
+      const txCreatedUser = { ...mockUser, id: 'user-tx', userid: 'ctxuser', role: 'user' };
+      const txMock = {
+        user: { create: vi.fn().mockResolvedValue(txCreatedUser) },
+        membership: { create: vi.fn().mockResolvedValue({ id: 'ms-1' }) },
+      };
+      vi.mocked(prismaBase.$transaction).mockImplementation(
+          (async (cb: any) => cb(txMock)) as any
+      );
+
+      const result = await withTenant({ tenantId: 'tenant-x', subdomain: '' }, () =>
+        createUser({ userid: 'ctxuser', username: '컨텍스트유저', role: 'user' })
+      );
+
+      expect(result.id).toBe('user-tx');
+      // User는 명시적 tenantId로 생성
+      expect(txMock.user.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ userid: 'ctxuser', tenantId: 'tenant-x' }),
+      });
+      // Membership 이중 기록 — role 'user' → MEMBER, 첫 소속이므로 isDefault
+      expect(txMock.membership.create).toHaveBeenCalledWith({
+        data: { userId: 'user-tx', tenantId: 'tenant-x', role: 'MEMBER', isDefault: true },
+      });
+      // 컨텍스트가 있으면 tenant-scoped prisma.user.create는 쓰지 않는다
+      expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it('admin 역할 사용자는 Membership이 TENANT_ADMIN으로 기록된다', async () => {
+      const txCreatedUser = { ...mockUser, id: 'user-adm', userid: 'adminuser', role: 'admin' };
+      const txMock = {
+        user: { create: vi.fn().mockResolvedValue(txCreatedUser) },
+        membership: { create: vi.fn().mockResolvedValue({ id: 'ms-2' }) },
+      };
+      vi.mocked(prismaBase.$transaction).mockImplementation(
+          (async (cb: any) => cb(txMock)) as any
+      );
+      vi.mocked(prisma.role.findMany).mockResolvedValue([
+        { id: 'role-1', code: 'admin', name: '관리자', stepNumber: null },
+      ] as any);
+      await getAllRoles(true);
+
+      await withTenant({ tenantId: 'tenant-x', subdomain: '' }, () =>
+        createUser({ userid: 'adminuser', username: '관리자', role: 'admin' })
+      );
+
+      expect(txMock.membership.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ role: 'TENANT_ADMIN' }),
       });
     });
   });

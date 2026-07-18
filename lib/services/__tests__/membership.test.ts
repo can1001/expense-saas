@@ -49,7 +49,7 @@ describe('getMemberships', () => {
     expect(mockMembership.findMany).toHaveBeenCalledWith({
       where: { userId: 'user-1', tenant: { isActive: true } },
       include: {
-        tenant: { select: { id: true, name: true, orgType: true, isActive: true } },
+        tenant: { select: { id: true, name: true, subdomain: true, orgType: true, isActive: true } },
       },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
     });

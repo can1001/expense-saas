@@ -30,8 +30,18 @@ export function membershipRoleToRoleCode(role: string): 'admin' | 'user' {
   return role === 'TENANT_ADMIN' ? 'admin' : 'user';
 }
 
+/**
+ * 인가용 역할 코드(User.role) → Membership.role(TENANT_ADMIN/MEMBER).
+ *
+ * 사용자 생성 시 Membership을 이중 기록할 때 tier를 파생한다.
+ * 백필(scripts/backfill-memberships.ts)과 동일 규칙: 'admin'만 관리자성 역할.
+ */
+export function roleCodeToMembershipRole(role: string): MembershipRole {
+  return role === 'admin' ? 'TENANT_ADMIN' : 'MEMBER';
+}
+
 export type MembershipWithTenant = Membership & {
-  tenant: Pick<Tenant, 'id' | 'name' | 'orgType' | 'isActive'>;
+  tenant: Pick<Tenant, 'id' | 'name' | 'subdomain' | 'orgType' | 'isActive'>;
 };
 
 /**
@@ -42,7 +52,7 @@ export async function getMemberships(userId: string): Promise<MembershipWithTena
   return prismaBase.membership.findMany({
     where: { userId, tenant: { isActive: true } },
     include: {
-      tenant: { select: { id: true, name: true, orgType: true, isActive: true } },
+      tenant: { select: { id: true, name: true, subdomain: true, orgType: true, isActive: true } },
     },
     orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
   });

@@ -39,6 +39,8 @@ vi.mock('@/lib/auth/user', () => ({
 // Mock @/lib/services/membership
 vi.mock('@/lib/services/membership', () => ({
   getMemberships: vi.fn(),
+  membershipRoleToRoleCode: (role: string) =>
+    role === 'TENANT_ADMIN' ? 'admin' : 'user',
 }));
 
 // Mock @/lib/tenant
@@ -112,7 +114,7 @@ function membershipOf(tenantId: string, name: string, orgType: string, role = 'M
     isDefault: tenantId === 'tenant-1',
     createdAt: new Date('2026-07-18'),
     updatedAt: new Date('2026-07-18'),
-    tenant: { id: tenantId, name, orgType, isActive: true },
+    tenant: { id: tenantId, name, subdomain: tenantId, orgType, isActive: true },
   };
 }
 
@@ -205,6 +207,70 @@ describe('POST /api/auth/login — Membership 확장 (B2)', () => {
         expect.objectContaining({ tenantId: 'tenant-1' })
       );
       expect(mockCreatePendingToken).not.toHaveBeenCalled();
+    });
+
+    it('유일 소속이 게스트 테넌트면 홈 역할이 아닌 Membership.role로 발급된다 (권한 상승 방지)', async () => {
+      // User.tenantId=tenant-1(홈)이지만 유일 소속은 tenant-2(게스트, MEMBER)
+      mockGetMemberships.mockResolvedValue([
+        membershipOf('tenant-2', '청연교회', 'CHURCH', 'MEMBER'),
+      ]);
+
+      const response = await POST(
+        createLoginRequest({ userid: 'testuser', password: 'correct' })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      // 토큰은 게스트 테넌트 기준: tenantId=tenant-2, role='user'(MEMBER→user), roleId·부서 제거
+      expect(mockCreateUserToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: 'tenant-2',
+          role: 'user',
+          roles: ['user'],
+          roleId: null,
+          department: null,
+        })
+      );
+      // 응답 tenant도 게스트 테넌트로 일치 (홈 tenant-1 표시 금지)
+      expect(data.tenant).toEqual({ id: 'tenant-2', name: '청연교회', subdomain: 'tenant-2' });
+      expect(data.user.department).toBeNull();
+    });
+
+    it('홈 admin이 게스트 테넌트에 MEMBER로만 소속되면 admin 권한이 넘어가지 않는다', async () => {
+      // 홈(tenant-1)에서 admin인 사용자
+      mockPrisma.user.findFirst.mockResolvedValue({ ...validUser, role: 'admin', roleId: 'role-admin' });
+      // 유일 소속은 게스트 tenant-2에 MEMBER
+      mockGetMemberships.mockResolvedValue([
+        membershipOf('tenant-2', '청연교회', 'CHURCH', 'MEMBER'),
+      ]);
+
+      await POST(createLoginRequest({ userid: 'testuser', password: 'correct' }));
+
+      expect(mockCreateUserToken).toHaveBeenCalledWith(
+        expect.objectContaining({ tenantId: 'tenant-2', role: 'user', roles: ['user'] })
+      );
+    });
+
+    it('홈 테넌트가 비활성이어도 활성 소속이 있으면 그 조직으로 로그인된다', async () => {
+      // 홈 tenant-1이 비활성화된 사용자
+      mockPrisma.user.findFirst.mockResolvedValue({
+        ...validUser,
+        tenant: { ...validUser.tenant, isActive: false },
+      });
+      // 활성 테넌트 tenant-2에 소속 (getMemberships는 활성만 반환)
+      mockGetMemberships.mockResolvedValue([
+        membershipOf('tenant-2', '청연교회', 'CHURCH', 'MEMBER'),
+      ]);
+
+      const response = await POST(
+        createLoginRequest({ userid: 'testuser', password: 'correct' })
+      );
+
+      // 비활성 홈으로 차단되지 않고 활성 소속 tenant-2로 진입
+      expect(response.status).toBe(200);
+      expect(mockCreateUserToken).toHaveBeenCalledWith(
+        expect.objectContaining({ tenantId: 'tenant-2' })
+      );
     });
   });
 

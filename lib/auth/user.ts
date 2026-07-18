@@ -351,12 +351,27 @@ export function withAuth(handler: UserApiHandler) {
         );
       }
 
-      // 사용자의 테넌트와 요청된 테넌트 불일치 확인
+      // 요청 서브도메인과 토큰의 tenantId가 다른 경우:
+      // 조직 전환(B3) 세션은 토큰이 tenantId의 유일한 출처이며(공통 원칙 2), 브라우저는
+      // 이전 테넌트 서브도메인에 그대로 머물 수 있다. 토큰 tenantId에 대한 활성 소속이
+      // 확인되면(정당한 전환) 토큰을 신뢰해 진행하고, 그 외에는 기존처럼 거부한다.
+      // (핸들러 컨텍스트는 아래에서 항상 user.tenantId(토큰)로 설정되므로 데이터는 토큰 테넌트로 스코프된다.)
       if (resolvedTenant.tenantId !== user.tenantId) {
-        return NextResponse.json(
-          { error: '이 조직에 대한 접근 권한이 없습니다.' },
-          { status: 403 }
-        );
+        const switchedMembership = await prismaBase.membership.findFirst({
+          where: {
+            userId: user.id,
+            tenantId: user.tenantId,
+            tenant: { isActive: true },
+          },
+          select: { id: true },
+        });
+
+        if (!switchedMembership) {
+          return NextResponse.json(
+            { error: '이 조직에 대한 접근 권한이 없습니다.' },
+            { status: 403 }
+          );
+        }
       }
     }
 
