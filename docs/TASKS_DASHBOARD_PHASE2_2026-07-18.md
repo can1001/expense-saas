@@ -14,7 +14,7 @@
     헤더에 "전체 보기 →" 링크 `/expenses`). 로딩은 기존 `components/ui/Skeleton` 사용, 실패 시 한글 에러 문구.
   - Acceptance: 상태 매핑(스펙 3절), 금액 `₩`+toLocaleString+tabular-nums, 아이콘은 lucide-react
   - Verify: `pnpm vitest run components/dashboard/ && pnpm run lint`
-- [ ] **P2 (S)**: 부서별 예산 집행 패널
+- [x] **P2 (S)**: 부서별 예산 집행 패널
   - Files: `components/dashboard/DepartmentBudgetPanel.tsx`, `components/dashboard/__tests__/DepartmentBudgetPanel.test.tsx`
   - Description: `/api/admin/budget-execution` fetch (응답 구조는 `app/api/admin/budget-execution/route.ts`를
     읽고 확인). 부서별 집행률(사용액/예산액)을 이름+%+ProgressBar 리스트로. 90% 이상 부서가 있으면
