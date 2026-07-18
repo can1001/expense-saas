@@ -57,9 +57,9 @@ RALPH_BRANCH=20260718-saas-multitenant \
 
 ## 최종 검증 (A~C 전부 [x] 이후에만)
 
-- [ ] F1. `pnpm run lint` 통과
-- [ ] F2. `pnpm exec vitest run` 통과
-- [ ] F3. `pnpm run build` 통과
+- [x] F1. `pnpm run lint` 통과
+- [x] F2. `pnpm exec vitest run` 통과
+- [x] F3. `pnpm run build` 통과
 
 ## 수동 게이트 (사용자 실행 — 루프 대상 아님)
 
