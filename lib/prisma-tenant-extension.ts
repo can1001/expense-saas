@@ -16,6 +16,8 @@ const TENANT_SCOPED_MODELS = [
   'budgetDetail',
   'budgetDetailYear',
   'departmentBudgetDetail',
+  'accountCategory', // 테넌트별 계정과목(ARC-001) — 조회/쓰기 시 tenantId 자동 스코프 강제
+
   'savedBankAccount',
   'simpleExpense',
   'simpleExpenseItem',
