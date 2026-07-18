@@ -2,15 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prismaBase } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
 import {
-  createPendingSelectionToken,
-  createUserToken,
-  createUserTokenCookie,
-  deriveLegacyFlags,
-  PENDING_SELECTION_MAX_AGE_SECONDS,
-  UserSession,
-} from '@/lib/auth/user';
-import { getMemberships, membershipRoleToRoleCode } from '@/lib/services/membership';
-import { PERMISSIONS } from '@/lib/auth/permissions';
+  buildPendingSelectionResponse,
+  buildTenantSession,
+  issueSessionResponse,
+  type SessionTenant,
+} from '@/lib/auth/login-session';
+import { getMemberships } from '@/lib/services/membership';
 import { findTenantBySubdomain } from '@/lib/tenant';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
@@ -158,31 +155,7 @@ export async function POST(request: NextRequest) {
     // 복수 소속: 최종 토큰 대신 선택용 임시 토큰 발급 → 최종 토큰은 switch-tenant(B3)에서
     // (서브도메인 지정 로그인은 대상 조직이 이미 확정이므로 기존처럼 바로 발급)
     if (!tenant && memberships.length > 1) {
-      const pendingToken = await createPendingSelectionToken({
-        id: user.id,
-        userid: user.userid,
-        username: user.username,
-      });
-
-      const response = NextResponse.json({
-        success: true,
-        message: '소속 조직을 선택해주세요.',
-        requiresTenantSelection: true,
-        memberships: memberships.map((m) => ({
-          tenantId: m.tenantId,
-          tenantName: m.tenant.name,
-          orgType: m.tenant.orgType,
-          role: m.role,
-        })),
-        token: pendingToken,
-      });
-
-      response.headers.set(
-        'Set-Cookie',
-        createUserTokenCookie(pendingToken, PENDING_SELECTION_MAX_AGE_SECONDS)
-      );
-
-      return response;
+      return buildPendingSelectionResponse(user, memberships);
     }
 
     // 단일 소속은 Membership의 tenantId로, 0건은 기존 User.tenantId 그대로
@@ -193,82 +166,25 @@ export async function POST(request: NextRequest) {
       ? soleMembership.tenantId
       : user.tenantId || '';
 
-    // 세션 테넌트에서의 역할 결정 (switch-tenant와 동일한 권한 상승 방지 규칙):
-    // 유일 소속이 홈이 아닌 게스트 테넌트면 홈 User.role/roleId/부서·개별권한을 넘기지 않고
-    // Membership.role에서만 파생한다. 홈 테넌트(또는 0건 폴백)는 기존 User 값 유지.
-    const isGuestTenant =
-      soleMembership !== null && soleMembership.tenantId !== user.tenantId;
-    const effectiveRole = isGuestTenant
-      ? membershipRoleToRoleCode(soleMembership!.role)
-      : user.role;
-    const effectiveRoleId = isGuestTenant ? null : user.roleId;
-    const effectiveDepartment = isGuestTenant ? null : user.department;
-    const canRegisterUsers = isGuestTenant ? false : user.canRegisterUsers;
+    // 홈/게스트 역할 파생은 공용 헬퍼로 일원화 (로그인·카카오·조직전환 동일 규칙, 권한 상승 방지)
+    const session = buildTenantSession(
+      user,
+      sessionTenantId,
+      soleMembership?.role ?? null
+    );
 
-    // roles-only: 유효 역할 코드로부터 권한 파생 (JWT에 권한을 굽지 않음)
-    const roles = [effectiveRole];
-    const granted = canRegisterUsers ? [PERMISSIONS.USER_REGISTER] : [];
-    const flags = deriveLegacyFlags(roles, granted);
-
-    // 세션 생성
-    const session: UserSession = {
-      id: user.id,
-      tenantId: sessionTenantId,
-      userid: user.userid,
-      username: user.username,
-      role: effectiveRole,
-      roles,
-      roleId: effectiveRoleId,
-      department: effectiveDepartment,
-      granted,
-      ...flags,
-    };
-
-    // JWT 토큰 생성
-    const token = await createUserToken(session);
-
-    // 응답의 tenant/user는 발급 토큰의 tenantId와 일치시킨다 — 게스트 테넌트로 자동 진입한 경우
+    // 응답의 tenant는 발급 토큰의 tenantId와 일치시킨다 — 게스트 테넌트로 자동 진입한 경우
     // 홈 테넌트 정보를 보여주면 클라이언트 표시·캐시와 토큰 스코프가 어긋난다.
-    const responseTenant = isGuestTenant
+    // (로그인 응답 tenant는 orgType을 포함하지 않는 기존 계약 유지 → id/name/subdomain만)
+    const responseTenant: SessionTenant | null = soleMembership
       ? {
-          id: soleMembership!.tenant.id,
-          name: soleMembership!.tenant.name,
-          subdomain: soleMembership!.tenant.subdomain,
+          id: soleMembership.tenant.id,
+          name: soleMembership.tenant.name,
+          subdomain: soleMembership.tenant.subdomain,
         }
-      : user.tenant
-        ? {
-            id: user.tenant.id,
-            name: user.tenant.name,
-            subdomain: user.tenant.subdomain,
-          }
-        : null;
+      : user.tenant;
 
-    // 응답 생성
-    const response = NextResponse.json({
-      success: true,
-      message: '로그인 성공',
-      user: {
-        id: user.id,
-        userid: user.userid,
-        username: user.username,
-        role: effectiveRole,
-        department: effectiveDepartment,
-        permissions: {
-          canApprove: session.canApprove,
-          canManageExpense: session.canManageExpense,
-          canAccessAdmin: session.canAccessAdmin,
-          canExportData: session.canExportData,
-          canRegisterUsers: session.canRegisterUsers,
-        },
-      },
-      tenant: responseTenant,
-      token,
-    });
-
-    // 쿠키 설정
-    response.headers.set('Set-Cookie', createUserTokenCookie(token));
-
-    return response;
+    return issueSessionResponse(session, responseTenant, { message: '로그인 성공' });
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'ZodError') {
       return NextResponse.json(

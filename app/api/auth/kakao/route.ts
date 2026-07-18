@@ -2,13 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prismaBase } from '@/lib/prisma';
 import { handleApiError } from '@/lib/api/error-handler';
 import {
-  createPendingSelectionToken,
-  createUserToken,
-  createUserTokenCookie,
-  deriveLegacyFlags,
-  PENDING_SELECTION_MAX_AGE_SECONDS,
-  UserSession,
-} from '@/lib/auth/user';
+  buildPendingSelectionResponse,
+  buildTenantSession,
+  issueSessionResponse,
+} from '@/lib/auth/login-session';
 import {
   isKakaoConfigured,
   isKakaoOidcEnabled,
@@ -18,7 +15,6 @@ import {
 } from '@/lib/services/kakao';
 import { findUserByProvider } from '@/lib/services/auth-account';
 import { getMemberships } from '@/lib/services/membership';
-import { PERMISSIONS } from '@/lib/auth/permissions';
 import { z } from 'zod';
 
 const kakaoLoginSchema = z.object({
@@ -90,37 +86,14 @@ export async function POST(request: NextRequest) {
 
     // 복수 소속: 최종 토큰 대신 선택용 임시 토큰 → 최종 토큰은 switch-tenant(B3)에서
     if (memberships.length > 1) {
-      const pendingToken = await createPendingSelectionToken({
-        id: user.id,
-        userid: user.userid,
-        username: user.username,
-      });
-
-      const response = NextResponse.json({
-        success: true,
-        linked: true,
-        message: '소속 조직을 선택해주세요.',
-        requiresTenantSelection: true,
-        memberships: memberships.map((m) => ({
-          tenantId: m.tenantId,
-          tenantName: m.tenant.name,
-          orgType: m.tenant.orgType,
-          role: m.role,
-        })),
-        token: pendingToken,
-      });
-
-      response.headers.set(
-        'Set-Cookie',
-        createUserTokenCookie(pendingToken, PENDING_SELECTION_MAX_AGE_SECONDS)
-      );
-
-      return response;
+      return buildPendingSelectionResponse(user, memberships, { linked: true });
     }
 
     // 단일 소속은 Membership의 tenantId로, 0건은 기존 User.tenantId 그대로
-    const sessionTenantId =
-      memberships.length === 1 ? memberships[0].tenantId : user.tenantId || '';
+    const soleMembership = memberships.length === 1 ? memberships[0] : null;
+    const sessionTenantId = soleMembership
+      ? soleMembership.tenantId
+      : user.tenantId || '';
 
     const tenant = await prismaBase.tenant.findUnique({
       where: { id: sessionTenantId },
@@ -134,55 +107,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. 자체 JWT 발급 — 로그인과 동일한 roles-only 방식 (tenantId 클레임 유지)
-    const roles = [user.role];
-    const granted = user.canRegisterUsers ? [PERMISSIONS.USER_REGISTER] : [];
-    const flags = deriveLegacyFlags(roles, granted);
+    // 4. 자체 JWT 발급 — 로그인과 동일한 홈/게스트 역할 파생·응답 조립 (공용 헬퍼, 권한 상승 방지)
+    const session = buildTenantSession(
+      user,
+      sessionTenantId,
+      soleMembership?.role ?? null
+    );
 
-    const session: UserSession = {
-      id: user.id,
-      tenantId: tenant.id,
-      userid: user.userid,
-      username: user.username,
-      role: user.role,
-      roles,
-      roleId: user.roleId,
-      department: user.department,
-      granted,
-      ...flags,
-    };
-
-    const token = await createUserToken(session);
-
-    const response = NextResponse.json({
-      success: true,
-      linked: true,
-      message: '로그인 성공',
-      user: {
-        id: user.id,
-        userid: user.userid,
-        username: user.username,
-        role: user.role,
-        department: user.department,
-        permissions: {
-          canApprove: session.canApprove,
-          canManageExpense: session.canManageExpense,
-          canAccessAdmin: session.canAccessAdmin,
-          canExportData: session.canExportData,
-          canRegisterUsers: session.canRegisterUsers,
-        },
-      },
-      tenant: {
-        id: tenant.id,
-        name: tenant.name,
-        subdomain: tenant.subdomain,
-      },
-      token,
-    });
-
-    response.headers.set('Set-Cookie', createUserTokenCookie(token));
-
-    return response;
+    return issueSessionResponse(
+      session,
+      { id: tenant.id, name: tenant.name, subdomain: tenant.subdomain },
+      { message: '로그인 성공', extra: { linked: true } }
+    );
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'ZodError') {
       return NextResponse.json(

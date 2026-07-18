@@ -63,6 +63,8 @@ vi.mock('@/lib/services/auth-account', () => ({
 // Mock @/lib/services/membership
 vi.mock('@/lib/services/membership', () => ({
   getMemberships: vi.fn(),
+  membershipRoleToRoleCode: (role: string) =>
+    role === 'TENANT_ADMIN' ? 'admin' : 'user',
 }));
 
 // Import after mocking
@@ -304,6 +306,37 @@ describe('POST /api/auth/kakao — 소속 결정 (B2와 동일)', () => {
       expect.objectContaining({ tenantId: 'tenant-2' })
     );
     expect(mockCreatePendingToken).not.toHaveBeenCalled();
+  });
+
+  it('홈 admin이 게스트 테넌트에 MEMBER로만 소속되면 admin 권한이 넘어가지 않는다 (권한 상승 방지)', async () => {
+    // 홈(tenant-1) admin 사용자
+    mockFindUserByProvider.mockResolvedValue({
+      ...linkedUser,
+      role: 'admin',
+      roleId: 'role-admin',
+    });
+    // 유일 소속은 게스트 tenant-2에 MEMBER
+    mockGetMemberships.mockResolvedValue([membershipOf('tenant-2', '청연교회', 'CHURCH', 'MEMBER')]);
+    mockPrisma.tenant.findUnique.mockResolvedValue({
+      id: 'tenant-2',
+      name: '청연교회',
+      subdomain: 'church',
+      isActive: true,
+    });
+
+    const response = await POST(createKakaoRequest({ kakaoAccessToken: 'valid' }));
+
+    expect(response.status).toBe(200);
+    // 게스트 테넌트 기준: role='user'(MEMBER→user), roleId·부서 제거
+    expect(mockCreateUserToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'tenant-2',
+        role: 'user',
+        roles: ['user'],
+        roleId: null,
+        department: null,
+      })
+    );
   });
 
   it('복수 소속이면 조직 선택 응답 + 선택용 임시 토큰 (최종 토큰 미발급)', async () => {
