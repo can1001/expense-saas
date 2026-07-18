@@ -10,7 +10,7 @@
   - Description: Header.tsx·SidebarUserCard에 중복된 로그아웃 로직(`apiBase('auth')/auth/logout` POST →
     `/login` 이동)을 훅으로 추출하고 SidebarUserCard가 사용하도록 교체. Header.tsx는 건드리지 않는다.
   - Verify: `pnpm vitest run components/layout/ lib/hooks/ && pnpm run lint`
-- [ ] **H2 (M)**: `TopbarUserMenu` — Header 드롭다운 이관
+- [x] **H2 (M)**: `TopbarUserMenu` — Header 드롭다운 이관
   - Files: `components/layout/TopbarUserMenu.tsx`, `components/layout/__tests__/TopbarUserMenu.test.tsx`
   - Description: Header.tsx의 데스크톱 사용자 드롭다운을 읽고(마이페이지·서명·비밀번호·알림 설정/발송/히스토리·
     사용자 등록·로그아웃) **항목과 노출 조건을 1:1 동일**하게 컴포넌트로 이관. 권한은 기존 파생 함수
