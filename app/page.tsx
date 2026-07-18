@@ -3,6 +3,8 @@ import { getCurrentUserSession } from '@/lib/auth/user';
 import { withTenantAsync } from '@/lib/tenant-context';
 import { prisma } from '@/lib/prisma';
 import HomeClient from '@/components/HomeClient';
+import DashboardShell from '@/components/dashboard/DashboardShell';
+import { canAccessAdminMenuWithRoles } from '@/lib/constants/menu-permissions';
 
 export default async function Home() {
   const user = await getCurrentUserSession();
@@ -37,6 +39,11 @@ export default async function Home() {
     );
 
   const isBudgetManager = budgetManagerCount > 0;
+
+  // 관리 메뉴 권한자는 회계 대시보드, 그 외는 기존 카드 그리드(HomeClient)
+  if (canAccessAdminMenuWithRoles(user.roles || [user.role])) {
+    return <DashboardShell user={{ roles: user.roles, isBudgetManager }} />;
+  }
 
   return (
     <HomeClient
