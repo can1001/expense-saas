@@ -58,6 +58,23 @@ describe('verifyKakaoAccessToken', () => {
     expect(result).toEqual({ providerUserId: '12345678' });
   });
 
+  it('kapi 응답에 email이 있어도 반환값은 providerUserId뿐이다 (자동 병합 금지 — C5)', async () => {
+    // 카카오 프로필 email은 파싱 단계에서 폐기 — 이후 코드가 email 매칭에 쓸 수 없다
+    // (docs/AUTH_ACCOUNT_MATCHING_POLICY.md §3.2)
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: 12345678,
+        kakao_account: { email: 'existing-user@example.com', profile: { nickname: '홍길동' } },
+      }),
+    });
+
+    const result = await verifyKakaoAccessToken('kakao-access-token');
+
+    expect(result).toEqual({ providerUserId: '12345678' });
+    expect(Object.keys(result)).toEqual(['providerUserId']);
+  });
+
   it('환경변수 미설정이면 kapi 호출 없이 KakaoConfigError (한국어 메시지)', async () => {
     vi.stubEnv('KAKAO_REST_API_KEY', '');
 
