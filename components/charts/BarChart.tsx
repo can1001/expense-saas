@@ -48,7 +48,7 @@ interface BarChartProps {
 
 const defaultColors = {
   budget: '#94a3b8',
-  actual: '#3b82f6',
+  actual: '#178A55',
   previous: '#f97316',
 };
 

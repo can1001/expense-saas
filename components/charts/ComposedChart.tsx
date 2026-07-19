@@ -45,7 +45,7 @@ export function ComposedChart({
   data,
   bars = [
     { dataKey: 'budget', name: '예산', color: '#94a3b8' },
-    { dataKey: 'actual', name: '실적', color: '#3b82f6' },
+    { dataKey: 'actual', name: '실적', color: '#178A55' },
   ],
   lines = [{ dataKey: 'rate', name: '집행률', color: '#f97316', yAxisId: 'right' }],
   height = 300,

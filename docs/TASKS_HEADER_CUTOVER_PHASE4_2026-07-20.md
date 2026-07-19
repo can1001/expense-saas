@@ -65,10 +65,31 @@
     디렉터리 한정 해석). 전환 후 `grep -rn "blue-\|indigo-" components/expense-form
     components/simple-expense-form` → 0건. `pnpm vitest run` → 125 test files / 2360 tests
     passed. `pnpm run lint` → 0 errors(기존 warning 111건은 본 변경과 무관).
-- [ ] **G8 (S)**: 보고서·차트 토큰 전환 (색상만)
+- [x] **G8 (S)**: 보고서·차트 토큰 전환 (색상만)
   - Files: `components/reports/**`, `components/charts/**`, `app/reports/financial/**` 중 색상 지정 파일
   - Description: 차트 기본 팔레트·보고서 강조색을 brand 계열로. 라이브러리·데이터 로직 무변경.
   - Verify: `pnpm vitest run && pnpm run lint`
+  - 결과: `grep -rn "blue-\|indigo-\|#[0-9a-fA-F]\{6\}" components/reports components/charts app/reports/financial`
+    로 대상 확인 후, 보고서 테이블 5개(`SummaryTable.tsx`, `IncomeTable.tsx`, `ExpenseTable.tsx`,
+    `BankReserveTable.tsx`, `AssetLiabilityTable.tsx`)의 `bg-blue-600`(헤더 행) → `bg-brand-600`,
+    `bg-blue-50`/`hover:bg-blue-100` → `bg-brand-50`/`hover:bg-brand-100`, `bg-blue-200`(총계 행,
+    G7 매핑상 200→100) → `bg-brand-100`, `text-blue-600`/`text-blue-700` → `text-brand-600`/
+    `text-brand-700` 전환(전년비교 증감·차기이월·합계 강조 텍스트). 차트 컴포넌트는 "차트 기본
+    색상만"(스펙 2.4) 범위로 해석 — 카테고리 구분용 다색 팔레트(`FinancialCharts.tsx`
+    `CHART_COLORS`, `PieChart.tsx`/`BarChart.tsx`의 `COLORS`/`CHART_COLORS` 8~16색 배열)는
+    항목 간 구분이 목적이므로 변경 대상에서 제외하고, 실제 "기본/단일 강조색"만 전환:
+    `BarChart.tsx` `defaultColors.actual` `#3b82f6`→`#178A55`(brand-600),
+    `ComposedChart.tsx` bars 기본 `actual` 색상 `#3b82f6`→`#178A55`,
+    `FinancialCharts.tsx`의 `CenterLabel` 진척률 텍스트 `#1e40af`→`#166B4A`(brand-700),
+    `PieChart.tsx`의 진척률 상태 텍스트(`text-blue-600`/`fill-blue-600`, 정상 상태 강조) 3곳 →
+    `text-brand-600`/`fill-brand-600`. `app/reports/financial/page.tsx` 자체는 blue 클래스
+    없음(grep 0건) — 변경 없음. `app/admin/quarterly-report`, `app/admin/cumulative-report`는
+    태스크 Files 범위(`components/reports/**`, `components/charts/**`,
+    `app/reports/financial/**`) 밖이므로 미변경. 전환 후
+    `grep -rn "blue-\|indigo-\|3b82f6\|1e40af" components/reports components/charts app/reports/financial`
+    → 남은 매치는 다색 카테고리 팔레트(`FinancialCharts.tsx:20,28`, `PieChart.tsx:28,37`,
+    `BarChart.tsx:56`)뿐, 단일 강조색은 0건. `pnpm vitest run` → 125 test files / 2360 tests
+    passed. `pnpm run lint` → 0 errors(기존 warning 111건, G7과 동일 baseline).
 - [ ] **F (S)**: 최종 검증
   - Description: `pnpm vitest run`+`pnpm run build`+`pnpm run lint` 실행. 스펙 4절 Success Criteria를
     **코드 grep/Read로 대조하고 항목별 근거(파일:라인 또는 grep 결과)를 이 문서에 기록**.

@@ -105,7 +105,7 @@ export function ExpenseTable({ items, totalExpense }: ExpenseTableProps) {
         {/* 카테고리 헤더 행 */}
         <tr
           key={total.id}
-          className="bg-blue-50 font-semibold cursor-pointer hover:bg-blue-100"
+          className="bg-brand-50 font-semibold cursor-pointer hover:bg-brand-100"
           onClick={() => subItems.length > 0 && toggleCategory(category)}
         >
           <td className="px-3 py-2.5 text-gray-900">
@@ -136,7 +136,7 @@ export function ExpenseTable({ items, totalExpense }: ExpenseTableProps) {
               ? formatAmount(total.previousYearAmount)
               : ''}
           </td>
-          <td className={`px-3 py-2.5 text-right ${diff.isIncrease ? 'text-red-600' : 'text-blue-600'}`}>
+          <td className={`px-3 py-2.5 text-right ${diff.isIncrease ? 'text-red-600' : 'text-brand-600'}`}>
             {diff.diff !== 0 ? diff.text : ''}
           </td>
         </tr>
@@ -162,7 +162,7 @@ export function ExpenseTable({ items, totalExpense }: ExpenseTableProps) {
                     ? formatAmount(item.previousYearAmount)
                     : ''}
                 </td>
-                <td className={`px-3 py-2 text-right ${itemDiff.isIncrease ? 'text-red-600' : 'text-blue-600'}`}>
+                <td className={`px-3 py-2 text-right ${itemDiff.isIncrease ? 'text-red-600' : 'text-brand-600'}`}>
                   {itemDiff.diff !== 0 ? itemDiff.text : ''}
                 </td>
               </tr>
@@ -196,7 +196,7 @@ export function ExpenseTable({ items, totalExpense }: ExpenseTableProps) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-blue-600 text-white">
+            <tr className="bg-brand-600 text-white">
               <th className="px-3 py-3 text-left font-semibold min-w-[180px]">항목</th>
               <th className="px-3 py-3 text-right font-semibold min-w-[100px]">예산액</th>
               <th className="px-3 py-3 text-right font-semibold min-w-[100px]">당기</th>
@@ -223,7 +223,7 @@ export function ExpenseTable({ items, totalExpense }: ExpenseTableProps) {
               <td className="px-3 py-3 text-right text-gray-700 bg-yellow-100">
                 {formatAmount(subtotals.previousYearAmount)}
               </td>
-              <td className={`px-3 py-3 text-right ${subtotals.cumulativeAmount >= subtotals.previousYearAmount ? 'text-red-600' : 'text-blue-600'}`}>
+              <td className={`px-3 py-3 text-right ${subtotals.cumulativeAmount >= subtotals.previousYearAmount ? 'text-red-600' : 'text-brand-600'}`}>
                 {formatDiff(subtotals.cumulativeAmount, subtotals.previousYearAmount).text}
               </td>
             </tr>
@@ -242,11 +242,11 @@ export function ExpenseTable({ items, totalExpense }: ExpenseTableProps) {
 
             {/* 총계 (예산외지출 포함) */}
             {extraBudgetCategory && (
-              <tr className="bg-blue-200 font-bold">
+              <tr className="bg-brand-100 font-bold">
                 <td className="px-3 py-3 text-gray-900">총 계</td>
                 <td className="px-3 py-3 text-right text-gray-900">{formatAmount(grandTotals.budgetAmount)}</td>
                 <td className="px-3 py-3 text-right text-gray-900">{formatAmount(grandTotals.currentAmount)}</td>
-                <td className="px-3 py-3 text-right text-blue-700">{formatAmount(grandTotals.cumulativeAmount)}</td>
+                <td className="px-3 py-3 text-right text-brand-700">{formatAmount(grandTotals.cumulativeAmount)}</td>
                 <td className="px-3 py-3 text-right text-gray-900"></td>
                 <td className="px-3 py-3 text-right text-gray-700 bg-yellow-100">
                   {formatAmount(grandTotals.previousYearAmount)}

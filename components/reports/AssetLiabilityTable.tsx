@@ -41,7 +41,7 @@ export function AssetLiabilityTable({ assets, liabilities }: AssetLiabilityTable
           <div className="overflow-x-auto mb-6">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-blue-600 text-white">
+                <tr className="bg-brand-600 text-white">
                   <th className="px-4 py-3 text-left font-semibold">자산 종류</th>
                   <th className="px-4 py-3 text-right font-semibold">금액</th>
                   <th className="px-4 py-3 text-left font-semibold">만기일자</th>
@@ -84,7 +84,7 @@ export function AssetLiabilityTable({ assets, liabilities }: AssetLiabilityTable
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-blue-600 text-white">
+                <tr className="bg-brand-600 text-white">
                   <th className="px-3 py-3 text-left font-semibold">항목</th>
                   <th className="px-3 py-3 text-right font-semibold">전기이월</th>
                   <th className="px-3 py-3 text-right font-semibold">증가</th>
