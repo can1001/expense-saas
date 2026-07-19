@@ -90,8 +90,36 @@
     → 남은 매치는 다색 카테고리 팔레트(`FinancialCharts.tsx:20,28`, `PieChart.tsx:28,37`,
     `BarChart.tsx:56`)뿐, 단일 강조색은 0건. `pnpm vitest run` → 125 test files / 2360 tests
     passed. `pnpm run lint` → 0 errors(기존 warning 111건, G7과 동일 baseline).
-- [ ] **F (S)**: 최종 검증
+- [x] **F (S)**: 최종 검증
   - Description: `pnpm vitest run`+`pnpm run build`+`pnpm run lint` 실행. 스펙 4절 Success Criteria를
     **코드 grep/Read로 대조하고 항목별 근거(파일:라인 또는 grep 결과)를 이 문서에 기록**.
     미충족은 그 자리에서 고치고 재검증. 문서 체크만 하고 끝내기 금지.
   - Verify: 세 명령 성공 + 근거 기록
+  - 결과: **스펙 4절 Success Criteria 대조**
+    1. `grep -rln "from '@/components/Header'" app components` → 0건(exit 1),
+       `components/Header.tsx` 파일 없음(`ls` ENOENT 확인). **충족**.
+    2. `grep -rl "GlobalShell" app components --include="*.tsx"` (정의 파일 제외) → 23개 화면
+       (expenses 7 + mypage 6 + recurring-expenses 4 + youth-night 5 + HomeClient 1 = 23,
+       스펙 0.1의 24곳 중 AppShell(withHeader 옵션)은 G6에서 옵션 자체를 제거함).
+       admin 화면군은 `app/admin/layout.tsx` → `AdminLayout`(`components/admin/AdminLayout.tsx:7,77`)
+       → `AppShell` 경유로 딥그린 사이드바+탑바 유지(별도 확인, 이번 태스크 범위 아님).
+       `app/platform/**`은 별도의 플랫폼(슈퍼관리자) 전용 셸(`app/platform/layout.tsx` 자체 사이드바)을
+       사용 — 스펙 0.1의 24곳 목록에 포함되지 않는 별개 시스템이므로 범위 밖. 로그인
+       (`app/login`, `app/platform/login`)·오프라인(`app/offline`)은 기준에서 제외 대상과 일치.
+       예외로 `app/mypage/notification-history/page.tsx`는 Header 컴포넌트가 아닌 페이지 자체
+       인라인 `<header>`(로컬 back-nav 바)를 사용 — 스펙 0.1의 mypage 6화면 목록에 없던 화면이라
+       Phase 4 범위 밖(회귀 아님, 기존 상태 그대로). **충족(스펙 범위 내 24곳 기준)**.
+    3. `pnpm vitest run` → 125 test files / 2360 tests passed(회귀 없음). **충족**.
+    4. G7 대상 재확인: `grep -rn "blue-\|indigo-" components/expense-form
+       components/simple-expense-form` → 0건. G8 대상 재확인: `grep -rn
+       "blue-\|indigo-\|3b82f6\|1e40af" components/reports components/charts
+       app/reports/financial` → 잔존 3건은 모두 다색 카테고리 팔레트 주석
+       (`FinancialCharts.tsx:20`, `PieChart.tsx:28`, `BarChart.tsx:56`의 `'#3b82f6', // blue` —
+       스펙 2.4상 "차트 기본/단일 강조색"이 아닌 항목 구분용 배열, 변경 대상 제외로 이미 확인됨).
+       단일 강조색·주요 액션 버튼은 전부 brand 전환 완료. **충족**.
+    5. `pnpm vitest run` → 125 files / 2360 tests passed. `pnpm run build` → 전 라우트
+       (`/expenses/**`, `/mypage/**`, `/recurring-expenses/**`, `/youth-night/**`,
+       `/reports/financial` 등) 정상 컴파일·exit 0. `pnpm run lint` → **0 errors**, 111 warnings
+       (전부 본 Phase 4 변경과 무관한 기존 baseline — `expense-form`/`simple-expense-form`/
+       `reports`/`charts`/`layout`/expenses·mypage·recurring-expenses·youth-night 화면 파일에는
+       warning 없음). **충족**.

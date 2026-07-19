@@ -69,8 +69,10 @@
 
 ## 4. Success Criteria
 
-- [ ] `grep -rln "from '@/components/Header'" app components` 결과 0건, Header.tsx 삭제됨
-- [ ] 모든 화면(로그인·오프라인 제외)이 딥그린 사이드바 + 탑바로 렌더링
-- [ ] 지출결의서 목록·작성·상세, 마이페이지, 정기 지출의 기존 기능 회귀 없음 (기존 테스트 전체 통과)
-- [ ] 작성 폼·보고서에서 blue 계열 주요 액션이 brand 토큰으로 전환
-- [ ] `pnpm vitest run` 전체 통과 · `pnpm run build` 성공 · 신규/수정 파일 lint 0건
+- [x] `grep -rln "from '@/components/Header'" app components` 결과 0건, Header.tsx 삭제됨
+- [x] 모든 화면(로그인·오프라인 제외)이 딥그린 사이드바 + 탑바로 렌더링
+- [x] 지출결의서 목록·작성·상세, 마이페이지, 정기 지출의 기존 기능 회귀 없음 (기존 테스트 전체 통과)
+- [x] 작성 폼·보고서에서 blue 계열 주요 액션이 brand 토큰으로 전환
+- [x] `pnpm vitest run` 전체 통과 · `pnpm run build` 성공 · 신규/수정 파일 lint 0건
+
+> 근거 상세는 `docs/TASKS_HEADER_CUTOVER_PHASE4_2026-07-20.md`의 태스크 F 결과 참조.
