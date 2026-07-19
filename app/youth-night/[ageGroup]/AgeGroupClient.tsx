@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 
 interface UserInfo {
   id: string;
@@ -112,9 +112,7 @@ export default function AgeGroupClient({ user, curriculums, ageGroup, urlAgeGrou
   const totalLessons = curriculums.reduce((sum, c) => sum + c.lessons.length, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
-      <Header />
-
+    <GlobalShell title={config.name}>
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         {/* Gradient Background */}
@@ -345,6 +343,6 @@ export default function AgeGroupClient({ user, curriculums, ageGroup, urlAgeGrou
           </div>
         </div>
       </main>
-    </div>
+    </GlobalShell>
   );
 }

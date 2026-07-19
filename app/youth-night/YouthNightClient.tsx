@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 
 interface UserInfo {
@@ -104,9 +104,7 @@ export default function YouthNightClient({ user, curriculums }: Props) {
   const totalLessons = curriculums.reduce((sum, c) => sum + c.lessons.length, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
-      <Header />
-
+    <GlobalShell title="청나잇">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         {/* Gradient Background */}
@@ -359,6 +357,6 @@ export default function YouthNightClient({ user, curriculums }: Props) {
           </div>
         </div>
       </main>
-    </div>
+    </GlobalShell>
   );
 }

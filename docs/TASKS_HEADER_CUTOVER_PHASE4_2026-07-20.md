@@ -23,10 +23,16 @@
   - Files: `app/recurring-expenses/{page,new/page,[id]/page,[id]/edit/page}.tsx`, `components/HomeClient.tsx`
   - Description: 정기 지출 4화면 + 일반 사용자 홈(HomeClient — 카드 그리드 유지, 셸만 교체, title "홈").
   - Verify: `pnpm vitest run && pnpm run build`
-- [ ] **G5 (M)**: youth-night 5화면 기계적 이관
+- [x] **G5 (M)**: youth-night 5화면 기계적 이관
   - Files: `app/youth-night/**` 의 Header 사용 클라이언트 5개
   - Description: 숨김 기능 — GlobalShell로 기계적 교체만, 기능·내용 무변경.
   - Verify: `pnpm vitest run && pnpm run build`
+  - 결과: `YouthNightClient.tsx`, `curriculum/[curriculumId]/CurriculumDetailClient.tsx`,
+    `[ageGroup]/AgeGroupClient.tsx`, `[ageGroup]/lessons/[lessonId]/LessonDetailClient.tsx`,
+    `admin/YouthNightAdminClient.tsx` 5개 파일에서 `<Header />`+wrapping div 제거,
+    `<GlobalShell title="...">`로 교체(제목: 청나잇/커리큘럼명/연령그룹명/레슨명/청나잇 관리자).
+    데이터 fetch·상태·핸들러·기능 무변경. `pnpm vitest run` 2360 tests passed,
+    `pnpm run build` 성공.
 - [ ] **G6 (S)**: Header.tsx 삭제 + withHeader 옵션 제거
   - Files: `components/Header.tsx`(삭제), `components/layout/AppShell.tsx`, Header 전용 테스트(있으면 삭제)
   - Description: `grep -rln "from '@/components/Header'" app components` **0건 근거를 이 문서에 기록한

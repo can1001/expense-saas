@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
 import {
   DndContext,
@@ -87,8 +87,7 @@ export default function YouthNightAdminClient({ user, curriculums }: Props) {
   const [activeTab, setActiveTab] = useState<'curriculums' | 'lessons' | 'create' | 'recitations' | 'dashboard'>('curriculums');
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
+    <GlobalShell title="청나잇 관리자">
       <main className={`${PADDING_PAGE}`}>
         <div className="max-w-7xl mx-auto">
           {/* 헤더 */}
@@ -192,7 +191,7 @@ export default function YouthNightAdminClient({ user, curriculums }: Props) {
           </div>
         </div>
       </main>
-    </div>
+    </GlobalShell>
   );
 }
 
