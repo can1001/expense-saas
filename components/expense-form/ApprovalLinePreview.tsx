@@ -187,7 +187,7 @@ export default function ApprovalLinePreview({
 
           {/* 전결 안내 */}
           {approvalLine.isDirectApproval && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+            <div className="bg-brand-50 border border-brand-100 rounded-lg p-3 text-sm text-brand-700">
               <span className="font-medium">전결 적용:</span> 담당자가 재정팀장이므로 1차 결재가 자동 승인됩니다.
             </div>
           )}

@@ -32,9 +32,9 @@ export default function WizardStep1({
   return (
     <div className="space-y-6">
       {/* 안내 문구 */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-medium text-blue-900 mb-1">지출 항목 입력</h3>
-        <p className="text-sm text-blue-700">
+      <div className="bg-brand-50 border border-brand-100 rounded-lg p-4">
+        <h3 className="font-medium text-brand-900 mb-1">지출 항목 입력</h3>
+        <p className="text-sm text-brand-700">
           예산 세목을 선택하고 금액과 적요를 입력하세요.
           <br className="hidden md:block" />
           여러 항목을 추가할 수 있습니다.

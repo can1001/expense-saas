@@ -136,7 +136,7 @@ export default function MemoTooltip({
       {/* 로딩 상태 */}
       {loading && (
         <div className="px-3 py-4 text-center text-sm text-gray-500">
-          <div className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2" />
+          <div className="inline-block w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mr-2" />
           로딩 중...
         </div>
       )}
@@ -156,7 +156,7 @@ export default function MemoTooltip({
                 onClick={() => onSelect(memo)}
                 className={`px-3 py-2 cursor-pointer text-sm transition-colors flex items-center justify-between group ${
                   index === selectedIndex
-                    ? 'bg-blue-50 text-blue-700'
+                    ? 'bg-brand-50 text-brand-700'
                     : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
@@ -208,7 +208,7 @@ export default function MemoTooltip({
                     onClick={() => onSelect(example)}
                     className={`px-3 py-2 cursor-pointer text-sm transition-colors flex items-center justify-between group ${
                       isSelected
-                        ? 'bg-blue-50 text-blue-700'
+                        ? 'bg-brand-50 text-brand-700'
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
@@ -246,7 +246,7 @@ export default function MemoTooltip({
               e.stopPropagation();
               onToggleFavorite(currentValue.trim());
             }}
-            className="w-full text-left text-sm text-blue-600 hover:text-blue-700 flex items-center gap-2"
+            className="w-full text-left text-sm text-brand-600 hover:text-brand-700 flex items-center gap-2"
           >
             <span className="text-yellow-500">☆</span>
             <span className="truncate">&quot;{currentValue.trim()}&quot; 즐겨찾기에 추가</span>

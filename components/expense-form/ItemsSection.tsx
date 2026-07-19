@@ -177,7 +177,7 @@ export default function ItemsSection({
             {/* 항목 헤더 - 터치 친화적 삭제 버튼 */}
             <div className="flex justify-between items-center mb-3 sm:mb-4">
               <h3 className="font-medium text-gray-900 flex items-center gap-2">
-                <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                <span className="w-6 h-6 bg-brand-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
                   {index + 1}
                 </span>
                 <span className="hidden sm:inline">항목</span>
@@ -327,7 +327,7 @@ export default function ItemsSection({
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   금액 (자동 계산)
                 </label>
-                <div className="px-3 sm:px-4 py-2 sm:py-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 font-semibold text-right min-h-[44px] flex items-center justify-end">
+                <div className="px-3 sm:px-4 py-2 sm:py-3 bg-brand-50 border border-brand-100 rounded-lg text-brand-900 font-semibold text-right min-h-[44px] flex items-center justify-end">
                   {(items?.[index]?.amount || 0).toLocaleString('ko-KR')}원
                 </div>
               </div>
@@ -352,9 +352,9 @@ export default function ItemsSection({
 
       {/* 총액 - 모바일에서 눈에 띄게 */}
       <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t-2 border-gray-200">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-gradient-to-r from-brand-50 to-brand-100 p-4 rounded-lg">
           <span className="text-base sm:text-lg font-semibold text-gray-900">총 청구금액</span>
-          <span className="text-2xl sm:text-3xl font-bold text-blue-600">
+          <span className="text-2xl sm:text-3xl font-bold text-brand-600">
             {totalAmount.toLocaleString('ko-KR')}원
           </span>
         </div>

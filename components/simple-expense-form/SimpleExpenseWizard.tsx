@@ -402,7 +402,7 @@ export default function SimpleExpenseWizard({
               type="button"
               onClick={goToNextStep}
               disabled={loading || isSubmitting}
-              className="flex-1 md:flex-none px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+              className="flex-1 md:flex-none px-6 py-3 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
             >
               다음 ({currentStep}/{TOTAL_STEPS})
             </button>
@@ -412,7 +412,7 @@ export default function SimpleExpenseWizard({
                 type="button"
                 onClick={handleSaveClick}
                 disabled={loading || isSubmitting}
-                className="flex-1 px-4 py-3 border border-blue-500 text-blue-600 rounded-lg font-medium hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+                className="flex-1 px-4 py-3 border border-brand-500 text-brand-600 rounded-lg font-medium hover:bg-brand-50 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
               >
                 {loading && submitMode === 'save' ? '저장 중...' : '임시저장'}
               </button>
@@ -420,7 +420,7 @@ export default function SimpleExpenseWizard({
                 type="button"
                 onClick={handleSubmitClick}
                 disabled={loading || isSubmitting}
-                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+                className="flex-1 px-4 py-3 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
               >
                 {loading && submitMode === 'submit' ? '제출 중...' : '제출'}
               </button>
@@ -458,7 +458,7 @@ export default function SimpleExpenseWizard({
                   setShowNoAttachmentModal(false);
                   attachmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700"
               >
                 첨부하러 가기
               </button>
@@ -472,8 +472,8 @@ export default function SimpleExpenseWizard({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-16 h-16 mx-auto mb-4 bg-brand-100 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                 </svg>
               </div>
@@ -495,7 +495,7 @@ export default function SimpleExpenseWizard({
               <button
                 type="button"
                 onClick={handleTemplatePromptSave}
-                className="flex-1 px-4 py-2 min-h-[48px] bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="flex-1 px-4 py-2 min-h-[48px] bg-brand-600 text-white rounded-lg hover:bg-brand-700"
               >
                 저장하기
               </button>
