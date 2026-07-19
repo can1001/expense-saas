@@ -2,7 +2,6 @@
 
 import { ReactNode } from 'react';
 import { Menu } from 'lucide-react';
-import Header from '@/components/Header';
 import { getFiscalYearLabel } from '@/lib/utils/fiscal-year';
 
 interface AppShellProps {
@@ -16,12 +15,6 @@ interface AppShellProps {
   topbarExtra?: ReactNode;
   /** 모바일 햄버거 클릭 → 사이드바 드로어 열기 */
   onOpenMobileMenu?: () => void;
-  /**
-   * 전환기 옵션: 기존 전역 Header 포함 여부.
-   * Header(사용자 메뉴·테넌트 스위처·알림)의 완전 대체는 Phase 2에서 진행한다
-   * — 그 전까지 admin 영역은 Header를 유지한 채 사이드바/탑바만 새 디자인 적용.
-   */
-  withHeader?: boolean;
   children: ReactNode;
 }
 
@@ -35,25 +28,18 @@ export default function AppShell({
   actions,
   topbarExtra,
   onOpenMobileMenu,
-  withHeader = false,
   children,
 }: AppShellProps) {
   const fiscalYearLabel = getFiscalYearLabel();
 
   return (
     <div className="min-h-screen bg-surface-bg">
-      {withHeader && <Header />}
-
       <div className="flex">
         {sidebar}
 
         <div className="min-w-0 flex-1">
-          {/* 탑바 — 모바일에서는 햄버거 포함. withHeader 시 sticky Header(h-16) 아래에 고정 */}
-          <div
-            className={`sticky z-20 flex min-h-[56px] items-center gap-3 border-b border-surface-border bg-white px-4 py-2.5 sm:px-6 ${
-              withHeader ? 'top-16' : 'top-0'
-            }`}
-          >
+          {/* 탑바 — 모바일에서는 햄버거 포함 */}
+          <div className="sticky top-0 z-20 flex min-h-[56px] items-center gap-3 border-b border-surface-border bg-white px-4 py-2.5 sm:px-6">
             {onOpenMobileMenu && (
               <button
                 onClick={onOpenMobileMenu}
