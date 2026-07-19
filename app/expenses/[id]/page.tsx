@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { format } from 'date-fns';
 import ImagePreview from '@/components/ImagePreview';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import PrintableExpense from '@/components/PrintableExpense';
 import { PrintPreviewModal, usePDFDownload } from '@/components/print';
 import ApprovalStatusBadge from '@/components/approval/ApprovalStatusBadge';
@@ -334,11 +334,10 @@ export default function ExpenseDetailPage() {
       />
 
       {/* 웹 화면용 (프린트 시 숨김) */}
-      <div className="min-h-screen bg-gray-50 screen-only">
-        <Header />
-
+      <div className="screen-only">
+      <GlobalShell title="지출결의서 상세">
         {/* 모바일 상단 바 */}
-        <div className="md:hidden sticky top-16 z-20 bg-white border-b border-gray-200 px-4 py-3">
+        <div className="md:hidden sticky top-0 z-20 bg-white border-b border-gray-200 px-4 py-3">
           <div className="flex items-center justify-between">
             <button
               onClick={handleBack}
@@ -368,7 +367,7 @@ export default function ExpenseDetailPage() {
           </div>
         </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pb-32 md:pb-8">
+      <div className="max-w-5xl mx-auto pb-32 md:pb-8">
 
         {/* 모바일 요약 카드 */}
         <div className="md:hidden mb-4">
@@ -925,6 +924,7 @@ export default function ExpenseDetailPage() {
           )}
         </button>
       </div>
+      </GlobalShell>
       </div>
 
       {/* 지급 상태 변경 모달 */}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ExpenseForm from '@/components/ExpenseForm';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import { SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 import { APPROVED_EDIT_ROLES } from '@/lib/constants/menu-permissions';
 import { apiBase } from '@/lib/api/api-base';
@@ -68,20 +68,10 @@ export default function EditExpensePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 헤더 */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">지출결의서 수정</h1>
-          <p className="mt-2 text-gray-600">
-            지출결의서 정보를 수정하고 저장하세요.
-          </p>
-        </div>
-
-        {/* 폼 */}
+    <GlobalShell title="지출결의서 수정">
+      <div className="max-w-5xl mx-auto">
         <ExpenseForm expenseId={id} />
       </div>
-    </div>
+    </GlobalShell>
   );
 }
