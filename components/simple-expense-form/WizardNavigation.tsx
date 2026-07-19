@@ -36,7 +36,7 @@ export default function WizardNavigation({
                   className={`
                     w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors
                     ${isCompleted ? 'bg-green-500 text-white' : ''}
-                    ${isCurrent ? 'bg-blue-600 text-white ring-4 ring-blue-100' : ''}
+                    ${isCurrent ? 'bg-brand-600 text-white ring-4 ring-brand-100' : ''}
                     ${isUpcoming ? 'bg-gray-200 text-gray-500' : ''}
                   `}
                 >
@@ -50,7 +50,7 @@ export default function WizardNavigation({
                 <span
                   className={`
                     mt-2 text-xs font-medium whitespace-nowrap
-                    ${isCurrent ? 'text-blue-600' : 'text-gray-500'}
+                    ${isCurrent ? 'text-brand-600' : 'text-gray-500'}
                   `}
                 >
                   {stepTitles[index]}

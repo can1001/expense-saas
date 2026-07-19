@@ -345,7 +345,7 @@ export default function SimpleItemsSection({
       <div className="mt-6 pt-6 border-t border-gray-200">
         <div className="flex justify-between items-center">
           <span className="text-lg font-semibold text-gray-900">총 청구금액</span>
-          <span className="text-2xl font-bold text-blue-500">
+          <span className="text-2xl font-bold text-brand-500">
             {totalAmount.toLocaleString('ko-KR')}원
           </span>
         </div>

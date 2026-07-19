@@ -72,11 +72,11 @@ export default function TemplateSelector({ onSelect, disabled = false }: Templat
             type="button"
             onClick={() => handleSelect(template)}
             disabled={disabled}
-            className="px-4 py-2 min-h-[48px] bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-sm font-medium hover:bg-blue-100 hover:border-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 min-h-[48px] bg-brand-50 text-brand-700 border border-brand-100 rounded-full text-sm font-medium hover:bg-brand-100 hover:border-brand-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <span className="truncate max-w-[150px]">{template.name}</span>
             {template.usageCount > 0 && (
-              <span className="text-xs text-blue-400">({template.usageCount})</span>
+              <span className="text-xs text-brand-500">({template.usageCount})</span>
             )}
           </button>
         ))}
@@ -123,7 +123,7 @@ export default function TemplateSelector({ onSelect, disabled = false }: Templat
                     type="button"
                     onClick={() => handleSelect(template)}
                     disabled={disabled}
-                    className="w-full text-left p-4 min-h-[56px] bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full text-left p-4 min-h-[56px] bg-gray-50 hover:bg-brand-50 border border-gray-200 hover:border-brand-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1 min-w-0">

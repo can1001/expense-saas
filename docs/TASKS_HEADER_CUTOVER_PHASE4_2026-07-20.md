@@ -47,11 +47,24 @@
     `AppShell.tsx`에서 `withHeader` prop·import·조건부 렌더·sticky top 삼항 분기 제거.
     삭제 후 재확인: `grep -rln "from '@/components/Header'" app components` → 0건(exit 1).
     `pnpm vitest run` → 125 test files / 2360 tests passed. `pnpm run build` → exit 0 성공.
-- [ ] **G7 (M)**: 작성 폼 토큰 전환 (색상만)
+- [x] **G7 (M)**: 작성 폼 토큰 전환 (색상만)
   - Files: `components/expense-form/**`, `components/simple-expense-form/**` 중 blue 사용 파일
   - Description: 주요 액션 버튼 `bg-blue-600/700`→`bg-brand-600/700`, hover·focus·활성 상태 →
     brand 토큰, 상태 뱃지 → StatusPill. 필드 구조·검증·제출 로직 무변경. 변경 파일 목록을 커밋에 명시.
   - Verify: `pnpm vitest run && pnpm run lint`
+  - 결과: `grep -rl "blue-" components/expense-form components/simple-expense-form` 결과 10개 파일
+    (`ApprovalLinePreview.tsx`, `MemoTooltip.tsx`, `ItemsSection.tsx`, `SimpleExpenseWizard.tsx`,
+    `WizardStep1.tsx`, `WizardStep2.tsx`, `TemplateSelector.tsx`, `SaveTemplateModal.tsx`,
+    `SimpleItemsSection.tsx`, `WizardNavigation.tsx`)에서 `bg-blue-*/text-blue-*/border-blue-*/
+    ring-blue-*` → 대응 `brand-*` 토큰으로 전환(50→50, 100/200→100, 300/400→500, 500→500,
+    600→600, 700→700, 900→900; `from-blue-50 to-indigo-50` → `from-brand-50 to-brand-100`).
+    필드 구조·검증·제출 로직·이벤트 핸들러 무변경(클래스명만 치환). 상태 뱃지는 이 두 디렉터리에서
+    green 계열(자동승인 뱃지, `ApprovalLinePreview.tsx:222`) 뿐으로 blue 기반 상태 뱃지 없음 —
+    StatusPill 전환 대상 없음 확인. `lib/constants/styles.ts`의 `BTN_PRIMARY` 등 공유 상수는
+    `app/admin/**` 등 30여 화면 전역에서 재사용되어 범위 초과이므로 미변경(스펙 2.4의 대상
+    디렉터리 한정 해석). 전환 후 `grep -rn "blue-\|indigo-" components/expense-form
+    components/simple-expense-form` → 0건. `pnpm vitest run` → 125 test files / 2360 tests
+    passed. `pnpm run lint` → 0 errors(기존 warning 111건은 본 변경과 무관).
 - [ ] **G8 (S)**: 보고서·차트 토큰 전환 (색상만)
   - Files: `components/reports/**`, `components/charts/**`, `app/reports/financial/**` 중 색상 지정 파일
   - Description: 차트 기본 팔레트·보고서 강조색을 brand 계열로. 라이브러리·데이터 로직 무변경.
