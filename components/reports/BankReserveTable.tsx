@@ -31,7 +31,7 @@ export function BankReserveTable({ bankAccounts, reserves }: BankReserveTablePro
           <div className="overflow-x-auto mb-6">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-blue-600 text-white">
+                <tr className="bg-brand-600 text-white">
                   <th className="px-4 py-3 text-left font-semibold">예금 종류</th>
                   <th className="px-4 py-3 text-right font-semibold">예금 잔액</th>
                   <th className="px-4 py-3 text-left font-semibold">계좌번호</th>
@@ -42,16 +42,16 @@ export function BankReserveTable({ bankAccounts, reserves }: BankReserveTablePro
                 {bankAccounts.map((account) => (
                   <tr key={account.id} className="border-b hover:bg-gray-50">
                     <td className="px-4 py-3 text-gray-900">{account.accountType}</td>
-                    <td className="px-4 py-3 text-right font-medium text-blue-600">
+                    <td className="px-4 py-3 text-right font-medium text-brand-600">
                       {formatAmount(account.balance)}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{account.accountNumber || '-'}</td>
                     <td className="px-4 py-3 text-gray-600">{account.note || '-'}</td>
                   </tr>
                 ))}
-                <tr className="bg-blue-50 font-bold">
+                <tr className="bg-brand-50 font-bold">
                   <td className="px-4 py-3 text-gray-900">합계</td>
-                  <td className="px-4 py-3 text-right text-blue-700">
+                  <td className="px-4 py-3 text-right text-brand-700">
                     {formatAmount(totalBankBalance)}
                   </td>
                   <td className="px-4 py-3"></td>
@@ -71,7 +71,7 @@ export function BankReserveTable({ bankAccounts, reserves }: BankReserveTablePro
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-blue-600 text-white">
+                <tr className="bg-brand-600 text-white">
                   <th className="px-4 py-3 text-left font-semibold">항목</th>
                   <th className="px-4 py-3 text-right font-semibold">전기이월</th>
                   <th className="px-4 py-3 text-right font-semibold">증가</th>
@@ -93,13 +93,13 @@ export function BankReserveTable({ bankAccounts, reserves }: BankReserveTablePro
                     <td className="px-4 py-3 text-right text-red-600">
                       {formatAmount(reserve.decrease)}
                     </td>
-                    <td className="px-4 py-3 text-right font-medium text-blue-600">
+                    <td className="px-4 py-3 text-right font-medium text-brand-600">
                       {formatAmount(reserve.currentBalance)}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{reserve.note || '-'}</td>
                   </tr>
                 ))}
-                <tr className="bg-blue-50 font-bold">
+                <tr className="bg-brand-50 font-bold">
                   <td className="px-4 py-3 text-gray-900">합계</td>
                   <td className="px-4 py-3 text-right text-gray-900">
                     {formatAmount(totalReserve.previousBalance)}
@@ -110,7 +110,7 @@ export function BankReserveTable({ bankAccounts, reserves }: BankReserveTablePro
                   <td className="px-4 py-3 text-right text-red-600">
                     {formatAmount(totalReserve.decrease)}
                   </td>
-                  <td className="px-4 py-3 text-right text-blue-700">
+                  <td className="px-4 py-3 text-right text-brand-700">
                     {formatAmount(totalReserve.currentBalance)}
                   </td>
                   <td className="px-4 py-3"></td>

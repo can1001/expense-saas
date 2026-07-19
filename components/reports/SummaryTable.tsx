@@ -25,7 +25,7 @@ export function SummaryTable({ summary }: SummaryTableProps) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-blue-600 text-white">
+            <tr className="bg-brand-600 text-white">
               <th className="px-4 py-3 text-left font-semibold">구분</th>
               <th className="px-4 py-3 text-right font-semibold">전기이월</th>
               <th className="px-4 py-3 text-right font-semibold">수입총계</th>
@@ -35,7 +35,7 @@ export function SummaryTable({ summary }: SummaryTableProps) {
           </thead>
           <tbody>
             {/* 당기누계 */}
-            <tr className="border-b bg-blue-50 font-semibold">
+            <tr className="border-b bg-brand-50 font-semibold">
               <td className="px-4 py-3 text-gray-900">당기누계</td>
               <td className="px-4 py-3 text-right text-gray-900">
                 {formatAmount(summary.previousCarryover)}
@@ -46,7 +46,7 @@ export function SummaryTable({ summary }: SummaryTableProps) {
               <td className="px-4 py-3 text-right text-red-600">
                 {formatAmount(summary.totalExpense)}
               </td>
-              <td className="px-4 py-3 text-right font-bold text-blue-600">
+              <td className="px-4 py-3 text-right font-bold text-brand-600">
                 {formatAmount(summary.nextCarryover)}
               </td>
             </tr>
@@ -75,10 +75,10 @@ export function SummaryTable({ summary }: SummaryTableProps) {
               <tr className="bg-gray-100 font-medium">
                 <td className="px-4 py-3 text-gray-900">전년 대비 증감</td>
                 <td className="px-4 py-3 text-right text-gray-400">-</td>
-                <td className={`px-4 py-3 text-right ${incomeDiff >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                <td className={`px-4 py-3 text-right ${incomeDiff >= 0 ? 'text-red-600' : 'text-brand-600'}`}>
                   {incomeDiff >= 0 ? '▲' : '▼'} {formatAmount(Math.abs(incomeDiff))}
                 </td>
-                <td className={`px-4 py-3 text-right ${expenseDiff >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                <td className={`px-4 py-3 text-right ${expenseDiff >= 0 ? 'text-red-600' : 'text-brand-600'}`}>
                   {expenseDiff >= 0 ? '▲' : '▼'} {formatAmount(Math.abs(expenseDiff))}
                 </td>
                 <td className="px-4 py-3 text-right text-gray-400">-</td>

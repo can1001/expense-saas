@@ -49,7 +49,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { payl
         )}
         <p className="text-gray-900">결산: {item.value.toLocaleString()}원</p>
         {item.rate !== undefined && (
-          <p className={`font-medium ${item.rate > 100 ? 'text-red-600' : 'text-blue-600'}`}>
+          <p className={`font-medium ${item.rate > 100 ? 'text-red-600' : 'text-brand-600'}`}>
             진척률: {item.rate.toFixed(1)}%
           </p>
         )}
@@ -124,7 +124,7 @@ export function PieChart({
               <span className="text-gray-700">
                 {entry.value} ({percent}%)
                 {hasBudgetInfo && item?.rate !== undefined && (
-                  <span className={`ml-1 ${item.rate > 100 ? 'text-red-600' : 'text-blue-600'}`}>
+                  <span className={`ml-1 ${item.rate > 100 ? 'text-red-600' : 'text-brand-600'}`}>
                     [{item.rate.toFixed(0)}%]
                   </span>
                 )}
@@ -214,7 +214,7 @@ export function PieChart({
             y="78%"
             textAnchor="middle"
             dominantBaseline="middle"
-            className={`text-[10px] font-medium ${totalRate > 100 ? 'fill-red-600' : 'fill-blue-600'}`}
+            className={`text-[10px] font-medium ${totalRate > 100 ? 'fill-red-600' : 'fill-brand-600'}`}
           >
             ({totalRate.toFixed(1)}%)
           </text>

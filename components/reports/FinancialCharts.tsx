@@ -63,7 +63,7 @@ function CenterLabel({ budget, actual, rate, cx, cy }: {
       <text x={cx} y={Number(cy) - 5} textAnchor="middle" fill="#374151" fontSize={12} fontWeight="bold">
         결산 {formatAmount(actual)}
       </text>
-      <text x={cx} y={Number(cy) + 25} textAnchor="middle" fill="#1e40af" fontSize={16} fontWeight="bold">
+      <text x={cx} y={Number(cy) + 25} textAnchor="middle" fill="#166B4A" fontSize={16} fontWeight="bold">
         진척률 {Math.round(rate)}%
       </text>
     </g>
