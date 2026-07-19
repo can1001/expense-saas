@@ -125,12 +125,33 @@ const nextConfig: NextConfig = {
   // 이전 완료된 도메인만 이 경로로 호출하고, 미이전 도메인은 기존 /api/* (Next.js)를 쓴다.
   async rewrites() {
     const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:8000";
-    return [
-      {
-        source: "/api/py/:path*",
-        destination: `${apiOrigin}/api/:path*`,
-      },
-    ];
+    // Expense id 는 cuid(v1)/cuid2 — 20자 이상 소문자 영숫자라서 bulk, export,
+    // filter-options 등 미이관 고정 세그먼트(짧거나 하이픈 포함)와 구분된다.
+    const cuid = "[a-z0-9]{20,}";
+    return {
+      // 컷오버 완료 도메인: 동일한 /api/* 경로를 FastAPI 가 처리.
+      // beforeFiles 라서 남아있는 Next 라우트 파일보다 우선한다 (롤백 = 해당 항목 제거).
+      beforeFiles: [
+        { source: "/api/auth/login", destination: `${apiOrigin}/api/auth/login` },
+        { source: "/api/auth/logout", destination: `${apiOrigin}/api/auth/logout` },
+        { source: "/api/auth/me", destination: `${apiOrigin}/api/auth/me` },
+        { source: "/api/expenses", destination: `${apiOrigin}/api/expenses` },
+        {
+          source: `/api/expenses/:id(${cuid})`,
+          destination: `${apiOrigin}/api/expenses/:id`,
+        },
+        {
+          source: `/api/expenses/:id(${cuid})/:action(submit|approve|reject|resubmit|withdraw|delegate|approval-line|approval)`,
+          destination: `${apiOrigin}/api/expenses/:id/:action`,
+        },
+      ],
+      afterFiles: [
+        {
+          source: "/api/py/:path*",
+          destination: `${apiOrigin}/api/:path*`,
+        },
+      ],
+    };
   },
 };
 
