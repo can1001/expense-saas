@@ -16,7 +16,7 @@
   - Description: 각 페이지에서 `<Header />` 제거하고 GlobalShell로 감싼다. 페이지 내부 데이터 로직·
     필터·무한스크롤·모바일 카드 무변경. 목록 페이지 CTA("+ 작성")는 탑바 actions로.
   - Verify: `pnpm vitest run && pnpm run build`
-- [ ] **G3 (M)**: mypage 그룹 6화면 이관
+- [x] **G3 (M)**: mypage 그룹 6화면 이관
   - Files: `app/mypage/page.tsx`, `password/`, `send-notification/`, `signatures/`, `notifications/`, `kakao/` 각 page.tsx
   - Verify: `pnpm vitest run && pnpm run build`
 - [ ] **G4 (M)**: recurring-expenses 4화면 + HomeClient 이관

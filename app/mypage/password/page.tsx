@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import {
   SECTION_CARD,
   SECTION_TITLE,
@@ -112,12 +112,8 @@ export default function ChangePasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <div className="container mx-auto px-4 py-8 max-w-md">
-        {/* 페이지 제목 */}
-        <h1 className="text-2xl font-bold mb-6">비밀번호 변경</h1>
-
+    <GlobalShell title="비밀번호 변경">
+      <div className="max-w-md mx-auto">
       {/* 에러 메시지 */}
       {error && <div className={`${ALERT_ERROR} mb-6`}>{error}</div>}
 
@@ -211,6 +207,6 @@ export default function ChangePasswordPage() {
         </div>
         </form>
       </div>
-    </div>
+    </GlobalShell>
   );
 }
