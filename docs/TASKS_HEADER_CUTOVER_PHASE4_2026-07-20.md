@@ -11,7 +11,7 @@
     `GlobalShell`(props: title, actions?, children)로 일반화. DashboardShell은 GlobalShell을 사용하도록
     리팩터링(동작 무변화 — 기존 테스트 통과 유지).
   - Verify: `pnpm vitest run components/layout/ components/dashboard/ && pnpm run lint`
-- [ ] **G2 (L·예외 허용)**: expenses 그룹 7화면 이관
+- [x] **G2 (L·예외 허용)**: expenses 그룹 7화면 이관
   - Files: `app/expenses/page.tsx`, `app/expenses/new/page.tsx`, `app/expenses/[id]/page.tsx`, `app/expenses/[id]/edit/page.tsx`, `app/expenses/simple/new/page.tsx`, `app/expenses/simple/[id]/page.tsx`, `app/expenses/simple/[id]/edit/page.tsx`
   - Description: 각 페이지에서 `<Header />` 제거하고 GlobalShell로 감싼다. 페이지 내부 데이터 로직·
     필터·무한스크롤·모바일 카드 무변경. 목록 페이지 CTA("+ 작성")는 탑바 actions로.

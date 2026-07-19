@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'rea
 import { useRouter, useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import Image from 'next/image';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import { ExcelExportModal } from '@/components/ExcelExportModal';
 import { BulkPaymentStatusModal } from '@/components/BulkPaymentStatusModal';
 import { BulkExpenseDateModal } from '@/components/BulkExpenseDateModal';
@@ -537,9 +537,8 @@ function ExpensesPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <GlobalShell title="지출결의서 목록">
+        <div className="max-w-7xl mx-auto">
           {/* 헤더 스켈레톤 */}
           <div className="mb-6">
             <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2" />
@@ -559,7 +558,7 @@ function ExpensesPageContent() {
             <TableSkeleton rows={10} columns={8} />
           </div>
         </div>
-      </div>
+      </GlobalShell>
     );
   }
 
@@ -582,24 +581,22 @@ function ExpensesPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 헤더 */}
-        <div className="mb-4 sm:mb-6 md:mb-8 flex justify-between items-start">
-          <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">지출결의서 목록</h1>
-            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
-              총 {serverPagination.total}건의 지출결의서
-            </p>
-          </div>
-          <button
-            onClick={() => router.push('/expenses/new')}
-            className={`${BTN_PRIMARY} hidden sm:flex items-center gap-2`}
-          >
-            + 신규 지출결의서 작성
-          </button>
-        </div>
+    <GlobalShell
+      title="지출결의서 목록"
+      actions={
+        <button
+          onClick={() => router.push('/expenses/new')}
+          className={`${BTN_PRIMARY} hidden sm:flex items-center gap-2`}
+        >
+          + 신규 지출결의서 작성
+        </button>
+      }
+    >
+      <div className="max-w-7xl mx-auto">
+        {/* 총 건수 */}
+        <p className="mb-4 sm:mb-6 md:mb-8 text-sm sm:text-base text-gray-600">
+          총 {serverPagination.total}건의 지출결의서
+        </p>
 
         {/* 검색 및 필터 */}
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
@@ -1511,7 +1508,7 @@ function ExpensesPageContent() {
         uniqueDepartments={uniqueDepartments}
         uniqueCategories={uniqueCategories}
       />
-    </div>
+    </GlobalShell>
   );
 }
 
@@ -1519,9 +1516,8 @@ function ExpensesPageContent() {
 export default function ExpensesPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <GlobalShell title="지출결의서 목록">
+        <div className="max-w-7xl mx-auto">
           <div className="mb-6">
             <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2" />
             <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
@@ -1534,7 +1530,7 @@ export default function ExpensesPage() {
             <TableSkeleton rows={10} columns={8} />
           </div>
         </div>
-      </div>
+      </GlobalShell>
     }>
       <ExpensesPageContent />
     </Suspense>

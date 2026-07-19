@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { format } from 'date-fns';
 import ImagePreview from '@/components/ImagePreview';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import SimplePrintableExpense from '@/components/SimplePrintableExpense';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -155,50 +155,49 @@ export default function SimpleExpenseDetailPage() {
       <SimplePrintableExpense expense={expense} />
 
       {/* 웹 화면용 (프린트 시 숨김) */}
-      <div className="min-h-screen bg-gray-50 screen-only">
-        <Header />
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* 헤더 */}
-          <div className="mb-8 flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">지출결의서 상세 (간편)</h1>
-              <p className="mt-2 text-gray-600">
-                작성일: {format(new Date(expense.createdAt), 'yyyy-MM-dd HH:mm')}
-              </p>
-              <p className="text-sm text-blue-600">
-                예산항목: 하단 예산항목 참조 ({expense.version})
-              </p>
-            </div>
-
-            <div className="flex gap-2 no-print">
-              <button onClick={handlePrint} className={BTN_PRIMARY} title="페이지 프린트">
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-                  />
-                </svg>
-                프린트
-              </button>
-              <button
-                onClick={() => router.push(`/expenses/simple/${id}/edit`)}
-                disabled={deleteLoading}
-                className={BTN_SECONDARY}
+      <div className="screen-only">
+      <GlobalShell
+        title="지출결의서 상세 (간편)"
+        actions={
+          <div className="flex gap-2 no-print">
+            <button onClick={handlePrint} className={BTN_PRIMARY} title="페이지 프린트">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                수정
-              </button>
-              <button onClick={handleDelete} disabled={deleteLoading} className={BTN_DANGER}>
-                {deleteLoading && <div className={SPINNER}></div>}
-                삭제
-              </button>
-            </div>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                />
+              </svg>
+              프린트
+            </button>
+            <button
+              onClick={() => router.push(`/expenses/simple/${id}/edit`)}
+              disabled={deleteLoading}
+              className={BTN_SECONDARY}
+            >
+              수정
+            </button>
+            <button onClick={handleDelete} disabled={deleteLoading} className={BTN_DANGER}>
+              {deleteLoading && <div className={SPINNER}></div>}
+              삭제
+            </button>
+          </div>
+        }
+      >
+        <div className="max-w-5xl mx-auto">
+          <div className="mb-8">
+            <p className="text-gray-600">
+              작성일: {format(new Date(expense.createdAt), 'yyyy-MM-dd HH:mm')}
+            </p>
+            <p className="text-sm text-blue-600">
+              예산항목: 하단 예산항목 참조 ({expense.version})
+            </p>
           </div>
 
           {/* 지출 정보 */}
@@ -353,6 +352,7 @@ export default function SimpleExpenseDetailPage() {
             </button>
           </div>
         </div>
+      </GlobalShell>
       </div>
     </>
   );
