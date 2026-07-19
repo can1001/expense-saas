@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import { RecurringExpenseCard } from '@/components/recurring-expense/RecurringExpenseCard';
 import { RecurringExpenseStatus } from '@/components/recurring-expense/RecurringExpenseStatus';
 import { ExpenseListSkeleton } from '@/components/ui/Skeleton';
@@ -103,35 +103,33 @@ export default function RecurringExpensesPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 헤더 */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">정기 지출 관리</h1>
-            <p className="mt-1 text-gray-600">
-              정기적으로 자동 생성되는 지출결의서를 관리합니다.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={refresh}
-              disabled={isLoading}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-              title="새로고침"
-            >
-              <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
-            <Link
-              href="/recurring-expenses/new"
-              className={BTN_PRIMARY}
-            >
-              <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">새 정기 지출</span>
-            </Link>
-          </div>
-        </div>
+    <GlobalShell
+      title="정기 지출 관리"
+      actions={
+        <>
+          <button
+            onClick={refresh}
+            disabled={isLoading}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            title="새로고침"
+          >
+            <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+          <Link
+            href="/recurring-expenses/new"
+            className={BTN_PRIMARY}
+          >
+            <Plus className="w-5 h-5" />
+            <span className="hidden sm:inline">새 정기 지출</span>
+          </Link>
+        </>
+      }
+    >
+      <div className="max-w-5xl mx-auto">
+        {/* 설명 */}
+        <p className="mb-6 text-gray-600">
+          정기적으로 자동 생성되는 지출결의서를 관리합니다.
+        </p>
 
         {/* 검색 입력 */}
         <div className="mb-4">
@@ -252,6 +250,6 @@ export default function RecurringExpensesPage() {
           </>
         )}
       </div>
-    </div>
+    </GlobalShell>
   );
 }
