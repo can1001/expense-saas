@@ -33,11 +33,20 @@
     `<GlobalShell title="...">`로 교체(제목: 청나잇/커리큘럼명/연령그룹명/레슨명/청나잇 관리자).
     데이터 fetch·상태·핸들러·기능 무변경. `pnpm vitest run` 2360 tests passed,
     `pnpm run build` 성공.
-- [ ] **G6 (S)**: Header.tsx 삭제 + withHeader 옵션 제거
+- [x] **G6 (S)**: Header.tsx 삭제 + withHeader 옵션 제거
   - Files: `components/Header.tsx`(삭제), `components/layout/AppShell.tsx`, Header 전용 테스트(있으면 삭제)
   - Description: `grep -rln "from '@/components/Header'" app components` **0건 근거를 이 문서에 기록한
     후에만** 삭제. AppShell의 withHeader 옵션·주석 정리.
   - Verify: grep 0건 + `pnpm vitest run && pnpm run build`
+  - 결과: 삭제 전 `grep -rln "from '@/components/Header'" app components` → 유일한 참조는
+    `components/layout/AppShell.tsx` 1건. 그 외 "Header" 텍스트 매치(PrintHeader, tableHeader,
+    주석 "// Header" 등)는 무관함을 확인. `AppShell`을 사용하는 모든 콜사이트
+    (`app/approvals/page.tsx`, `app/approvals/[id]/page.tsx`, `components/admin/AdminLayout.tsx`)는
+    `withHeader`를 전달하지 않아(기본값 `false`) 실제로 `<Header />`가 렌더된 적이 없었음을 확인.
+    Header 전용 테스트 파일 없음(`find . -iname "*Header*test*"` 0건). `components/Header.tsx` 삭제,
+    `AppShell.tsx`에서 `withHeader` prop·import·조건부 렌더·sticky top 삼항 분기 제거.
+    삭제 후 재확인: `grep -rln "from '@/components/Header'" app components` → 0건(exit 1).
+    `pnpm vitest run` → 125 test files / 2360 tests passed. `pnpm run build` → exit 0 성공.
 - [ ] **G7 (M)**: 작성 폼 토큰 전환 (색상만)
   - Files: `components/expense-form/**`, `components/simple-expense-form/**` 중 blue 사용 파일
   - Description: 주요 액션 버튼 `bg-blue-600/700`→`bg-brand-600/700`, hover·focus·활성 상태 →
