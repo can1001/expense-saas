@@ -144,10 +144,29 @@ const nextConfig: NextConfig = {
           source: `/api/expenses/:id(${cuid})/:action(submit|approve|reject|resubmit|withdraw|delegate|approval-line|approval)`,
           destination: `${apiOrigin}/api/expenses/:id/:action`,
         },
-        // budget: 루트만 이관 — hierarchy/search/simple/upload 등 하위 경로는 Next 유지
+        // budget: 조회 계열 이관 — upload, hierarchy/export(Excel)만 Next 유지
         { source: "/api/budget", destination: `${apiOrigin}/api/budget` },
-        // 예산 마스터: committees/[id] 는 FastAPI 에 DELETE 가 없어 Next 유지
+        { source: "/api/budget/hierarchy", destination: `${apiOrigin}/api/budget/hierarchy` },
+        { source: "/api/budget/search", destination: `${apiOrigin}/api/budget/search` },
+        { source: "/api/budget/simple", destination: `${apiOrigin}/api/budget/simple` },
+        {
+          source: "/api/budget/simple/all-details",
+          destination: `${apiOrigin}/api/budget/simple/all-details`,
+        },
+        {
+          source: "/api/budget/usage-details",
+          destination: `${apiOrigin}/api/budget/usage-details`,
+        },
+        {
+          source: "/api/budget/memo-examples",
+          destination: `${apiOrigin}/api/budget/memo-examples`,
+        },
+        // 예산 마스터
         { source: "/api/committees", destination: `${apiOrigin}/api/committees` },
+        {
+          source: `/api/committees/:id(${cuid})`,
+          destination: `${apiOrigin}/api/committees/:id`,
+        },
         { source: "/api/departments", destination: `${apiOrigin}/api/departments` },
         {
           source: `/api/departments/:id(${cuid})`,

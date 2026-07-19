@@ -26,6 +26,7 @@ from expense_api.core.routes import (  # noqa: E402
     approvals_list_routes,
     auth_routes,
     budget_master_routes,
+    budget_query_routes,
     budget_routes,
     expense_routes,
     health_routes,
@@ -75,6 +76,7 @@ app.include_router(health_routes.router, tags=["health"])
 app.include_router(auth_routes.router, prefix="/api/auth", tags=["auth"])
 app.include_router(tenant_routes.router, prefix="/api/tenant", tags=["tenant"])
 app.include_router(budget_routes.router, prefix="/api/budget", tags=["budget"])
+app.include_router(budget_query_routes.router, prefix="/api/budget", tags=["budget-query"])
 app.include_router(budget_master_routes.router, prefix="/api", tags=["budget-master"])
 app.include_router(expense_routes.router, prefix="/api/expenses", tags=["expenses"])
 app.include_router(approval_routes.router, prefix="/api/expenses", tags=["approval"])
