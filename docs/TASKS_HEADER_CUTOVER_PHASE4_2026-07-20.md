@@ -5,7 +5,7 @@
 
 ## 태스크
 
-- [ ] **G1 (M)**: `GlobalShell` 추출
+- [x] **G1 (M)**: `GlobalShell` 추출
   - Files: `components/layout/GlobalShell.tsx`, `components/layout/__tests__/GlobalShell.test.tsx`, `components/dashboard/DashboardShell.tsx`
   - Description: DashboardShell의 셸 부분(사용자 fetch·전역 사이드바·탑바·SidebarUserCard)을
     `GlobalShell`(props: title, actions?, children)로 일반화. DashboardShell은 GlobalShell을 사용하도록
