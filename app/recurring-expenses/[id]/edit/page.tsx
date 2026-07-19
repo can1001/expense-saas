@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import { RecurringExpenseForm } from '@/components/recurring-expense/RecurringExpenseForm';
 import { ALERT_ERROR, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 
@@ -64,16 +64,12 @@ export default function EditRecurringExpensePage({ params }: PageProps) {
   }, [fetchRecurringExpense]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 헤더 */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">정기 지출 수정</h1>
-          <p className="mt-2 text-gray-600">
-            정기 지출 정보를 수정합니다.
-          </p>
-        </div>
+    <GlobalShell title="정기 지출 수정">
+      <div className="max-w-5xl mx-auto">
+        {/* 설명 */}
+        <p className="mb-8 text-gray-600">
+          정기 지출 정보를 수정합니다.
+        </p>
 
         {/* 로딩 상태 */}
         {loading && (
@@ -120,6 +116,6 @@ export default function EditRecurringExpensePage({ params }: PageProps) {
           />
         )}
       </div>
-    </div>
+    </GlobalShell>
   );
 }

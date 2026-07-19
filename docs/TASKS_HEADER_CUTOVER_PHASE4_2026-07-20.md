@@ -19,7 +19,7 @@
 - [x] **G3 (M)**: mypage 그룹 6화면 이관
   - Files: `app/mypage/page.tsx`, `password/`, `send-notification/`, `signatures/`, `notifications/`, `kakao/` 각 page.tsx
   - Verify: `pnpm vitest run && pnpm run build`
-- [ ] **G4 (M)**: recurring-expenses 4화면 + HomeClient 이관
+- [x] **G4 (M)**: recurring-expenses 4화면 + HomeClient 이관
   - Files: `app/recurring-expenses/{page,new/page,[id]/page,[id]/edit/page}.tsx`, `components/HomeClient.tsx`
   - Description: 정기 지출 4화면 + 일반 사용자 홈(HomeClient — 카드 그리드 유지, 셸만 교체, title "홈").
   - Verify: `pnpm vitest run && pnpm run build`

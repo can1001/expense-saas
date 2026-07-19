@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import { RecurringExpenseDetail } from '@/components/recurring-expense/RecurringExpenseDetail';
 import { ALERT_ERROR, SPINNER_LG, FLEX_CENTER } from '@/lib/constants/styles';
 
@@ -114,9 +114,8 @@ export default function RecurringExpenseDetailPage({ params }: PageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <GlobalShell title="정기 지출 상세">
+      <div className="max-w-5xl mx-auto">
         {/* 로딩 상태 */}
         {loading && (
           <div className={`${FLEX_CENTER} py-20`}>
@@ -146,6 +145,6 @@ export default function RecurringExpenseDetailPage({ params }: PageProps) {
           />
         )}
       </div>
-    </div>
+    </GlobalShell>
   );
 }

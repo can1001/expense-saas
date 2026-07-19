@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import { canAccessExtendedMenu, canAccessApprovalMenu, canAccessAdminMenu, ROLE_NAMES } from '@/lib/constants/menu-permissions';
-import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, TEXT_STAT, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
+import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, TEXT_STAT, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
 import { usePendingApprovalCount } from '@/hooks/usePendingApprovalCount';
 import { useOrgTerms } from '@/lib/contexts/TenantContext';
 
@@ -41,10 +41,8 @@ export default function HomeClient({ user, isBudgetManager = false, stats }: Pro
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <main className={`${PADDING_PAGE} bg-gradient-to-br from-blue-50 to-indigo-100`}>
-        <div className="max-w-4xl mx-auto">
+    <GlobalShell title="홈">
+      <div className="max-w-4xl mx-auto">
         {/* 헤더 */}
         <div className={`text-center ${MARGIN_SECTION}`}>
           <h1 className={`${TEXT_HERO} text-gray-900 mb-2 sm:mb-4`}>
@@ -387,8 +385,7 @@ export default function HomeClient({ user, isBudgetManager = false, stats }: Pro
             </div>
           </div>
         )}
-        </div>
-      </main>
-    </div>
+      </div>
+    </GlobalShell>
   );
 }
