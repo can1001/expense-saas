@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
 import { parseLessonContent, getStepIcon, getStepColorClass, LessonStep } from '@/lib/utils/lesson-parser';
 import { FlashcardStudy, FlashcardItem } from '@/components/flashcard';
@@ -388,8 +388,7 @@ export default function LessonDetailClient({
   const score = getQuizScore();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
+    <GlobalShell title={lesson.title}>
       <main className={`${PADDING_PAGE} bg-gradient-to-br from-purple-50 to-pink-100`}>
         <div className="max-w-4xl mx-auto">
           {/* 헤더 */}
@@ -1116,6 +1115,6 @@ export default function LessonDetailClient({
           }}
         />
       )}
-    </div>
+    </GlobalShell>
   );
 }

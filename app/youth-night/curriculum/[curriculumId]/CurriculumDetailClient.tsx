@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import { TEXT_HERO, TEXT_SUBTITLE, TEXT_SECTION_TITLE, PADDING_PAGE, PADDING_CARD, MARGIN_SECTION } from '@/lib/constants/styles';
 
 interface UserInfo {
@@ -110,8 +110,7 @@ export default function CurriculumDetailClient({ user, curriculum, urlAgeGroup, 
   const maxPossiblePoints = publishedLessons.length * 30; // 출석 5 + 퀴즈 15 + 암송 10 정도로 예상
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
+    <GlobalShell title={curriculum.title}>
       <main className={`${PADDING_PAGE} bg-gradient-to-br from-purple-50 to-pink-100`}>
         <div className="max-w-4xl mx-auto">
           {/* 브레드크럼 */}
@@ -374,6 +373,6 @@ export default function CurriculumDetailClient({ user, curriculum, urlAgeGroup, 
           </div>
         </div>
       </main>
-    </div>
+    </GlobalShell>
   );
 }
