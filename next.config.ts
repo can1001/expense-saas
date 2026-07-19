@@ -144,6 +144,45 @@ const nextConfig: NextConfig = {
           source: `/api/expenses/:id(${cuid})/:action(submit|approve|reject|resubmit|withdraw|delegate|approval-line|approval)`,
           destination: `${apiOrigin}/api/expenses/:id/:action`,
         },
+        // budget: 루트만 이관 — hierarchy/search/simple/upload 등 하위 경로는 Next 유지
+        { source: "/api/budget", destination: `${apiOrigin}/api/budget` },
+        // 예산 마스터: committees/[id] 는 FastAPI 에 DELETE 가 없어 Next 유지
+        { source: "/api/committees", destination: `${apiOrigin}/api/committees` },
+        { source: "/api/departments", destination: `${apiOrigin}/api/departments` },
+        {
+          source: `/api/departments/:id(${cuid})`,
+          destination: `${apiOrigin}/api/departments/:id`,
+        },
+        { source: "/api/budget-categories", destination: `${apiOrigin}/api/budget-categories` },
+        {
+          source: `/api/budget-categories/:id(${cuid})`,
+          destination: `${apiOrigin}/api/budget-categories/:id`,
+        },
+        {
+          source: "/api/budget-subcategories",
+          destination: `${apiOrigin}/api/budget-subcategories`,
+        },
+        {
+          source: `/api/budget-subcategories/:id(${cuid})`,
+          destination: `${apiOrigin}/api/budget-subcategories/:id`,
+        },
+        { source: "/api/budget-details", destination: `${apiOrigin}/api/budget-details` },
+        {
+          source: `/api/budget-details/:id(${cuid})`,
+          destination: `${apiOrigin}/api/budget-details/:id`,
+        },
+        // 결재 목록·결재선 계산 (calculate 의 Next GET 은 앱에서 미사용 — POST 만 쓴다)
+        { source: "/api/approvals", destination: `${apiOrigin}/api/approvals` },
+        {
+          source: "/api/approvals/pending-count",
+          destination: `${apiOrigin}/api/approvals/pending-count`,
+        },
+        {
+          source: "/api/approval-line/calculate",
+          destination: `${apiOrigin}/api/approval-line/calculate`,
+        },
+        { source: "/api/approval-policies", destination: `${apiOrigin}/api/approval-policies` },
+        { source: "/api/tenant/info", destination: `${apiOrigin}/api/tenant/info` },
       ],
       afterFiles: [
         {
