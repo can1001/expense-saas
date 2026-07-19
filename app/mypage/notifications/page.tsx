@@ -1,7 +1,7 @@
 'use client';
 
 import { Bell, BellOff, Send, AlertCircle, CheckCircle, Info } from 'lucide-react';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import { SECTION_CARD, PADDING_CARD } from '@/lib/constants/styles';
 import { usePushNotification } from '@/lib/hooks/usePushNotification';
 
@@ -33,11 +33,8 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <h1 className="text-2xl font-bold mb-6">알림 설정</h1>
-
+    <GlobalShell title="알림 설정">
+      <div className="max-w-2xl mx-auto">
         {/* 알림 상태 카드 */}
         <div className={`${SECTION_CARD} mb-4`}>
           <div className={PADDING_CARD}>
@@ -201,6 +198,6 @@ export default function NotificationsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </GlobalShell>
   );
 }

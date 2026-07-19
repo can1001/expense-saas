@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   Bell,
   Send,
@@ -10,12 +9,11 @@ import {
   Users,
   User,
   UserCog,
-  ArrowLeft,
   CheckCircle,
   XCircle,
   AlertCircle,
 } from 'lucide-react';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import {
   SECTION_CARD,
   SECTION_TITLE,
@@ -286,14 +284,13 @@ export default function SendNotificationPage() {
   // 로딩 중
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="container mx-auto px-4 py-8 max-w-2xl">
+      <GlobalShell title="알림 발송">
+        <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
           </div>
         </div>
-      </div>
+      </GlobalShell>
     );
   }
 
@@ -303,22 +300,8 @@ export default function SendNotificationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* 뒤로가기 + 제목 */}
-        <div className="flex items-center gap-3 mb-6">
-          <Link
-            href="/mypage"
-            className="p-2 -ml-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Bell className="w-6 h-6 text-red-600" />
-            알림 발송
-          </h1>
-        </div>
+    <GlobalShell title="알림 발송">
+      <div className="max-w-4xl mx-auto">
 
         {/* 알림 메시지 */}
         {successMessage && (
@@ -552,6 +535,6 @@ export default function SendNotificationPage() {
           )}
         </div>
       </div>
-    </div>
+    </GlobalShell>
   );
 }

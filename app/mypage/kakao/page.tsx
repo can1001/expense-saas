@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import { SECTION_CARD, PADDING_CARD } from '@/lib/constants/styles';
 
 // 카카오 JS SDK (전역 로드 시) 최소 타입 — 의존성 추가 없이 window에서 참조한다
@@ -116,11 +116,8 @@ export default function KakaoLinkPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <h1 className="text-2xl font-bold mb-6">카카오 계정 연결</h1>
-
+    <GlobalShell title="카카오 계정 연결">
+      <div className="max-w-2xl mx-auto">
         <div className={SECTION_CARD}>
           <div className={PADDING_CARD}>
             <div className="flex items-center gap-4 mb-6">
@@ -186,6 +183,6 @@ export default function KakaoLinkPage() {
           </div>
         </div>
       </div>
-    </div>
+    </GlobalShell>
   );
 }

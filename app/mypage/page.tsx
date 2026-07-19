@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Key, PenLine, Bell, History, Send, MessageCircle } from 'lucide-react';
-import Header from '@/components/Header';
+import GlobalShell from '@/components/layout/GlobalShell';
 import { SECTION_CARD, PADDING_CARD } from '@/lib/constants/styles';
 import { roleHasPermission, PERMISSIONS } from '@/lib/auth/permissions';
 import { apiBase } from '@/lib/api/api-base';
@@ -27,12 +27,8 @@ export default function MyPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        {/* 페이지 제목 */}
-        <h1 className="text-2xl font-bold mb-6">마이페이지</h1>
-
+    <GlobalShell title="마이페이지">
+      <div className="max-w-2xl mx-auto">
       {/* 메뉴 카드 */}
       <div className="grid gap-4">
         <Link
@@ -230,8 +226,8 @@ export default function MyPage() {
             </div>
           </Link>
         )}
-        </div>
       </div>
-    </div>
+      </div>
+    </GlobalShell>
   );
 }
