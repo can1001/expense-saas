@@ -51,7 +51,7 @@
 - [x] P2. 테넌트 (`platform/tenants`, `platform/tenants/[id]`, `[id]/settings`)
 - [x] P3. 테넌트 사용자·통계 (`[id]/users` 2종, `[id]/stats`)
 - [x] P4. 운영 (`platform/admins` 2종, `platform/activity-logs`, `platform/settings`, `platform/stats`)
-- [ ] P5. 내보내기 (`platform/export` — C1 의존)
+- [x] P5. 내보내기 (`platform/export` — C1 의존)
 
 ## Phase N — push
 

@@ -484,6 +484,11 @@ const nextConfig: NextConfig = {
           source: "/api/platform/stats",
           destination: `${apiOrigin}/api/platform/stats`,
         },
+        // platform: 내보내기 (P5) — 고정 세그먼트, 다른 platform 항목과 충돌 없음
+        {
+          source: "/api/platform/export",
+          destination: `${apiOrigin}/api/platform/export`,
+        },
       ],
       afterFiles: [
         {
