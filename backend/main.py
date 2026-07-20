@@ -21,6 +21,7 @@ from expense_api.core.config.settings import settings  # noqa: E402
 from expense_api.core.db.migrations import run_migrations_async  # noqa: E402
 from expense_api.core.db.seed import seed_if_needed  # noqa: E402
 from expense_api.core.routes import (  # noqa: E402
+    admin_routes,
     approval_policy_routes,
     approval_routes,
     approvals_list_routes,
@@ -129,3 +130,4 @@ app.include_router(
     recurring_routes.router, prefix="/api/recurring-expenses", tags=["recurring-expenses"]
 )
 app.include_router(recurring_routes.settings_router, prefix="/api/settings", tags=["settings"])
+app.include_router(admin_routes.router, prefix="/api/admin", tags=["admin"])

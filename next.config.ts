@@ -362,6 +362,12 @@ const nextConfig: NextConfig = {
         },
         // settings: 시스템 설정 조회/저장 (관리자 전용 PUT)
         { source: "/api/settings", destination: `${apiOrigin}/api/settings` },
+        // admin: 대시보드 KPI + 연도 설정 완료율 (D1)
+        { source: "/api/admin/dashboard", destination: `${apiOrigin}/api/admin/dashboard` },
+        {
+          source: "/api/admin/year-setup-status",
+          destination: `${apiOrigin}/api/admin/year-setup-status`,
+        },
       ],
       afterFiles: [
         {
