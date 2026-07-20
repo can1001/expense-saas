@@ -195,9 +195,13 @@ const nextConfig: NextConfig = {
         // upload: Cloudinary 업로드/삭제 ("upload" 는 6자로 cuid 패턴과 충돌하지 않음)
         { source: "/api/upload", destination: `${apiOrigin}/api/upload` },
         { source: "/api/upload/delete", destination: `${apiOrigin}/api/upload/delete` },
-        // budget: 조회 계열 이관 — upload, hierarchy/export(Excel)만 Next 유지
+        // budget: 조회 계열 이관 — upload(C2)만 Next 유지
         { source: "/api/budget", destination: `${apiOrigin}/api/budget` },
         { source: "/api/budget/hierarchy", destination: `${apiOrigin}/api/budget/hierarchy` },
+        {
+          source: "/api/budget/hierarchy/export",
+          destination: `${apiOrigin}/api/budget/hierarchy/export`,
+        },
         { source: "/api/budget/search", destination: `${apiOrigin}/api/budget/search` },
         { source: "/api/budget/simple", destination: `${apiOrigin}/api/budget/simple` },
         {

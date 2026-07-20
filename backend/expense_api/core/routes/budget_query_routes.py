@@ -6,12 +6,20 @@ import re
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
+from openpyxl.styles import Alignment, Font
+from openpyxl.workbook import Workbook
 from pydantic import BaseModel
 from sqlalchemy import and_, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from expense_api.core.db.session import get_session
 from expense_api.core.dependencies.tenant import require_tenant_id
+from expense_api.core.excel import (
+    THIN_BORDER,
+    set_column_widths,
+    style_header_row,
+    workbook_to_xlsx_response,
+)
 from expense_api.core.models.budget import (
     BudgetCategory,
     BudgetDetail,
@@ -36,6 +44,68 @@ def _current_year() -> int:
 
 def _year_range(year: int) -> tuple[datetime, datetime]:
     return datetime(year, 1, 1), datetime(year + 1, 1, 1)
+
+
+async def _load_committees_and_links(
+    session: AsyncSession, tenant_id: str, year: int, committee_id: str = ""
+) -> tuple[list[Committee], list[Department], dict[str, list]]:
+    """위원회/사역팀 + 부서-세목 연결(세목/목/항/연도설정/담당자 조인) 로드.
+
+    `budget_hierarchy` 와 `budget_hierarchy_export` 가 공유하는 데이터 소스.
+    """
+    comm_stmt = (
+        select(Committee)
+        .where(Committee.tenantId == tenant_id, Committee.isActive.is_(True))
+        .order_by(Committee.sortOrder)
+    )
+    if committee_id:
+        comm_stmt = comm_stmt.where(Committee.id == committee_id)
+    committees = (await session.execute(comm_stmt)).scalars().all()
+
+    departments = (
+        (
+            await session.execute(
+                select(Department)
+                .where(Department.tenantId == tenant_id, Department.isActive.is_(True))
+                .order_by(Department.sortOrder)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    # 부서-세목 연결 + 세목/목/항 + 연도 설정 + 담당자 (일괄 조인)
+    link_rows = (
+        await session.execute(
+            select(DepartmentBudgetDetail, BudgetDetail, BudgetSubcategory, BudgetCategory,
+                   BudgetDetailYear, User)
+            .join(BudgetDetail, BudgetDetail.id == DepartmentBudgetDetail.budgetDetailId)
+            .join(BudgetSubcategory, BudgetSubcategory.id == BudgetDetail.subcategoryId,
+                  isouter=True)
+            .join(BudgetCategory, BudgetCategory.id == BudgetSubcategory.categoryId, isouter=True)
+            .join(
+                BudgetDetailYear,
+                and_(
+                    BudgetDetailYear.budgetDetailId == BudgetDetail.id,
+                    BudgetDetailYear.year == year,
+                    BudgetDetailYear.isActive.is_(True),
+                ),
+                isouter=True,
+            )
+            .join(User, User.id == BudgetDetailYear.managerId, isouter=True)
+            .where(
+                DepartmentBudgetDetail.tenantId == tenant_id,
+                DepartmentBudgetDetail.isActive.is_(True),
+                BudgetDetail.isActive.is_(True),
+            )
+        )
+    ).all()
+
+    links_by_dept: dict[str, list] = {}
+    for row in link_rows:
+        links_by_dept.setdefault(row[0].departmentId, []).append(row)
+
+    return committees, departments, links_by_dept
 
 
 # ── GET /api/budget/hierarchy — 조직별 예산 계층 조회 ─────────────────
@@ -66,57 +136,9 @@ async def budget_hierarchy(
     ).all()
     used_map = {name: total or 0 for name, total in used_rows}
 
-    comm_stmt = (
-        select(Committee)
-        .where(Committee.tenantId == tenant_id, Committee.isActive.is_(True))
-        .order_by(Committee.sortOrder)
+    committees, departments, links_by_dept = await _load_committees_and_links(
+        session, tenant_id, yr, committeeId
     )
-    if committeeId:
-        comm_stmt = comm_stmt.where(Committee.id == committeeId)
-    committees = (await session.execute(comm_stmt)).scalars().all()
-
-    departments = (
-        (
-            await session.execute(
-                select(Department)
-                .where(Department.tenantId == tenant_id, Department.isActive.is_(True))
-                .order_by(Department.sortOrder)
-            )
-        )
-        .scalars()
-        .all()
-    )
-
-    # 부서-세목 연결 + 세목/목/항 + 연도 설정 + 담당자 (일괄 조인)
-    link_rows = (
-        await session.execute(
-            select(DepartmentBudgetDetail, BudgetDetail, BudgetSubcategory, BudgetCategory,
-                   BudgetDetailYear, User)
-            .join(BudgetDetail, BudgetDetail.id == DepartmentBudgetDetail.budgetDetailId)
-            .join(BudgetSubcategory, BudgetSubcategory.id == BudgetDetail.subcategoryId,
-                  isouter=True)
-            .join(BudgetCategory, BudgetCategory.id == BudgetSubcategory.categoryId, isouter=True)
-            .join(
-                BudgetDetailYear,
-                and_(
-                    BudgetDetailYear.budgetDetailId == BudgetDetail.id,
-                    BudgetDetailYear.year == yr,
-                    BudgetDetailYear.isActive.is_(True),
-                ),
-                isouter=True,
-            )
-            .join(User, User.id == BudgetDetailYear.managerId, isouter=True)
-            .where(
-                DepartmentBudgetDetail.tenantId == tenant_id,
-                DepartmentBudgetDetail.isActive.is_(True),
-                BudgetDetail.isActive.is_(True),
-            )
-        )
-    ).all()
-
-    links_by_dept: dict[str, list] = {}
-    for row in link_rows:
-        links_by_dept.setdefault(row[0].departmentId, []).append(row)
 
     term = search.lower()
     total_details = 0
@@ -200,6 +222,75 @@ async def budget_hierarchy(
         "committees": formatted_committees,
         "allCommittees": [{"id": cid, "name": name} for cid, name in all_committees],
     }
+
+
+_EXPORT_COLUMN_WIDTHS = [15, 15, 15, 15, 20, 12, 15]
+_EXPORT_HEADERS = ["위원회", "사역팀", "예산(항)", "예산(목)", "예산(세목)", "담당자", "예산금액"]
+
+
+# ── GET /api/budget/hierarchy/export — 예산 현황 Excel 내보내기 ────────
+@router.get("/hierarchy/export")
+async def budget_hierarchy_export(
+    year: int | None = None,
+    committeeId: str = "",
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+):
+    yr = year or _current_year()
+    committees, departments, links_by_dept = await _load_committees_and_links(
+        session, tenant_id, yr, committeeId
+    )
+
+    rows: list[list] = []
+    for committee in committees:
+        for dept in departments:
+            if dept.committeeId != committee.id:
+                continue
+            for link, detail, sub, cat, year_setting, manager in links_by_dept.get(dept.id, []):
+                rows.append(
+                    [
+                        committee.name,
+                        dept.name,
+                        cat.name if cat else "",
+                        sub.name if sub else "",
+                        detail.name,
+                        manager.username if manager else "",
+                        year_setting.budgetAmount if year_setting else 0,
+                    ]
+                )
+
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = f"{yr}년 예산현황"
+
+    worksheet.append(_EXPORT_HEADERS)
+    style_header_row(worksheet)
+    set_column_widths(worksheet, _EXPORT_COLUMN_WIDTHS)
+
+    for row in rows:
+        worksheet.append(row)
+
+    last_data_row = worksheet.max_row
+    for excel_row in worksheet.iter_rows(min_row=2, max_row=last_data_row):
+        for cell in excel_row:
+            cell.border = THIN_BORDER
+        amount_cell = excel_row[6]
+        amount_cell.number_format = "#,##0"
+        amount_cell.alignment = Alignment(horizontal="right")
+
+    if rows:
+        worksheet.append([])
+        total_row_idx = worksheet.max_row + 1
+        worksheet.append(["", "", "", "", "합계", "", f"=SUM(G2:G{last_data_row})"])
+        for cell in worksheet[total_row_idx]:
+            cell.font = Font(bold=True)
+        total_amount_cell = worksheet.cell(row=total_row_idx, column=7)
+        total_amount_cell.number_format = "#,##0"
+        total_amount_cell.alignment = Alignment(horizontal="right")
+
+    worksheet.auto_filter.ref = "A1:G1"
+
+    return workbook_to_xlsx_response(workbook, f"budget_{yr}.xlsx")
 
 
 # ── GET /api/budget/search — 계정과목 검색 ────────────────────────────
