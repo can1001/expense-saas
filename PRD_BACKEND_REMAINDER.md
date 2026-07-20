@@ -62,7 +62,7 @@
 
 - [x] Y1. 출석·포인트 (`youth-night/attendance` 2종, `youth-night/points`)
 - [x] Y2. 퀴즈·랭킹 (`youth-night/quiz` 2종, `youth-night/ranking`, `youth-night/stats`)
-- [ ] Y3. 암송 (`youth-night/recitation` 2종)
+- [x] Y3. 암송 (`youth-night/recitation` 2종)
 - [ ] Y4. 관리 (`youth-night/admin` 4종)
 
 ## 최종 검증

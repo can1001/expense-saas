@@ -9,8 +9,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import delete, func, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from expense_api.core.auth.permissions import PERMISSIONS
 from expense_api.core.db.session import get_session
 from expense_api.core.dependencies.auth import CurrentUser, get_current_user
+from expense_api.core.dependencies.authz import effective_permissions
 from expense_api.core.dependencies.tenant import require_tenant_id
 from expense_api.core.models.ids import utcnow
 from expense_api.core.models.user import User
@@ -39,6 +41,16 @@ from expense_api.core.schemas.youth_night import (
     QuizResponseOut,
     QuizResponseWithQuestionOut,
     QuizSubmitRequest,
+    RecitationAdminListItemOut,
+    RecitationApproverOut,
+    RecitationApproveRequest,
+    RecitationLessonBriefOut,
+    RecitationSubmitRequest,
+    RecitationUserBriefOut,
+    RecitationWithFullLessonAndApproverOut,
+    RecitationWithLessonAndApproverOut,
+    RecitationWithLessonAndUserOut,
+    RecitationWithLessonOut,
     StudentPointsCreateLessonOut,
     StudentPointsListLessonOut,
     StudentPointsOut,
@@ -1001,3 +1013,272 @@ async def youth_night_stats(
         "pointDistribution": point_distribution,
         "topLearners": top_learners,
     }
+
+
+async def _require_youth_manage(
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> CurrentUser:
+    perms = await effective_permissions(user, session)
+    if PERMISSIONS.YOUTH_MANAGE not in perms:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "암송 승인 권한이 없습니다")
+    return user
+
+
+async def _recitation_approver(
+    session: AsyncSession, approved_by: str | None
+) -> RecitationApproverOut | None:
+    if not approved_by:
+        return None
+    approver = await session.get(User, approved_by)
+    return RecitationApproverOut(username=approver.username) if approver else None
+
+
+# ── POST /recitation — 암송 제출 ───────────────────────────────────────
+@router.post("/recitation")
+async def submit_recitation(
+    body: RecitationSubmitRequest,
+    user: CurrentUser = Depends(get_current_user),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if not body.lessonId or not body.bibleVerse:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "lessonId와 bibleVerse가 필요합니다")
+
+    if not body.audioUrl and not body.videoUrl and not body.textContent:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "음성, 영상, 또는 텍스트 중 하나는 반드시 제출해야 합니다"
+        )
+
+    lesson_stmt = select(Lesson).where(
+        Lesson.id == body.lessonId,
+        Lesson.tenantId == tenant_id,
+        Lesson.isActive == True,  # noqa: E712
+        Lesson.publishedAt.is_not(None),
+    )
+    lesson = (await session.execute(lesson_stmt)).scalars().first()
+    if lesson is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "유효하지 않은 레슨입니다")
+
+    lesson_brief = RecitationLessonBriefOut(title=lesson.title, lessonNumber=lesson.lessonNumber)
+
+    existing_stmt = select(RecitationSubmission).where(
+        RecitationSubmission.tenantId == tenant_id,
+        RecitationSubmission.userId == user.id,
+        RecitationSubmission.lessonId == body.lessonId,
+    )
+    existing = (await session.execute(existing_stmt)).scalars().first()
+
+    if existing is not None:
+        existing.bibleVerse = body.bibleVerse
+        existing.audioUrl = body.audioUrl
+        existing.videoUrl = body.videoUrl
+        existing.textContent = body.textContent
+        existing.status = "PENDING"
+        existing.rejectionReason = None
+        existing.submittedAt = utcnow()
+        session.add(existing)
+        await session.commit()
+        await session.refresh(existing)
+        return {
+            "message": "암송이 재제출되었습니다",
+            "submission": RecitationWithLessonOut(
+                **existing.model_dump(), lesson=lesson_brief
+            ).model_dump(),
+        }
+
+    submission = RecitationSubmission(
+        tenantId=tenant_id,
+        userId=user.id,
+        lessonId=body.lessonId,
+        bibleVerse=body.bibleVerse,
+        audioUrl=body.audioUrl,
+        videoUrl=body.videoUrl,
+        textContent=body.textContent,
+    )
+    session.add(submission)
+    await session.commit()
+    await session.refresh(submission)
+
+    return {
+        "message": "암송이 제출되었습니다",
+        "submission": RecitationWithLessonOut(
+            **submission.model_dump(), lesson=lesson_brief
+        ).model_dump(),
+    }
+
+
+# ── GET /recitation — 암송 제출 목록/단건 조회 ─────────────────────────
+@router.get("/recitation")
+async def list_recitations(
+    lessonId: str | None = None,
+    status_filter: str | None = Query(default=None, alias="status"),
+    user: CurrentUser = Depends(get_current_user),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if lessonId:
+        stmt = select(RecitationSubmission).where(
+            RecitationSubmission.tenantId == tenant_id,
+            RecitationSubmission.userId == user.id,
+            RecitationSubmission.lessonId == lessonId,
+        )
+        submission = (await session.execute(stmt)).scalars().first()
+        if submission is None:
+            return {"submission": None}
+
+        lesson = await session.get(Lesson, submission.lessonId)
+        approver = await _recitation_approver(session, submission.approvedBy)
+        return {
+            "submission": RecitationWithLessonAndApproverOut(
+                **submission.model_dump(),
+                lesson=RecitationLessonBriefOut(
+                    title=lesson.title if lesson else "",
+                    lessonNumber=lesson.lessonNumber if lesson else 0,
+                ),
+                approver=approver,
+            ).model_dump()
+        }
+
+    stmt = select(RecitationSubmission).where(
+        RecitationSubmission.tenantId == tenant_id, RecitationSubmission.userId == user.id
+    )
+    if status_filter:
+        stmt = stmt.where(RecitationSubmission.status == status_filter)
+    stmt = stmt.order_by(RecitationSubmission.submittedAt.desc())
+    submissions = (await session.execute(stmt)).scalars().all()
+
+    out = []
+    for s in submissions:
+        lesson_brief = await _lesson_brief(session, s.lessonId)
+        approver = await _recitation_approver(session, s.approvedBy)
+        out.append(
+            RecitationWithFullLessonAndApproverOut(
+                **s.model_dump(), lesson=lesson_brief, approver=approver
+            ).model_dump()
+        )
+    return {"submissions": out}
+
+
+# ── POST /recitation/approve — 암송 승인/반려 ──────────────────────────
+@router.post("/recitation/approve")
+async def approve_recitation(
+    body: RecitationApproveRequest,
+    user: CurrentUser = Depends(_require_youth_manage),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if not body.submissionId or body.action not in ("approve", "reject"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "잘못된 요청 데이터입니다")
+
+    if body.action == "approve" and (body.score is None or body.score < 0 or body.score > 100):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "승인 시 0-100 사이의 점수가 필요합니다")
+
+    if body.action == "reject" and not body.rejectionReason:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "반려 시 반려 사유가 필요합니다")
+
+    submission_stmt = select(RecitationSubmission).where(
+        RecitationSubmission.id == body.submissionId, RecitationSubmission.tenantId == tenant_id
+    )
+    submission = (await session.execute(submission_stmt)).scalars().first()
+    if submission is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "제출 내용을 찾을 수 없습니다")
+
+    if submission.status != "PENDING":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "이미 처리된 제출입니다")
+
+    lesson = await session.get(Lesson, submission.lessonId)
+    submitter = await session.get(User, submission.userId)
+
+    submission.status = "APPROVED" if body.action == "approve" else "REJECTED"
+    submission.approvedBy = user.id
+    submission.approvedAt = utcnow()
+    submission.score = body.score if body.action == "approve" else 0
+    submission.rejectionReason = body.rejectionReason if body.action == "reject" else None
+    session.add(submission)
+    await session.flush()
+
+    points_awarded = 0
+    if body.action == "approve":
+        if body.score >= 95:
+            points_to_award = 25
+        elif body.score >= 85:
+            points_to_award = 20
+        elif body.score >= 75:
+            points_to_award = 15
+        else:
+            points_to_award = 10
+
+        session.add(
+            StudentPoints(
+                tenantId=tenant_id,
+                userId=submission.userId,
+                pointType="RECITATION",
+                points=points_to_award,
+                description=f"{lesson.title if lesson else ''} 암송 인증 ({body.score}점)",
+                lessonId=submission.lessonId,
+            )
+        )
+        points_awarded = points_to_award
+    else:
+        await session.execute(
+            delete(StudentPoints).where(
+                StudentPoints.tenantId == tenant_id,
+                StudentPoints.userId == submission.userId,
+                StudentPoints.pointType == "RECITATION",
+                StudentPoints.lessonId == submission.lessonId,
+            )
+        )
+
+    await session.commit()
+    await session.refresh(submission)
+
+    return {
+        "message": "암송이 승인되었습니다" if body.action == "approve" else "암송이 반려되었습니다",
+        "submission": RecitationWithLessonAndUserOut(
+            **submission.model_dump(),
+            lesson=RecitationLessonBriefOut(
+                title=lesson.title if lesson else "",
+                lessonNumber=lesson.lessonNumber if lesson else 0,
+            ),
+            user=RecitationUserBriefOut(username=submitter.username if submitter else ""),
+        ).model_dump(),
+        "pointsAwarded": points_awarded,
+    }
+
+
+# ── GET /recitation/approve — 승인 대기 중인 암송 목록 조회 ───────────
+@router.get("/recitation/approve")
+async def list_pending_recitations(
+    status_filter: str = Query(default="PENDING", alias="status"),
+    ageGroup: str | None = None,
+    user: CurrentUser = Depends(_require_youth_manage),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    stmt = select(RecitationSubmission).where(
+        RecitationSubmission.tenantId == tenant_id, RecitationSubmission.status == status_filter
+    )
+    if ageGroup:
+        stmt = (
+            stmt.join(Lesson, Lesson.id == RecitationSubmission.lessonId)
+            .join(Curriculum, Curriculum.id == Lesson.curriculumId)
+            .where(Curriculum.ageGroup == ageGroup)
+        )
+    stmt = stmt.order_by(RecitationSubmission.submittedAt.asc())
+    submissions = (await session.execute(stmt)).scalars().all()
+
+    out = []
+    for s in submissions:
+        submitter = await session.get(User, s.userId)
+        lesson_brief = await _lesson_brief(session, s.lessonId)
+        approver = await _recitation_approver(session, s.approvedBy)
+        out.append(
+            RecitationAdminListItemOut(
+                **s.model_dump(),
+                user=RecitationUserBriefOut(username=submitter.username if submitter else ""),
+                lesson=lesson_brief,
+                approver=approver,
+            ).model_dump()
+        )
+    return {"submissions": out}

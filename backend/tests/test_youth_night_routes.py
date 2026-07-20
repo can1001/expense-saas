@@ -501,3 +501,256 @@ async def test_stats_overview_and_daily_activity(client: AsyncClient):
     assert isinstance(body["dailyActivity"], list)
     assert len(body["dailyActivity"]) >= 1
     assert body["dailyActivity"][0]["activities"] >= 1
+
+
+# ── 암송 (Y3) ──────────────────────────────────────────────────────────
+
+
+async def _create_teacher(client: AsyncClient) -> None:
+    maker = client._maker  # type: ignore[attr-defined]
+    async with maker() as s:
+        tenant_id = await _tenant_id(client)
+        s.add(
+            User(
+                tenantId=tenant_id,
+                userid="teacher",
+                username="교사",
+                password=hash_password("pass1234"),
+                role="team_leader",
+            )
+        )
+        await s.commit()
+
+
+async def test_recitation_submit_success(client: AsyncClient):
+    headers = await _login(client)
+    lesson_id = await _lesson_id(client)
+
+    r = await client.post(
+        "/api/youth-night/recitation",
+        json={"lessonId": lesson_id, "bibleVerse": "요한복음 3:16", "textContent": "이렇게..."},
+        headers=headers,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["message"] == "암송이 제출되었습니다"
+    assert body["submission"]["status"] == "PENDING"
+    assert body["submission"]["lesson"]["title"] == "1강 사랑"
+    assert body["submission"]["lesson"]["lessonNumber"] == 1
+
+
+async def test_recitation_submit_missing_fields_rejected(client: AsyncClient):
+    headers = await _login(client)
+    r = await client.post("/api/youth-night/recitation", json={}, headers=headers)
+    assert r.status_code == 400
+    assert r.json()["detail"] == "lessonId와 bibleVerse가 필요합니다"
+
+
+async def test_recitation_submit_missing_content_rejected(client: AsyncClient):
+    headers = await _login(client)
+    lesson_id = await _lesson_id(client)
+    r = await client.post(
+        "/api/youth-night/recitation",
+        json={"lessonId": lesson_id, "bibleVerse": "요한복음 3:16"},
+        headers=headers,
+    )
+    assert r.status_code == 400
+    assert r.json()["detail"] == "음성, 영상, 또는 텍스트 중 하나는 반드시 제출해야 합니다"
+
+
+async def test_recitation_submit_unpublished_lesson_rejected(client: AsyncClient):
+    headers = await _login(client)
+    lesson_id = await _lesson_id(client, lesson_number=2)
+    r = await client.post(
+        "/api/youth-night/recitation",
+        json={"lessonId": lesson_id, "bibleVerse": "요한복음 3:16", "textContent": "이렇게..."},
+        headers=headers,
+    )
+    assert r.status_code == 404
+    assert r.json()["detail"] == "유효하지 않은 레슨입니다"
+
+
+async def test_recitation_resubmit_updates_existing(client: AsyncClient):
+    headers = await _login(client)
+    lesson_id = await _lesson_id(client)
+    await client.post(
+        "/api/youth-night/recitation",
+        json={"lessonId": lesson_id, "bibleVerse": "요한복음 3:16", "textContent": "초안"},
+        headers=headers,
+    )
+
+    r = await client.post(
+        "/api/youth-night/recitation",
+        json={"lessonId": lesson_id, "bibleVerse": "요한복음 3:16-17", "textContent": "수정본"},
+        headers=headers,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["message"] == "암송이 재제출되었습니다"
+    assert body["submission"]["bibleVerse"] == "요한복음 3:16-17"
+    assert body["submission"]["textContent"] == "수정본"
+
+
+async def test_recitation_get_by_lesson_id(client: AsyncClient):
+    headers = await _login(client)
+    lesson_id = await _lesson_id(client)
+    await client.post(
+        "/api/youth-night/recitation",
+        json={"lessonId": lesson_id, "bibleVerse": "요한복음 3:16", "textContent": "이렇게..."},
+        headers=headers,
+    )
+
+    r = await client.get(f"/api/youth-night/recitation?lessonId={lesson_id}", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["submission"]["lesson"]["title"] == "1강 사랑"
+    assert body["submission"]["approver"] is None
+    assert "curriculum" not in body["submission"]["lesson"]
+
+
+async def test_recitation_get_by_lesson_id_no_submission(client: AsyncClient):
+    headers = await _login(client)
+    lesson_id = await _lesson_id(client)
+    r = await client.get(f"/api/youth-night/recitation?lessonId={lesson_id}", headers=headers)
+    assert r.status_code == 200
+    assert r.json()["submission"] is None
+
+
+async def test_recitation_list_all(client: AsyncClient):
+    headers = await _login(client)
+    lesson_id = await _lesson_id(client)
+    await client.post(
+        "/api/youth-night/recitation",
+        json={"lessonId": lesson_id, "bibleVerse": "요한복음 3:16", "textContent": "이렇게..."},
+        headers=headers,
+    )
+
+    r = await client.get("/api/youth-night/recitation", headers=headers)
+    assert r.status_code == 200
+    submissions = r.json()["submissions"]
+    assert len(submissions) == 1
+    assert submissions[0]["lesson"]["curriculum"]["ageGroup"] == "MIDDLE"
+
+
+async def test_recitation_approve_requires_permission(client: AsyncClient):
+    headers = await _login(client)
+    r = await client.post(
+        "/api/youth-night/recitation/approve",
+        json={"submissionId": "anything", "action": "approve", "score": 90},
+        headers=headers,
+    )
+    assert r.status_code == 403
+    assert r.json()["detail"] == "암송 승인 권한이 없습니다"
+
+
+async def test_recitation_approve_success_awards_points(client: AsyncClient):
+    headers = await _login(client)
+    await _create_teacher(client)
+    teacher_headers = await _login(client, userid="teacher")
+    lesson_id = await _lesson_id(client)
+    submit_r = await client.post(
+        "/api/youth-night/recitation",
+        json={"lessonId": lesson_id, "bibleVerse": "요한복음 3:16", "textContent": "이렇게..."},
+        headers=headers,
+    )
+    submission_id = submit_r.json()["submission"]["id"]
+
+    r = await client.post(
+        "/api/youth-night/recitation/approve",
+        json={"submissionId": submission_id, "action": "approve", "score": 90},
+        headers=teacher_headers,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["message"] == "암송이 승인되었습니다"
+    assert body["pointsAwarded"] == 20
+    assert body["submission"]["status"] == "APPROVED"
+    assert body["submission"]["score"] == 90
+    assert body["submission"]["lesson"]["title"] == "1강 사랑"
+    assert body["submission"]["user"]["username"] == "학생"
+
+    points_r = await client.get("/api/youth-night/points", headers=headers)
+    by_type = {row["pointType"]: row for row in points_r.json()["pointsByType"]}
+    assert by_type["RECITATION"]["_sum"]["points"] == 20
+
+
+async def test_recitation_approve_reject_requires_reason(client: AsyncClient):
+    headers = await _login(client)
+    await _create_teacher(client)
+    teacher_headers = await _login(client, userid="teacher")
+    lesson_id = await _lesson_id(client)
+    submit_r = await client.post(
+        "/api/youth-night/recitation",
+        json={"lessonId": lesson_id, "bibleVerse": "요한복음 3:16", "textContent": "이렇게..."},
+        headers=headers,
+    )
+    submission_id = submit_r.json()["submission"]["id"]
+
+    r = await client.post(
+        "/api/youth-night/recitation/approve",
+        json={"submissionId": submission_id, "action": "reject"},
+        headers=teacher_headers,
+    )
+    assert r.status_code == 400
+    assert r.json()["detail"] == "반려 시 반려 사유가 필요합니다"
+
+    r2 = await client.post(
+        "/api/youth-night/recitation/approve",
+        json={"submissionId": submission_id, "action": "reject", "rejectionReason": "발음 불명확"},
+        headers=teacher_headers,
+    )
+    assert r2.status_code == 200
+    assert r2.json()["message"] == "암송이 반려되었습니다"
+    assert r2.json()["pointsAwarded"] == 0
+
+
+async def test_recitation_approve_already_processed_rejected(client: AsyncClient):
+    headers = await _login(client)
+    await _create_teacher(client)
+    teacher_headers = await _login(client, userid="teacher")
+    lesson_id = await _lesson_id(client)
+    submit_r = await client.post(
+        "/api/youth-night/recitation",
+        json={"lessonId": lesson_id, "bibleVerse": "요한복음 3:16", "textContent": "이렇게..."},
+        headers=headers,
+    )
+    submission_id = submit_r.json()["submission"]["id"]
+    await client.post(
+        "/api/youth-night/recitation/approve",
+        json={"submissionId": submission_id, "action": "approve", "score": 90},
+        headers=teacher_headers,
+    )
+
+    r = await client.post(
+        "/api/youth-night/recitation/approve",
+        json={"submissionId": submission_id, "action": "approve", "score": 90},
+        headers=teacher_headers,
+    )
+    assert r.status_code == 400
+    assert r.json()["detail"] == "이미 처리된 제출입니다"
+
+
+async def test_recitation_pending_list(client: AsyncClient):
+    headers = await _login(client)
+    await _create_teacher(client)
+    teacher_headers = await _login(client, userid="teacher")
+    lesson_id = await _lesson_id(client)
+    await client.post(
+        "/api/youth-night/recitation",
+        json={"lessonId": lesson_id, "bibleVerse": "요한복음 3:16", "textContent": "이렇게..."},
+        headers=headers,
+    )
+
+    r = await client.get("/api/youth-night/recitation/approve", headers=teacher_headers)
+    assert r.status_code == 200
+    submissions = r.json()["submissions"]
+    assert len(submissions) == 1
+    assert submissions[0]["user"]["username"] == "학생"
+    assert submissions[0]["lesson"]["curriculum"]["ageGroup"] == "MIDDLE"
+
+
+async def test_recitation_pending_list_requires_permission(client: AsyncClient):
+    headers = await _login(client)
+    r = await client.get("/api/youth-night/recitation/approve", headers=headers)
+    assert r.status_code == 403
+    assert r.json()["detail"] == "암송 승인 권한이 없습니다"

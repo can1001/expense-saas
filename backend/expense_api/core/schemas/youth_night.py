@@ -138,3 +138,89 @@ class QuizRecentQuestionOut(BaseModel):
 
 class QuizRecentResponseOut(QuizResponseOut):
     question: QuizRecentQuestionOut
+
+
+# ── 암송 (Y3) ──────────────────────────────────────────────────────────
+
+
+class RecitationSubmitRequest(BaseModel):
+    lessonId: str | None = None
+    bibleVerse: str | None = None
+    audioUrl: str | None = None
+    videoUrl: str | None = None
+    textContent: str | None = None
+
+
+class RecitationOut(BaseModel):
+    """include 없이 조회된 RecitationSubmission."""
+
+    id: str
+    userId: str
+    lessonId: str
+    bibleVerse: str
+    audioUrl: str | None
+    videoUrl: str | None
+    textContent: str | None
+    status: str
+    approvedBy: str | None
+    approvedAt: datetime | None
+    rejectionReason: str | None
+    score: int
+    submittedAt: datetime
+    createdAt: datetime
+    updatedAt: datetime
+
+
+class RecitationLessonBriefOut(BaseModel):
+    title: str
+    lessonNumber: int
+
+
+class RecitationApproverOut(BaseModel):
+    username: str
+
+
+class RecitationUserBriefOut(BaseModel):
+    username: str
+
+
+class RecitationWithLessonOut(RecitationOut):
+    """제출/재제출 응답 — lesson{title,lessonNumber}만 포함."""
+
+    lesson: RecitationLessonBriefOut
+
+
+class RecitationWithLessonAndApproverOut(RecitationOut):
+    """lessonId 단건 조회 응답 — lesson{title,lessonNumber} + approver{username}."""
+
+    lesson: RecitationLessonBriefOut
+    approver: RecitationApproverOut | None
+
+
+class RecitationWithFullLessonAndApproverOut(RecitationOut):
+    """전체 제출 목록 조회 응답 — lesson 에 curriculum 까지 포함."""
+
+    lesson: LessonBriefOut
+    approver: RecitationApproverOut | None
+
+
+class RecitationApproveRequest(BaseModel):
+    submissionId: str | None = None
+    action: str | None = None
+    score: int | None = None
+    rejectionReason: str | None = None
+
+
+class RecitationWithLessonAndUserOut(RecitationOut):
+    """승인/반려 처리 응답 — lesson{title,lessonNumber} + user{username}."""
+
+    lesson: RecitationLessonBriefOut
+    user: RecitationUserBriefOut
+
+
+class RecitationAdminListItemOut(RecitationOut):
+    """승인 대기 목록 조회 응답 — user + lesson(curriculum 포함) + approver."""
+
+    user: RecitationUserBriefOut
+    lesson: LessonBriefOut
+    approver: RecitationApproverOut | None

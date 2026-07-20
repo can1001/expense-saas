@@ -549,6 +549,15 @@ const nextConfig: NextConfig = {
           source: "/api/youth-night/stats",
           destination: `${apiOrigin}/api/youth-night/stats`,
         },
+        // youth-night: 암송 (Y3) — 고정 세그먼트, 다른 항목과 충돌 없음
+        {
+          source: "/api/youth-night/recitation",
+          destination: `${apiOrigin}/api/youth-night/recitation`,
+        },
+        {
+          source: "/api/youth-night/recitation/approve",
+          destination: `${apiOrigin}/api/youth-night/recitation/approve`,
+        },
       ],
       afterFiles: [
         {
