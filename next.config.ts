@@ -285,6 +285,12 @@ const nextConfig: NextConfig = {
           source: `/api/users/me/signatures/:id(${cuid})/default`,
           destination: `${apiOrigin}/api/users/me/signatures/:id/default`,
         },
+        // simple-expenses: 간편 지출결의서 (Expense version="4.1.4") 목록/생성/상세/수정/삭제
+        { source: "/api/simple-expenses", destination: `${apiOrigin}/api/simple-expenses` },
+        {
+          source: `/api/simple-expenses/:id(${cuid})`,
+          destination: `${apiOrigin}/api/simple-expenses/:id`,
+        },
       ],
       afterFiles: [
         {

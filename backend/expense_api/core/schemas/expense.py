@@ -211,3 +211,59 @@ class DuplicateExpenseOut(BaseModel):
     success: bool
     message: str
     expense: ExpenseWithAttachmentsOut
+
+
+# ── 간편 지출결의서 (app/api/simple-expenses*, B4) ──────────────────────
+# Expense 테이블에 version="4.1.4"로 저장. 항목마다 예산(항/목/세목)을 갖는다.
+
+
+class SimpleExpenseItemInput(BaseModel):
+    budgetCategory: str = Field(min_length=1, max_length=100)
+    budgetSubcategory: str = Field(min_length=1, max_length=100)
+    budgetDetail: str = Field(min_length=1, max_length=100)
+    description: str = Field(min_length=1, max_length=200)
+    unitPrice: int = Field(ge=0, le=1_000_000_000)
+    quantity: int = Field(gt=0, le=100_000)
+    order: int | None = None
+    # amount 는 서버에서 계산 (조작 방지)
+
+
+class CreateSimpleExpenseRequest(BaseModel):
+    expenseDate: datetime | None = None
+    items: list[SimpleExpenseItemInput] = Field(min_length=1)
+    requestDate: datetime
+    applicantName: str = Field(min_length=1)
+    bankName: str = Field(min_length=1)
+    accountNumber: str = Field(min_length=1)
+    accountHolder: str = Field(min_length=1)
+    status: str = "DRAFT"  # DRAFT|PENDING
+
+
+class UpdateSimpleExpenseRequest(BaseModel):
+    expenseDate: datetime | None = None
+    items: list[SimpleExpenseItemInput] | None = None
+    requestDate: datetime | None = None
+    applicantName: str | None = Field(default=None, min_length=1)
+    bankName: str | None = Field(default=None, min_length=1)
+    accountNumber: str | None = Field(default=None, min_length=1)
+    accountHolder: str | None = Field(default=None, min_length=1)
+
+
+class SimpleExpenseOut(ExpenseOut):
+    version: str
+
+
+class SimpleExpenseDetailOut(SimpleExpenseOut):
+    attachments: list[AttachmentOut] = []
+
+
+class SimpleExpenseListOut(BaseModel):
+    expenses: list[SimpleExpenseOut]
+    pagination: ExpensePaginationOut
+
+
+class CreateSimpleExpenseOut(BaseModel):
+    success: bool
+    message: str
+    id: str
+    expense: SimpleExpenseOut
