@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str | None = None
     CLOUDINARY_API_SECRET: str | None = None
 
+    # 자동이체 크론잡 인증 시크릿 (B6) — /api/recurring-expenses/process
+    CRON_SECRET: str | None = None
+
     @property
     def is_sqlite(self) -> bool:
         return self.DATABASE_URL.startswith("sqlite")

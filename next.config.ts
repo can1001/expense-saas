@@ -302,6 +302,26 @@ const nextConfig: NextConfig = {
           source: `/api/bank-accounts/:id(${cuid})`,
           destination: `${apiOrigin}/api/bank-accounts/:id`,
         },
+        // recurring-expenses: 자동이체 목록/생성/상세/수정/취소 + 수동 생성 + 크론 처리 (B6)
+        // "process" 는 7자 고정 세그먼트라 cuid(20자 이상) 패턴과 충돌하지 않는다.
+        {
+          source: "/api/recurring-expenses",
+          destination: `${apiOrigin}/api/recurring-expenses`,
+        },
+        {
+          source: "/api/recurring-expenses/process",
+          destination: `${apiOrigin}/api/recurring-expenses/process`,
+        },
+        {
+          source: `/api/recurring-expenses/:id(${cuid})`,
+          destination: `${apiOrigin}/api/recurring-expenses/:id`,
+        },
+        {
+          source: `/api/recurring-expenses/:id(${cuid})/generate`,
+          destination: `${apiOrigin}/api/recurring-expenses/:id/generate`,
+        },
+        // settings: 시스템 설정 조회/저장 (관리자 전용 PUT)
+        { source: "/api/settings", destination: `${apiOrigin}/api/settings` },
       ],
       afterFiles: [
         {

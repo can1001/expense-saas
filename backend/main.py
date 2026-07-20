@@ -36,6 +36,7 @@ from expense_api.core.routes import (  # noqa: E402
     me_routes,
     misc_routes,
     notification_routes,
+    recurring_routes,
     simple_expense_routes,
     tenant_routes,
     user_routes,
@@ -113,3 +114,14 @@ app.include_router(
 app.include_router(
     misc_routes.bank_account_router, prefix="/api/bank-accounts", tags=["bank-accounts"]
 )
+# recurring_routes.process_router 는 /process(고정 세그먼트)를 포함하므로
+# router 의 /{recurring_id} 보다 먼저 등록한다.
+app.include_router(
+    recurring_routes.process_router,
+    prefix="/api/recurring-expenses/process",
+    tags=["recurring-expenses"],
+)
+app.include_router(
+    recurring_routes.router, prefix="/api/recurring-expenses", tags=["recurring-expenses"]
+)
+app.include_router(recurring_routes.settings_router, prefix="/api/settings", tags=["settings"])

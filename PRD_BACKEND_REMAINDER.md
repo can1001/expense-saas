@@ -27,7 +27,7 @@
 - [x] B3. 벌크 (`expenses/bulk`, `expenses/bulk-expense-date`, `expenses/bulk-payment-status`)
 - [x] B4. 간편 지출 (`simple-expenses` 2종)
 - [x] B5. 템플릿·계좌 (`expense-templates` 2종, `bank-accounts` 2종)
-- [ ] B6. 반복 지출·설정 (`recurring-expenses` 4종, `settings`)
+- [x] B6. 반복 지출·설정 (`recurring-expenses` 4종, `settings`)
 
 ## Phase C — Excel 계열 (openpyxl 도입)
 
