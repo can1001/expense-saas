@@ -32,7 +32,7 @@
 ## Phase C — Excel 계열 (openpyxl 도입)
 
 - [x] C1. openpyxl 도입 + 공용 Excel 유틸 + `budget/hierarchy/export`
-- [ ] C2. `budget/upload` (lib/budget-upload.ts 712L 포팅 — 정규화 테이블 대상)
+- [x] C2. `budget/upload` (lib/budget-upload.ts 712L 포팅 — 정규화 테이블 대상)
 - [ ] C3. `expenses/export/excel`, `expenses/bulk-upload`, `expenses/bulk-upload-template`
 - [ ] C4. `users/upload`, `departments/leaders-upload`, `budget-details/year` 2종 + `budget-details/[id]/description`
 

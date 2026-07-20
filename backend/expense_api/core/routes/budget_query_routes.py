@@ -3,9 +3,11 @@
 """
 
 import re
+from dataclasses import asdict
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import JSONResponse
 from openpyxl.styles import Alignment, Font
 from openpyxl.workbook import Workbook
 from pydantic import BaseModel
@@ -31,6 +33,11 @@ from expense_api.core.models.budget import (
 )
 from expense_api.core.models.expense import Expense, ExpenseItem
 from expense_api.core.models.user import User, UserYearRole
+from expense_api.core.service.budget_upload_service import (
+    export_budget_template,
+    parse_excel_file,
+    upload_budget_data,
+)
 
 router = APIRouter()
 
@@ -700,3 +707,156 @@ async def budget_memo_examples(
         else []
     )
     return {"examples": examples, "budgetDetail": {"id": detail.id, "name": detail.name}}
+
+
+# ── GET/POST /api/budget/upload — 예산 마스터 업로드/템플릿 (lib/api/response-handler.ts 계약) ──
+_VALID_UPLOAD_MODES = {"replace", "merge", "append"}
+_VALID_UPLOAD_CONTENT_TYPES = {
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+}
+
+
+def _api_timestamp() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _api_success(data: dict, *, message: str | None = None, code: str = "SUCCESS") -> JSONResponse:
+    body: dict = {"success": True, "code": code, "data": data, "timestamp": _api_timestamp()}
+    if message:
+        body["message"] = message
+    return JSONResponse(body, status_code=200)
+
+
+def _api_error(
+    message: str,
+    *,
+    error_type: str = "UNKNOWN",
+    code: str = "ERROR",
+    status_code: int = 500,
+    details: object = None,
+    fields: list[dict] | None = None,
+) -> JSONResponse:
+    error: dict = {"type": error_type, "message": message}
+    if details is not None:
+        error["details"] = details
+    if fields:
+        error["fields"] = fields
+    body = {
+        "success": False,
+        "code": code,
+        "message": message,
+        "error": error,
+        "timestamp": _api_timestamp(),
+    }
+    return JSONResponse(body, status_code=status_code)
+
+
+def _api_validation_error(message: str, fields: list[dict] | None = None) -> JSONResponse:
+    return _api_error(
+        message, error_type="VALIDATION", code="VALIDATION_ERROR", status_code=400, fields=fields
+    )
+
+
+@router.get("/upload")
+async def budget_upload_template(
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        workbook = await export_budget_template(session, tenant_id)
+    except Exception as err:  # noqa: BLE001 — Next 원본과 동일하게 실패 메시지를 그대로 전달
+        return _api_error(
+            str(err) or "템플릿 생성 중 오류가 발생했습니다.",
+            error_type="SERVER_ERROR",
+            code="EXPORT_ERROR",
+        )
+
+    date_str = datetime.now(timezone.utc).date().isoformat()
+    return workbook_to_xlsx_response(workbook, f"budget_template_{date_str}.xlsx")
+
+
+@router.post("/upload")
+async def budget_upload_post(
+    file: UploadFile | None = File(None),
+    mode: str = Form("merge"),
+    dryRun: str = Form("false"),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+):
+    if file is None:
+        return _api_validation_error(
+            "파일이 필요합니다.",
+            [{"fieldName": "file", "message": "업로드할 Excel 파일을 선택해주세요."}],
+        )
+
+    filename = file.filename or ""
+    if (
+        file.content_type not in _VALID_UPLOAD_CONTENT_TYPES
+        and not filename.endswith(".xlsx")
+        and not filename.endswith(".xls")
+    ):
+        return _api_validation_error(
+            "지원하지 않는 파일 형식입니다.",
+            [{"fieldName": "file", "message": "Excel 파일(.xlsx, .xls)만 업로드 가능합니다."}],
+        )
+
+    if mode not in _VALID_UPLOAD_MODES:
+        return _api_validation_error(
+            "잘못된 업로드 모드입니다.",
+            [{"fieldName": "mode", "message": "mode는 replace, merge, append 중 하나여야 합니다."}],
+        )
+
+    dry_run = dryRun == "true"
+
+    try:
+        buffer = await file.read()
+        rows, parse_errors = parse_excel_file(buffer)
+    except Exception as err:  # noqa: BLE001 — Next 원본과 동일하게 예상 밖 오류도 500 으로 응답
+        return _api_error(
+            str(err) or "알 수 없는 오류가 발생했습니다.",
+            error_type="SERVER_ERROR",
+            code="UPLOAD_ERROR",
+        )
+
+    if parse_errors:
+        return _api_validation_error(
+            f"파싱 오류: {len(parse_errors)}개의 행에서 문제가 발견되었습니다.",
+            [
+                {"fieldName": f"row_{e.row}_{e.field}", "message": f"행 {e.row}: {e.message}"}
+                for e in parse_errors
+            ],
+        )
+
+    if not rows:
+        return _api_validation_error(
+            "업로드할 데이터가 없습니다.",
+            [{"fieldName": "file", "message": "Excel 파일에 데이터가 없습니다."}],
+        )
+
+    result = await upload_budget_data(session, tenant_id, rows, mode, dry_run=dry_run)
+
+    if not result.success:
+        return _api_error(
+            "업로드 중 오류가 발생했습니다.",
+            error_type="SERVER_ERROR",
+            code="UPLOAD_ERROR",
+            details=[asdict(e) for e in result.validationErrors],
+        )
+
+    return _api_success(
+        {
+            "summary": asdict(result.summary),
+            "dryRun": dry_run,
+            "mode": mode,
+        },
+        message=(
+            "검증이 완료되었습니다. dryRun=false로 실제 업로드를 수행하세요."
+            if dry_run
+            else (
+                f"{result.summary.created}개 생성, {result.summary.updated}개 업데이트, "
+                f"{result.summary.skipped}개 건너뜀"
+            )
+        ),
+        code="UPLOAD_SUCCESS",
+    )
