@@ -38,6 +38,7 @@ from expense_api.core.routes import (  # noqa: E402
     me_routes,
     misc_routes,
     notification_routes,
+    platform_admin_routes,
     platform_auth_routes,
     platform_tenant_routes,
     recurring_routes,
@@ -138,4 +139,7 @@ app.include_router(
 )
 app.include_router(
     platform_tenant_routes.router, prefix="/api/platform", tags=["platform-tenants"]
+)
+app.include_router(
+    platform_admin_routes.router, prefix="/api/platform", tags=["platform-admin"]
 )

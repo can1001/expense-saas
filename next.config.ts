@@ -463,6 +463,27 @@ const nextConfig: NextConfig = {
           source: `/api/platform/tenants/:id(${cuid})/users/:userId(${cuid})`,
           destination: `${apiOrigin}/api/platform/tenants/:id/users/:userId`,
         },
+        // platform: 운영 (P4) — 고정 세그먼트, tenants/:id(cuid) 와 충돌 없음
+        {
+          source: "/api/platform/admins",
+          destination: `${apiOrigin}/api/platform/admins`,
+        },
+        {
+          source: `/api/platform/admins/:id(${cuid})`,
+          destination: `${apiOrigin}/api/platform/admins/:id`,
+        },
+        {
+          source: "/api/platform/activity-logs",
+          destination: `${apiOrigin}/api/platform/activity-logs`,
+        },
+        {
+          source: "/api/platform/settings",
+          destination: `${apiOrigin}/api/platform/settings`,
+        },
+        {
+          source: "/api/platform/stats",
+          destination: `${apiOrigin}/api/platform/stats`,
+        },
       ],
       afterFiles: [
         {
