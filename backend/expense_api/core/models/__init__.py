@@ -32,10 +32,20 @@ from expense_api.core.models.notification import (  # noqa: F401
     PushSubscription,
 )
 from expense_api.core.models.offering import Offering  # noqa: F401
+from expense_api.core.models.provisioning import (  # noqa: F401
+    AccountCategory,
+    AccountCategoryTemplate,
+    ApprovalLineTemplate,
+    ApprovalStepTemplate,
+)
 from expense_api.core.models.recurring_expense import RecurringExpense  # noqa: F401
 from expense_api.core.models.schema_info import SchemaInfo  # noqa: F401
 from expense_api.core.models.system_setting import SystemSetting  # noqa: F401
-from expense_api.core.models.tenant import SuperAdmin, Tenant  # noqa: F401
+from expense_api.core.models.tenant import (  # noqa: F401
+    PlatformActivityLog,
+    SuperAdmin,
+    Tenant,
+)
 from expense_api.core.models.user import (  # noqa: F401
     Membership,
     Role,
@@ -75,4 +85,9 @@ __all__ = [
     "RecurringExpense",
     "SystemSetting",
     "Offering",
+    "AccountCategoryTemplate",
+    "AccountCategory",
+    "ApprovalLineTemplate",
+    "ApprovalStepTemplate",
+    "PlatformActivityLog",
 ]

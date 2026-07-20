@@ -21,6 +21,11 @@ class PlanType(str, Enum):
     ENTERPRISE = "ENTERPRISE"
 
 
+class CategoryKind(str, Enum):
+    INCOME = "INCOME"  # 수입
+    EXPENSE = "EXPENSE"  # 지출
+
+
 # ── 결재 (Approval) ───────────────────────────────────────────
 class ApprovalStatus(str, Enum):
     DRAFT = "DRAFT"  # 작성중 (제출 전)

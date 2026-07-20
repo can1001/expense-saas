@@ -83,3 +83,29 @@ class SuperAdmin(SQLModel, table=True):
         default_factory=utcnow,
         sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
     )
+
+
+class PlatformActivityLog(SQLModel, table=True):
+    """플랫폼 관리 활동 로그 (lib/platform/activity-log.ts logPlatformActivity 이전)."""
+
+    __tablename__ = "PlatformActivityLog"
+
+    id: str = Field(default_factory=new_id, primary_key=True)
+
+    superAdminId: str = Field(index=True)
+    superAdminEmail: str  # 조회 편의를 위해 저장
+
+    tenantId: str | None = Field(default=None, index=True)
+    tenantName: str | None = None
+
+    action: str = Field(index=True)  # CREATE_TENANT, UPDATE_TENANT, ...
+    entityType: str
+    entityId: str | None = None
+
+    details: dict | None = Field(default=None, sa_column=Column(JSON))
+    ipAddress: str | None = None
+    userAgent: str | None = None
+
+    createdAt: datetime = Field(
+        default_factory=utcnow, index=True, sa_column_kwargs={"server_default": func.now()}
+    )

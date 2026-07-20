@@ -437,6 +437,19 @@ const nextConfig: NextConfig = {
           source: "/api/platform/auth/me",
           destination: `${apiOrigin}/api/platform/auth/me`,
         },
+        // platform: 테넌트 관리 (P2) — :id(cuid) 보다 고정 세그먼트가 없어 충돌 없음
+        {
+          source: "/api/platform/tenants",
+          destination: `${apiOrigin}/api/platform/tenants`,
+        },
+        {
+          source: `/api/platform/tenants/:id(${cuid})`,
+          destination: `${apiOrigin}/api/platform/tenants/:id`,
+        },
+        {
+          source: `/api/platform/tenants/:id(${cuid})/settings`,
+          destination: `${apiOrigin}/api/platform/tenants/:id/settings`,
+        },
       ],
       afterFiles: [
         {
