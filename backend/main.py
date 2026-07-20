@@ -31,6 +31,7 @@ from expense_api.core.routes import (  # noqa: E402
     budget_routes,
     expense_admin_routes,
     expense_bulk_routes,
+    expense_excel_routes,
     expense_routes,
     health_routes,
     me_routes,
@@ -92,6 +93,9 @@ app.include_router(expense_admin_routes.router, prefix="/api/expenses", tags=["e
 # expense_bulk_routes 도 /bulk, /bulk-expense-date, /bulk-payment-status(고정 세그먼트)를
 # 포함하므로 동일한 이유로 expense_routes 보다 먼저 등록한다.
 app.include_router(expense_bulk_routes.router, prefix="/api/expenses", tags=["expenses"])
+# expense_excel_routes 도 /export/excel, /bulk-upload, /bulk-upload-template(고정 세그먼트)를
+# 포함하므로 동일한 이유로 expense_routes 보다 먼저 등록한다. (C3)
+app.include_router(expense_excel_routes.router, prefix="/api/expenses", tags=["expenses"])
 app.include_router(expense_routes.router, prefix="/api/expenses", tags=["expenses"])
 # attachment_routes.router 는 /{expense_id}/duplicate, /{expense_id}/attachments* 처럼
 # expense_routes 의 /{expense_id} 보다 세그먼트가 많아 순서와 무관하게 매칭이 겹치지 않는다.

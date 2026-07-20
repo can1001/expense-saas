@@ -176,6 +176,19 @@ const nextConfig: NextConfig = {
           source: "/api/expenses/bulk-payment-status",
           destination: `${apiOrigin}/api/expenses/bulk-payment-status`,
         },
+        // expenses Excel 계열 (C3) — 고정 세그먼트, :id(cuid) 보다 먼저 매칭되어야 함
+        {
+          source: "/api/expenses/export/excel",
+          destination: `${apiOrigin}/api/expenses/export/excel`,
+        },
+        {
+          source: "/api/expenses/bulk-upload",
+          destination: `${apiOrigin}/api/expenses/bulk-upload`,
+        },
+        {
+          source: "/api/expenses/bulk-upload-template",
+          destination: `${apiOrigin}/api/expenses/bulk-upload-template`,
+        },
         {
           source: `/api/expenses/:id(${cuid})`,
           destination: `${apiOrigin}/api/expenses/:id`,
