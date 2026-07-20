@@ -43,7 +43,7 @@
 - [x] D3. 실행·이력 (`admin/hr-admin-execution`, `admin/manager-exceptions`, `admin/change-history`)
 - [x] D4. 역할·초대 (`admin/roles` 2종, `admin/invitations`)
 - [x] D5. 헌금 (`admin/offerings` 4종 — template 은 C1 의존)
-- [ ] D6. 알림 관리 (`admin/notifications`)
+- [x] D6. 알림 관리 (`admin/notifications`)
 
 ## Phase P — platform (플랫폼 관리자)
 

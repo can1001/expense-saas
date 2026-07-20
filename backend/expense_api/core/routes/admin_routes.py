@@ -1,11 +1,12 @@
-"""관리자 대시보드/연도 설정 현황/보고서/실행·이력/역할·초대/헌금 라우터.
+"""관리자 대시보드/연도 설정 현황/보고서/실행·이력/역할·초대/헌금/알림 라우터.
 (app/api/admin/dashboard, app/api/admin/year-setup-status,
  app/api/admin/budget-execution, app/api/admin/cumulative-report,
  app/api/admin/quarterly-report(+export),
  app/api/admin/hr-admin-execution, app/api/admin/manager-exceptions,
  app/api/admin/change-history,
  app/api/admin/roles(+[id]), app/api/admin/invitations,
- app/api/admin/offerings(+[id]/batch/template) 이전)
+ app/api/admin/offerings(+[id]/batch/template),
+ app/api/admin/notifications 이전)
 mount prefix: /api/admin
 """
 
@@ -46,6 +47,7 @@ from expense_api.core.models.budget import (
 )
 from expense_api.core.models.enums import OfferingType
 from expense_api.core.models.expense import Expense, ExpenseItem
+from expense_api.core.models.notification import AdminNotification, PushSubscription
 from expense_api.core.models.offering import Offering
 from expense_api.core.models.user import Invitation, Role, User, UserYearRole, UserYearRoleHistory
 
@@ -2662,3 +2664,158 @@ async def delete_offering(
     await session.delete(offering)
     await session.commit()
     return {"success": True, "message": "헌금이 삭제되었습니다."}
+
+
+# ── D6: 알림 관리 ────────────────────────────────────────────────────
+
+
+class AdminNotificationBody(BaseModel):
+    title: str | None = None
+    message: str | None = None
+    targetType: str | None = None
+    targetValue: str | None = None
+
+
+def _admin_notification_dict(n: AdminNotification) -> dict:
+    return n.model_dump()
+
+
+async def _resolve_notification_targets(
+    session: AsyncSession, tenant_id: str, target_type: str, target_value: str | None
+) -> list[User]:
+    if target_type == "ALL":
+        rows = (
+            await session.execute(
+                select(User).where(User.tenantId == tenant_id, User.isActive.is_(True))
+            )
+        ).scalars().all()
+        return list(rows)
+    if target_type == "ROLE":
+        rows = (
+            await session.execute(
+                select(User).where(
+                    User.tenantId == tenant_id, User.role == target_value, User.isActive.is_(True)
+                )
+            )
+        ).scalars().all()
+        return list(rows)
+    # USER
+    target_user = await session.get(User, target_value)
+    if target_user is not None and target_user.tenantId == tenant_id:
+        return [target_user]
+    return []
+
+
+async def _send_admin_push_to_user(
+    session: AsyncSession, tenant_id: str, user_id: str
+) -> bool | None:
+    """대상 사용자의 활성 구독에 (모킹) 발송. 구독 없으면 None, 있으면 성공 여부."""
+    subs = (
+        await session.execute(
+            select(PushSubscription).where(
+                PushSubscription.tenantId == tenant_id,
+                PushSubscription.userId == user_id,
+                PushSubscription.isActive.is_(True),
+            )
+        )
+    ).scalars().all()
+    if not subs:
+        return None
+    return True  # 실 발송 없이 모킹 — 항상 성공
+
+
+@router.get("/notifications")
+async def list_admin_notifications(
+    page: int = 1,
+    limit: int = 20,
+    user: CurrentUser = Depends(require_permission(PERMISSIONS.NOTIFICATION_SEND)),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    skip = (page - 1) * limit
+    rows = (
+        await session.execute(
+            select(AdminNotification)
+            .where(AdminNotification.tenantId == tenant_id)
+            .order_by(AdminNotification.createdAt.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+    ).scalars().all()
+    total = (
+        await session.execute(
+            select(func.count()).select_from(AdminNotification).where(AdminNotification.tenantId == tenant_id)
+        )
+    ).scalar_one()
+
+    return {
+        "notifications": [_admin_notification_dict(n) for n in rows],
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "totalPages": -(-total // limit) if limit else 0,
+        },
+    }
+
+
+@router.post("/notifications")
+async def send_admin_notification(
+    body: AdminNotificationBody,
+    user: CurrentUser = Depends(require_permission(PERMISSIONS.NOTIFICATION_SEND)),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if not body.title or not body.message or not body.targetType:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "제목, 메시지, 대상 타입은 필수입니다.")
+
+    if body.targetType not in ("ALL", "ROLE", "USER"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "유효하지 않은 대상 타입입니다.")
+
+    if body.targetType in ("ROLE", "USER") and not body.targetValue:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "대상 값이 필요합니다.")
+
+    target_users = await _resolve_notification_targets(
+        session, tenant_id, body.targetType, body.targetValue
+    )
+    if not target_users:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "발송 대상 사용자가 없습니다.")
+
+    sent_count = 0
+    failed_count = 0
+    for target_user in target_users:
+        result = await _send_admin_push_to_user(session, tenant_id, target_user.id)
+        if result is True:
+            sent_count += 1
+        elif result is False:
+            failed_count += 1
+        # None(구독 없음)은 카운트하지 않음
+
+    notification_status = "SENT" if sent_count > 0 and failed_count == 0 else (
+        "PARTIAL" if sent_count > 0 else "FAILED"
+    )
+
+    notification = AdminNotification(
+        tenantId=tenant_id,
+        title=body.title,
+        message=body.message,
+        targetType=body.targetType,
+        targetValue=None if body.targetType == "ALL" else body.targetValue,
+        sentCount=sent_count,
+        failedCount=failed_count,
+        status=notification_status,
+        createdBy=user.id,
+    )
+    session.add(notification)
+    await session.commit()
+    await session.refresh(notification)
+
+    return {
+        "success": True,
+        "notification": _admin_notification_dict(notification),
+        "summary": {
+            "targetCount": len(target_users),
+            "sentCount": sent_count,
+            "failedCount": failed_count,
+        },
+    }

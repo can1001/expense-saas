@@ -419,6 +419,11 @@ const nextConfig: NextConfig = {
           source: `/api/admin/offerings/:id(${cuid})`,
           destination: `${apiOrigin}/api/admin/offerings/:id`,
         },
+        // admin: 알림 관리 (D6)
+        {
+          source: "/api/admin/notifications",
+          destination: `${apiOrigin}/api/admin/notifications`,
+        },
       ],
       afterFiles: [
         {

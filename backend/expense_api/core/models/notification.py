@@ -1,7 +1,7 @@
-"""알림 모델 (Prisma NotificationPreference, NotificationLog, PushSubscription 이전).
+"""알림 모델 (Prisma NotificationPreference, NotificationLog, PushSubscription, AdminNotification 이전).
 
 컬럼명 camelCase 보존, tenantId 스코프. (spec §4)
-WebPushLog/FcmToken/FcmLog/AdminNotification 은 후속.
+WebPushLog/FcmToken/FcmLog 는 후속(N1/N2).
 """
 
 from datetime import datetime
@@ -80,3 +80,21 @@ class PushSubscription(SQLModel, table=True):
 
     createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
     updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+
+
+class AdminNotification(SQLModel, table=True):
+    __tablename__ = "AdminNotification"
+
+    id: str = Field(default_factory=new_id, primary_key=True)
+    tenantId: str | None = Field(default=None, index=True)
+
+    title: str
+    message: str = Field(sa_column=Column(Text))
+    targetType: str  # 'ALL' | 'ROLE' | 'USER'
+    targetValue: str | None = None
+    sentCount: int = 0
+    failedCount: int = 0
+    status: str = Field(default="SENT", index=True)  # SENT | PARTIAL | FAILED
+    createdBy: str = Field(index=True)
+
+    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}, index=True)

@@ -26,6 +26,7 @@ from expense_api.core.models.expense import (  # noqa: F401
 )
 from expense_api.core.models.misc import ExpenseTemplate, SavedBankAccount  # noqa: F401
 from expense_api.core.models.notification import (  # noqa: F401
+    AdminNotification,
     NotificationLog,
     NotificationPreference,
     PushSubscription,
