@@ -88,6 +88,7 @@ export const MENU_PERMISSIONS: ReadonlyArray<{ path: string; permission: Permiss
   { path: '/reports/financial', permission: PERMISSIONS.REPORT_FINANCIAL_READ },
   { path: '/admin/offerings', permission: PERMISSIONS.OFFERING_MANAGE },
   { path: '/admin/expense-upload', permission: PERMISSIONS.EXPENSE_BULK_UPLOAD },
+  { path: '/receipts', permission: PERMISSIONS.RECEIPT_READ },
   // admin 전용(관리 민감) 경로
   { path: '/admin/users', permission: PERMISSIONS.USER_MANAGE },
   { path: '/admin/roles', permission: PERMISSIONS.ROLE_MANAGE },
