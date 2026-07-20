@@ -5,12 +5,15 @@
 ② FastAPI `app.openapi()['paths']` (실제 등록된 라우트, `RUNNING_ZONE=local` 기동),
 ③ `next.config.ts` beforeFiles rewrite `source` 목록.
 
+갱신(D7 완료 후 재확인): `admin/year-config/:year` GET·DELETE 를 `admin_routes.py` 에 포팅,
+rewrite 등록 완료 — 미이관 0건으로 확정.
+
 ## 요약
 
 - Next `app/api/**/route.ts` 파일: **132개** (=distinct 경로 132개)
-- FastAPI 등록 경로: **137개** (Next 132 + 신규 5 백엔드 전용)
-- 완전 이관(Next 메서드 전부 FastAPI 구현 + rewrite 존재): **128 / 132**
-- 잔여 불일치: **4건** (아래 상세) — 이 중 1건은 미이관, 3건은 기존 컷오버(본 PRD 범위 밖, `ed04941` 이전)에서 발생한 메서드 갭으로 프론트 미사용 확인.
+- FastAPI 등록 경로: **138개** (Next 132 + 신규 5 백엔드 전용 + D7 1)
+- 완전 이관(Next 메서드 전부 FastAPI 구현 + rewrite 존재): **129 / 132**
+- 잔여 불일치: **3건** (아래 상세) — 전부 기존 컷오버(본 PRD 범위 밖, `ed04941` 이전)에서 발생한 메서드 갭으로 프론트 미사용 확인. 미이관 라우트는 D7 완료로 0건.
 
 ## 전체 대조표
 
@@ -32,7 +35,7 @@
 | `/api/admin/quarterly-report/export` | `GET` | `GET` | O | 완전 이관 |
 | `/api/admin/roles` | `GET,POST` | `GET,POST` | O | 완전 이관 |
 | `/api/admin/roles/:id` | `DELETE,GET,PUT` | `DELETE,GET,PUT` | O | 완전 이관 |
-| `/api/admin/year-config/:year` | `DELETE,GET` | *(없음)* | - | **미이관 — 신규 태스크 D7 등록** |
+| `/api/admin/year-config/:year` | `DELETE,GET` | `DELETE,GET` | O | 완전 이관 (D7) |
 | `/api/admin/year-setup-status` | `GET` | `GET` | O | 완전 이관 |
 | `/api/approval-line/calculate` | `GET,POST` | `POST` | O | 메서드 갭(GET) — 아래 각주 ① |
 | `/api/approval-policies` | *(Next 라우트 없음)* | `GET,POST` | O | 신규(FastAPI 전용, 결재정책 엔진) |
@@ -157,11 +160,10 @@
 
 `/api/expenses/:id/:action(submit|approve|reject|resubmit|withdraw|delegate|approval-line|approval|fix-status|payment-status|duplicate)` 1개 rewrite 항목이 위 표의 `expenses/:id/*` 액션 9종(신규 3종 포함)을 모두 커버한다 (표에는 대조 편의상 액션별로 풀어서 표기).
 
-## 잔여 불일치 4건 상세
+## 잔여 불일치 3건 상세
 
-### 미이관 (실제 위험 — 조치 필요)
-
-**`/api/admin/year-config/[year]` (GET, DELETE)** — Phase A~Y 어느 태스크에도 포함되지 않아 누락된 라우트. `app/admin/year-setup-status/page.tsx`에서 "연도 데이터 초기화" 버튼이 `DELETE /api/admin/year-config/:year?target=...`를 실제로 호출 중 (라이브 기능). FastAPI 미구현 + rewrite 미등록 상태라 현재는 Next 라우트가 그대로 서빙해 안전하지만, 컷오버 완결을 위해 **신규 태스크 D7**을 `PRD_BACKEND_REMAINDER.md` / `docs/TASKS_BACKEND_REMAINDER.md`에 추가했다.
+`admin/year-config/:year` 는 D7 태스크로 이관 완료되어 아래 목록에서 제외되었다 (GET·DELETE 모두
+`admin_routes.py` 포팅 + rewrite 등록 완료, tenantId 스코프·SETTINGS_MANAGE 권한 가드 유지).
 
 ### 메서드 갭 (본 PRD 범위 밖 · 프론트 미사용 확인 — 문서화만)
 
@@ -175,11 +177,12 @@
 
 ## Next 라우트 커버리지
 
-- rewrite 미등록 Next 경로: `admin/year-config/:year` 1건 (위 참조, D7 대상).
+- rewrite 미등록 Next 경로: 없음 (`admin/year-config/:year` 는 D7 완료로 등록됨).
 - FastAPI 전용(신규, Next 라우트 없음) 5건: `approval-policies`(2메서드), `expenses/:id/approval-line`, `expenses/:id/delegate`, `expenses/:id/resubmit` — 모두 rewrite 등록됨. `notifications/logs`, `notifications/preferences` 2건은 rewrite 미등록·프론트 미사용 상태로 향후 필요 시 추가.
 
 ## 결론
 
 - 본 PRD Phase A~Y 태스크 범위 내 신규 이관 라우트는 **전수 완전 이관** (메서드 갭 0).
-- 전체 `app/api/**` 기준으로는 위 4건의 불일치가 존재하며, 그중 3건은 조사 결과 프론트 미사용 죽은 코드로 확인되어 문서화로 종결, 1건(`admin/year-config`)은 실사용 라이브 기능이라 **D7 태스크로 등록**하여 다음 이터레이션에서 이관한다.
-- F2는 위 감사와 D7 태스크 등록까지 완료했으나, PRD 문구상 "메서드/누락 갭 0" 기준은 D7 이관 완료 후 재확인 예정이라 **F2 체크박스는 D7 완료 후 확정**한다.
+- 전체 `app/api/**` 기준 미이관 라우트는 **0건** (D7 완료로 `admin/year-config` 이관 종료).
+- 잔여 3건은 모두 `ed04941`(본 PRD 시작 전 선행 완료) 시점 결재 관련 라우트의 메서드 갭이며, 조사 결과 프론트 미사용 죽은 코드로 확인되어 문서화로 종결한다 (M3에서 Next 라우트 삭제 시 자동 소거).
+- **F2 완료**: 3자 대조 + D7 이관 확인까지 마쳐 "메서드/누락 갭 0" 기준을 충족했다.
