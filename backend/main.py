@@ -46,6 +46,7 @@ from expense_api.core.routes import (  # noqa: E402
     simple_expense_routes,
     tenant_routes,
     user_routes,
+    youth_night_routes,
 )
 
 
@@ -146,4 +147,7 @@ app.include_router(
 )
 app.include_router(
     platform_export_routes.router, prefix="/api/platform", tags=["platform-export"]
+)
+app.include_router(
+    youth_night_routes.router, prefix="/api/youth-night", tags=["youth-night"]
 )

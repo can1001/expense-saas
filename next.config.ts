@@ -519,6 +519,19 @@ const nextConfig: NextConfig = {
           source: "/api/push/fcm-test",
           destination: `${apiOrigin}/api/push/fcm-test`,
         },
+        // youth-night: 출석·포인트 (Y1) — 고정 세그먼트, 다른 항목과 충돌 없음
+        {
+          source: "/api/youth-night/attendance",
+          destination: `${apiOrigin}/api/youth-night/attendance`,
+        },
+        {
+          source: "/api/youth-night/attendance/stats",
+          destination: `${apiOrigin}/api/youth-night/attendance/stats`,
+        },
+        {
+          source: "/api/youth-night/points",
+          destination: `${apiOrigin}/api/youth-night/points`,
+        },
       ],
       afterFiles: [
         {

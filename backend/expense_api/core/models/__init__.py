@@ -55,6 +55,15 @@ from expense_api.core.models.user import (  # noqa: F401
     UserSignature,
     UserYearRole,
 )
+from expense_api.core.models.youth_night import (  # noqa: F401
+    Attendance,
+    Curriculum,
+    Lesson,
+    Question,
+    QuizResponse,
+    RecitationSubmission,
+    StudentPoints,
+)
 
 __all__ = [
     "SchemaInfo",
@@ -94,4 +103,11 @@ __all__ = [
     "ApprovalLineTemplate",
     "ApprovalStepTemplate",
     "PlatformActivityLog",
+    "Curriculum",
+    "Lesson",
+    "Question",
+    "Attendance",
+    "QuizResponse",
+    "StudentPoints",
+    "RecitationSubmission",
 ]
