@@ -3,10 +3,10 @@
 출석·포인트(Y1) → 퀴즈·랭킹(Y2) → 암송(Y3) → 관리자(Y4) 순으로 확장된다.
 """
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import delete, func, select, union_all
+from sqlalchemy import delete, func, select, union_all, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from expense_api.core.auth.permissions import PERMISSIONS
@@ -32,8 +32,24 @@ from expense_api.core.schemas.youth_night import (
     AttendanceWithLessonOut,
     AttendanceWithUserAndLessonOut,
     CurriculumBriefOut,
+    CurriculumDeleteRequest,
+    CurriculumOut,
+    CurriculumUpdateRequest,
+    CurriculumWithLessonsCreateRequest,
+    LessonAdminCreateRequest,
+    LessonAdminUpdateRequest,
     LessonBriefOut,
+    LessonCurriculumBriefOut,
+    LessonDeleteRequest,
+    LessonOut,
+    LessonReorderItemOut,
+    LessonReorderRequest,
+    LessonWithCurriculumOut,
     PointsGrantRequest,
+    QuestionAdminCreateRequest,
+    QuestionAdminUpdateRequest,
+    QuestionOut,
+    QuestionReorderRequest,
     QuizAnswerQuestionOut,
     QuizRecentLessonOut,
     QuizRecentQuestionOut,
@@ -1025,6 +1041,26 @@ async def _require_youth_manage(
     return user
 
 
+async def _require_youth_manage_curriculum(
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> CurrentUser:
+    perms = await effective_permissions(user, session)
+    if PERMISSIONS.YOUTH_MANAGE not in perms:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "권한이 없습니다")
+    return user
+
+
+async def _require_youth_manage_admin(
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> CurrentUser:
+    perms = await effective_permissions(user, session)
+    if PERMISSIONS.YOUTH_MANAGE not in perms:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "관리자 권한이 필요합니다.")
+    return user
+
+
 async def _recitation_approver(
     session: AsyncSession, approved_by: str | None
 ) -> RecitationApproverOut | None:
@@ -1282,3 +1318,453 @@ async def list_pending_recitations(
             ).model_dump()
         )
     return {"submissions": out}
+
+
+# ── 관리 — 커리큘럼/레슨/문제 (Y4) ────────────────────────────────────────
+
+
+# ── POST /admin/curriculum — 커리큘럼+레슨 일괄 생성 ────────────────────
+@router.post("/admin/curriculum")
+async def create_curriculum(
+    body: CurriculumWithLessonsCreateRequest,
+    user: CurrentUser = Depends(_require_youth_manage_curriculum),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    curriculum = Curriculum(
+        tenantId=tenant_id,
+        title=body.curriculum.title,
+        description=body.curriculum.description or None,
+        type="YOUTH_NIGHT",
+        ageGroup=body.curriculum.ageGroup,
+        startDate=(
+            datetime.fromisoformat(body.curriculum.startDate)
+            if body.curriculum.startDate
+            else None
+        ),
+        endDate=(
+            datetime.fromisoformat(body.curriculum.endDate) if body.curriculum.endDate else None
+        ),
+        sortOrder=body.curriculum.sortOrder or 0,
+        isActive=True,
+    )
+    session.add(curriculum)
+    await session.flush()
+
+    created_lessons: list[Lesson] = []
+    for lesson_input in body.lessons:
+        lesson = Lesson(
+            tenantId=tenant_id,
+            curriculumId=curriculum.id,
+            title=lesson_input.title,
+            description=lesson_input.description or None,
+            bibleVerse=lesson_input.bibleVerse or None,
+            keyPoint=lesson_input.keyPoint or None,
+            content=lesson_input.content or None,
+            lessonNumber=lesson_input.lessonNumber,
+            isActive=True,
+            publishedAt=None,
+        )
+        session.add(lesson)
+        created_lessons.append(lesson)
+
+    await session.commit()
+    await session.refresh(curriculum)
+    for lesson in created_lessons:
+        await session.refresh(lesson)
+
+    return {
+        "curriculum": CurriculumOut(**curriculum.model_dump()).model_dump(),
+        "lessons": [LessonOut(**lesson.model_dump()).model_dump() for lesson in created_lessons],
+    }
+
+
+# ── PUT /admin/curriculum — 커리큘럼 수정 ────────────────────────────────
+@router.put("/admin/curriculum")
+async def update_curriculum(
+    body: CurriculumUpdateRequest,
+    user: CurrentUser = Depends(_require_youth_manage_curriculum),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    data = body.model_dump(exclude_unset=True)
+    curriculum_id = data.pop("curriculumId", None)
+
+    stmt = select(Curriculum).where(Curriculum.id == curriculum_id, Curriculum.tenantId == tenant_id)
+    curriculum = (await session.execute(stmt)).scalars().first()
+    if curriculum is None:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "커리큘럼 수정에 실패했습니다")
+
+    if "title" in data:
+        curriculum.title = data["title"]
+    if "description" in data:
+        curriculum.description = data["description"] or None
+    if "ageGroup" in data:
+        curriculum.ageGroup = data["ageGroup"]
+    if "startDate" in data:
+        curriculum.startDate = datetime.fromisoformat(data["startDate"]) if data["startDate"] else None
+    if "endDate" in data:
+        curriculum.endDate = datetime.fromisoformat(data["endDate"]) if data["endDate"] else None
+    if "sortOrder" in data:
+        curriculum.sortOrder = data["sortOrder"]
+    if "isActive" in data:
+        curriculum.isActive = data["isActive"]
+
+    session.add(curriculum)
+    await session.commit()
+    await session.refresh(curriculum)
+    return CurriculumOut(**curriculum.model_dump()).model_dump()
+
+
+# ── DELETE /admin/curriculum — 커리큘럼 삭제 ─────────────────────────────
+@router.delete("/admin/curriculum")
+async def delete_curriculum(
+    body: CurriculumDeleteRequest,
+    user: CurrentUser = Depends(_require_youth_manage_curriculum),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    stmt = select(Curriculum).where(
+        Curriculum.id == body.curriculumId, Curriculum.tenantId == tenant_id
+    )
+    curriculum = (await session.execute(stmt)).scalars().first()
+    if curriculum is None:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "커리큘럼 삭제에 실패했습니다")
+
+    await session.delete(curriculum)
+    await session.commit()
+    return {"success": True}
+
+
+# ── POST /admin/lesson — 레슨 생성 ───────────────────────────────────────
+@router.post("/admin/lesson")
+async def create_lesson(
+    body: LessonAdminCreateRequest,
+    user: CurrentUser = Depends(_require_youth_manage_curriculum),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if not body.curriculumId or not body.title:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "커리큘럼과 제목은 필수입니다")
+
+    count_stmt = select(func.count(Lesson.id)).where(
+        Lesson.curriculumId == body.curriculumId, Lesson.tenantId == tenant_id
+    )
+    existing_lessons = (await session.execute(count_stmt)).scalar_one()
+    next_lesson_number = existing_lessons + 1
+
+    lesson = Lesson(
+        tenantId=tenant_id,
+        curriculumId=body.curriculumId,
+        title=body.title,
+        description=body.description or None,
+        bibleVerse=body.bibleVerse or None,
+        keyPoint=body.keyPoint or None,
+        content=body.content or None,
+        videoUrl=body.videoUrl or None,
+        materialUrl=body.materialUrl or None,
+        lessonNumber=next_lesson_number,
+        isActive=True,
+        publishedAt=None,
+    )
+    session.add(lesson)
+    await session.commit()
+    await session.refresh(lesson)
+
+    curriculum = await session.get(Curriculum, lesson.curriculumId)
+    return LessonWithCurriculumOut(
+        **lesson.model_dump(),
+        curriculum=LessonCurriculumBriefOut(
+            id=curriculum.id if curriculum else "",
+            title=curriculum.title if curriculum else "",
+            ageGroup=curriculum.ageGroup if curriculum else "",
+        ),
+    ).model_dump()
+
+
+# ── GET /admin/lesson — 레슨 상세 조회 ───────────────────────────────────
+@router.get("/admin/lesson")
+async def get_lesson_admin(
+    lessonId: str | None = None,
+    user: CurrentUser = Depends(_require_youth_manage_curriculum),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if not lessonId:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "lessonId가 필요합니다")
+
+    stmt = select(Lesson).where(Lesson.id == lessonId, Lesson.tenantId == tenant_id)
+    lesson = (await session.execute(stmt)).scalars().first()
+    if lesson is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "레슨을 찾을 수 없습니다")
+
+    curriculum = await session.get(Curriculum, lesson.curriculumId)
+    return LessonWithCurriculumOut(
+        **lesson.model_dump(),
+        curriculum=LessonCurriculumBriefOut(
+            id=curriculum.id if curriculum else "",
+            title=curriculum.title if curriculum else "",
+            ageGroup=curriculum.ageGroup if curriculum else "",
+        ),
+    ).model_dump()
+
+
+# ── PUT /admin/lesson — 레슨 수정 ────────────────────────────────────────
+@router.put("/admin/lesson")
+async def update_lesson(
+    body: LessonAdminUpdateRequest,
+    user: CurrentUser = Depends(_require_youth_manage_curriculum),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    data = body.model_dump(exclude_unset=True)
+    lesson_id = data.pop("lessonId", None)
+
+    stmt = select(Lesson).where(Lesson.id == lesson_id, Lesson.tenantId == tenant_id)
+    lesson = (await session.execute(stmt)).scalars().first()
+    if lesson is None:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "레슨 수정에 실패했습니다")
+
+    if "curriculumId" in data and data["curriculumId"] != lesson.curriculumId:
+        new_curriculum_id = data["curriculumId"]
+        count_stmt = select(func.count(Lesson.id)).where(
+            Lesson.curriculumId == new_curriculum_id, Lesson.tenantId == tenant_id
+        )
+        existing_lessons = (await session.execute(count_stmt)).scalar_one()
+        lesson.curriculumId = new_curriculum_id
+        lesson.lessonNumber = existing_lessons + 1
+
+    if "publishedAt" in data:
+        lesson.publishedAt = datetime.fromisoformat(data["publishedAt"]) if data["publishedAt"] else None
+    if "title" in data:
+        lesson.title = data["title"]
+    if "description" in data:
+        lesson.description = data["description"]
+    if "bibleVerse" in data:
+        lesson.bibleVerse = data["bibleVerse"]
+    if "keyPoint" in data:
+        lesson.keyPoint = data["keyPoint"]
+    if "content" in data:
+        lesson.content = data["content"]
+    if "videoUrl" in data:
+        lesson.videoUrl = data["videoUrl"]
+    if "materialUrl" in data:
+        lesson.materialUrl = data["materialUrl"]
+
+    session.add(lesson)
+    await session.commit()
+    await session.refresh(lesson)
+    return LessonOut(**lesson.model_dump()).model_dump()
+
+
+# ── PATCH /admin/lesson — 레슨 순서 변경 ─────────────────────────────────
+@router.patch("/admin/lesson")
+async def reorder_lessons(
+    body: LessonReorderRequest,
+    user: CurrentUser = Depends(_require_youth_manage_curriculum),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if not body.curriculumId or not body.lessonIds:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "curriculumId와 lessonIds 배열이 필요합니다"
+        )
+
+    for index, lesson_id in enumerate(body.lessonIds):
+        await session.execute(
+            update(Lesson)
+            .where(Lesson.id == lesson_id, Lesson.tenantId == tenant_id)
+            .values(lessonNumber=-(index + 1))
+        )
+    for index, lesson_id in enumerate(body.lessonIds):
+        await session.execute(
+            update(Lesson)
+            .where(Lesson.id == lesson_id, Lesson.tenantId == tenant_id)
+            .values(lessonNumber=index + 1)
+        )
+    await session.commit()
+
+    lessons_stmt = (
+        select(Lesson)
+        .where(Lesson.curriculumId == body.curriculumId, Lesson.tenantId == tenant_id)
+        .order_by(Lesson.lessonNumber.asc())
+    )
+    lessons = (await session.execute(lessons_stmt)).scalars().all()
+
+    return {
+        "success": True,
+        "lessons": [
+            LessonReorderItemOut(
+                id=lesson.id,
+                title=lesson.title,
+                lessonNumber=lesson.lessonNumber,
+                isActive=lesson.isActive,
+                publishedAt=lesson.publishedAt,
+            ).model_dump()
+            for lesson in lessons
+        ],
+    }
+
+
+# ── DELETE /admin/lesson — 레슨 삭제 ─────────────────────────────────────
+@router.delete("/admin/lesson")
+async def delete_lesson(
+    body: LessonDeleteRequest,
+    user: CurrentUser = Depends(_require_youth_manage_curriculum),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    stmt = select(Lesson).where(Lesson.id == body.lessonId, Lesson.tenantId == tenant_id)
+    lesson = (await session.execute(stmt)).scalars().first()
+    if lesson is None:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "레슨 삭제에 실패했습니다")
+
+    await session.delete(lesson)
+    await session.commit()
+    return {"success": True}
+
+
+# ── GET /admin/questions — 레슨별 퀴즈 문제 목록 조회 ────────────────────
+@router.get("/admin/questions")
+async def list_questions_admin(
+    lessonId: str | None = None,
+    user: CurrentUser = Depends(_require_youth_manage_admin),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if not lessonId:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "lessonId가 필요합니다.")
+
+    stmt = (
+        select(Question)
+        .where(Question.lessonId == lessonId, Question.tenantId == tenant_id)
+        .order_by(Question.questionNumber.asc())
+    )
+    questions = (await session.execute(stmt)).scalars().all()
+    return {"questions": [QuestionOut(**q.model_dump()).model_dump() for q in questions]}
+
+
+# ── POST /admin/questions — 퀴즈 문제 추가 ───────────────────────────────
+@router.post("/admin/questions", status_code=status.HTTP_201_CREATED)
+async def create_question(
+    body: QuestionAdminCreateRequest,
+    user: CurrentUser = Depends(_require_youth_manage_admin),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if not body.lessonId or not body.questionText or not body.correctAnswer:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "필수 필드가 누락되었습니다.")
+
+    max_stmt = (
+        select(Question.questionNumber)
+        .where(Question.lessonId == body.lessonId, Question.tenantId == tenant_id)
+        .order_by(Question.questionNumber.desc())
+        .limit(1)
+    )
+    max_number = (await session.execute(max_stmt)).scalar_one_or_none()
+    question_number = (max_number or 0) + 1
+
+    question = Question(
+        tenantId=tenant_id,
+        lessonId=body.lessonId,
+        questionText=body.questionText,
+        questionType=body.questionType or "MULTIPLE_CHOICE",
+        option1=body.option1,
+        option2=body.option2,
+        option3=body.option3,
+        option4=body.option4,
+        correctAnswer=body.correctAnswer,
+        explanation=body.explanation,
+        questionNumber=question_number,
+    )
+    session.add(question)
+    await session.commit()
+    await session.refresh(question)
+    return {"question": QuestionOut(**question.model_dump()).model_dump()}
+
+
+# ── PUT /admin/questions — 퀴즈 문제 수정 ────────────────────────────────
+@router.put("/admin/questions")
+async def update_question(
+    body: QuestionAdminUpdateRequest,
+    user: CurrentUser = Depends(_require_youth_manage_admin),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    data = body.model_dump(exclude_unset=True)
+    question_id = data.pop("id", None)
+    if not question_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "문제 ID가 필요합니다.")
+
+    stmt = select(Question).where(Question.id == question_id, Question.tenantId == tenant_id)
+    question = (await session.execute(stmt)).scalars().first()
+    if question is None:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "퀴즈 수정에 실패했습니다.")
+
+    for field in (
+        "questionText",
+        "questionType",
+        "option1",
+        "option2",
+        "option3",
+        "option4",
+        "correctAnswer",
+        "explanation",
+    ):
+        if field in data:
+            setattr(question, field, data[field])
+
+    session.add(question)
+    await session.commit()
+    await session.refresh(question)
+    return {"question": QuestionOut(**question.model_dump()).model_dump()}
+
+
+# ── DELETE /admin/questions — 퀴즈 문제 삭제 ─────────────────────────────
+@router.delete("/admin/questions")
+async def delete_question(
+    id: str | None = None,
+    user: CurrentUser = Depends(_require_youth_manage_admin),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if not id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "문제 ID가 필요합니다.")
+
+    stmt = select(Question).where(Question.id == id, Question.tenantId == tenant_id)
+    question = (await session.execute(stmt)).scalars().first()
+    if question is None:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "퀴즈 삭제에 실패했습니다.")
+
+    await session.delete(question)
+    await session.commit()
+    return {"success": True}
+
+
+# ── POST /admin/questions/reorder — 퀴즈 문제 순서 변경 ──────────────────
+@router.post("/admin/questions/reorder")
+async def reorder_questions(
+    body: QuestionReorderRequest,
+    user: CurrentUser = Depends(_require_youth_manage_admin),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if body.questionIds is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "questionIds 배열이 필요합니다.")
+
+    # 유니크 제약(lessonId, questionNumber) 충돌 방지를 위해 임시 음수 번호로 먼저 설정
+    # (레슨 순서 변경과 동일한 2단계 기법)
+    for index, question_id in enumerate(body.questionIds):
+        await session.execute(
+            update(Question)
+            .where(Question.id == question_id, Question.tenantId == tenant_id)
+            .values(questionNumber=-(index + 1))
+        )
+    for index, question_id in enumerate(body.questionIds):
+        await session.execute(
+            update(Question)
+            .where(Question.id == question_id, Question.tenantId == tenant_id)
+            .values(questionNumber=index + 1)
+        )
+    await session.commit()
+    return {"success": True}

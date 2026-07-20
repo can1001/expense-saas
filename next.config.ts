@@ -558,6 +558,23 @@ const nextConfig: NextConfig = {
           source: "/api/youth-night/recitation/approve",
           destination: `${apiOrigin}/api/youth-night/recitation/approve`,
         },
+        // youth-night: 관리 (Y4) — 고정 세그먼트, 다른 항목과 충돌 없음
+        {
+          source: "/api/youth-night/admin/curriculum",
+          destination: `${apiOrigin}/api/youth-night/admin/curriculum`,
+        },
+        {
+          source: "/api/youth-night/admin/lesson",
+          destination: `${apiOrigin}/api/youth-night/admin/lesson`,
+        },
+        {
+          source: "/api/youth-night/admin/questions",
+          destination: `${apiOrigin}/api/youth-night/admin/questions`,
+        },
+        {
+          source: "/api/youth-night/admin/questions/reorder",
+          destination: `${apiOrigin}/api/youth-night/admin/questions/reorder`,
+        },
       ],
       afterFiles: [
         {

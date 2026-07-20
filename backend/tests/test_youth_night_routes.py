@@ -754,3 +754,289 @@ async def test_recitation_pending_list_requires_permission(client: AsyncClient):
     r = await client.get("/api/youth-night/recitation/approve", headers=headers)
     assert r.status_code == 403
     assert r.json()["detail"] == "암송 승인 권한이 없습니다"
+
+
+# ── 관리 — 커리큘럼/레슨/문제 (Y4) ────────────────────────────────────────
+
+
+async def test_admin_curriculum_create_success(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+
+    r = await client.post(
+        "/api/youth-night/admin/curriculum",
+        json={
+            "curriculum": {"title": "2027 여름 시리즈", "ageGroup": "HIGH"},
+            "lessons": [
+                {"title": "1강 믿음", "lessonNumber": 1},
+                {"title": "2강 소망", "lessonNumber": 2},
+            ],
+        },
+        headers=headers,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["curriculum"]["title"] == "2027 여름 시리즈"
+    assert body["curriculum"]["ageGroup"] == "HIGH"
+    assert body["curriculum"]["isActive"] is True
+    assert len(body["lessons"]) == 2
+    assert body["lessons"][0]["curriculumId"] == body["curriculum"]["id"]
+
+
+async def test_admin_curriculum_create_forbidden_for_student(client: AsyncClient):
+    headers = await _login(client)
+    r = await client.post(
+        "/api/youth-night/admin/curriculum",
+        json={"curriculum": {"title": "X", "ageGroup": "HIGH"}, "lessons": []},
+        headers=headers,
+    )
+    assert r.status_code == 403
+    assert r.json()["detail"] == "권한이 없습니다"
+
+
+async def test_admin_curriculum_update_success(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    curriculum_id = await _curriculum_id(client)
+
+    r = await client.put(
+        "/api/youth-night/admin/curriculum",
+        json={"curriculumId": curriculum_id, "title": "수정된 제목", "isActive": False},
+        headers=headers,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["title"] == "수정된 제목"
+    assert body["isActive"] is False
+
+
+async def test_admin_curriculum_delete_success(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+
+    create_r = await client.post(
+        "/api/youth-night/admin/curriculum",
+        json={"curriculum": {"title": "삭제될 시리즈", "ageGroup": "HIGH"}, "lessons": []},
+        headers=headers,
+    )
+    curriculum_id = create_r.json()["curriculum"]["id"]
+
+    r = await client.request(
+        "DELETE",
+        "/api/youth-night/admin/curriculum",
+        headers=headers,
+        json={"curriculumId": curriculum_id},
+    )
+    assert r.status_code == 200
+    assert r.json() == {"success": True}
+
+
+async def test_admin_lesson_create_success(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    curriculum_id = await _curriculum_id(client)
+
+    r = await client.post(
+        "/api/youth-night/admin/lesson",
+        json={"curriculumId": curriculum_id, "title": "3강 사랑2"},
+        headers=headers,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["title"] == "3강 사랑2"
+    assert body["lessonNumber"] == 3  # 기존 1,2강 다음
+    assert body["curriculum"]["ageGroup"] == "MIDDLE"
+
+
+async def test_admin_lesson_create_missing_required_fields(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    r = await client.post("/api/youth-night/admin/lesson", json={}, headers=headers)
+    assert r.status_code == 400
+    assert r.json()["detail"] == "커리큘럼과 제목은 필수입니다"
+
+
+async def test_admin_lesson_get_success(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    lesson_id = await _lesson_id(client)
+
+    r = await client.get(f"/api/youth-night/admin/lesson?lessonId={lesson_id}", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["id"] == lesson_id
+    assert body["curriculum"]["title"] == "2026 청나잇 시리즈"
+
+
+async def test_admin_lesson_get_missing_lesson_id(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    r = await client.get("/api/youth-night/admin/lesson", headers=headers)
+    assert r.status_code == 400
+    assert r.json()["detail"] == "lessonId가 필요합니다"
+
+
+async def test_admin_lesson_update_success(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    lesson_id = await _lesson_id(client)
+
+    r = await client.put(
+        "/api/youth-night/admin/lesson",
+        json={"lessonId": lesson_id, "title": "1강 사랑(수정)", "publishedAt": None},
+        headers=headers,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["title"] == "1강 사랑(수정)"
+    assert body["publishedAt"] is None
+
+
+async def test_admin_lesson_reorder_success(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    curriculum_id = await _curriculum_id(client)
+    lesson1_id = await _lesson_id(client, lesson_number=1)
+    lesson2_id = await _lesson_id(client, lesson_number=2)
+
+    r = await client.patch(
+        "/api/youth-night/admin/lesson",
+        json={"curriculumId": curriculum_id, "lessonIds": [lesson2_id, lesson1_id]},
+        headers=headers,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["success"] is True
+    assert [lesson["id"] for lesson in body["lessons"]] == [lesson2_id, lesson1_id]
+    assert body["lessons"][0]["lessonNumber"] == 1
+    assert body["lessons"][1]["lessonNumber"] == 2
+
+
+async def test_admin_lesson_reorder_missing_fields(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    r = await client.patch("/api/youth-night/admin/lesson", json={}, headers=headers)
+    assert r.status_code == 400
+    assert r.json()["detail"] == "curriculumId와 lessonIds 배열이 필요합니다"
+
+
+async def test_admin_lesson_delete_success(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    curriculum_id = await _curriculum_id(client)
+
+    create_r = await client.post(
+        "/api/youth-night/admin/lesson",
+        json={"curriculumId": curriculum_id, "title": "삭제될 레슨"},
+        headers=headers,
+    )
+    lesson_id = create_r.json()["id"]
+
+    r = await client.request(
+        "DELETE", "/api/youth-night/admin/lesson", headers=headers, json={"lessonId": lesson_id}
+    )
+    assert r.status_code == 200
+    assert r.json() == {"success": True}
+
+
+async def test_admin_questions_list_success(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    lesson_id = await _lesson_id(client)
+
+    r = await client.get(f"/api/youth-night/admin/questions?lessonId={lesson_id}", headers=headers)
+    assert r.status_code == 200
+    questions = r.json()["questions"]
+    assert len(questions) == 2
+    assert questions[0]["questionNumber"] == 1
+
+
+async def test_admin_questions_list_missing_lesson_id(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    r = await client.get("/api/youth-night/admin/questions", headers=headers)
+    assert r.status_code == 400
+    assert r.json()["detail"] == "lessonId가 필요합니다."
+
+
+async def test_admin_questions_create_success(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    lesson_id = await _lesson_id(client)
+
+    r = await client.post(
+        "/api/youth-night/admin/questions",
+        json={
+            "lessonId": lesson_id,
+            "questionText": "새 질문",
+            "correctAnswer": "1",
+            "option1": "참",
+            "option2": "거짓",
+        },
+        headers=headers,
+    )
+    assert r.status_code == 201
+    question = r.json()["question"]
+    assert question["questionText"] == "새 질문"
+    assert question["questionNumber"] == 3  # 기존 2문항 다음
+
+
+async def test_admin_questions_create_forbidden_for_student(client: AsyncClient):
+    headers = await _login(client)
+    lesson_id = await _lesson_id(client)
+    r = await client.post(
+        "/api/youth-night/admin/questions",
+        json={"lessonId": lesson_id, "questionText": "X", "correctAnswer": "1"},
+        headers=headers,
+    )
+    assert r.status_code == 403
+    assert r.json()["detail"] == "관리자 권한이 필요합니다."
+
+
+async def test_admin_questions_update_success(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    question_ids = await _question_ids(client)
+
+    r = await client.put(
+        "/api/youth-night/admin/questions",
+        json={"id": question_ids[0], "questionText": "수정된 질문", "correctAnswer": "2"},
+        headers=headers,
+    )
+    assert r.status_code == 200
+    question = r.json()["question"]
+    assert question["questionText"] == "수정된 질문"
+    assert question["correctAnswer"] == "2"
+
+
+async def test_admin_questions_delete_success(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    question_ids = await _question_ids(client)
+
+    r = await client.delete(
+        f"/api/youth-night/admin/questions?id={question_ids[0]}", headers=headers
+    )
+    assert r.status_code == 200
+    assert r.json() == {"success": True}
+
+
+async def test_admin_questions_reorder_success(client: AsyncClient):
+    await _create_teacher(client)
+    headers = await _login(client, userid="teacher")
+    question_ids = await _question_ids(client)
+    reversed_ids = list(reversed(question_ids))
+
+    r = await client.post(
+        "/api/youth-night/admin/questions/reorder",
+        json={"questionIds": reversed_ids},
+        headers=headers,
+    )
+    assert r.status_code == 200
+    assert r.json() == {"success": True}
+
+    check = await client.get(
+        f"/api/youth-night/admin/questions?lessonId={await _lesson_id(client)}", headers=headers
+    )
+    reordered = check.json()["questions"]
+    assert [q["id"] for q in reordered] == reversed_ids
