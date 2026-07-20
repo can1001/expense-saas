@@ -162,6 +162,30 @@ async def update_committee(
     return entity.model_dump()
 
 
+@router.delete("/committees/{committee_id}")
+async def delete_committee(
+    committee_id: str,
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+    _=Depends(require_permission(PERMISSIONS.COMMITTEE_MANAGE)),
+) -> dict:
+    entity = await _get_or_404(
+        session, Committee, committee_id, tenant_id, "위원회를 찾을 수 없습니다."
+    )
+
+    dept_count = (
+        await session.execute(
+            select(func.count(Department.id)).where(Department.committeeId == committee_id)
+        )
+    ).scalar_one()
+    if dept_count > 0:
+        raise HTTPException(400, "하위 사역팀이 있는 위원회는 삭제할 수 없습니다.")
+
+    await session.delete(entity)
+    await session.commit()
+    return {"success": True}
+
+
 # ── 부서 ──────────────────────────────────────────────────────────────
 class DepartmentCreate(BaseModel):
     committeeId: str
