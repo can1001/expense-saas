@@ -368,6 +368,23 @@ const nextConfig: NextConfig = {
           source: "/api/admin/year-setup-status",
           destination: `${apiOrigin}/api/admin/year-setup-status`,
         },
+        // admin: 보고서 — 사역비 집행/누적/분기별 회계보고(+Excel) (D2)
+        {
+          source: "/api/admin/budget-execution",
+          destination: `${apiOrigin}/api/admin/budget-execution`,
+        },
+        {
+          source: "/api/admin/cumulative-report",
+          destination: `${apiOrigin}/api/admin/cumulative-report`,
+        },
+        {
+          source: "/api/admin/quarterly-report",
+          destination: `${apiOrigin}/api/admin/quarterly-report`,
+        },
+        {
+          source: "/api/admin/quarterly-report/export",
+          destination: `${apiOrigin}/api/admin/quarterly-report/export`,
+        },
       ],
       afterFiles: [
         {
