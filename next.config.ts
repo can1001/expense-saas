@@ -124,7 +124,7 @@ const nextConfig: NextConfig = {
   //   /api/py/*  →  <API_ORIGIN>/api/*
   // 이전 완료된 도메인만 이 경로로 호출하고, 미이전 도메인은 기존 /api/* (Next.js)를 쓴다.
   async rewrites() {
-    const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:8000";
+    const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:8002";
     // Expense id 는 cuid(v1)/cuid2 — 20자 이상 소문자 영숫자라서 bulk, export
     // 등 미이관 고정 세그먼트(짧거나 하이픈 포함)와 구분된다.
     const cuid = "[a-z0-9]{20,}";
@@ -423,6 +423,19 @@ const nextConfig: NextConfig = {
         {
           source: "/api/admin/notifications",
           destination: `${apiOrigin}/api/admin/notifications`,
+        },
+        // platform: SuperAdmin 인증 (P1) — 일반 사용자 인증과 별도 세션 체계
+        {
+          source: "/api/platform/auth/login",
+          destination: `${apiOrigin}/api/platform/auth/login`,
+        },
+        {
+          source: "/api/platform/auth/logout",
+          destination: `${apiOrigin}/api/platform/auth/logout`,
+        },
+        {
+          source: "/api/platform/auth/me",
+          destination: `${apiOrigin}/api/platform/auth/me`,
         },
       ],
       afterFiles: [
