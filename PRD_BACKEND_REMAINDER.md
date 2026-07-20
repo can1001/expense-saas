@@ -67,7 +67,7 @@
 
 ## 최종 검증
 
-- [ ] F1. 백엔드 전체 `RUNNING_ZONE=local uv run pytest` + `uv run ruff check` 통과
+- [x] F1. 백엔드 전체 `RUNNING_ZONE=local uv run pytest` + `uv run ruff check` 통과
 - [ ] F2. rewrite 전수 대조 — `app/api/**` 라우트별 메서드 목록 vs FastAPI 라우트 vs beforeFiles 항목표를 만들어 docs/ 에 기록, 누락·메서드 갭 0 확인
 - [ ] F3. `pnpm run build` 통과 + `BACKEND_SEPARATION_STATUS.md` 갱신
 
