@@ -41,7 +41,7 @@
 - [x] D1. 대시보드 (`admin/dashboard`, `admin/year-setup-status`)
 - [x] D2. 보고서 (`admin/budget-execution`, `admin/cumulative-report`, `admin/quarterly-report` + `export`)
 - [x] D3. 실행·이력 (`admin/hr-admin-execution`, `admin/manager-exceptions`, `admin/change-history`)
-- [ ] D4. 역할·초대 (`admin/roles` 2종, `admin/invitations`)
+- [x] D4. 역할·초대 (`admin/roles` 2종, `admin/invitations`)
 - [ ] D5. 헌금 (`admin/offerings` 4종 — template 은 C1 의존)
 - [ ] D6. 알림 관리 (`admin/notifications`)
 

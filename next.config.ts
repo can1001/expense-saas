@@ -398,6 +398,13 @@ const nextConfig: NextConfig = {
           source: "/api/admin/change-history",
           destination: `${apiOrigin}/api/admin/change-history`,
         },
+        // admin: 역할·초대 관리 (D4)
+        { source: "/api/admin/roles", destination: `${apiOrigin}/api/admin/roles` },
+        {
+          source: `/api/admin/roles/:id(${cuid})`,
+          destination: `${apiOrigin}/api/admin/roles/:id`,
+        },
+        { source: "/api/admin/invitations", destination: `${apiOrigin}/api/admin/invitations` },
       ],
       afterFiles: [
         {

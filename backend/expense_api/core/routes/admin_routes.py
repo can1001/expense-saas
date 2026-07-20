@@ -1,25 +1,32 @@
-"""관리자 대시보드/연도 설정 현황/보고서/실행·이력 라우터.
+"""관리자 대시보드/연도 설정 현황/보고서/실행·이력/역할·초대 라우터.
 (app/api/admin/dashboard, app/api/admin/year-setup-status,
  app/api/admin/budget-execution, app/api/admin/cumulative-report,
  app/api/admin/quarterly-report(+export),
  app/api/admin/hr-admin-execution, app/api/admin/manager-exceptions,
- app/api/admin/change-history 이전)
+ app/api/admin/change-history,
+ app/api/admin/roles(+[id]), app/api/admin/invitations 이전)
 mount prefix: /api/admin
 """
 
 import io
 import re
+import secrets
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
 from openpyxl.workbook import Workbook
+from pydantic import BaseModel
 from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from expense_api.core.auth.permissions import PERMISSIONS
+from expense_api.core.auth.permissions import (
+    PERMISSIONS,
+    is_protected_system_role,
+    sanitize_permissions,
+)
 from expense_api.core.db.session import get_session
 from expense_api.core.dependencies.auth import CurrentUser
 from expense_api.core.dependencies.authz import effective_permissions, require_permission
@@ -36,9 +43,13 @@ from expense_api.core.models.budget import (
     DepartmentBudgetDetail,
 )
 from expense_api.core.models.expense import Expense, ExpenseItem
-from expense_api.core.models.user import User, UserYearRole, UserYearRoleHistory
+from expense_api.core.models.user import Invitation, Role, User, UserYearRole, UserYearRoleHistory
 
 router = APIRouter()
+
+# 초대 유효기간 (일) — lib/services/invitation.ts INVITATION_EXPIRES_DAYS 이전
+INVITATION_EXPIRES_DAYS = 7
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def _current_year() -> int:
@@ -2052,3 +2063,243 @@ async def get_change_history(
         result["total"]["budgets"] = budget_count
 
     return result
+
+
+# ── D4: 역할 관리 (app/api/admin/roles, [id]) ──────────────────────────
+
+
+async def _role_counts(session: AsyncSession, role_ids: list[str]) -> tuple[dict, dict]:
+    """roleId 기준 User·UserYearRole 카운트 맵 (prisma _count.{users,userYearRoles} 대응)."""
+    if not role_ids:
+        return {}, {}
+    user_rows = await session.execute(
+        select(User.roleId, func.count(User.id))
+        .where(User.roleId.in_(role_ids))
+        .group_by(User.roleId)
+    )
+    year_role_rows = await session.execute(
+        select(UserYearRole.roleId, func.count(UserYearRole.id))
+        .where(UserYearRole.roleId.in_(role_ids))
+        .group_by(UserYearRole.roleId)
+    )
+    return dict(user_rows.all()), dict(year_role_rows.all())
+
+
+def _role_with_count(role: Role, user_counts: dict, year_role_counts: dict) -> dict:
+    return {
+        **role.model_dump(),
+        "_count": {
+            "users": user_counts.get(role.id, 0),
+            "userYearRoles": year_role_counts.get(role.id, 0),
+        },
+    }
+
+
+@router.get("/roles")
+async def list_roles(
+    includeInactive: bool = False,
+    user: CurrentUser = Depends(require_permission(PERMISSIONS.ROLE_MANAGE)),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> list[dict]:
+    stmt = select(Role).where(Role.tenantId == tenant_id)
+    if not includeInactive:
+        stmt = stmt.where(Role.isActive == True)  # noqa: E712
+    stmt = stmt.order_by(Role.sortOrder)
+    roles = (await session.execute(stmt)).scalars().all()
+    user_counts, year_role_counts = await _role_counts(session, [r.id for r in roles])
+    return [_role_with_count(r, user_counts, year_role_counts) for r in roles]
+
+
+class RoleCreateBody(BaseModel):
+    code: str | None = None
+    name: str | None = None
+    description: str | None = None
+    stepNumber: int | None = None
+    sortOrder: int | None = None
+    permissions: list[str] | None = None
+
+
+@router.post("/roles", status_code=status.HTTP_201_CREATED)
+async def create_role(
+    body: RoleCreateBody,
+    user: CurrentUser = Depends(require_permission(PERMISSIONS.ROLE_MANAGE)),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if not body.code or not body.name:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "역할 코드와 이름은 필수입니다.")
+
+    existing = (
+        await session.execute(
+            select(Role).where(Role.tenantId == tenant_id, Role.code == body.code)
+        )
+    ).scalars().first()
+    if existing:
+        raise HTTPException(status.HTTP_409_CONFLICT, "이미 존재하는 역할 코드입니다.")
+
+    role = Role(
+        tenantId=tenant_id,
+        code=body.code,
+        name=body.name,
+        description=body.description,
+        stepNumber=body.stepNumber,
+        sortOrder=body.sortOrder or 0,
+        permissions=sanitize_permissions(body.permissions),
+    )
+    session.add(role)
+    await session.commit()
+    await session.refresh(role)
+    return role.model_dump()
+
+
+@router.get("/roles/{role_id}")
+async def get_role(
+    role_id: str,
+    user: CurrentUser = Depends(require_permission(PERMISSIONS.ROLE_MANAGE)),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    role = await session.get(Role, role_id)
+    if role is None or role.tenantId != tenant_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "역할을 찾을 수 없습니다.")
+    user_counts, year_role_counts = await _role_counts(session, [role.id])
+    return _role_with_count(role, user_counts, year_role_counts)
+
+
+class RoleUpdateBody(BaseModel):
+    code: str | None = None
+    name: str | None = None
+    description: str | None = None
+    stepNumber: int | None = None
+    sortOrder: int | None = None
+    isActive: bool | None = None
+    permissions: list[str] | None = None
+
+
+@router.put("/roles/{role_id}")
+async def update_role(
+    role_id: str,
+    body: RoleUpdateBody,
+    user: CurrentUser = Depends(require_permission(PERMISSIONS.ROLE_MANAGE)),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    role = await session.get(Role, role_id)
+    if role is None or role.tenantId != tenant_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "역할을 찾을 수 없습니다.")
+
+    fields = body.model_fields_set
+
+    if "code" in fields and body.code and body.code != role.code:
+        duplicate = (
+            await session.execute(
+                select(Role).where(Role.tenantId == tenant_id, Role.code == body.code)
+            )
+        ).scalars().first()
+        if duplicate:
+            raise HTTPException(status.HTTP_409_CONFLICT, "이미 존재하는 역할 코드입니다.")
+
+    if "code" in fields and body.code is not None:
+        role.code = body.code
+    if "name" in fields and body.name is not None:
+        role.name = body.name
+    if "description" in fields:
+        role.description = body.description
+    if "stepNumber" in fields:
+        role.stepNumber = body.stepNumber
+    if "sortOrder" in fields and body.sortOrder is not None:
+        role.sortOrder = body.sortOrder
+    if "isActive" in fields and body.isActive is not None:
+        role.isActive = body.isActive
+    if "permissions" in fields:
+        role.permissions = sanitize_permissions(body.permissions)
+
+    await session.commit()
+    await session.refresh(role)
+    return role.model_dump()
+
+
+@router.delete("/roles/{role_id}")
+async def deactivate_role(
+    role_id: str,
+    user: CurrentUser = Depends(require_permission(PERMISSIONS.ROLE_MANAGE)),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    role = await session.get(Role, role_id)
+    if role is None or role.tenantId != tenant_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "역할을 찾을 수 없습니다.")
+
+    if is_protected_system_role(role.code):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "기본 역할은 삭제할 수 없습니다.")
+
+    user_counts, year_role_counts = await _role_counts(session, [role.id])
+    users_count = user_counts.get(role.id, 0)
+    year_roles_count = year_role_counts.get(role.id, 0)
+    if users_count > 0 or year_roles_count > 0:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            {
+                "error": "사용 중인 역할은 삭제할 수 없습니다.",
+                "usedBy": {"users": users_count, "yearRoles": year_roles_count},
+            },
+        )
+
+    role.isActive = False
+    await session.commit()
+    await session.refresh(role)
+    return {"message": "역할이 비활성화되었습니다.", "role": role.model_dump()}
+
+
+# ── D4: 초대 관리 (app/api/admin/invitations) ──────────────────────────
+
+
+@router.get("/invitations")
+async def list_invitations(
+    user: CurrentUser = Depends(require_permission(PERMISSIONS.USER_REGISTER)),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> list[dict]:
+    rows = (
+        await session.execute(
+            select(Invitation)
+            .where(Invitation.tenantId == tenant_id)
+            .order_by(Invitation.createdAt.desc())
+        )
+    ).scalars().all()
+    return [r.model_dump() for r in rows]
+
+
+class InvitationCreateBody(BaseModel):
+    email: str | None = None
+    role: str | None = None
+
+
+@router.post("/invitations", status_code=status.HTTP_201_CREATED)
+async def create_invitation(
+    body: InvitationCreateBody,
+    user: CurrentUser = Depends(require_permission(PERMISSIONS.USER_REGISTER)),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    invalid_email = body.email is not None and not _EMAIL_RE.match(body.email)
+    invalid_role = body.role is not None and body.role not in ("TENANT_ADMIN", "MEMBER")
+    if invalid_email or invalid_role:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "초대 정보가 올바르지 않습니다. 이메일과 역할(TENANT_ADMIN/MEMBER)을 확인해주세요.",
+        )
+
+    invitation = Invitation(
+        tenantId=tenant_id,
+        email=body.email,
+        role=body.role or "MEMBER",
+        token=secrets.token_hex(32),
+        expiresAt=datetime.now(timezone.utc) + timedelta(days=INVITATION_EXPIRES_DAYS),
+        invitedById=user.id,
+    )
+    session.add(invitation)
+    await session.commit()
+    await session.refresh(invitation)
+    return invitation.model_dump()
