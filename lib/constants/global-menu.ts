@@ -6,7 +6,7 @@
  *
  * - "예산 관리"는 전역 라우트가 없어 /admin/budget-view(BUDGET_VIEW 권한)로 연결
  * - "정기 지출"은 기존 "자동이체"(/recurring-expenses)의 새 라벨
- * - "영수증 관리"(/receipts)는 RECEIPT_READ permission 신설 후 추가 예정 (Phase 5)
+ * - "영수증 관리"(/receipts)는 RECEIPT_READ permission 기반 (Phase 5)
  */
 import {
   Home,
@@ -14,6 +14,7 @@ import {
   CheckSquare,
   PiggyBank,
   Repeat,
+  Receipt,
   BarChart3,
   Settings,
 } from 'lucide-react';
@@ -64,6 +65,10 @@ export function getGlobalSidebarMenu(
 
   if (canAccessRecurringExpenseMenuWithRoles(roles)) {
     items.push({ href: '/recurring-expenses', label: '정기 지출', icon: Repeat });
+  }
+
+  if (canAccessAdminMenuPathWithRoles(roles, '/receipts')) {
+    items.push({ href: '/receipts', label: '영수증 관리', icon: Receipt });
   }
 
   if (canAccessAdminMenuPathWithRoles(roles, '/reports/financial')) {
