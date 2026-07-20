@@ -9,6 +9,7 @@ from sqlmodel import SQLModel
 
 import expense_api.core.models  # noqa: F401
 from expense_api.core.db.session import get_session
+from expense_api.core.models.budget import Committee, Department
 from expense_api.core.models.tenant import Tenant
 from expense_api.core.models.user import Membership, User
 from expense_api.core.security.jwt import hash_password
@@ -204,3 +205,224 @@ async def test_update_and_deactivate_user(client: AsyncClient):
     assert r2.status_code == 200
     assert r2.json()["message"] == "User deactivated successfully"
     assert r2.json()["user"]["isActive"] is False
+
+
+# ── 역할별 목록 ───────────────────────────────────────────────────────
+async def test_users_by_role_returns_matching_active_users_only(client: AsyncClient):
+    headers = await _login(client)
+    tid = await _tenant_id(client)
+
+    maker = client._maker  # type: ignore[attr-defined]
+    async with maker() as s:
+        s.add(User(tenantId=tid, userid="fh1", username="재정팀장", role="finance_head"))
+        s.add(
+            User(
+                tenantId=tid,
+                userid="fh2",
+                username="비활성재정팀장",
+                role="finance_head",
+                isActive=False,
+            )
+        )
+        other = Tenant(name="다른교회2", subdomain="other2")
+        s.add(other)
+        await s.flush()
+        s.add(User(tenantId=other.id, userid="ghost2", username="유령2", role="finance_head"))
+        await s.commit()
+
+    r = await client.get("/api/users/by-role/finance_head", headers=headers)
+    assert r.status_code == 200
+    userids = {u["userid"] for u in r.json()["users"]}
+    assert userids == {"fh1"}
+
+
+async def test_users_by_role_rejects_invalid_role(client: AsyncClient):
+    headers = await _login(client)
+    r = await client.get("/api/users/by-role/not_a_role", headers=headers)
+    assert r.status_code == 400
+
+
+async def test_users_by_role_requires_auth(client: AsyncClient):
+    r = await client.get("/api/users/by-role/finance_head")
+    assert r.status_code == 401
+
+
+# ── 간편 등록 ─────────────────────────────────────────────────────────
+async def test_quick_register_creates_user_with_membership(client: AsyncClient):
+    headers = await _login(client)  # admin — canRegisterUsers 프리셋 포함
+    tid = await _tenant_id(client)
+
+    r = await client.post(
+        "/api/users/quick-register", json={"name": "홍길동"}, headers=headers
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["success"] is True
+    assert body["user"]["userid"] == "청연홍길동"
+    assert body["user"]["role"] == "user"
+    assert "청연홍길동" in body["message"]
+
+    maker = client._maker  # type: ignore[attr-defined]
+    async with maker() as s:
+        membership = (
+            await s.execute(select(Membership).where(Membership.userId == body["user"]["id"]))
+        ).scalars().first()
+        assert membership is not None
+        assert membership.tenantId == tid
+        assert membership.role == "MEMBER"
+
+
+async def test_quick_register_duplicate_name_conflicts(client: AsyncClient):
+    headers = await _login(client)
+    r1 = await client.post(
+        "/api/users/quick-register", json={"name": "중복이"}, headers=headers
+    )
+    assert r1.status_code == 200
+    r2 = await client.post(
+        "/api/users/quick-register", json={"name": "중복이"}, headers=headers
+    )
+    assert r2.status_code == 409
+
+
+async def test_quick_register_requires_name(client: AsyncClient):
+    headers = await _login(client)
+    r = await client.post("/api/users/quick-register", json={"name": "  "}, headers=headers)
+    assert r.status_code == 400
+
+
+async def test_quick_register_requires_permission(client: AsyncClient):
+    maker = client._maker  # type: ignore[attr-defined]
+    tid = await _tenant_id(client)
+    async with maker() as s:
+        s.add(
+            User(
+                tenantId=tid,
+                userid="plain2",
+                username="일반2",
+                password=hash_password("plain123"),
+                role="user",
+            )
+        )
+        await s.commit()
+
+    headers = await _login(client, userid="plain2", password="plain123")
+    r = await client.post(
+        "/api/users/quick-register", json={"name": "누구"}, headers=headers
+    )
+    assert r.status_code == 403
+
+
+# ── 연도별 역할 ───────────────────────────────────────────────────────
+async def test_year_roles_set_list_and_delete_roundtrip(client: AsyncClient):
+    headers = await _login(client)
+    tid = await _tenant_id(client)
+
+    maker = client._maker  # type: ignore[attr-defined]
+    async with maker() as s:
+        u = User(tenantId=tid, userid="teamlead", username="팀장", role="user")
+        s.add(u)
+        committee = Committee(tenantId=tid, name="위원회A")
+        s.add(committee)
+        await s.flush()
+        dept = Department(tenantId=tid, committeeId=committee.id, name="부서A")
+        s.add(dept)
+        await s.commit()
+        await s.refresh(u)
+        await s.refresh(dept)
+        user_id, dept_id = u.id, dept.id
+
+    r = await client.post(
+        "/api/users/year-roles",
+        json={"userId": user_id, "year": 2026, "role": "team_leader", "departmentId": dept_id},
+        headers=headers,
+    )
+    assert r.status_code == 201
+    assert r.json()["role"] == "team_leader"
+    assert r.json()["departmentId"] == dept_id
+
+    r_list = await client.get("/api/users/year-roles?year=2026", headers=headers)
+    assert r_list.status_code == 200
+    body = r_list.json()
+    assert body["year"] == 2026
+    assert len(body["yearRoles"]) == 1
+    entry = body["yearRoles"][0]
+    assert entry["department"] == "부서A"
+    assert entry["user"] == {"id": user_id, "username": "팀장"}
+
+    r_del = await client.request(
+        "DELETE",
+        "/api/users/year-roles",
+        json={"userId": user_id, "year": 2026},
+        headers=headers,
+    )
+    assert r_del.status_code == 200
+    assert r_del.json()["success"] is True
+
+    r_list2 = await client.get("/api/users/year-roles?year=2026", headers=headers)
+    assert r_list2.json()["yearRoles"] == []
+
+
+async def test_year_roles_rejects_invalid_role(client: AsyncClient):
+    headers = await _login(client)
+    tid = await _tenant_id(client)
+
+    maker = client._maker  # type: ignore[attr-defined]
+    async with maker() as s:
+        u = User(tenantId=tid, userid="teamlead2", username="팀장2", role="user")
+        s.add(u)
+        await s.commit()
+        await s.refresh(u)
+        user_id = u.id
+
+    r = await client.post(
+        "/api/users/year-roles",
+        json={"userId": user_id, "year": 2026, "role": "admin"},
+        headers=headers,
+    )
+    assert r.status_code == 400
+
+
+async def test_year_roles_requires_permission(client: AsyncClient):
+    maker = client._maker  # type: ignore[attr-defined]
+    tid = await _tenant_id(client)
+    async with maker() as s:
+        s.add(
+            User(
+                tenantId=tid,
+                userid="plain3",
+                username="일반3",
+                password=hash_password("plain123"),
+                role="user",
+            )
+        )
+        await s.commit()
+
+    headers = await _login(client, userid="plain3", password="plain123")
+    r = await client.post(
+        "/api/users/year-roles",
+        json={"userId": "whatever", "year": 2026, "role": "team_leader"},
+        headers=headers,
+    )
+    assert r.status_code == 403
+
+
+async def test_year_roles_rejects_cross_tenant_user(client: AsyncClient):
+    headers = await _login(client)
+
+    maker = client._maker  # type: ignore[attr-defined]
+    async with maker() as s:
+        other = Tenant(name="다른교회3", subdomain="other3")
+        s.add(other)
+        await s.flush()
+        ghost = User(tenantId=other.id, userid="ghost3", username="유령3", role="user")
+        s.add(ghost)
+        await s.commit()
+        await s.refresh(ghost)
+        ghost_id = ghost.id
+
+    r = await client.post(
+        "/api/users/year-roles",
+        json={"userId": ghost_id, "year": 2026, "role": "team_leader"},
+        headers=headers,
+    )
+    assert r.status_code == 404
