@@ -386,6 +386,96 @@ async def _to_missing_detail_dtos(
     return out
 
 
+def _validate_year_config_year(year: int) -> None:
+    if year < 2020 or year > 2100:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "유효하지 않은 연도입니다.")
+
+
+@router.get("/year-config/{year}")
+async def get_year_config(
+    year: int,
+    user: CurrentUser = Depends(require_permission(PERMISSIONS.SETTINGS_MANAGE)),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    _validate_year_config_year(year)
+
+    year_roles_count = (
+        await session.execute(
+            select(func.count(UserYearRole.id)).where(
+                UserYearRole.tenantId == tenant_id, UserYearRole.year == year
+            )
+        )
+    ).scalar_one()
+
+    budget_detail_years_count = (
+        await session.execute(
+            select(func.count(BudgetDetailYear.id)).where(
+                BudgetDetailYear.tenantId == tenant_id, BudgetDetailYear.year == year
+            )
+        )
+    ).scalar_one()
+
+    return {
+        "year": year,
+        "data": {
+            "yearRoles": year_roles_count,
+            "budgetDetailYears": budget_detail_years_count,
+        },
+    }
+
+
+@router.delete("/year-config/{year}")
+async def delete_year_config(
+    year: int,
+    target: str = Query("all"),
+    user: CurrentUser = Depends(require_permission(PERMISSIONS.SETTINGS_MANAGE)),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    _validate_year_config_year(year)
+
+    result: dict[str, int] = {}
+
+    if target in ("all", "roles"):
+        year_roles_deleted = (
+            await session.execute(
+                select(func.count(UserYearRole.id)).where(
+                    UserYearRole.tenantId == tenant_id, UserYearRole.year == year
+                )
+            )
+        ).scalar_one()
+        await session.execute(
+            delete(UserYearRole).where(UserYearRole.tenantId == tenant_id, UserYearRole.year == year)
+        )
+        result["yearRolesDeleted"] = year_roles_deleted
+
+    if target in ("all", "budgets"):
+        budget_detail_years_deleted = (
+            await session.execute(
+                select(func.count(BudgetDetailYear.id)).where(
+                    BudgetDetailYear.tenantId == tenant_id, BudgetDetailYear.year == year
+                )
+            )
+        ).scalar_one()
+        await session.execute(
+            delete(BudgetDetailYear).where(
+                BudgetDetailYear.tenantId == tenant_id, BudgetDetailYear.year == year
+            )
+        )
+        result["budgetDetailYearsDeleted"] = budget_detail_years_deleted
+
+    await session.commit()
+
+    return {
+        "success": True,
+        "year": year,
+        "target": target,
+        "result": result,
+        "message": f"{year}년 데이터가 삭제되었습니다.",
+    }
+
+
 # ── D2: 보고서 ──────────────────────────────────────────────────────
 
 

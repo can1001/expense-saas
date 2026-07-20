@@ -424,6 +424,11 @@ const nextConfig: NextConfig = {
           source: "/api/admin/notifications",
           destination: `${apiOrigin}/api/admin/notifications`,
         },
+        // admin: 연도 설정 초기화 (D7) — :year 는 4자리 숫자, year-setup-status 와 경로 충돌 없음
+        {
+          source: "/api/admin/year-config/:year(\\d+)",
+          destination: `${apiOrigin}/api/admin/year-config/:year`,
+        },
         // platform: SuperAdmin 인증 (P1) — 일반 사용자 인증과 별도 세션 체계
         {
           source: "/api/platform/auth/login",

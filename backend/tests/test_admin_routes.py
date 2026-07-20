@@ -739,3 +739,77 @@ async def test_change_history_requires_permission(client: AsyncClient):
     headers = await _login(client, "user1", "user123")
     r = await client.get("/api/admin/change-history", headers=headers)
     assert r.status_code == 403
+
+
+# ── D7: 연도 설정 초기화 ──────────────────────────────────────────────
+
+
+async def test_year_config_get(client: AsyncClient):
+    headers = await _login(client)
+    await _seed(client)
+
+    r = await client.get(f"/api/admin/year-config/{YEAR}", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["year"] == YEAR
+    assert body["data"]["yearRoles"] == 1
+    assert body["data"]["budgetDetailYears"] == 1
+
+
+async def test_year_config_get_invalid_year(client: AsyncClient):
+    headers = await _login(client)
+
+    r = await client.get("/api/admin/year-config/1999", headers=headers)
+    assert r.status_code == 400
+    assert r.json()["detail"] == "유효하지 않은 연도입니다."
+
+
+async def test_year_config_get_requires_permission(client: AsyncClient):
+    headers = await _login(client, "user1", "user123")
+    r = await client.get(f"/api/admin/year-config/{YEAR}", headers=headers)
+    assert r.status_code == 403
+
+
+async def test_year_config_delete_roles_only(client: AsyncClient):
+    headers = await _login(client)
+    await _seed(client)
+
+    r = await client.delete(f"/api/admin/year-config/{YEAR}?target=roles", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["success"] is True
+    assert body["year"] == YEAR
+    assert body["target"] == "roles"
+    assert body["result"] == {"yearRolesDeleted": 1}
+    assert body["message"] == f"{YEAR}년 데이터가 삭제되었습니다."
+
+    check = await client.get(f"/api/admin/year-config/{YEAR}", headers=headers)
+    assert check.json()["data"] == {"yearRoles": 0, "budgetDetailYears": 1}
+
+
+async def test_year_config_delete_all_default(client: AsyncClient):
+    headers = await _login(client)
+    await _seed(client)
+
+    r = await client.delete(f"/api/admin/year-config/{YEAR}", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["target"] == "all"
+    assert body["result"] == {"yearRolesDeleted": 1, "budgetDetailYearsDeleted": 1}
+
+    check = await client.get(f"/api/admin/year-config/{YEAR}", headers=headers)
+    assert check.json()["data"] == {"yearRoles": 0, "budgetDetailYears": 0}
+
+
+async def test_year_config_delete_invalid_year(client: AsyncClient):
+    headers = await _login(client)
+
+    r = await client.delete("/api/admin/year-config/2200", headers=headers)
+    assert r.status_code == 400
+    assert r.json()["detail"] == "유효하지 않은 연도입니다."
+
+
+async def test_year_config_delete_requires_permission(client: AsyncClient):
+    headers = await _login(client, "user1", "user123")
+    r = await client.delete(f"/api/admin/year-config/{YEAR}", headers=headers)
+    assert r.status_code == 403
