@@ -24,6 +24,7 @@ from expense_api.core.routes import (  # noqa: E402
     approval_policy_routes,
     approval_routes,
     approvals_list_routes,
+    attachment_routes,
     auth_routes,
     budget_master_routes,
     budget_query_routes,
@@ -85,6 +86,10 @@ app.include_router(budget_master_routes.router, prefix="/api", tags=["budget-mas
 # expense_routes 의 /{expense_id} 보다 먼저 등록해야 매칭 우선순위가 보장된다.
 app.include_router(expense_admin_routes.router, prefix="/api/expenses", tags=["expenses"])
 app.include_router(expense_routes.router, prefix="/api/expenses", tags=["expenses"])
+# attachment_routes.router 는 /{expense_id}/duplicate, /{expense_id}/attachments* 처럼
+# expense_routes 의 /{expense_id} 보다 세그먼트가 많아 순서와 무관하게 매칭이 겹치지 않는다.
+app.include_router(attachment_routes.router, prefix="/api/expenses", tags=["expenses"])
+app.include_router(attachment_routes.upload_router, prefix="/api/upload", tags=["upload"])
 app.include_router(approval_routes.router, prefix="/api/expenses", tags=["approval"])
 app.include_router(approvals_list_routes.router, prefix="/api/approvals", tags=["approval"])
 app.include_router(approval_policy_routes.router, prefix="/api", tags=["approval-policy"])

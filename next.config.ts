@@ -172,9 +172,20 @@ const nextConfig: NextConfig = {
           destination: `${apiOrigin}/api/expenses/:id`,
         },
         {
-          source: `/api/expenses/:id(${cuid})/:action(submit|approve|reject|resubmit|withdraw|delegate|approval-line|approval|fix-status|payment-status)`,
+          source: `/api/expenses/:id(${cuid})/:action(submit|approve|reject|resubmit|withdraw|delegate|approval-line|approval|fix-status|payment-status|duplicate)`,
           destination: `${apiOrigin}/api/expenses/:id/:action`,
         },
+        {
+          source: `/api/expenses/:id(${cuid})/attachments`,
+          destination: `${apiOrigin}/api/expenses/:id/attachments`,
+        },
+        {
+          source: `/api/expenses/:id(${cuid})/attachments/:attachmentId(${cuid})`,
+          destination: `${apiOrigin}/api/expenses/:id/attachments/:attachmentId`,
+        },
+        // upload: Cloudinary 업로드/삭제 ("upload" 는 6자로 cuid 패턴과 충돌하지 않음)
+        { source: "/api/upload", destination: `${apiOrigin}/api/upload` },
+        { source: "/api/upload/delete", destination: `${apiOrigin}/api/upload/delete` },
         // budget: 조회 계열 이관 — upload, hierarchy/export(Excel)만 Next 유지
         { source: "/api/budget", destination: `${apiOrigin}/api/budget` },
         { source: "/api/budget/hierarchy", destination: `${apiOrigin}/api/budget/hierarchy` },

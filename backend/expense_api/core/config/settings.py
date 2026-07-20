@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     KAKAO_REST_API_KEY: str | None = None
     KAKAO_USE_OIDC: bool = False
 
+    # Cloudinary 이미지 업로드 (B2) — 미설정이면 cloudinary_service 가 503 으로 안내
+    CLOUDINARY_CLOUD_NAME: str | None = None
+    CLOUDINARY_API_KEY: str | None = None
+    CLOUDINARY_API_SECRET: str | None = None
+
     @property
     def is_sqlite(self) -> bool:
         return self.DATABASE_URL.startswith("sqlite")

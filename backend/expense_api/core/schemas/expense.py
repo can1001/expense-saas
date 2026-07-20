@@ -172,3 +172,42 @@ class PaymentStatusGetOut(BaseModel):
     paymentCompletedAt: datetime | None
     paymentCompletedBy: str | None
     paymentNote: str | None
+
+
+# ── 첨부파일 (app/api/expenses/[id]/attachments*, upload* 이전, B2) ─────
+
+
+class AttachmentOut(BaseModel):
+    id: str
+    tenantId: str | None
+    expenseId: str
+    publicId: str
+    url: str
+    secureUrl: str
+    format: str
+    fileName: str
+    fileSize: int
+    width: int | None
+    height: int | None
+    createdAt: datetime
+
+
+class CreateAttachmentRequest(BaseModel):
+    publicId: str
+    url: str
+    secureUrl: str
+    format: str
+    fileName: str
+    fileSize: int
+    width: int | None = None
+    height: int | None = None
+
+
+class ExpenseWithAttachmentsOut(ExpenseOut):
+    attachments: list[AttachmentOut] = []
+
+
+class DuplicateExpenseOut(BaseModel):
+    success: bool
+    message: str
+    expense: ExpenseWithAttachmentsOut
