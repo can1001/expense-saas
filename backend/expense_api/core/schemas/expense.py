@@ -117,3 +117,58 @@ class ExpenseListOut(BaseModel):
     expenses: list[ExpenseListItemOut]
     pagination: ExpensePaginationOut
     aggregates: ExpenseAggregatesOut
+
+
+# ── 필터 옵션 (app/api/expenses/filter-options 이전) ────────────────────
+
+
+class FilterOptionsOut(BaseModel):
+    committees: list[str]
+    departments: list[str]
+    budgetCategories: list[str]
+
+
+# ── 지급 상태 (app/api/expenses/[id]/payment-status 이전) ──────────────
+
+
+class PaymentStatusSignatureInput(BaseModel):
+    type: str | None = None
+    signatureId: str | None = None
+    data: str | None = None
+
+
+class UpdatePaymentStatusRequest(BaseModel):
+    paymentStatus: str
+    note: str | None = None
+    reason: str | None = None
+    signature: PaymentStatusSignatureInput | None = None
+    expenseDate: datetime | None = None
+
+
+class PaymentStatusDataOut(BaseModel):
+    id: str
+    paymentStatus: str
+    paymentCompletedAt: datetime | None
+    paymentCompletedBy: str | None
+    paymentNote: str | None
+    paymentHoldReason: str | None
+    paymentHoldAt: datetime | None
+    paymentHoldBy: str | None
+    paymentSignatureType: str | None
+    paymentSignatureData: str | None
+    expenseDate: datetime | None
+
+
+class UpdatePaymentStatusOut(BaseModel):
+    success: bool
+    message: str
+    data: PaymentStatusDataOut
+
+
+class PaymentStatusGetOut(BaseModel):
+    id: str
+    status: str
+    paymentStatus: str
+    paymentCompletedAt: datetime | None
+    paymentCompletedBy: str | None
+    paymentNote: str | None

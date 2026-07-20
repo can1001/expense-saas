@@ -164,6 +164,38 @@ class ExpenseRepository:
         total_amount = (await self.session.execute(sum_stmt)).scalar_one()
         return expenses, total, int(total_amount)
 
+    async def filter_options(
+        self, *, only_user_id: str | None, only_department: str | None
+    ) -> tuple[list[str], list[str], list[str]]:
+        """목록 필터 드롭다운용 committee/department/budgetCategory unique 값.
+
+        (app/api/expenses/filter-options/route.ts 이전 — permissionWhere 와 동일 스코프)
+        """
+        conditions = [Expense.tenantId == self.tenant_id]
+        if only_user_id is not None:
+            conditions.append(Expense.userId == only_user_id)
+        elif only_department is not None:
+            conditions.append(Expense.department == only_department)
+        where_clause = and_(*conditions)
+
+        committee_stmt = select(Expense.committee).where(where_clause).distinct()
+        department_stmt = select(Expense.department).where(where_clause).distinct()
+        category_stmt = (
+            select(ExpenseItem.budgetCategory)
+            .join(Expense, Expense.id == ExpenseItem.expenseId)
+            .where(where_clause)
+            .distinct()
+        )
+
+        committees = (await self.session.execute(committee_stmt)).scalars().all()
+        departments = (await self.session.execute(department_stmt)).scalars().all()
+        categories = (await self.session.execute(category_stmt)).scalars().all()
+        return (
+            sorted(c for c in committees if c),
+            sorted(d for d in departments if d),
+            sorted(cat for cat in categories if cat),
+        )
+
     async def list_items(self, expense_id: str) -> list[ExpenseItem]:
         stmt = (
             select(ExpenseItem)

@@ -125,8 +125,8 @@ const nextConfig: NextConfig = {
   // 이전 완료된 도메인만 이 경로로 호출하고, 미이전 도메인은 기존 /api/* (Next.js)를 쓴다.
   async rewrites() {
     const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:8000";
-    // Expense id 는 cuid(v1)/cuid2 — 20자 이상 소문자 영숫자라서 bulk, export,
-    // filter-options 등 미이관 고정 세그먼트(짧거나 하이픈 포함)와 구분된다.
+    // Expense id 는 cuid(v1)/cuid2 — 20자 이상 소문자 영숫자라서 bulk, export
+    // 등 미이관 고정 세그먼트(짧거나 하이픈 포함)와 구분된다.
     const cuid = "[a-z0-9]{20,}";
     // 컷오버 rewrite 는 API_ORIGIN 이 명시된 환경에서만 활성화한다.
     // 미설정 배포(env 추가 전 Render 등)에서 프록시가 localhost 로 향해
@@ -164,11 +164,15 @@ const nextConfig: NextConfig = {
         },
         { source: "/api/expenses", destination: `${apiOrigin}/api/expenses` },
         {
+          source: "/api/expenses/filter-options",
+          destination: `${apiOrigin}/api/expenses/filter-options`,
+        },
+        {
           source: `/api/expenses/:id(${cuid})`,
           destination: `${apiOrigin}/api/expenses/:id`,
         },
         {
-          source: `/api/expenses/:id(${cuid})/:action(submit|approve|reject|resubmit|withdraw|delegate|approval-line|approval)`,
+          source: `/api/expenses/:id(${cuid})/:action(submit|approve|reject|resubmit|withdraw|delegate|approval-line|approval|fix-status|payment-status)`,
           destination: `${apiOrigin}/api/expenses/:id/:action`,
         },
         // budget: 조회 계열 이관 — upload, hierarchy/export(Excel)만 Next 유지

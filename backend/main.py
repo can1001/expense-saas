@@ -28,6 +28,7 @@ from expense_api.core.routes import (  # noqa: E402
     budget_master_routes,
     budget_query_routes,
     budget_routes,
+    expense_admin_routes,
     expense_routes,
     health_routes,
     me_routes,
@@ -80,6 +81,9 @@ app.include_router(tenant_routes.router, prefix="/api/tenant", tags=["tenant"])
 app.include_router(budget_routes.router, prefix="/api/budget", tags=["budget"])
 app.include_router(budget_query_routes.router, prefix="/api/budget", tags=["budget-query"])
 app.include_router(budget_master_routes.router, prefix="/api", tags=["budget-master"])
+# expense_admin_routes 는 /filter-options(고정 세그먼트)를 포함하므로
+# expense_routes 의 /{expense_id} 보다 먼저 등록해야 매칭 우선순위가 보장된다.
+app.include_router(expense_admin_routes.router, prefix="/api/expenses", tags=["expenses"])
 app.include_router(expense_routes.router, prefix="/api/expenses", tags=["expenses"])
 app.include_router(approval_routes.router, prefix="/api/expenses", tags=["approval"])
 app.include_router(approvals_list_routes.router, prefix="/api/approvals", tags=["approval"])
