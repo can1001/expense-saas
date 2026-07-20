@@ -230,6 +230,16 @@ const nextConfig: NextConfig = {
           source: `/api/users/:id(${cuid})`,
           destination: `${apiOrigin}/api/users/:id`,
         },
+        // users/me/signatures: 서명·도장 관리 (본인 것만 조작 가능, "me" 는 cuid 패턴과 충돌 없음)
+        { source: "/api/users/me/signatures", destination: `${apiOrigin}/api/users/me/signatures` },
+        {
+          source: `/api/users/me/signatures/:id(${cuid})`,
+          destination: `${apiOrigin}/api/users/me/signatures/:id`,
+        },
+        {
+          source: `/api/users/me/signatures/:id(${cuid})/default`,
+          destination: `${apiOrigin}/api/users/me/signatures/:id/default`,
+        },
       ],
       afterFiles: [
         {

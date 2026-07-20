@@ -7,7 +7,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from expense_api.core.auth.permissions import ROLE_CODES, YEAR_ROLE_CODES, PERMISSIONS
@@ -16,7 +16,7 @@ from expense_api.core.dependencies.auth import CurrentUser, get_current_user
 from expense_api.core.dependencies.authz import effective_permissions, require_permission
 from expense_api.core.dependencies.tenant import require_tenant_id
 from expense_api.core.models.budget import Department
-from expense_api.core.models.user import Membership, Role, User, UserYearRole
+from expense_api.core.models.user import Membership, Role, User, UserSignature, UserYearRole
 from expense_api.core.security.jwt import hash_password
 
 router = APIRouter()
@@ -614,3 +614,208 @@ async def deactivate_user(
     await session.refresh(user)
 
     return {"message": "User deactivated successfully", "user": user.model_dump()}
+
+
+# ── 서명/도장 ──────────────────────────────────────────────────────────
+# (app/api/users/me/signatures/**, [id]/default 이전 — 본인 것만 조작 가능)
+SIGNATURE_TYPES = {"signature", "stamp"}
+
+
+class SignatureCreate(BaseModel):
+    type: str | None = None
+    name: str | None = None
+    imageData: str | None = None
+    isDefault: bool | None = None
+
+
+class SignatureUpdate(BaseModel):
+    name: str | None = None
+    imageData: str | None = None
+    isDefault: bool | None = None
+
+
+def _signature_out(sig: UserSignature) -> dict:
+    return {
+        "id": sig.id,
+        "type": sig.type,
+        "name": sig.name,
+        "imageData": sig.imageData,
+        "isDefault": sig.isDefault,
+        "createdAt": sig.createdAt,
+    }
+
+
+async def _get_my_signature(
+    session: AsyncSession, user_id: str, signature_id: str
+) -> UserSignature | None:
+    return (
+        await session.execute(
+            select(UserSignature).where(
+                UserSignature.id == signature_id, UserSignature.userId == user_id
+            )
+        )
+    ).scalars().first()
+
+
+@router.get("/users/me/signatures")
+async def list_my_signatures(
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    stmt = (
+        select(UserSignature)
+        .where(UserSignature.userId == user.id)
+        .order_by(
+            UserSignature.type,
+            UserSignature.isDefault.desc(),
+            UserSignature.createdAt.desc(),
+        )
+    )
+    rows = (await session.execute(stmt)).scalars().all()
+    return {"signatures": [_signature_out(s) for s in rows]}
+
+
+@router.post("/users/me/signatures")
+async def create_my_signature(
+    body: SignatureCreate,
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if not body.type or body.type not in SIGNATURE_TYPES:
+        raise HTTPException(400, "유효하지 않은 타입입니다. (signature 또는 stamp)")
+    if not body.name or not body.name.strip():
+        raise HTTPException(400, "이름을 입력해주세요.")
+    if not body.imageData or not body.imageData.startswith("data:image/"):
+        raise HTTPException(400, "유효하지 않은 이미지 데이터입니다.")
+
+    if body.isDefault:
+        await session.execute(
+            update(UserSignature)
+            .where(
+                UserSignature.userId == user.id,
+                UserSignature.type == body.type,
+                UserSignature.isDefault == True,  # noqa: E712
+            )
+            .values(isDefault=False)
+        )
+
+    signature = UserSignature(
+        userId=user.id,
+        type=body.type,
+        name=body.name.strip(),
+        imageData=body.imageData,
+        isDefault=bool(body.isDefault),
+    )
+    session.add(signature)
+    await session.commit()
+    await session.refresh(signature)
+
+    return {
+        "success": True,
+        "message": f"{'서명' if body.type == 'signature' else '도장'}이 등록되었습니다.",
+        "signature": _signature_out(signature),
+    }
+
+
+@router.get("/users/me/signatures/{signature_id}")
+async def get_my_signature(
+    signature_id: str,
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    signature = await _get_my_signature(session, user.id, signature_id)
+    if signature is None:
+        raise HTTPException(404, "서명/도장을 찾을 수 없습니다.")
+    return {"signature": signature.model_dump()}
+
+
+@router.put("/users/me/signatures/{signature_id}")
+async def update_my_signature(
+    signature_id: str,
+    body: SignatureUpdate,
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    existing = await _get_my_signature(session, user.id, signature_id)
+    if existing is None:
+        raise HTTPException(404, "서명/도장을 찾을 수 없습니다.")
+
+    fields = body.model_fields_set
+
+    if "imageData" in fields and body.imageData and not body.imageData.startswith("data:image/"):
+        raise HTTPException(400, "유효하지 않은 이미지 데이터입니다.")
+
+    if "isDefault" in fields and body.isDefault is True:
+        await session.execute(
+            update(UserSignature)
+            .where(
+                UserSignature.userId == user.id,
+                UserSignature.type == existing.type,
+                UserSignature.isDefault == True,  # noqa: E712
+                UserSignature.id != signature_id,
+            )
+            .values(isDefault=False)
+        )
+
+    if "name" in fields and body.name is not None:
+        existing.name = body.name.strip()
+    if "imageData" in fields and body.imageData is not None:
+        existing.imageData = body.imageData
+    if "isDefault" in fields and body.isDefault is not None:
+        existing.isDefault = body.isDefault
+
+    await session.commit()
+    await session.refresh(existing)
+
+    return {
+        "success": True,
+        "message": "수정되었습니다.",
+        "signature": _signature_out(existing),
+    }
+
+
+@router.delete("/users/me/signatures/{signature_id}")
+async def delete_my_signature(
+    signature_id: str,
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    existing = await _get_my_signature(session, user.id, signature_id)
+    if existing is None:
+        raise HTTPException(404, "서명/도장을 찾을 수 없습니다.")
+
+    await session.delete(existing)
+    await session.commit()
+
+    return {
+        "success": True,
+        "message": f"{'서명' if existing.type == 'signature' else '도장'}이 삭제되었습니다.",
+    }
+
+
+@router.put("/users/me/signatures/{signature_id}/default")
+async def set_default_signature(
+    signature_id: str,
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    target = await _get_my_signature(session, user.id, signature_id)
+    if target is None:
+        raise HTTPException(404, "서명/도장을 찾을 수 없습니다.")
+
+    await session.execute(
+        update(UserSignature)
+        .where(
+            UserSignature.userId == user.id,
+            UserSignature.type == target.type,
+            UserSignature.isDefault == True,  # noqa: E712
+        )
+        .values(isDefault=False)
+    )
+    target.isDefault = True
+    await session.commit()
+
+    return {
+        "success": True,
+        "message": f"기본 {'서명' if target.type == 'signature' else '도장'}으로 설정되었습니다.",
+    }

@@ -426,3 +426,131 @@ async def test_year_roles_rejects_cross_tenant_user(client: AsyncClient):
         headers=headers,
     )
     assert r.status_code == 404
+
+
+# ── 서명/도장 ──────────────────────────────────────────────────────────
+IMAGE_DATA = "data:image/png;base64,iVBORw0KGgoAAAANS"
+
+
+async def test_create_signature_success(client: AsyncClient):
+    headers = await _login(client)
+    r = await client.post(
+        "/api/users/me/signatures",
+        json={"type": "signature", "name": "기본 서명", "imageData": IMAGE_DATA},
+        headers=headers,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["success"] is True
+    assert body["signature"]["type"] == "signature"
+    assert body["signature"]["name"] == "기본 서명"
+    assert body["signature"]["isDefault"] is False
+
+
+async def test_create_signature_invalid_type_rejected(client: AsyncClient):
+    headers = await _login(client)
+    r = await client.post(
+        "/api/users/me/signatures",
+        json={"type": "not_a_type", "name": "이름", "imageData": IMAGE_DATA},
+        headers=headers,
+    )
+    assert r.status_code == 400
+
+
+async def test_create_signature_sets_default_and_unsets_previous(client: AsyncClient):
+    headers = await _login(client)
+    r1 = await client.post(
+        "/api/users/me/signatures",
+        json={"type": "stamp", "name": "도장1", "imageData": IMAGE_DATA, "isDefault": True},
+        headers=headers,
+    )
+    assert r1.json()["signature"]["isDefault"] is True
+    first_id = r1.json()["signature"]["id"]
+
+    r2 = await client.post(
+        "/api/users/me/signatures",
+        json={"type": "stamp", "name": "도장2", "imageData": IMAGE_DATA, "isDefault": True},
+        headers=headers,
+    )
+    assert r2.json()["signature"]["isDefault"] is True
+
+    r_list = await client.get("/api/users/me/signatures", headers=headers)
+    by_id = {s["id"]: s for s in r_list.json()["signatures"]}
+    assert by_id[first_id]["isDefault"] is False
+
+
+async def test_list_signatures_requires_auth(client: AsyncClient):
+    r = await client.get("/api/users/me/signatures")
+    assert r.status_code == 401
+
+
+async def test_get_update_delete_signature_roundtrip(client: AsyncClient):
+    headers = await _login(client)
+    created = (
+        await client.post(
+            "/api/users/me/signatures",
+            json={"type": "signature", "name": "서명A", "imageData": IMAGE_DATA},
+            headers=headers,
+        )
+    ).json()["signature"]
+    sig_id = created["id"]
+
+    r_get = await client.get(f"/api/users/me/signatures/{sig_id}", headers=headers)
+    assert r_get.status_code == 200
+    assert r_get.json()["signature"]["id"] == sig_id
+
+    r_put = await client.put(
+        f"/api/users/me/signatures/{sig_id}",
+        json={"name": "서명A-수정"},
+        headers=headers,
+    )
+    assert r_put.status_code == 200
+    assert r_put.json()["signature"]["name"] == "서명A-수정"
+
+    r_default = await client.put(f"/api/users/me/signatures/{sig_id}/default", headers=headers)
+    assert r_default.status_code == 200
+    assert r_default.json()["success"] is True
+
+    r_get2 = await client.get(f"/api/users/me/signatures/{sig_id}", headers=headers)
+    assert r_get2.json()["signature"]["isDefault"] is True
+
+    r_del = await client.delete(f"/api/users/me/signatures/{sig_id}", headers=headers)
+    assert r_del.status_code == 200
+    assert r_del.json()["success"] is True
+
+    r_get3 = await client.get(f"/api/users/me/signatures/{sig_id}", headers=headers)
+    assert r_get3.status_code == 404
+
+
+async def test_signature_scoped_to_owner_not_other_user(client: AsyncClient):
+    headers_admin = await _login(client)
+    created = (
+        await client.post(
+            "/api/users/me/signatures",
+            json={"type": "signature", "name": "관리자서명", "imageData": IMAGE_DATA},
+            headers=headers_admin,
+        )
+    ).json()["signature"]
+    sig_id = created["id"]
+
+    tid = await _tenant_id(client)
+    maker = client._maker  # type: ignore[attr-defined]
+    async with maker() as s:
+        s.add(
+            User(
+                tenantId=tid,
+                userid="other_owner",
+                username="다른사용자",
+                password=hash_password("other123"),
+                role="user",
+            )
+        )
+        await s.commit()
+
+    headers_other = await _login(client, userid="other_owner", password="other123")
+
+    r_get = await client.get(f"/api/users/me/signatures/{sig_id}", headers=headers_other)
+    assert r_get.status_code == 404
+
+    r_del = await client.delete(f"/api/users/me/signatures/{sig_id}", headers=headers_other)
+    assert r_del.status_code == 404

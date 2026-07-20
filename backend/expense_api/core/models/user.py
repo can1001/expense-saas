@@ -104,6 +104,31 @@ class Membership(SQLModel, table=True):
     )
 
 
+class UserSignature(SQLModel, table=True):
+    """사용자 서명/도장 (prisma UserSignature 이전)."""
+
+    __tablename__ = "UserSignature"
+
+    id: str = Field(default_factory=new_id, primary_key=True)
+
+    tenantId: str | None = Field(default=None, index=True)  # 쿼리 최적화용 (관계 없음)
+
+    userId: str = Field(foreign_key="User.id", ondelete="CASCADE", index=True)
+
+    type: str  # "signature" | "stamp"
+    name: str
+    imageData: str = Field(sa_column=Column(Text()))  # base64 인코딩 이미지 (PNG)
+    isDefault: bool = False
+
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
+
+
 class UserYearRole(SQLModel, table=True):
     __tablename__ = "UserYearRole"
     __table_args__ = (

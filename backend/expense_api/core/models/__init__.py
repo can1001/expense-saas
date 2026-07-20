@@ -31,7 +31,13 @@ from expense_api.core.models.notification import (  # noqa: F401
 )
 from expense_api.core.models.schema_info import SchemaInfo  # noqa: F401
 from expense_api.core.models.tenant import SuperAdmin, Tenant  # noqa: F401
-from expense_api.core.models.user import Membership, Role, User, UserYearRole  # noqa: F401
+from expense_api.core.models.user import (  # noqa: F401
+    Membership,
+    Role,
+    User,
+    UserSignature,
+    UserYearRole,
+)
 
 __all__ = [
     "SchemaInfo",
@@ -40,6 +46,7 @@ __all__ = [
     "Role",
     "User",
     "Membership",
+    "UserSignature",
     "UserYearRole",
     "Committee",
     "Department",
