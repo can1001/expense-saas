@@ -43,11 +43,19 @@ PRD: `PRD_BACKEND_REMAINDER.md`. 각 태스크는 **Description / Files / Accept
     admin 체크를 FastAPI `require_permission` 등가물로 매핑한다. 가드 없는 라우트를
     임의로 강화하지도, 있는 가드를 약화하지도 않는다.
 
-**태스크 공통 Verify** (각 태스크 마지막에 반드시 포그라운드 실행):
+**태스크 공통 Verify** (각 태스크 마지막에 반드시 **포그라운드**로 실행하고 완료까지 기다린다):
+
+전체 스위트(`pytest -q`)는 300+ 테스트로 느려서(≈2분) 백그라운드 실행 유혹이 크다 —
+**절대 백그라운드로 돌리지 말 것**. 대신 이 태스크가 새로 만든/수정한 테스트 파일만
+포그라운드로 돌린다 (수 초 내 완료). 전체 스위트 회귀 검사는 F1 최종 검증에서 한 번에 한다.
 
 ```bash
-cd backend && RUNNING_ZONE=local uv run pytest -q && uv run ruff check
+# 이 태스크의 테스트 파일만 (빠름 — 백그라운드 금지, 그대로 완료까지 대기)
+cd backend && RUNNING_ZONE=local uv run pytest tests/test_<이_태스크_파일>.py -q && uv run ruff check
 ```
+
+`<이_태스크_파일>` 은 이번 태스크에서 추가/수정한 테스트 파일명으로 치환한다(복수면 공백 나열).
+파일이 여러 라우터를 건드렸으면 관련 테스트 파일을 모두 나열한다.
 
 ---
 
