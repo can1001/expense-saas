@@ -45,6 +45,7 @@ const GOLDEN: Record<Permission, RoleCode[]> = {
   'expense:bulk_upload': ['admin', 'admin_assistant'],
   'expense:export': ['admin', 'finance_head'],
   'simple_expense:use': ['admin', 'finance_head', 'accountant', 'finance_member', 'admin_assistant'],
+  'receipt:read': ['admin', 'finance_head', 'accountant'],
   'recurring:read': ['admin', 'finance_head', 'accountant', 'finance_member', 'admin_assistant'],
   'recurring:manage_all': ['admin', 'finance_head', 'accountant', 'finance_member', 'admin_assistant'],
   'admin:dashboard.read': ['admin', 'finance_head', 'accountant', 'finance_member', 'admin_assistant'],

@@ -76,6 +76,8 @@ export const PERMISSIONS = {
   EXPENSE_BULK_UPLOAD: 'expense:bulk_upload',
   EXPENSE_EXPORT: 'expense:export',
   SIMPLE_EXPENSE_USE: 'simple_expense:use',
+  // 영수증
+  RECEIPT_READ: 'receipt:read',
   // 자동이체
   RECURRING_READ: 'recurring:read',
   RECURRING_MANAGE_ALL: 'recurring:manage_all',
@@ -126,6 +128,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   [PERMISSIONS.EXPENSE_BULK_UPLOAD]: '지출결의서 일괄 업로드',
   [PERMISSIONS.EXPENSE_EXPORT]: '지출 내보내기',
   [PERMISSIONS.SIMPLE_EXPENSE_USE]: '간편 지출결의서',
+  [PERMISSIONS.RECEIPT_READ]: '영수증 조회',
   [PERMISSIONS.RECURRING_READ]: '정기 지출 조회',
   [PERMISSIONS.RECURRING_MANAGE_ALL]: '정기 지출 전체 관리',
   [PERMISSIONS.ADMIN_DASHBOARD_READ]: '관리자 대시보드',
@@ -166,6 +169,10 @@ export const PERMISSION_GROUPS: { title: string; permissions: Permission[] }[] =
       PERMISSIONS.EXPENSE_EXPORT,
       PERMISSIONS.SIMPLE_EXPENSE_USE,
     ],
+  },
+  {
+    title: '영수증',
+    permissions: [PERMISSIONS.RECEIPT_READ],
   },
   {
     title: '정기 지출',
@@ -264,6 +271,7 @@ export const ROLE_PERMISSION_PRESETS: Record<RoleCode, Permission[]> = {
     P.NOTIFICATION_SEND,
     P.YOUTH_MANAGE,
     P.BUDGET_MASTER_MANAGE, // 예산 마스터 편집 (admin+finance_head, 현행 canAccessAdmin 보존)
+    P.RECEIPT_READ,
     ...MANAGEMENT_PERMS,
   ],
 
@@ -278,6 +286,7 @@ export const ROLE_PERMISSION_PRESETS: Record<RoleCode, Permission[]> = {
     P.REPORT_EXPORT,
     P.NOTIFICATION_SEND,
     P.YOUTH_MANAGE,
+    P.RECEIPT_READ,
     ...MANAGEMENT_PERMS,
   ],
 

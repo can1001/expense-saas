@@ -309,11 +309,15 @@ describe('menu-permissions', () => {
       expect(ROLE_ADMIN_MENU_PATHS['finance_head']).toEqual(ROLE_ADMIN_MENU_PATHS['accountant']);
     });
 
-    it('should give admin_assistant accountant access plus expense-upload', () => {
+    it('should give admin_assistant accountant access (except /receipts) plus expense-upload', () => {
       // admin_assistant는 accountant의 모든 경로에 더해 /admin/expense-upload 추가
+      // 단, /receipts(RECEIPT_READ)는 admin/finance_head/accountant 전용이라 admin_assistant는 미보유
       const accountantPaths = ROLE_ADMIN_MENU_PATHS['accountant'] as string[];
       const assistantPaths = ROLE_ADMIN_MENU_PATHS['admin_assistant'] as string[];
-      accountantPaths.forEach((p) => expect(assistantPaths).toContain(p));
+      accountantPaths
+        .filter((p) => p !== '/receipts')
+        .forEach((p) => expect(assistantPaths).toContain(p));
+      expect(assistantPaths).not.toContain('/receipts');
       expect(assistantPaths).toContain('/admin/expense-upload');
     });
 
@@ -323,6 +327,19 @@ describe('menu-permissions', () => {
 
     it('should not include user', () => {
       expect(ROLE_ADMIN_MENU_PATHS['user']).toBeUndefined();
+    });
+  });
+
+  describe('canAccessAdminMenuPath — /receipts (RECEIPT_READ)', () => {
+    it('should return true for admin, finance_head, accountant', () => {
+      expect(canAccessAdminMenuPath('admin', '/receipts')).toBe(true);
+      expect(canAccessAdminMenuPath('finance_head', '/receipts')).toBe(true);
+      expect(canAccessAdminMenuPath('accountant', '/receipts')).toBe(true);
+    });
+
+    it('should return false for user, team_leader', () => {
+      expect(canAccessAdminMenuPath('user', '/receipts')).toBe(false);
+      expect(canAccessAdminMenuPath('team_leader', '/receipts')).toBe(false);
     });
   });
 
