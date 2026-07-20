@@ -106,6 +106,22 @@ def membership_role_to_role_code(role: str) -> str:
     return "admin" if role == "TENANT_ADMIN" else "user"
 
 
+async def get_memberships(session: AsyncSession, user_id: str) -> list[tuple[Membership, Tenant]]:
+    """유저의 소속 목록 조회 (Next lib/services/membership.ts getMemberships 이전, A6).
+
+    활성 테넌트만, 기본 조직 우선 정렬. 0건이면 호출측이 User.tenantId 로 폴백한다.
+    """
+    rows = (
+        await session.execute(
+            select(Membership, Tenant)
+            .join(Tenant, Membership.tenantId == Tenant.id)
+            .where(Membership.userId == user_id, Tenant.isActive == True)  # noqa: E712
+            .order_by(Membership.isDefault.desc(), Membership.createdAt.asc())
+        )
+    ).all()
+    return [(m, t) for m, t in rows]
+
+
 def build_tenant_session(user: User, session_tenant_id: str, membership_role: str | None) -> dict:
     """세션 테넌트에서의 역할을 결정해 세션 dict 를 만든다.
 

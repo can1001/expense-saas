@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
+    # 카카오 로그인 (A6) — 미설정이면 kakao_service 가 503 으로 안내
+    KAKAO_REST_API_KEY: str | None = None
+    KAKAO_USE_OIDC: bool = False
+
     @property
     def is_sqlite(self) -> bool:
         return self.DATABASE_URL.startswith("sqlite")

@@ -97,3 +97,14 @@ class AcceptInvitationRequest(BaseModel):
     userid: str | None = None
     password: str | None = None
     username: str | None = None
+
+
+# ── 카카오 로그인/연결 (A6) ────────────────────────────────
+class KakaoLoginRequest(BaseModel):
+    kakaoAccessToken: str | None = None
+    # OIDC(id_token) 분기용 예약 필드 — KAKAO_USE_OIDC 활성화 시 사용
+    idToken: str | None = None
+
+
+class LinkKakaoRequest(BaseModel):
+    kakaoAccessToken: str | None = None

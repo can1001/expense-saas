@@ -15,6 +15,8 @@ from expense_api.core.repository.tenant_repository import TenantRepository
 from expense_api.core.schemas.auth import (
     AcceptInvitationRequest,
     ChangePasswordRequest,
+    KakaoLoginRequest,
+    LinkKakaoRequest,
     LoginRequest,
     LoginResponse,
     LoginTenant,
@@ -27,18 +29,27 @@ from expense_api.core.schemas.auth import (
     SwitchTenantRequest,
     UserPermissionFlags,
 )
-from expense_api.core.security.jwt import JWTError, decode_token, hash_password, verify_password
+from expense_api.core.security.jwt import (
+    PENDING_SELECTION_TOKEN_EXPIRE_MINUTES,
+    JWTError,
+    create_pending_selection_token,
+    decode_token,
+    hash_password,
+    verify_password,
+)
 from expense_api.core.security.rate_limit import (
     check_login_rate_limit,
     clear_login_attempts,
     get_rate_limit_key,
     record_login_failure,
 )
+from expense_api.core.service import auth_account_service, kakao_service
 from expense_api.core.service.auth_service import (
     InvitationError,
     LoginError,
     accept_invitation,
     build_tenant_session,
+    get_memberships,
     issue_session_token,
     login,
     membership_role_to_role_code,
@@ -404,4 +415,175 @@ async def accept_invitation_route(
         "user": _session_user_payload(session_data),
         "tenant": {"id": tenant.id, "name": tenant.name, "subdomain": tenant.subdomain},
         "token": token_out,
+    }
+
+
+def _set_pending_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        COOKIE_NAME,
+        token,
+        httponly=True,
+        samesite="lax",
+        secure=settings.is_prod,
+        max_age=PENDING_SELECTION_TOKEN_EXPIRE_MINUTES * 60,
+    )
+
+
+# ── 카카오 로그인 (A6, app/api/auth/kakao/route.ts 이전, ARC-003 §2) ────────────
+# 카카오 토큰은 서버측 kapi 검증에만 쓰고 세션으로 쓰지 않는다 — 응답은 항상 자체 JWT.
+# 소셜 로그인은 "누구인지"만 판별하고, 소속 결정은 로그인과 동일하게 Membership이 담당한다.
+@router.post("/kakao")
+async def kakao_login_route(
+    body: KakaoLoginRequest,
+    response: Response,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if not kakao_service.is_kakao_configured():
+        raise HTTPException(503, "카카오 로그인이 설정되지 않았습니다. 관리자에게 문의하세요.")
+
+    # OIDC 분기 지점 — 초기 구현은 액세스 토큰 + kapi 방식만
+    if kakao_service.is_kakao_oidc_enabled():
+        raise HTTPException(503, "카카오 OIDC 로그인은 아직 지원되지 않습니다.")
+
+    kakao_access_token = (body.kakaoAccessToken or "").strip()
+    if not kakao_access_token:
+        raise HTTPException(400, "카카오 토큰을 입력해주세요.")
+
+    try:
+        provider_user_id = await kakao_service.verify_kakao_access_token(kakao_access_token)
+    except kakao_service.KakaoConfigError as e:
+        raise HTTPException(503, str(e))
+    except kakao_service.KakaoTokenError as e:
+        raise HTTPException(401, str(e))
+
+    # AuthAccount 연결 조회 — 이메일 매칭 자동 병합 금지
+    user = await auth_account_service.find_user_by_provider(session, "kakao", provider_user_id)
+
+    # 연결 없음 → 초대 안내 응답. JWT·쿠키 미발급.
+    if user is None:
+        return {
+            "success": True,
+            "linked": False,
+            "message": "연결된 계정이 없습니다. 초대를 받은 후 이용할 수 있습니다.",
+        }
+
+    if not user.isActive:
+        raise HTTPException(403, "계정이 비활성화되어 있습니다. 관리자에게 문의하세요.")
+
+    # 소속 결정 — 로그인과 동일. Membership 조회 실패(백필 전)는 0건으로 폴백.
+    memberships = await get_memberships(session, user.id)
+
+    # 복수 소속: 최종 토큰 대신 선택용 임시 토큰 → 최종 토큰은 switch-tenant 에서
+    if len(memberships) > 1:
+        pending_token = create_pending_selection_token(user.id, user.userid, user.username)
+        _set_pending_cookie(response, pending_token)
+        return {
+            "success": True,
+            "linked": True,
+            "message": "소속 조직을 선택해주세요.",
+            "requiresTenantSelection": True,
+            "memberships": [
+                {
+                    "tenantId": m.tenantId,
+                    "tenantName": t.name,
+                    "orgType": t.orgType,
+                    "role": m.role,
+                }
+                for m, t in memberships
+            ],
+            "token": pending_token,
+        }
+
+    # 단일 소속은 Membership의 tenantId로, 0건은 기존 User.tenantId 그대로
+    sole = memberships[0] if len(memberships) == 1 else None
+    session_tenant_id = sole[1].id if sole else (user.tenantId or "")
+
+    # 소속 조직을 확정할 수 없으면(무소속·무테넌트) 세션을 발급하지 않는다 (login과 동일).
+    if not session_tenant_id:
+        raise HTTPException(403, "소속 조직을 확인할 수 없습니다. 관리자에게 문의하세요.")
+
+    tenant = await session.get(Tenant, session_tenant_id)
+    if tenant is None or not tenant.isActive:
+        raise HTTPException(403, "이 조직은 현재 이용할 수 없습니다.")
+
+    session_data = build_tenant_session(user, session_tenant_id, sole[0].role if sole else None)
+    token_out = issue_session_token(session_data)
+    _set_session_cookie(response, token_out)
+
+    return {
+        "success": True,
+        "message": "로그인 성공",
+        "linked": True,
+        "user": _session_user_payload(session_data),
+        "tenant": {"id": tenant.id, "name": tenant.name, "subdomain": tenant.subdomain},
+        "token": token_out,
+    }
+
+
+# ── 카카오 계정 연결 (A6, app/api/auth/link-kakao/route.ts 이전, ARC-003 §4.2) ──
+@router.get("/link-kakao")
+async def link_kakao_status_route(
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    account = await auth_account_service.get_auth_account(session, user.id, "kakao")
+    return {
+        "success": True,
+        "linked": account is not None,
+        "configured": kakao_service.is_kakao_configured(),
+    }
+
+
+# 로그인 세션이 본인 증명 — 카카오 토큰은 서버측 kapi 검증에만 쓰고 세션으로 쓰지 않는다.
+# 이메일 매칭 자동 병합 없음: 연결 대상은 항상 현재 세션의 유저다.
+@router.post("/link-kakao")
+async def link_kakao_route(
+    body: LinkKakaoRequest,
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if not kakao_service.is_kakao_configured():
+        raise HTTPException(503, "카카오 로그인이 설정되지 않았습니다. 관리자에게 문의하세요.")
+
+    kakao_access_token = (body.kakaoAccessToken or "").strip()
+    if not kakao_access_token:
+        raise HTTPException(400, "카카오 토큰을 입력해주세요.")
+
+    try:
+        provider_user_id = await kakao_service.verify_kakao_access_token(kakao_access_token)
+    except kakao_service.KakaoConfigError as e:
+        raise HTTPException(503, str(e))
+    except kakao_service.KakaoTokenError as e:
+        raise HTTPException(401, str(e))
+
+    # 세션 유저에 연결 — 이미 다른 유저 연결·같은 provider 중복 연결이면 409 (계정 탈취 방지)
+    try:
+        await auth_account_service.link_auth_account(session, user.id, "kakao", provider_user_id)
+    except auth_account_service.AuthAccountConflictError as e:
+        raise HTTPException(409, str(e))
+
+    return {
+        "success": True,
+        "linked": True,
+        "message": "카카오 계정이 연결되었습니다.",
+    }
+
+
+# DELETE /api/auth/link-kakao - 카카오 연결 해제 (마지막 로그인 수단이면 거부)
+@router.delete("/link-kakao")
+async def unlink_kakao_route(
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    try:
+        await auth_account_service.unlink_auth_account(session, user.id, "kakao")
+    except auth_account_service.AuthAccountNotLinkedError:
+        raise HTTPException(404, "연결된 카카오 계정이 없습니다.")
+    except auth_account_service.LastAuthMethodError as e:
+        raise HTTPException(400, str(e))
+
+    return {
+        "success": True,
+        "linked": False,
+        "message": "카카오 계정 연결이 해제되었습니다.",
     }

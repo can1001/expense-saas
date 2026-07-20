@@ -157,6 +157,11 @@ const nextConfig: NextConfig = {
           source: "/api/auth/accept-invitation",
           destination: `${apiOrigin}/api/auth/accept-invitation`,
         },
+        { source: "/api/auth/kakao", destination: `${apiOrigin}/api/auth/kakao` },
+        {
+          source: "/api/auth/link-kakao",
+          destination: `${apiOrigin}/api/auth/link-kakao`,
+        },
         { source: "/api/expenses", destination: `${apiOrigin}/api/expenses` },
         {
           source: `/api/expenses/:id(${cuid})`,
