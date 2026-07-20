@@ -32,6 +32,13 @@ from expense_api.core.schemas.tenant_settings import (
     merge_deep,
     validate_tenant_settings,
 )
+from expense_api.core.schemas.tenant_user import (
+    TenantUserCreateBody,
+    TenantUserUpdateBody,
+    validate_create_tenant_user,
+    validate_update_tenant_user,
+)
+from expense_api.core.security.jwt import hash_password
 from expense_api.core.service.platform_activity_log_service import log_platform_activity
 from expense_api.core.service.tenant_provisioning_service import (
     create_default_roles,
@@ -509,3 +516,476 @@ async def update_tenant_settings_patch(
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     return await _update_tenant_settings(tenant_id, body, request, admin, session)
+
+
+def _tenant_user_not_found() -> HTTPException:
+    return HTTPException(status.HTTP_404_NOT_FOUND, "사용자를 찾을 수 없습니다.")
+
+
+async def _get_tenant_user_or_404(session: AsyncSession, tenant_id: str, user_id: str) -> User:
+    user = (
+        await session.execute(
+            select(User).where(User.id == user_id, User.tenantId == tenant_id)
+        )
+    ).scalars().first()
+    if user is None:
+        raise _tenant_user_not_found()
+    return user
+
+
+_USER_SELECT_FIELDS = (
+    "id", "userid", "username", "role", "department", "phoneNumber", "isActive",
+    "createdAt", "updatedAt",
+)
+
+
+# ── GET /platform/tenants/{id}/users — 사용자 목록 ───────────────────────
+@router.get("/tenants/{tenant_id}/users")
+async def list_tenant_users(
+    tenant_id: str,
+    page: int = 1,
+    limit: int = 20,
+    search: str | None = None,
+    role: str | None = None,
+    isActive: bool | None = None,
+    sortBy: str = "createdAt",
+    sortOrder: str = "desc",
+    admin: CurrentPlatformAdmin = Depends(get_current_platform_admin),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    page = max(page, 1)
+    limit = min(max(limit, 1), 100)
+
+    tenant = await session.get(Tenant, tenant_id)
+    if tenant is None:
+        raise _tenant_not_found()
+
+    where = [User.tenantId == tenant_id]
+    if search:
+        pattern = f"%{search}%"
+        where.append(
+            (User.userid.ilike(pattern))
+            | (User.username.ilike(pattern))
+            | (User.phoneNumber.ilike(pattern))
+        )
+    if role:
+        where.append(User.role == role)
+    if isActive is not None:
+        where.append(User.isActive == isActive)
+
+    total = (await session.execute(select(func.count(User.id)).where(*where))).scalar_one()
+
+    sort_column = getattr(User, sortBy, User.createdAt)
+    order = sort_column.desc() if sortOrder == "desc" else sort_column.asc()
+
+    users = (
+        (
+            await session.execute(
+                select(User)
+                .where(*where)
+                .order_by(order)
+                .offset((page - 1) * limit)
+                .limit(limit)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    items = []
+    for user in users:
+        expenses_count = (
+            await session.execute(
+                select(func.count(Expense.id)).where(Expense.userId == user.id)
+            )
+        ).scalar_one()
+        item = {field: getattr(user, field) for field in _USER_SELECT_FIELDS}
+        item["_count"] = {"expenses": expenses_count}
+        items.append(item)
+
+    return {
+        "users": items,
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "totalPages": (total + limit - 1) // limit if limit else 0,
+        },
+        "limits": {
+            "maxUsers": tenant.maxUsers,
+            "currentUsers": total,
+        },
+    }
+
+
+# ── POST /platform/tenants/{id}/users — 사용자 생성 ──────────────────────
+@router.post("/tenants/{tenant_id}/users", status_code=status.HTTP_201_CREATED)
+async def create_tenant_user(
+    tenant_id: str,
+    body: TenantUserCreateBody,
+    admin: CurrentPlatformAdmin = Depends(get_current_platform_admin),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    try:
+        data = validate_create_tenant_user(body)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e)) from e
+
+    tenant = await session.get(Tenant, tenant_id)
+    if tenant is None:
+        raise _tenant_not_found()
+
+    if not tenant.isActive:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "비활성화된 테넌트에는 사용자를 추가할 수 없습니다."
+        )
+
+    current_user_count = (
+        await session.execute(
+            select(func.count(User.id)).where(User.tenantId == tenant_id, User.isActive == True)  # noqa: E712
+        )
+    ).scalar_one()
+
+    if current_user_count >= tenant.maxUsers:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"사용자 수 제한({tenant.maxUsers}명)에 도달했습니다. "
+            "요금제를 업그레이드하거나 기존 사용자를 비활성화하세요.",
+        )
+
+    existing_user = (
+        await session.execute(
+            select(User).where(User.tenantId == tenant_id, User.userid == data["userid"])
+        )
+    ).scalars().first()
+    if existing_user:
+        raise HTTPException(status.HTTP_409_CONFLICT, "이미 사용 중인 아이디입니다.")
+
+    user = User(
+        tenantId=tenant_id,
+        userid=data["userid"],
+        username=data["username"],
+        password=hash_password(data["password"]),
+        role=data["role"],
+        department=data["department"],
+        phoneNumber=data["phoneNumber"],
+        isActive=True,
+    )
+    session.add(user)
+    await session.flush()
+
+    tenant.currentUsers = current_user_count + 1
+    session.add(tenant)
+
+    await session.commit()
+    await session.refresh(user)
+
+    return {field: getattr(user, field) for field in ("id", "userid", "username", "role", "department", "phoneNumber", "isActive", "createdAt")}
+
+
+# ── GET /platform/tenants/{id}/users/{userId} — 사용자 상세 ──────────────
+@router.get("/tenants/{tenant_id}/users/{user_id}")
+async def get_tenant_user(
+    tenant_id: str,
+    user_id: str,
+    admin: CurrentPlatformAdmin = Depends(get_current_platform_admin),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    tenant = await session.get(Tenant, tenant_id)
+    if tenant is None:
+        raise _tenant_not_found()
+
+    user = await _get_tenant_user_or_404(session, tenant_id, user_id)
+
+    expenses_count = (
+        await session.execute(
+            select(func.count(Expense.id)).where(Expense.userId == user.id)
+        )
+    ).scalar_one()
+
+    recent_expenses = (
+        (
+            await session.execute(
+                select(Expense)
+                .where(Expense.tenantId == tenant_id, Expense.applicantName == user.username)
+                .order_by(Expense.createdAt.desc())
+                .limit(5)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    out = {field: getattr(user, field) for field in _USER_SELECT_FIELDS}
+    out["_count"] = {"expenses": expenses_count}
+    out["recentActivity"] = {
+        "expenses": [
+            {
+                "id": e.id,
+                "requestAmount": e.requestAmount,
+                "status": e.status,
+                "createdAt": e.createdAt,
+            }
+            for e in recent_expenses
+        ]
+    }
+    return out
+
+
+# ── PUT /platform/tenants/{id}/users/{userId} — 사용자 수정 ──────────────
+@router.put("/tenants/{tenant_id}/users/{user_id}")
+async def update_tenant_user(
+    tenant_id: str,
+    user_id: str,
+    body: TenantUserUpdateBody,
+    admin: CurrentPlatformAdmin = Depends(get_current_platform_admin),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    try:
+        data = validate_update_tenant_user(body)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e)) from e
+
+    existing_user = await _get_tenant_user_or_404(session, tenant_id, user_id)
+
+    if "isActive" in data and data["isActive"] != existing_user.isActive:
+        tenant = await session.get(Tenant, tenant_id)
+        if data["isActive"]:
+            active_user_count = (
+                await session.execute(
+                    select(func.count(User.id)).where(
+                        User.tenantId == tenant_id, User.isActive == True  # noqa: E712
+                    )
+                )
+            ).scalar_one()
+            if tenant and active_user_count >= tenant.maxUsers:
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    f"사용자 수 제한({tenant.maxUsers}명)에 도달했습니다.",
+                )
+
+    if "password" in data:
+        data["password"] = hash_password(data.pop("password"))
+
+    for key, value in data.items():
+        setattr(existing_user, key, value)
+    session.add(existing_user)
+    await session.flush()
+
+    if "isActive" in data:
+        active_user_count = (
+            await session.execute(
+                select(func.count(User.id)).where(
+                    User.tenantId == tenant_id, User.isActive == True  # noqa: E712
+                )
+            )
+        ).scalar_one()
+        tenant = await session.get(Tenant, tenant_id)
+        if tenant is not None:
+            tenant.currentUsers = active_user_count
+            session.add(tenant)
+
+    await session.commit()
+    await session.refresh(existing_user)
+
+    return {
+        field: getattr(existing_user, field)
+        for field in ("id", "userid", "username", "role", "department", "phoneNumber", "isActive", "createdAt", "updatedAt")
+    }
+
+
+# ── DELETE /platform/tenants/{id}/users/{userId} — 사용자 삭제(소프트/하드) ──
+@router.delete("/tenants/{tenant_id}/users/{user_id}")
+async def delete_tenant_user(
+    tenant_id: str,
+    user_id: str,
+    hard: bool = False,
+    admin: CurrentPlatformAdmin = Depends(get_current_platform_admin),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    existing_user = await _get_tenant_user_or_404(session, tenant_id, user_id)
+
+    expenses_count = (
+        await session.execute(
+            select(func.count(Expense.id)).where(Expense.userId == existing_user.id)
+        )
+    ).scalar_one()
+
+    if hard:
+        if expenses_count > 0:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "지출 기록이 있는 사용자는 완전히 삭제할 수 없습니다. 비활성화를 사용하세요.",
+            )
+
+        was_active = existing_user.isActive
+        await session.delete(existing_user)
+        await session.flush()
+
+        if was_active:
+            active_user_count = (
+                await session.execute(
+                    select(func.count(User.id)).where(
+                        User.tenantId == tenant_id, User.isActive == True  # noqa: E712
+                    )
+                )
+            ).scalar_one()
+            tenant = await session.get(Tenant, tenant_id)
+            if tenant is not None:
+                tenant.currentUsers = active_user_count
+                session.add(tenant)
+
+        await session.commit()
+        return {"message": "사용자가 완전히 삭제되었습니다."}
+
+    was_active = existing_user.isActive
+    existing_user.isActive = False
+    session.add(existing_user)
+    await session.flush()
+
+    if was_active:
+        # Next 원본 소프트삭제 분기와 동일하게 활성 사용자 수를 조회 후 -1 을 적용한다
+        # (원본의 activeUserCount - 1 산식을 그대로 재현 — 하드삭제 분기와 다르게 이미
+        # 대상 사용자가 카운트에서 빠진 값에서 한 번 더 차감하는 로직이나, 컷오버 시점에
+        # 임의로 정정하지 않고 원본 계약을 그대로 따른다).
+        active_user_count = (
+            await session.execute(
+                select(func.count(User.id)).where(
+                    User.tenantId == tenant_id, User.isActive == True  # noqa: E712
+                )
+            )
+        ).scalar_one()
+        tenant = await session.get(Tenant, tenant_id)
+        if tenant is not None:
+            tenant.currentUsers = active_user_count - 1
+            session.add(tenant)
+
+    await session.commit()
+    return {"message": "사용자가 비활성화되었습니다."}
+
+
+# ── GET /platform/tenants/{id}/stats — 테넌트 사용량 통계 ────────────────
+@router.get("/tenants/{tenant_id}/stats")
+async def get_tenant_stats(
+    tenant_id: str,
+    admin: CurrentPlatformAdmin = Depends(get_current_platform_admin),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    tenant = await session.get(Tenant, tenant_id)
+    if tenant is None:
+        raise _tenant_not_found()
+
+    now = datetime.now(timezone.utc)
+    this_month_start = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+    this_year_start = datetime(now.year, 1, 1, tzinfo=timezone.utc)
+
+    async def _agg(where_clause) -> tuple[int, int]:
+        count = (
+            await session.execute(select(func.count(Expense.id)).where(*where_clause))
+        ).scalar_one()
+        amount = (
+            await session.execute(select(func.sum(Expense.requestAmount)).where(*where_clause))
+        ).scalar_one()
+        return count, amount or 0
+
+    users_count = (
+        await session.execute(select(func.count(User.id)).where(User.tenantId == tenant_id))
+    ).scalar_one()
+
+    total_count, total_amount = await _agg([Expense.tenantId == tenant_id])
+    month_count, month_amount = await _agg(
+        [Expense.tenantId == tenant_id, Expense.createdAt >= this_month_start]
+    )
+    year_count, year_amount = await _agg(
+        [Expense.tenantId == tenant_id, Expense.createdAt >= this_year_start]
+    )
+
+    status_rows = (
+        await session.execute(
+            select(Expense.status, func.count(Expense.id))
+            .where(Expense.tenantId == tenant_id)
+            .group_by(Expense.status)
+        )
+    ).all()
+    by_status = {row[0]: row[1] for row in status_rows}
+
+    recent_rows = (
+        (
+            await session.execute(
+                select(Expense)
+                .where(Expense.tenantId == tenant_id)
+                .order_by(Expense.createdAt.desc())
+                .limit(10)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    recent_activity = [
+        {
+            "id": e.id,
+            "applicantName": e.applicantName,
+            "requestAmount": e.requestAmount,
+            "status": e.status,
+            "createdAt": e.createdAt,
+        }
+        for e in recent_rows
+    ]
+
+    monthly_trend = []
+    for i in range(6):
+        month_index = now.month - 1 - i
+        year_offset, month_offset = divmod(month_index, 12)
+        target_year = now.year + year_offset
+        target_month = month_offset + 1
+        start_date = datetime(target_year, target_month, 1, tzinfo=timezone.utc)
+        if target_month == 12:
+            end_date = datetime(target_year + 1, 1, 1, tzinfo=timezone.utc)
+        else:
+            end_date = datetime(target_year, target_month + 1, 1, tzinfo=timezone.utc)
+
+        m_count, m_amount = await _agg(
+            [
+                Expense.tenantId == tenant_id,
+                Expense.createdAt >= start_date,
+                Expense.createdAt < end_date,
+            ]
+        )
+        monthly_trend.append(
+            {"month": start_date.strftime("%Y-%m"), "count": m_count, "amount": m_amount}
+        )
+    monthly_trend.reverse()
+
+    return {
+        "tenant": {
+            "id": tenant.id,
+            "name": tenant.name,
+            "subdomain": tenant.subdomain,
+            "plan": tenant.plan,
+            "createdAt": tenant.createdAt,
+        },
+        "usage": {
+            "users": {
+                "current": users_count,
+                "max": tenant.maxUsers,
+                "percentage": round((users_count / tenant.maxUsers) * 100) if tenant.maxUsers else 0,
+            },
+            "storage": {
+                "currentMB": tenant.currentStorage,
+                "maxMB": tenant.maxStorageMB,
+                "percentage": (
+                    round((tenant.currentStorage / tenant.maxStorageMB) * 100)
+                    if tenant.maxStorageMB
+                    else 0
+                ),
+            },
+        },
+        "expenses": {
+            "total": {"count": total_count, "amount": total_amount},
+            "thisMonth": {"count": month_count, "amount": month_amount},
+            "thisYear": {"count": year_count, "amount": year_amount},
+            "byStatus": by_status,
+        },
+        "monthlyTrend": monthly_trend,
+        "recentActivity": recent_activity,
+    }

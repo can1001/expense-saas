@@ -450,6 +450,19 @@ const nextConfig: NextConfig = {
           source: `/api/platform/tenants/:id(${cuid})/settings`,
           destination: `${apiOrigin}/api/platform/tenants/:id/settings`,
         },
+        // platform: 테넌트 사용자·통계 (P3) — 2단계 동적 세그먼트, :userId(cuid) 도 고정 세그먼트와 충돌 없음
+        {
+          source: `/api/platform/tenants/:id(${cuid})/stats`,
+          destination: `${apiOrigin}/api/platform/tenants/:id/stats`,
+        },
+        {
+          source: `/api/platform/tenants/:id(${cuid})/users`,
+          destination: `${apiOrigin}/api/platform/tenants/:id/users`,
+        },
+        {
+          source: `/api/platform/tenants/:id(${cuid})/users/:userId(${cuid})`,
+          destination: `${apiOrigin}/api/platform/tenants/:id/users/:userId`,
+        },
       ],
       afterFiles: [
         {
