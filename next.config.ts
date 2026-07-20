@@ -128,6 +128,15 @@ const nextConfig: NextConfig = {
     // Expense id 는 cuid(v1)/cuid2 — 20자 이상 소문자 영숫자라서 bulk, export,
     // filter-options 등 미이관 고정 세그먼트(짧거나 하이픈 포함)와 구분된다.
     const cuid = "[a-z0-9]{20,}";
+    // 컷오버 rewrite 는 API_ORIGIN 이 명시된 환경에서만 활성화한다.
+    // 미설정 배포(env 추가 전 Render 등)에서 프록시가 localhost 로 향해
+    // 전 도메인이 깨지는 사고 방지 — 미설정 시 기존 Next 라우트가 그대로 처리.
+    if (!process.env.API_ORIGIN) {
+      return {
+        beforeFiles: [],
+        afterFiles: [{ source: "/api/py/:path*", destination: `${apiOrigin}/api/:path*` }],
+      };
+    }
     return {
       // 컷오버 완료 도메인: 동일한 /api/* 경로를 FastAPI 가 처리.
       // beforeFiles 라서 남아있는 Next 라우트 파일보다 우선한다 (롤백 = 해당 항목 제거).
