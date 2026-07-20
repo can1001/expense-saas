@@ -532,6 +532,23 @@ const nextConfig: NextConfig = {
           source: "/api/youth-night/points",
           destination: `${apiOrigin}/api/youth-night/points`,
         },
+        // youth-night: 퀴즈·랭킹 (Y2) — 고정 세그먼트, 다른 항목과 충돌 없음
+        {
+          source: "/api/youth-night/quiz",
+          destination: `${apiOrigin}/api/youth-night/quiz`,
+        },
+        {
+          source: "/api/youth-night/quiz/stats",
+          destination: `${apiOrigin}/api/youth-night/quiz/stats`,
+        },
+        {
+          source: "/api/youth-night/ranking",
+          destination: `${apiOrigin}/api/youth-night/ranking`,
+        },
+        {
+          source: "/api/youth-night/stats",
+          destination: `${apiOrigin}/api/youth-night/stats`,
+        },
       ],
       afterFiles: [
         {

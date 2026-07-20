@@ -1,8 +1,8 @@
 """청나잇(youth-night) 라우트 계약 테스트 (Phase Y).
 
-레거시 app/api/youth-night/(attendance|attendance/stats|points)/route.ts 와의
-계약 정합(응답 키·상태코드·중복 방지·테넌트 스코프)을 검증한다.
-(test_simple_expense_routes.py 픽스처 패턴 재사용)
+레거시 app/api/youth-night/(attendance|attendance/stats|points|quiz|quiz/stats|
+ranking|stats)/route.ts 와의 계약 정합(응답 키·상태코드·중복 방지·테넌트 스코프)을
+검증한다. (test_simple_expense_routes.py 픽스처 패턴 재사용)
 """
 
 from datetime import datetime, timezone
@@ -18,7 +18,7 @@ import expense_api.core.models  # noqa: F401
 from expense_api.core.db.session import get_session
 from expense_api.core.models.tenant import Tenant
 from expense_api.core.models.user import User
-from expense_api.core.models.youth_night import Curriculum, Lesson
+from expense_api.core.models.youth_night import Curriculum, Lesson, Question
 from expense_api.core.security.jwt import hash_password
 from expense_api.core.security.rate_limit import _reset_all
 from main import app
@@ -56,6 +56,15 @@ async def client():
                 role="user",
             )
         )
+        s.add(
+            User(
+                tenantId=t.id,
+                userid="student2",
+                username="학생2",
+                password=hash_password("pass1234"),
+                role="user",
+            )
+        )
         curriculum = Curriculum(
             tenantId=t.id,
             title="2026 청나잇 시리즈",
@@ -64,16 +73,15 @@ async def client():
         )
         s.add(curriculum)
         await s.flush()
-        s.add(
-            Lesson(
-                tenantId=t.id,
-                curriculumId=curriculum.id,
-                title="1강 사랑",
-                lessonNumber=1,
-                isActive=True,
-                publishedAt=datetime.now(timezone.utc),
-            )
+        lesson1 = Lesson(
+            tenantId=t.id,
+            curriculumId=curriculum.id,
+            title="1강 사랑",
+            lessonNumber=1,
+            isActive=True,
+            publishedAt=datetime.now(timezone.utc),
         )
+        s.add(lesson1)
         s.add(
             Lesson(
                 tenantId=t.id,
@@ -82,6 +90,31 @@ async def client():
                 lessonNumber=2,
                 isActive=True,
                 publishedAt=None,
+            )
+        )
+        await s.flush()
+        s.add(
+            Question(
+                tenantId=t.id,
+                lessonId=lesson1.id,
+                questionText="사랑은 무엇인가?",
+                option1="오래참음",
+                option2="시기",
+                correctAnswer="1",
+                explanation="사랑은 오래 참습니다",
+                questionNumber=1,
+            )
+        )
+        s.add(
+            Question(
+                tenantId=t.id,
+                lessonId=lesson1.id,
+                questionText="사랑은 성내지 않는다?",
+                option1="참",
+                option2="거짓",
+                correctAnswer="1",
+                explanation="사랑은 성내지 않습니다",
+                questionNumber=2,
             )
         )
         await s.commit()
@@ -221,6 +254,17 @@ async def _curriculum_id(client: AsyncClient) -> str:
         return row[0]
 
 
+async def _question_ids(client: AsyncClient) -> list[str]:
+    from sqlalchemy import select
+
+    maker = client._maker  # type: ignore[attr-defined]
+    async with maker() as s:
+        rows = (
+            await s.execute(select(Question.id).order_by(Question.questionNumber.asc()))
+        ).all()
+        return [row[0] for row in rows]
+
+
 async def test_points_grant_success_and_duplicate(client: AsyncClient):
     headers = await _login(client)
     lesson_id = await _lesson_id(client)
@@ -274,3 +318,186 @@ async def test_points_list_aggregates(client: AsyncClient):
     assert by_type["ATTENDANCE"]["_sum"]["points"] == 5
     assert by_type["LESSON_COMPLETE"]["_sum"]["points"] == 3
     assert len(body["recentPoints"]) == 2
+
+
+async def test_quiz_submit_perfect_score_grants_points(client: AsyncClient):
+    headers = await _login(client)
+    lesson_id = await _lesson_id(client)
+    q1, q2 = await _question_ids(client)
+
+    r = await client.post(
+        "/api/youth-night/quiz",
+        json={"lessonId": lesson_id, "answers": [
+            {"questionId": q1, "userAnswer": "1"},
+            {"questionId": q2, "userAnswer": "1"},
+        ]},
+        headers=headers,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["message"] == "퀴즈가 제출되었습니다"
+    assert body["results"]["totalQuestions"] == 2
+    assert body["results"]["correctAnswers"] == 2
+    assert body["results"]["percentage"] == 100
+    assert body["results"]["pointsEarned"] == 15
+    assert len(body["responses"]) == 2
+
+    points_r = await client.get("/api/youth-night/points", headers=headers)
+    by_type = {row["pointType"]: row for row in points_r.json()["pointsByType"]}
+    assert by_type["QUIZ_PERFECT"]["_sum"]["points"] == 15
+
+
+async def test_quiz_submit_retry_replaces_previous_points(client: AsyncClient):
+    headers = await _login(client)
+    lesson_id = await _lesson_id(client)
+    q1, q2 = await _question_ids(client)
+
+    await client.post(
+        "/api/youth-night/quiz",
+        json={"lessonId": lesson_id, "answers": [
+            {"questionId": q1, "userAnswer": "1"},
+            {"questionId": q2, "userAnswer": "1"},
+        ]},
+        headers=headers,
+    )
+    r = await client.post(
+        "/api/youth-night/quiz",
+        json={"lessonId": lesson_id, "answers": [
+            {"questionId": q1, "userAnswer": "wrong"},
+            {"questionId": q2, "userAnswer": "1"},
+        ]},
+        headers=headers,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["results"]["correctAnswers"] == 1
+    assert body["results"]["percentage"] == 50
+    assert body["results"]["pointsEarned"] == 0
+
+    points_r = await client.get("/api/youth-night/points", headers=headers)
+    by_type = {row["pointType"]: row for row in points_r.json()["pointsByType"]}
+    assert "QUIZ_PERFECT" not in by_type
+    assert "QUIZ_GOOD" not in by_type
+
+
+async def test_quiz_submit_missing_body_rejected(client: AsyncClient):
+    headers = await _login(client)
+    r = await client.post("/api/youth-night/quiz", json={}, headers=headers)
+    assert r.status_code == 400
+    assert r.json()["detail"] == "잘못된 요청 데이터입니다"
+
+
+async def test_quiz_submit_invalid_question_id_returns_500(client: AsyncClient):
+    headers = await _login(client)
+    lesson_id = await _lesson_id(client)
+    r = await client.post(
+        "/api/youth-night/quiz",
+        json={"lessonId": lesson_id, "answers": [{"questionId": "not-a-question", "userAnswer": "1"}]},
+        headers=headers,
+    )
+    assert r.status_code == 500
+    assert r.json()["detail"] == "퀴즈 제출 처리 중 오류가 발생했습니다"
+
+
+async def test_quiz_get_requires_lesson_id(client: AsyncClient):
+    headers = await _login(client)
+    r = await client.get("/api/youth-night/quiz", headers=headers)
+    assert r.status_code == 400
+    assert r.json()["detail"] == "lessonId가 필요합니다"
+
+
+async def test_quiz_get_returns_responses_and_statistics(client: AsyncClient):
+    headers = await _login(client)
+    lesson_id = await _lesson_id(client)
+    q1, q2 = await _question_ids(client)
+    await client.post(
+        "/api/youth-night/quiz",
+        json={"lessonId": lesson_id, "answers": [
+            {"questionId": q1, "userAnswer": "1"},
+            {"questionId": q2, "userAnswer": "wrong"},
+        ]},
+        headers=headers,
+    )
+
+    r = await client.get(f"/api/youth-night/quiz?lessonId={lesson_id}", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body["responses"]) == 2
+    assert body["responses"][0]["question"]["questionNumber"] == 1
+    assert body["statistics"]["totalQuestions"] == 2
+    assert body["statistics"]["correctAnswers"] == 1
+    assert body["statistics"]["percentage"] == 50
+
+
+async def test_quiz_stats_aggregates_by_lesson(client: AsyncClient):
+    headers = await _login(client)
+    lesson_id = await _lesson_id(client)
+    q1, q2 = await _question_ids(client)
+    await client.post(
+        "/api/youth-night/quiz",
+        json={"lessonId": lesson_id, "answers": [
+            {"questionId": q1, "userAnswer": "1"},
+            {"questionId": q2, "userAnswer": "1"},
+        ]},
+        headers=headers,
+    )
+
+    r = await client.get("/api/youth-night/quiz/stats", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["totalStats"]["totalLessons"] == 1
+    assert body["totalStats"]["totalQuestions"] == 2
+    assert body["totalStats"]["averagePercentage"] == 100
+    assert len(body["lessonStats"]) == 1
+    assert body["lessonStats"][0]["lesson"]["title"] == "1강 사랑"
+    assert len(body["recentResponses"]) == 2
+    assert body["recentResponses"][0]["question"]["lesson"]["title"] == "1강 사랑"
+
+
+async def test_ranking_orders_by_total_points(client: AsyncClient):
+    headers = await _login(client)
+    headers2 = await _login(client, userid="student2")
+    lesson_id = await _lesson_id(client)
+
+    await client.post("/api/youth-night/attendance", json={"lessonId": lesson_id}, headers=headers)
+    await client.post(
+        "/api/youth-night/points",
+        json={"pointType": "LESSON_COMPLETE", "points": 3, "lessonId": lesson_id},
+        headers=headers,
+    )
+    await client.post("/api/youth-night/attendance", json={"lessonId": lesson_id}, headers=headers2)
+
+    r = await client.get("/api/youth-night/ranking", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body["rankings"]) == 2
+    assert body["rankings"][0]["totalPoints"] == 8
+    assert body["rankings"][0]["user"]["username"] == "학생"
+    assert body["rankings"][0]["rank"] == 1
+    assert body["rankings"][0]["stats"]["attendance"] == 1
+    assert body["rankings"][1]["totalPoints"] == 5
+    assert body["totalUsers"] == 2
+
+
+async def test_stats_overview_and_daily_activity(client: AsyncClient):
+    headers = await _login(client)
+    lesson_id = await _lesson_id(client)
+    q1, _q2 = await _question_ids(client)
+    await client.post("/api/youth-night/attendance", json={"lessonId": lesson_id}, headers=headers)
+    await client.post(
+        "/api/youth-night/quiz",
+        json={"lessonId": lesson_id, "answers": [{"questionId": q1, "userAnswer": "1"}]},
+        headers=headers,
+    )
+
+    r = await client.get("/api/youth-night/stats", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["overview"]["totalUsers"] == 2
+    assert body["overview"]["totalAttendance"] == 1
+    assert body["overview"]["totalQuizResponses"] == 1
+    assert body["overview"]["activeCurriculums"] == 1
+    assert body["overview"]["totalLessons"] == 1  # 미공개 레슨 제외
+    assert isinstance(body["dailyActivity"], list)
+    assert len(body["dailyActivity"]) >= 1
+    assert body["dailyActivity"][0]["activities"] >= 1
