@@ -17,7 +17,7 @@
 - [x] A2. users 보조 (`users/by-role/[role]`, `users/quick-register`, `users/year-roles`)
 - [x] A3. 서명 관리 (`users/me/signatures` 3종)
 - [x] A4. 내 설정 (`me/config`, `me/memberships`)
-- [ ] A5. auth 잔여 — 로컬 (`auth/signup`, `auth/change-password`, `auth/switch-tenant`, `auth/accept-invitation`)
+- [x] A5. auth 잔여 — 로컬 (`auth/signup`, `auth/change-password`, `auth/switch-tenant`, `auth/accept-invitation`)
 - [ ] A6. auth 카카오 (`auth/kakao`, `auth/link-kakao`) — 외부 호출 전부 모킹
 
 ## Phase B — expenses 잔여 + 주변 도메인

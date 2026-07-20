@@ -144,6 +144,19 @@ const nextConfig: NextConfig = {
         { source: "/api/auth/login", destination: `${apiOrigin}/api/auth/login` },
         { source: "/api/auth/logout", destination: `${apiOrigin}/api/auth/logout` },
         { source: "/api/auth/me", destination: `${apiOrigin}/api/auth/me` },
+        { source: "/api/auth/signup", destination: `${apiOrigin}/api/auth/signup` },
+        {
+          source: "/api/auth/change-password",
+          destination: `${apiOrigin}/api/auth/change-password`,
+        },
+        {
+          source: "/api/auth/switch-tenant",
+          destination: `${apiOrigin}/api/auth/switch-tenant`,
+        },
+        {
+          source: "/api/auth/accept-invitation",
+          destination: `${apiOrigin}/api/auth/accept-invitation`,
+        },
         { source: "/api/expenses", destination: `${apiOrigin}/api/expenses` },
         {
           source: `/api/expenses/:id(${cuid})`,

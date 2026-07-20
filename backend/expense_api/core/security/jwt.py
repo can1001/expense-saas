@@ -50,6 +50,23 @@ def create_refresh_token(subject: str) -> str:
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
+# B2: 복수 소속 조직 선택용 임시 토큰 (Next lib/auth/user.ts createPendingSelectionToken 이전).
+# tenantId 클레임 없이 짧게 발급 — 정식 세션으로는 쓰이지 않고 switch-tenant(B3)에서만 읽는다.
+PENDING_SELECTION_TOKEN_EXPIRE_MINUTES = 10
+
+
+def create_pending_selection_token(user_id: str, userid: str, username: str) -> str:
+    expire = _now() + timedelta(minutes=PENDING_SELECTION_TOKEN_EXPIRE_MINUTES)
+    payload = {
+        **_base_claims(user_id),
+        "userid": userid,
+        "username": username,
+        "pendingTenantSelection": True,
+        "exp": expire,
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
 def decode_token(token: str) -> dict:
     """검증 실패 시 JWTError 를 던진다.
 
@@ -69,6 +86,7 @@ __all__ = [
     "verify_password",
     "create_access_token",
     "create_refresh_token",
+    "create_pending_selection_token",
     "decode_token",
     "JWTError",
 ]
