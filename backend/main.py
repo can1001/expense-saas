@@ -24,14 +24,22 @@ from expense_api.core.routes import (  # noqa: E402
     approval_policy_routes,
     approval_routes,
     approvals_list_routes,
+    attachment_routes,
     auth_routes,
     budget_master_routes,
     budget_query_routes,
     budget_routes,
+    expense_admin_routes,
+    expense_bulk_routes,
     expense_routes,
     health_routes,
+    me_routes,
+    misc_routes,
     notification_routes,
+    recurring_routes,
+    simple_expense_routes,
     tenant_routes,
+    user_routes,
 )
 
 
@@ -78,8 +86,42 @@ app.include_router(tenant_routes.router, prefix="/api/tenant", tags=["tenant"])
 app.include_router(budget_routes.router, prefix="/api/budget", tags=["budget"])
 app.include_router(budget_query_routes.router, prefix="/api/budget", tags=["budget-query"])
 app.include_router(budget_master_routes.router, prefix="/api", tags=["budget-master"])
+# expense_admin_routes 는 /filter-options(고정 세그먼트)를 포함하므로
+# expense_routes 의 /{expense_id} 보다 먼저 등록해야 매칭 우선순위가 보장된다.
+app.include_router(expense_admin_routes.router, prefix="/api/expenses", tags=["expenses"])
+# expense_bulk_routes 도 /bulk, /bulk-expense-date, /bulk-payment-status(고정 세그먼트)를
+# 포함하므로 동일한 이유로 expense_routes 보다 먼저 등록한다.
+app.include_router(expense_bulk_routes.router, prefix="/api/expenses", tags=["expenses"])
 app.include_router(expense_routes.router, prefix="/api/expenses", tags=["expenses"])
+# attachment_routes.router 는 /{expense_id}/duplicate, /{expense_id}/attachments* 처럼
+# expense_routes 의 /{expense_id} 보다 세그먼트가 많아 순서와 무관하게 매칭이 겹치지 않는다.
+app.include_router(attachment_routes.router, prefix="/api/expenses", tags=["expenses"])
+app.include_router(attachment_routes.upload_router, prefix="/api/upload", tags=["upload"])
 app.include_router(approval_routes.router, prefix="/api/expenses", tags=["approval"])
 app.include_router(approvals_list_routes.router, prefix="/api/approvals", tags=["approval"])
 app.include_router(approval_policy_routes.router, prefix="/api", tags=["approval-policy"])
 app.include_router(notification_routes.router, prefix="/api", tags=["notifications"])
+app.include_router(user_routes.router, prefix="/api", tags=["users"])
+app.include_router(me_routes.router, prefix="/api/me", tags=["me"])
+app.include_router(
+    simple_expense_routes.router, prefix="/api/simple-expenses", tags=["simple-expenses"]
+)
+app.include_router(
+    misc_routes.expense_template_router,
+    prefix="/api/expense-templates",
+    tags=["expense-templates"],
+)
+app.include_router(
+    misc_routes.bank_account_router, prefix="/api/bank-accounts", tags=["bank-accounts"]
+)
+# recurring_routes.process_router 는 /process(고정 세그먼트)를 포함하므로
+# router 의 /{recurring_id} 보다 먼저 등록한다.
+app.include_router(
+    recurring_routes.process_router,
+    prefix="/api/recurring-expenses/process",
+    tags=["recurring-expenses"],
+)
+app.include_router(
+    recurring_routes.router, prefix="/api/recurring-expenses", tags=["recurring-expenses"]
+)
+app.include_router(recurring_routes.settings_router, prefix="/api/settings", tags=["settings"])

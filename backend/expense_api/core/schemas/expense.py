@@ -117,3 +117,153 @@ class ExpenseListOut(BaseModel):
     expenses: list[ExpenseListItemOut]
     pagination: ExpensePaginationOut
     aggregates: ExpenseAggregatesOut
+
+
+# ── 필터 옵션 (app/api/expenses/filter-options 이전) ────────────────────
+
+
+class FilterOptionsOut(BaseModel):
+    committees: list[str]
+    departments: list[str]
+    budgetCategories: list[str]
+
+
+# ── 지급 상태 (app/api/expenses/[id]/payment-status 이전) ──────────────
+
+
+class PaymentStatusSignatureInput(BaseModel):
+    type: str | None = None
+    signatureId: str | None = None
+    data: str | None = None
+
+
+class UpdatePaymentStatusRequest(BaseModel):
+    paymentStatus: str
+    note: str | None = None
+    reason: str | None = None
+    signature: PaymentStatusSignatureInput | None = None
+    expenseDate: datetime | None = None
+
+
+class PaymentStatusDataOut(BaseModel):
+    id: str
+    paymentStatus: str
+    paymentCompletedAt: datetime | None
+    paymentCompletedBy: str | None
+    paymentNote: str | None
+    paymentHoldReason: str | None
+    paymentHoldAt: datetime | None
+    paymentHoldBy: str | None
+    paymentSignatureType: str | None
+    paymentSignatureData: str | None
+    expenseDate: datetime | None
+
+
+class UpdatePaymentStatusOut(BaseModel):
+    success: bool
+    message: str
+    data: PaymentStatusDataOut
+
+
+class PaymentStatusGetOut(BaseModel):
+    id: str
+    status: str
+    paymentStatus: str
+    paymentCompletedAt: datetime | None
+    paymentCompletedBy: str | None
+    paymentNote: str | None
+
+
+# ── 첨부파일 (app/api/expenses/[id]/attachments*, upload* 이전, B2) ─────
+
+
+class AttachmentOut(BaseModel):
+    id: str
+    tenantId: str | None
+    expenseId: str
+    publicId: str
+    url: str
+    secureUrl: str
+    format: str
+    fileName: str
+    fileSize: int
+    width: int | None
+    height: int | None
+    createdAt: datetime
+
+
+class CreateAttachmentRequest(BaseModel):
+    publicId: str
+    url: str
+    secureUrl: str
+    format: str
+    fileName: str
+    fileSize: int
+    width: int | None = None
+    height: int | None = None
+
+
+class ExpenseWithAttachmentsOut(ExpenseOut):
+    attachments: list[AttachmentOut] = []
+
+
+class DuplicateExpenseOut(BaseModel):
+    success: bool
+    message: str
+    expense: ExpenseWithAttachmentsOut
+
+
+# ── 간편 지출결의서 (app/api/simple-expenses*, B4) ──────────────────────
+# Expense 테이블에 version="4.1.4"로 저장. 항목마다 예산(항/목/세목)을 갖는다.
+
+
+class SimpleExpenseItemInput(BaseModel):
+    budgetCategory: str = Field(min_length=1, max_length=100)
+    budgetSubcategory: str = Field(min_length=1, max_length=100)
+    budgetDetail: str = Field(min_length=1, max_length=100)
+    description: str = Field(min_length=1, max_length=200)
+    unitPrice: int = Field(ge=0, le=1_000_000_000)
+    quantity: int = Field(gt=0, le=100_000)
+    order: int | None = None
+    # amount 는 서버에서 계산 (조작 방지)
+
+
+class CreateSimpleExpenseRequest(BaseModel):
+    expenseDate: datetime | None = None
+    items: list[SimpleExpenseItemInput] = Field(min_length=1)
+    requestDate: datetime
+    applicantName: str = Field(min_length=1)
+    bankName: str = Field(min_length=1)
+    accountNumber: str = Field(min_length=1)
+    accountHolder: str = Field(min_length=1)
+    status: str = "DRAFT"  # DRAFT|PENDING
+
+
+class UpdateSimpleExpenseRequest(BaseModel):
+    expenseDate: datetime | None = None
+    items: list[SimpleExpenseItemInput] | None = None
+    requestDate: datetime | None = None
+    applicantName: str | None = Field(default=None, min_length=1)
+    bankName: str | None = Field(default=None, min_length=1)
+    accountNumber: str | None = Field(default=None, min_length=1)
+    accountHolder: str | None = Field(default=None, min_length=1)
+
+
+class SimpleExpenseOut(ExpenseOut):
+    version: str
+
+
+class SimpleExpenseDetailOut(SimpleExpenseOut):
+    attachments: list[AttachmentOut] = []
+
+
+class SimpleExpenseListOut(BaseModel):
+    expenses: list[SimpleExpenseOut]
+    pagination: ExpensePaginationOut
+
+
+class CreateSimpleExpenseOut(BaseModel):
+    success: bool
+    message: str
+    id: str
+    expense: SimpleExpenseOut

@@ -13,21 +13,21 @@
 
 ## Phase A — 계정 (users · me · auth 잔여)
 
-- [ ] A1. users 목록·생성·상세 (`users/`, `users/[id]`)
-- [ ] A2. users 보조 (`users/by-role/[role]`, `users/quick-register`, `users/year-roles`)
-- [ ] A3. 서명 관리 (`users/me/signatures` 3종)
-- [ ] A4. 내 설정 (`me/config`, `me/memberships`)
-- [ ] A5. auth 잔여 — 로컬 (`auth/signup`, `auth/change-password`, `auth/switch-tenant`, `auth/accept-invitation`)
-- [ ] A6. auth 카카오 (`auth/kakao`, `auth/link-kakao`) — 외부 호출 전부 모킹
+- [x] A1. users 목록·생성·상세 (`users/`, `users/[id]`)
+- [x] A2. users 보조 (`users/by-role/[role]`, `users/quick-register`, `users/year-roles`)
+- [x] A3. 서명 관리 (`users/me/signatures` 3종)
+- [x] A4. 내 설정 (`me/config`, `me/memberships`)
+- [x] A5. auth 잔여 — 로컬 (`auth/signup`, `auth/change-password`, `auth/switch-tenant`, `auth/accept-invitation`)
+- [x] A6. auth 카카오 (`auth/kakao`, `auth/link-kakao`) — 외부 호출 전부 모킹
 
 ## Phase B — expenses 잔여 + 주변 도메인
 
-- [ ] B1. 조회·상태 (`expenses/filter-options`, `expenses/[id]/fix-status`, `expenses/[id]/payment-status`)
-- [ ] B2. 복제·첨부 (`expenses/[id]/duplicate`, `expenses/[id]/attachments` 2종, `upload/`, `upload/delete`) — Cloudinary 모킹
-- [ ] B3. 벌크 (`expenses/bulk`, `expenses/bulk-expense-date`, `expenses/bulk-payment-status`)
-- [ ] B4. 간편 지출 (`simple-expenses` 2종)
-- [ ] B5. 템플릿·계좌 (`expense-templates` 2종, `bank-accounts` 2종)
-- [ ] B6. 반복 지출·설정 (`recurring-expenses` 4종, `settings`)
+- [x] B1. 조회·상태 (`expenses/filter-options`, `expenses/[id]/fix-status`, `expenses/[id]/payment-status`)
+- [x] B2. 복제·첨부 (`expenses/[id]/duplicate`, `expenses/[id]/attachments` 2종, `upload/`, `upload/delete`) — Cloudinary 모킹
+- [x] B3. 벌크 (`expenses/bulk`, `expenses/bulk-expense-date`, `expenses/bulk-payment-status`)
+- [x] B4. 간편 지출 (`simple-expenses` 2종)
+- [x] B5. 템플릿·계좌 (`expense-templates` 2종, `bank-accounts` 2종)
+- [x] B6. 반복 지출·설정 (`recurring-expenses` 4종, `settings`)
 
 ## Phase C — Excel 계열 (openpyxl 도입)
 

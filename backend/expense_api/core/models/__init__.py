@@ -24,14 +24,23 @@ from expense_api.core.models.expense import (  # noqa: F401
     ExpenseAttachment,
     ExpenseItem,
 )
+from expense_api.core.models.misc import ExpenseTemplate, SavedBankAccount  # noqa: F401
 from expense_api.core.models.notification import (  # noqa: F401
     NotificationLog,
     NotificationPreference,
     PushSubscription,
 )
+from expense_api.core.models.recurring_expense import RecurringExpense  # noqa: F401
 from expense_api.core.models.schema_info import SchemaInfo  # noqa: F401
+from expense_api.core.models.system_setting import SystemSetting  # noqa: F401
 from expense_api.core.models.tenant import SuperAdmin, Tenant  # noqa: F401
-from expense_api.core.models.user import Role, User, UserYearRole  # noqa: F401
+from expense_api.core.models.user import (  # noqa: F401
+    Membership,
+    Role,
+    User,
+    UserSignature,
+    UserYearRole,
+)
 
 __all__ = [
     "SchemaInfo",
@@ -39,6 +48,8 @@ __all__ = [
     "SuperAdmin",
     "Role",
     "User",
+    "Membership",
+    "UserSignature",
     "UserYearRole",
     "Committee",
     "Department",
@@ -57,4 +68,8 @@ __all__ = [
     "NotificationPreference",
     "NotificationLog",
     "PushSubscription",
+    "ExpenseTemplate",
+    "SavedBankAccount",
+    "RecurringExpense",
+    "SystemSetting",
 ]

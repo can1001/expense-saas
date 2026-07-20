@@ -51,6 +51,18 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
+    # 카카오 로그인 (A6) — 미설정이면 kakao_service 가 503 으로 안내
+    KAKAO_REST_API_KEY: str | None = None
+    KAKAO_USE_OIDC: bool = False
+
+    # Cloudinary 이미지 업로드 (B2) — 미설정이면 cloudinary_service 가 503 으로 안내
+    CLOUDINARY_CLOUD_NAME: str | None = None
+    CLOUDINARY_API_KEY: str | None = None
+    CLOUDINARY_API_SECRET: str | None = None
+
+    # 자동이체 크론잡 인증 시크릿 (B6) — /api/recurring-expenses/process
+    CRON_SECRET: str | None = None
+
     @property
     def is_sqlite(self) -> bool:
         return self.DATABASE_URL.startswith("sqlite")

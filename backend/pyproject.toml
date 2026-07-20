@@ -18,6 +18,7 @@ dependencies = [
     "bcrypt>=4.0.0",            # passlib 대신 직접 사용 (passlib 미유지보수, bcrypt 5.x 비호환)
     "cuid2>=2.0.0",              # Prisma cuid() 호환 ID 생성 (기존 데이터 ID 보존)
     "python-multipart>=0.0.9",
+    "cloudinary>=1.45.0",
 ]
 
 [dependency-groups]

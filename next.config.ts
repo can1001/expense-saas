@@ -125,8 +125,8 @@ const nextConfig: NextConfig = {
   // 이전 완료된 도메인만 이 경로로 호출하고, 미이전 도메인은 기존 /api/* (Next.js)를 쓴다.
   async rewrites() {
     const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:8000";
-    // Expense id 는 cuid(v1)/cuid2 — 20자 이상 소문자 영숫자라서 bulk, export,
-    // filter-options 등 미이관 고정 세그먼트(짧거나 하이픈 포함)와 구분된다.
+    // Expense id 는 cuid(v1)/cuid2 — 20자 이상 소문자 영숫자라서 bulk, export
+    // 등 미이관 고정 세그먼트(짧거나 하이픈 포함)와 구분된다.
     const cuid = "[a-z0-9]{20,}";
     // 컷오버 rewrite 는 API_ORIGIN 이 명시된 환경에서만 활성화한다.
     // 미설정 배포(env 추가 전 Render 등)에서 프록시가 localhost 로 향해
@@ -144,15 +144,57 @@ const nextConfig: NextConfig = {
         { source: "/api/auth/login", destination: `${apiOrigin}/api/auth/login` },
         { source: "/api/auth/logout", destination: `${apiOrigin}/api/auth/logout` },
         { source: "/api/auth/me", destination: `${apiOrigin}/api/auth/me` },
+        { source: "/api/auth/signup", destination: `${apiOrigin}/api/auth/signup` },
+        {
+          source: "/api/auth/change-password",
+          destination: `${apiOrigin}/api/auth/change-password`,
+        },
+        {
+          source: "/api/auth/switch-tenant",
+          destination: `${apiOrigin}/api/auth/switch-tenant`,
+        },
+        {
+          source: "/api/auth/accept-invitation",
+          destination: `${apiOrigin}/api/auth/accept-invitation`,
+        },
+        { source: "/api/auth/kakao", destination: `${apiOrigin}/api/auth/kakao` },
+        {
+          source: "/api/auth/link-kakao",
+          destination: `${apiOrigin}/api/auth/link-kakao`,
+        },
         { source: "/api/expenses", destination: `${apiOrigin}/api/expenses` },
+        {
+          source: "/api/expenses/filter-options",
+          destination: `${apiOrigin}/api/expenses/filter-options`,
+        },
+        { source: "/api/expenses/bulk", destination: `${apiOrigin}/api/expenses/bulk` },
+        {
+          source: "/api/expenses/bulk-expense-date",
+          destination: `${apiOrigin}/api/expenses/bulk-expense-date`,
+        },
+        {
+          source: "/api/expenses/bulk-payment-status",
+          destination: `${apiOrigin}/api/expenses/bulk-payment-status`,
+        },
         {
           source: `/api/expenses/:id(${cuid})`,
           destination: `${apiOrigin}/api/expenses/:id`,
         },
         {
-          source: `/api/expenses/:id(${cuid})/:action(submit|approve|reject|resubmit|withdraw|delegate|approval-line|approval)`,
+          source: `/api/expenses/:id(${cuid})/:action(submit|approve|reject|resubmit|withdraw|delegate|approval-line|approval|fix-status|payment-status|duplicate)`,
           destination: `${apiOrigin}/api/expenses/:id/:action`,
         },
+        {
+          source: `/api/expenses/:id(${cuid})/attachments`,
+          destination: `${apiOrigin}/api/expenses/:id/attachments`,
+        },
+        {
+          source: `/api/expenses/:id(${cuid})/attachments/:attachmentId(${cuid})`,
+          destination: `${apiOrigin}/api/expenses/:id/attachments/:attachmentId`,
+        },
+        // upload: Cloudinary 업로드/삭제 ("upload" 는 6자로 cuid 패턴과 충돌하지 않음)
+        { source: "/api/upload", destination: `${apiOrigin}/api/upload` },
+        { source: "/api/upload/delete", destination: `${apiOrigin}/api/upload/delete` },
         // budget: 조회 계열 이관 — upload, hierarchy/export(Excel)만 Next 유지
         { source: "/api/budget", destination: `${apiOrigin}/api/budget` },
         { source: "/api/budget/hierarchy", destination: `${apiOrigin}/api/budget/hierarchy` },
@@ -211,6 +253,75 @@ const nextConfig: NextConfig = {
         },
         { source: "/api/approval-policies", destination: `${apiOrigin}/api/approval-policies` },
         { source: "/api/tenant/info", destination: `${apiOrigin}/api/tenant/info` },
+        // me: 서버 주도 설정(labels/features/branding) + 소속 조직 목록
+        { source: "/api/me/config", destination: `${apiOrigin}/api/me/config` },
+        { source: "/api/me/memberships", destination: `${apiOrigin}/api/me/memberships` },
+        // users: 목록·생성·상세·수정·비활성화 + by-role/quick-register/year-roles 이관.
+        // me/upload 등 남은 고정 세그먼트(짧거나 하이픈 포함)는 cuid 패턴과 충돌하지 않는다.
+        { source: "/api/users", destination: `${apiOrigin}/api/users` },
+        {
+          source: "/api/users/by-role/:role",
+          destination: `${apiOrigin}/api/users/by-role/:role`,
+        },
+        {
+          source: "/api/users/quick-register",
+          destination: `${apiOrigin}/api/users/quick-register`,
+        },
+        {
+          source: "/api/users/year-roles",
+          destination: `${apiOrigin}/api/users/year-roles`,
+        },
+        {
+          source: `/api/users/:id(${cuid})`,
+          destination: `${apiOrigin}/api/users/:id`,
+        },
+        // users/me/signatures: 서명·도장 관리 (본인 것만 조작 가능, "me" 는 cuid 패턴과 충돌 없음)
+        { source: "/api/users/me/signatures", destination: `${apiOrigin}/api/users/me/signatures` },
+        {
+          source: `/api/users/me/signatures/:id(${cuid})`,
+          destination: `${apiOrigin}/api/users/me/signatures/:id`,
+        },
+        {
+          source: `/api/users/me/signatures/:id(${cuid})/default`,
+          destination: `${apiOrigin}/api/users/me/signatures/:id/default`,
+        },
+        // simple-expenses: 간편 지출결의서 (Expense version="4.1.4") 목록/생성/상세/수정/삭제
+        { source: "/api/simple-expenses", destination: `${apiOrigin}/api/simple-expenses` },
+        {
+          source: `/api/simple-expenses/:id(${cuid})`,
+          destination: `${apiOrigin}/api/simple-expenses/:id`,
+        },
+        // expense-templates / bank-accounts: 본인 소유 리소스 목록·CRUD (B5)
+        { source: "/api/expense-templates", destination: `${apiOrigin}/api/expense-templates` },
+        {
+          source: `/api/expense-templates/:id(${cuid})`,
+          destination: `${apiOrigin}/api/expense-templates/:id`,
+        },
+        { source: "/api/bank-accounts", destination: `${apiOrigin}/api/bank-accounts` },
+        {
+          source: `/api/bank-accounts/:id(${cuid})`,
+          destination: `${apiOrigin}/api/bank-accounts/:id`,
+        },
+        // recurring-expenses: 자동이체 목록/생성/상세/수정/취소 + 수동 생성 + 크론 처리 (B6)
+        // "process" 는 7자 고정 세그먼트라 cuid(20자 이상) 패턴과 충돌하지 않는다.
+        {
+          source: "/api/recurring-expenses",
+          destination: `${apiOrigin}/api/recurring-expenses`,
+        },
+        {
+          source: "/api/recurring-expenses/process",
+          destination: `${apiOrigin}/api/recurring-expenses/process`,
+        },
+        {
+          source: `/api/recurring-expenses/:id(${cuid})`,
+          destination: `${apiOrigin}/api/recurring-expenses/:id`,
+        },
+        {
+          source: `/api/recurring-expenses/:id(${cuid})/generate`,
+          destination: `${apiOrigin}/api/recurring-expenses/:id/generate`,
+        },
+        // settings: 시스템 설정 조회/저장 (관리자 전용 PUT)
+        { source: "/api/settings", destination: `${apiOrigin}/api/settings` },
       ],
       afterFiles: [
         {

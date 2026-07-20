@@ -66,6 +66,20 @@ class NotificationStatus(str, Enum):
     FAILED = "FAILED"
 
 
+class RecurringFrequency(str, Enum):
+    MONTHLY = "MONTHLY"  # 매월
+    QUARTERLY = "QUARTERLY"  # 분기별 (3개월)
+    SEMI_ANNUAL = "SEMI_ANNUAL"  # 반기별 (6개월)
+    ANNUAL = "ANNUAL"  # 연간
+
+
+class RecurringExpenseStatus(str, Enum):
+    ACTIVE = "ACTIVE"  # 활성 (정상 실행)
+    PAUSED = "PAUSED"  # 일시 중지
+    COMPLETED = "COMPLETED"  # 완료 (종료일 도달)
+    CANCELLED = "CANCELLED"  # 취소
+
+
 class ApprovalAction(str, Enum):
     SUBMIT = "SUBMIT"
     APPROVE = "APPROVE"
