@@ -167,6 +167,15 @@ const nextConfig: NextConfig = {
           source: "/api/expenses/filter-options",
           destination: `${apiOrigin}/api/expenses/filter-options`,
         },
+        { source: "/api/expenses/bulk", destination: `${apiOrigin}/api/expenses/bulk` },
+        {
+          source: "/api/expenses/bulk-expense-date",
+          destination: `${apiOrigin}/api/expenses/bulk-expense-date`,
+        },
+        {
+          source: "/api/expenses/bulk-payment-status",
+          destination: `${apiOrigin}/api/expenses/bulk-payment-status`,
+        },
         {
           source: `/api/expenses/:id(${cuid})`,
           destination: `${apiOrigin}/api/expenses/:id`,
