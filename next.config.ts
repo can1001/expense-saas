@@ -211,6 +211,13 @@ const nextConfig: NextConfig = {
         },
         { source: "/api/approval-policies", destination: `${apiOrigin}/api/approval-policies` },
         { source: "/api/tenant/info", destination: `${apiOrigin}/api/tenant/info` },
+        // users: 목록·생성·상세·수정·비활성화만 이관 — by-role/quick-register/year-roles/
+        // me/upload 등 고정 세그먼트(짧거나 하이픈 포함)는 cuid 패턴과 충돌하지 않는다.
+        { source: "/api/users", destination: `${apiOrigin}/api/users` },
+        {
+          source: `/api/users/:id(${cuid})`,
+          destination: `${apiOrigin}/api/users/:id`,
+        },
       ],
       afterFiles: [
         {

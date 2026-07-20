@@ -66,8 +66,34 @@ class User(SQLModel, table=True):
     isActive: bool = Field(default=True, index=True)
     phoneNumber: str | None = None
 
+    # 공유 기본 비밀번호(quick-register·대량 업로드·관리자 배정)로 생성된 계정은 true
+    mustChangePassword: bool = False
+
     # 개별 권한 플래그 (역할과 별개)
     canRegisterUsers: bool = False
+
+    createdAt: datetime = Field(
+        default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}
+    )
+    updatedAt: datetime = Field(
+        default_factory=utcnow,
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+    )
+
+
+class Membership(SQLModel, table=True):
+    """사용자-테넌트 소속 (ARC-002 §2.2). User.tenantId(홈 테넌트)와 별개로 유지."""
+
+    __tablename__ = "Membership"
+    __table_args__ = (UniqueConstraint("userId", "tenantId", name="uq_membership_user_tenant"),)
+
+    id: str = Field(default_factory=new_id, primary_key=True)
+
+    userId: str = Field(foreign_key="User.id", ondelete="CASCADE", index=True)
+    tenantId: str = Field(foreign_key="Tenant.id", index=True)
+
+    role: str  # TENANT_ADMIN / MEMBER
+    isDefault: bool = False
 
     createdAt: datetime = Field(
         default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}

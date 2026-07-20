@@ -13,7 +13,7 @@
 
 ## Phase A — 계정 (users · me · auth 잔여)
 
-- [ ] A1. users 목록·생성·상세 (`users/`, `users/[id]`)
+- [x] A1. users 목록·생성·상세 (`users/`, `users/[id]`)
 - [ ] A2. users 보조 (`users/by-role/[role]`, `users/quick-register`, `users/year-roles`)
 - [ ] A3. 서명 관리 (`users/me/signatures` 3종)
 - [ ] A4. 내 설정 (`me/config`, `me/memberships`)
