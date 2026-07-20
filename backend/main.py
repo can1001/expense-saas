@@ -34,6 +34,7 @@ from expense_api.core.routes import (  # noqa: E402
     expense_routes,
     health_routes,
     me_routes,
+    misc_routes,
     notification_routes,
     simple_expense_routes,
     tenant_routes,
@@ -103,4 +104,12 @@ app.include_router(user_routes.router, prefix="/api", tags=["users"])
 app.include_router(me_routes.router, prefix="/api/me", tags=["me"])
 app.include_router(
     simple_expense_routes.router, prefix="/api/simple-expenses", tags=["simple-expenses"]
+)
+app.include_router(
+    misc_routes.expense_template_router,
+    prefix="/api/expense-templates",
+    tags=["expense-templates"],
+)
+app.include_router(
+    misc_routes.bank_account_router, prefix="/api/bank-accounts", tags=["bank-accounts"]
 )

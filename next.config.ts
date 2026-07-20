@@ -291,6 +291,17 @@ const nextConfig: NextConfig = {
           source: `/api/simple-expenses/:id(${cuid})`,
           destination: `${apiOrigin}/api/simple-expenses/:id`,
         },
+        // expense-templates / bank-accounts: 본인 소유 리소스 목록·CRUD (B5)
+        { source: "/api/expense-templates", destination: `${apiOrigin}/api/expense-templates` },
+        {
+          source: `/api/expense-templates/:id(${cuid})`,
+          destination: `${apiOrigin}/api/expense-templates/:id`,
+        },
+        { source: "/api/bank-accounts", destination: `${apiOrigin}/api/bank-accounts` },
+        {
+          source: `/api/bank-accounts/:id(${cuid})`,
+          destination: `${apiOrigin}/api/bank-accounts/:id`,
+        },
       ],
       afterFiles: [
         {
