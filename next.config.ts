@@ -237,6 +237,11 @@ const nextConfig: NextConfig = {
           destination: `${apiOrigin}/api/committees/:id`,
         },
         { source: "/api/departments", destination: `${apiOrigin}/api/departments` },
+        // leaders-upload: 고정 세그먼트(하이픈 포함) — :id(cuid) 와 충돌 없음
+        {
+          source: "/api/departments/leaders-upload",
+          destination: `${apiOrigin}/api/departments/leaders-upload`,
+        },
         {
           source: `/api/departments/:id(${cuid})`,
           destination: `${apiOrigin}/api/departments/:id`,
@@ -255,9 +260,22 @@ const nextConfig: NextConfig = {
           destination: `${apiOrigin}/api/budget-subcategories/:id`,
         },
         { source: "/api/budget-details", destination: `${apiOrigin}/api/budget-details` },
+        // year/year auto-assign: 고정 세그먼트("year" 4자) — :id(cuid) 와 충돌 없음
+        {
+          source: "/api/budget-details/year",
+          destination: `${apiOrigin}/api/budget-details/year`,
+        },
+        {
+          source: "/api/budget-details/year/auto-assign",
+          destination: `${apiOrigin}/api/budget-details/year/auto-assign`,
+        },
         {
           source: `/api/budget-details/:id(${cuid})`,
           destination: `${apiOrigin}/api/budget-details/:id`,
+        },
+        {
+          source: `/api/budget-details/:id(${cuid})/description`,
+          destination: `${apiOrigin}/api/budget-details/:id/description`,
         },
         // 결재 목록·결재선 계산 (calculate 의 Next GET 은 앱에서 미사용 — POST 만 쓴다)
         { source: "/api/approvals", destination: `${apiOrigin}/api/approvals` },
@@ -288,6 +306,10 @@ const nextConfig: NextConfig = {
         {
           source: "/api/users/year-roles",
           destination: `${apiOrigin}/api/users/year-roles`,
+        },
+        {
+          source: "/api/users/upload",
+          destination: `${apiOrigin}/api/users/upload`,
         },
         {
           source: `/api/users/:id(${cuid})`,
