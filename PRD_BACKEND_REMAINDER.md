@@ -55,7 +55,7 @@
 
 ## Phase N — push
 
-- [ ] N1. WebPush (`push/vapid-public-key`, `push/subscribe`, `push/unsubscribe`, `push/history`) — pywebpush, 발송 모킹
+- [x] N1. WebPush (`push/vapid-public-key`, `push/subscribe`, `push/unsubscribe`, `push/history`) — pywebpush, 발송 모킹
 - [ ] N2. FCM·테스트 (`push/fcm-subscribe`, `push/fcm-test`, `push/test`) — 외부 발송 전부 모킹
 
 ## Phase Y — youth-night

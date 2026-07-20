@@ -66,6 +66,11 @@ class Settings(BaseSettings):
     # 자동이체 크론잡 인증 시크릿 (B6) — /api/recurring-expenses/process
     CRON_SECRET: str | None = None
 
+    # 웹 푸시 (N1) — 미설정이면 vapid-public-key 가 503 으로 안내
+    VAPID_PUBLIC_KEY: str | None = None
+    VAPID_PRIVATE_KEY: str | None = None
+    VAPID_SUBJECT: str = "mailto:admin@example.com"
+
     @property
     def is_sqlite(self) -> bool:
         return self.DATABASE_URL.startswith("sqlite")

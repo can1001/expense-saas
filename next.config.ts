@@ -489,6 +489,23 @@ const nextConfig: NextConfig = {
           source: "/api/platform/export",
           destination: `${apiOrigin}/api/platform/export`,
         },
+        // push: 웹 푸시 구독·이력 (N1) — 고정 세그먼트, 다른 항목과 충돌 없음
+        {
+          source: "/api/push/vapid-public-key",
+          destination: `${apiOrigin}/api/push/vapid-public-key`,
+        },
+        {
+          source: "/api/push/subscribe",
+          destination: `${apiOrigin}/api/push/subscribe`,
+        },
+        {
+          source: "/api/push/unsubscribe",
+          destination: `${apiOrigin}/api/push/unsubscribe`,
+        },
+        {
+          source: "/api/push/history",
+          destination: `${apiOrigin}/api/push/history`,
+        },
       ],
       afterFiles: [
         {

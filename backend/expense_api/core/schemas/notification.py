@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class PreferenceOut(BaseModel):
@@ -25,14 +25,6 @@ class PreferenceUpdate(BaseModel):
     onPaymentComplete: bool | None = None
 
 
-class PushSubscribeRequest(BaseModel):
-    endpoint: str = Field(min_length=1)
-    p256dh: str = Field(min_length=1)
-    auth: str = Field(min_length=1)
-    userAgent: str | None = None
-    deviceName: str | None = None
-
-
 class NotificationLogOut(BaseModel):
     id: str
     recipientName: str
@@ -42,3 +34,44 @@ class NotificationLogOut(BaseModel):
     message: str
     status: str
     createdAt: datetime
+
+
+class PushSubscriptionKeys(BaseModel):
+    p256dh: str | None = None
+    auth: str | None = None
+
+
+class PushSubscriptionPayload(BaseModel):
+    endpoint: str | None = None
+    keys: PushSubscriptionKeys | None = None
+
+
+class PushSubscribeRequest(BaseModel):
+    subscription: PushSubscriptionPayload | None = None
+    deviceName: str | None = None
+
+
+class PushUnsubscribeRequest(BaseModel):
+    endpoint: str | None = None
+    all: bool | None = None
+
+
+class PushHistoryExpenseOut(BaseModel):
+    id: str
+    applicantName: str
+    requestAmount: int
+    status: str
+
+
+class PushHistoryLogOut(BaseModel):
+    id: str
+    eventType: str
+    title: str
+    body: str
+    url: str | None
+    status: str
+    errorMessage: str | None
+    sentAt: datetime | None
+    createdAt: datetime
+    expenseId: str | None
+    expense: PushHistoryExpenseOut | None = None
