@@ -44,6 +44,7 @@
 - [x] D4. 역할·초대 (`admin/roles` 2종, `admin/invitations`)
 - [x] D5. 헌금 (`admin/offerings` 4종 — template 은 C1 의존)
 - [x] D6. 알림 관리 (`admin/notifications`)
+- [ ] D7. 연도 설정 초기화 (`admin/year-config/[year]`) — F2 감사에서 발견된 누락 라우트, `admin/year-setup-status` 페이지의 초기화 버튼이 실사용 중
 
 ## Phase P — platform (플랫폼 관리자)
 
