@@ -211,6 +211,9 @@ const nextConfig: NextConfig = {
         },
         { source: "/api/approval-policies", destination: `${apiOrigin}/api/approval-policies` },
         { source: "/api/tenant/info", destination: `${apiOrigin}/api/tenant/info` },
+        // me: 서버 주도 설정(labels/features/branding) + 소속 조직 목록
+        { source: "/api/me/config", destination: `${apiOrigin}/api/me/config` },
+        { source: "/api/me/memberships", destination: `${apiOrigin}/api/me/memberships` },
         // users: 목록·생성·상세·수정·비활성화 + by-role/quick-register/year-roles 이관.
         // me/upload 등 남은 고정 세그먼트(짧거나 하이픈 포함)는 cuid 패턴과 충돌하지 않는다.
         { source: "/api/users", destination: `${apiOrigin}/api/users` },

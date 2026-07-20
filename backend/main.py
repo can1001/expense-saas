@@ -30,6 +30,7 @@ from expense_api.core.routes import (  # noqa: E402
     budget_routes,
     expense_routes,
     health_routes,
+    me_routes,
     notification_routes,
     tenant_routes,
     user_routes,
@@ -85,3 +86,4 @@ app.include_router(approvals_list_routes.router, prefix="/api/approvals", tags=[
 app.include_router(approval_policy_routes.router, prefix="/api", tags=["approval-policy"])
 app.include_router(notification_routes.router, prefix="/api", tags=["notifications"])
 app.include_router(user_routes.router, prefix="/api", tags=["users"])
+app.include_router(me_routes.router, prefix="/api/me", tags=["me"])
