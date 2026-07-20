@@ -1,19 +1,23 @@
-"""관리자 대시보드/연도 설정 현황/보고서 라우터.
+"""관리자 대시보드/연도 설정 현황/보고서/실행·이력 라우터.
 (app/api/admin/dashboard, app/api/admin/year-setup-status,
  app/api/admin/budget-execution, app/api/admin/cumulative-report,
- app/api/admin/quarterly-report(+export) 이전)
+ app/api/admin/quarterly-report(+export),
+ app/api/admin/hr-admin-execution, app/api/admin/manager-exceptions,
+ app/api/admin/change-history 이전)
 mount prefix: /api/admin
 """
 
 import io
+import re
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
 from openpyxl.workbook import Workbook
 from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from expense_api.core.auth.permissions import PERMISSIONS
 from expense_api.core.db.session import get_session
@@ -25,13 +29,14 @@ from expense_api.core.models.budget import (
     BudgetCategory,
     BudgetDetail,
     BudgetDetailYear,
+    BudgetDetailYearHistory,
     BudgetSubcategory,
     Committee,
     Department,
     DepartmentBudgetDetail,
 )
 from expense_api.core.models.expense import Expense, ExpenseItem
-from expense_api.core.models.user import User, UserYearRole
+from expense_api.core.models.user import User, UserYearRole, UserYearRoleHistory
 
 router = APIRouter()
 
@@ -1618,3 +1623,432 @@ async def export_quarterly_report(
         media_type=XLSX_CONTENT_TYPE,
         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"},
     )
+
+
+# ── D3: 실행·이력 ────────────────────────────────────────────────────
+
+
+def _format_display_name(name: str) -> str:
+    """언더스코어를 공백으로 변환하고 정리."""
+    return re.sub(r"\s+", " ", name.replace("_", " ")).strip()
+
+
+async def _load_committee_budget_rows(
+    session: AsyncSession, tenant_id: str, committee_id: str, year: int
+) -> list[tuple[str, str | None, str | None, int]]:
+    """committee 산하 활성 부서의 세목 목록 → (세목명, 목명, 항명, 해당연도 예산액)."""
+    rows = (
+        await session.execute(
+            select(
+                BudgetDetail.name,
+                BudgetSubcategory.name,
+                BudgetCategory.name,
+                BudgetDetailYear.budgetAmount,
+            )
+            .select_from(DepartmentBudgetDetail)
+            .join(Department, Department.id == DepartmentBudgetDetail.departmentId)
+            .join(BudgetDetail, BudgetDetail.id == DepartmentBudgetDetail.budgetDetailId)
+            .outerjoin(BudgetSubcategory, BudgetSubcategory.id == BudgetDetail.subcategoryId)
+            .outerjoin(BudgetCategory, BudgetCategory.id == BudgetSubcategory.categoryId)
+            .outerjoin(
+                BudgetDetailYear,
+                and_(
+                    BudgetDetailYear.budgetDetailId == BudgetDetail.id,
+                    BudgetDetailYear.year == year,
+                    BudgetDetailYear.isActive.is_(True),
+                ),
+            )
+            .where(
+                DepartmentBudgetDetail.tenantId == tenant_id,
+                DepartmentBudgetDetail.isActive.is_(True),
+                Department.committeeId == committee_id,
+                Department.isActive.is_(True),
+            )
+        )
+    ).all()
+    return [(name, sub, cat, amount or 0) for name, sub, cat, amount in rows]
+
+
+@router.get("/hr-admin-execution")
+async def get_hr_admin_execution(
+    year: int | None = None,
+    user: CurrentUser = Depends(require_permission(PERMISSIONS.REPORT_HR_ADMIN_READ)),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    yr = year or _current_year()
+    start, end = _year_date_range(yr)
+
+    personnel_committee = (
+        (
+            await session.execute(
+                select(Committee).where(
+                    Committee.tenantId == tenant_id,
+                    Committee.isActive.is_(True),
+                    Committee.name.contains("인사위"),
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    admin_committee = (
+        (
+            await session.execute(
+                select(Committee).where(
+                    Committee.tenantId == tenant_id,
+                    Committee.isActive.is_(True),
+                    Committee.name.contains("행정위"),
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+
+    expense_item_rows = (
+        await session.execute(
+            select(
+                ExpenseItem.budgetCategory,
+                ExpenseItem.budgetSubcategory,
+                ExpenseItem.budgetDetail,
+                func.sum(ExpenseItem.amount),
+            )
+            .join(Expense, Expense.id == ExpenseItem.expenseId)
+            .where(
+                Expense.tenantId == tenant_id,
+                Expense.status == "APPROVED_FINAL",
+                Expense.requestDate >= start,
+                Expense.requestDate <= end,
+            )
+            .group_by(ExpenseItem.budgetCategory, ExpenseItem.budgetSubcategory, ExpenseItem.budgetDetail)
+        )
+    ).all()
+    spent_by_detail = {
+        f"{cat}|{sub}|{detail}": amount or 0 for cat, sub, detail, amount in expense_item_rows
+    }
+
+    personnel_items: list[dict] = []
+    personnel_total_budget = 0
+    personnel_total_spent = 0
+    if personnel_committee:
+        subcategory_map: dict[str, dict] = {}
+        for detail_name, sub_name, cat_name, budget in await _load_committee_budget_rows(
+            session, tenant_id, personnel_committee.id, yr
+        ):
+            subcat_name = sub_name or detail_name
+            cat_label = cat_name or ""
+            key = f"{cat_label}|{subcat_name}"
+            spent_key = f"{cat_label}|{subcat_name}|{detail_name}"
+            entry = subcategory_map.setdefault(key, {"budget": 0, "spent": 0})
+            entry["budget"] += budget
+            entry["spent"] += spent_by_detail.get(spent_key, 0)
+
+        for key, data in subcategory_map.items():
+            _, subcat_name = key.split("|", 1)
+            execution_rate = round(data["spent"] / data["budget"] * 100) if data["budget"] > 0 else 0
+            personnel_items.append(
+                {
+                    "name": _format_display_name(subcat_name),
+                    "budget": data["budget"],
+                    "spent": data["spent"],
+                    "executionRate": execution_rate,
+                }
+            )
+            personnel_total_budget += data["budget"]
+            personnel_total_spent += data["spent"]
+
+    admin_groups: list[dict] = []
+    admin_total_budget = 0
+    admin_total_spent = 0
+    if admin_committee:
+        category_map: dict[str, dict[str, dict]] = {}
+        for detail_name, sub_name, cat_name, budget in await _load_committee_budget_rows(
+            session, tenant_id, admin_committee.id, yr
+        ):
+            cat_label = cat_name or "기타"
+            subcat_name = sub_name or detail_name
+            spent_key = f"{cat_label}|{subcat_name}|{detail_name}"
+            subcat_map = category_map.setdefault(cat_label, {})
+            entry = subcat_map.setdefault(subcat_name, {"budget": 0, "spent": 0})
+            entry["budget"] += budget
+            entry["spent"] += spent_by_detail.get(spent_key, 0)
+
+        for cat_label, subcat_map in category_map.items():
+            items = []
+            group_budget = 0
+            group_spent = 0
+            for subcat_name, data in subcat_map.items():
+                execution_rate = round(data["spent"] / data["budget"] * 100) if data["budget"] > 0 else 0
+                items.append(
+                    {
+                        "name": _format_display_name(subcat_name),
+                        "budget": data["budget"],
+                        "spent": data["spent"],
+                        "executionRate": execution_rate,
+                    }
+                )
+                group_budget += data["budget"]
+                group_spent += data["spent"]
+            group_execution_rate = round(group_spent / group_budget * 100) if group_budget > 0 else 0
+            admin_groups.append(
+                {
+                    "name": _format_display_name(cat_label),
+                    "items": items,
+                    "subtotal": {
+                        "budget": group_budget,
+                        "spent": group_spent,
+                        "executionRate": group_execution_rate,
+                    },
+                }
+            )
+            admin_total_budget += group_budget
+            admin_total_spent += group_spent
+
+    personnel_execution_rate = (
+        round(personnel_total_spent / personnel_total_budget * 100) if personnel_total_budget > 0 else 0
+    )
+    admin_execution_rate = (
+        round(admin_total_spent / admin_total_budget * 100) if admin_total_budget > 0 else 0
+    )
+
+    combined_budget = personnel_total_budget + admin_total_budget
+    combined_spent = personnel_total_spent + admin_total_spent
+    combined_execution_rate = (
+        round(combined_spent / combined_budget * 100) if combined_budget > 0 else 0
+    )
+
+    total_budget = (
+        await session.execute(
+            select(func.sum(BudgetDetailYear.budgetAmount)).where(
+                BudgetDetailYear.tenantId == tenant_id,
+                BudgetDetailYear.year == yr,
+                BudgetDetailYear.isActive.is_(True),
+            )
+        )
+    ).scalar_one() or 0
+
+    hr_admin_ratio = round(combined_budget / total_budget * 100) if total_budget > 0 else 0
+
+    return {
+        "year": yr,
+        "personnel": {
+            "items": personnel_items,
+            "total": {
+                "budget": personnel_total_budget,
+                "spent": personnel_total_spent,
+                "executionRate": personnel_execution_rate,
+            },
+        },
+        "admin": {
+            "groups": admin_groups,
+            "total": {
+                "budget": admin_total_budget,
+                "spent": admin_total_spent,
+                "executionRate": admin_execution_rate,
+            },
+        },
+        "combined": {
+            "budget": combined_budget,
+            "spent": combined_spent,
+            "executionRate": combined_execution_rate,
+        },
+        "overall": {
+            "totalBudget": total_budget,
+            "hrAdminBudget": combined_budget,
+            "hrAdminRatio": hr_admin_ratio,
+        },
+    }
+
+
+@router.get("/manager-exceptions")
+async def get_manager_exceptions(
+    year: int | None = None,
+    user: CurrentUser = Depends(require_permission(PERMISSIONS.BUDGET_MANAGER_MANAGE)),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    yr = year or _current_year()
+
+    leader_rows = (
+        await session.execute(
+            select(UserYearRole.departmentId, UserYearRole.userId, User.username)
+            .join(User, User.id == UserYearRole.userId)
+            .where(
+                UserYearRole.tenantId == tenant_id,
+                UserYearRole.year == yr,
+                UserYearRole.role == "team_leader",
+                UserYearRole.departmentId.is_not(None),
+            )
+        )
+    ).all()
+    dept_leader_map = {
+        dept_id: {"id": user_id, "name": username} for dept_id, user_id, username in leader_rows
+    }
+
+    manager_user = aliased(User)
+    detail_rows = (
+        await session.execute(
+            select(
+                BudgetDetailYear.id,
+                BudgetDetailYear.budgetDetailId,
+                BudgetDetailYear.managerId,
+                manager_user.username,
+                BudgetDetail.name,
+                BudgetSubcategory.name,
+                BudgetCategory.name,
+                DepartmentBudgetDetail.departmentId,
+                Department.name,
+                Committee.name,
+            )
+            .select_from(BudgetDetailYear)
+            .join(manager_user, manager_user.id == BudgetDetailYear.managerId)
+            .join(BudgetDetail, BudgetDetail.id == BudgetDetailYear.budgetDetailId)
+            .join(BudgetSubcategory, BudgetSubcategory.id == BudgetDetail.subcategoryId)
+            .join(BudgetCategory, BudgetCategory.id == BudgetSubcategory.categoryId)
+            .join(DepartmentBudgetDetail, DepartmentBudgetDetail.budgetDetailId == BudgetDetail.id)
+            .join(Department, Department.id == DepartmentBudgetDetail.departmentId)
+            .join(Committee, Committee.id == Department.committeeId)
+            .where(
+                BudgetDetailYear.tenantId == tenant_id,
+                BudgetDetailYear.year == yr,
+                BudgetDetailYear.isActive.is_(True),
+                BudgetDetailYear.managerId.is_not(None),
+            )
+        )
+    ).all()
+
+    exceptions: list[dict] = []
+    total_details = 0
+    for (
+        budget_detail_year_id,
+        budget_detail_id,
+        manager_id,
+        manager_name,
+        detail_name,
+        subcat_name,
+        cat_name,
+        department_id,
+        department_name,
+        committee_name,
+    ) in detail_rows:
+        total_details += 1
+        team_leader = dept_leader_map.get(department_id)
+        if not team_leader or team_leader["id"] != manager_id:
+            exceptions.append(
+                {
+                    "budgetDetailId": budget_detail_id,
+                    "budgetDetailYearId": budget_detail_year_id,
+                    "committee": committee_name,
+                    "department": department_name,
+                    "category": cat_name,
+                    "subcategory": subcat_name,
+                    "detail": detail_name,
+                    "teamLeader": team_leader,
+                    "manager": {"id": manager_id, "name": manager_name},
+                }
+            )
+
+    exceptions.sort(key=lambda e: (e["committee"], e["department"], e["detail"]))
+
+    exception_count = len(exceptions)
+    exception_rate = (
+        round(exception_count / total_details * 1000) / 10 if total_details > 0 else 0
+    )
+
+    return {
+        "year": yr,
+        "summary": {
+            "totalDetails": total_details,
+            "exceptionCount": exception_count,
+            "exceptionRate": exception_rate,
+        },
+        "exceptions": exceptions,
+    }
+
+
+@router.get("/change-history")
+async def get_change_history(
+    history_type: str = Query(default="all", alias="type"),
+    year: int | None = None,
+    limit: int = 50,
+    offset: int = 0,
+    user: CurrentUser = Depends(require_permission(PERMISSIONS.ADMIN_DASHBOARD_READ)),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    result: dict = {"total": {}}
+
+    if history_type in ("all", "roles"):
+        role_conditions = [UserYearRoleHistory.tenantId == tenant_id]
+        if year is not None:
+            role_conditions.append(UserYearRoleHistory.year == year)
+
+        role_history_rows = (
+            (
+                await session.execute(
+                    select(UserYearRoleHistory)
+                    .where(*role_conditions)
+                    .order_by(UserYearRoleHistory.changedAt.desc())
+                    .limit(limit)
+                    .offset(offset)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        role_count = (
+            await session.execute(select(func.count(UserYearRoleHistory.id)).where(*role_conditions))
+        ).scalar_one()
+
+        user_ids = list({h.userId for h in role_history_rows})
+        user_rows = (
+            (
+                await session.execute(
+                    select(User.id, User.username, User.userid).where(User.id.in_(user_ids))
+                )
+            ).all()
+            if user_ids
+            else []
+        )
+        user_map = {uid: (username, userid) for uid, username, userid in user_rows}
+
+        role_history = []
+        for h in role_history_rows:
+            username, userid = user_map.get(h.userId, (None, None))
+            entry = {**h.model_dump(), "userName": username if username is not None else h.userId}
+            if userid is not None:
+                entry["userLoginId"] = userid
+            role_history.append(entry)
+
+        result["roleHistory"] = role_history
+        result["total"]["roles"] = role_count
+
+    if history_type in ("all", "budgets"):
+        budget_conditions = [BudgetDetailYearHistory.tenantId == tenant_id]
+        if year is not None:
+            budget_conditions.append(BudgetDetailYearHistory.year == year)
+
+        budget_history_rows = (
+            (
+                await session.execute(
+                    select(BudgetDetailYearHistory)
+                    .where(*budget_conditions)
+                    .order_by(BudgetDetailYearHistory.changedAt.desc())
+                    .limit(limit)
+                    .offset(offset)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        budget_count = (
+            await session.execute(
+                select(func.count(BudgetDetailYearHistory.id)).where(*budget_conditions)
+            )
+        ).scalar_one()
+
+        result["budgetHistory"] = [h.model_dump() for h in budget_history_rows]
+        result["total"]["budgets"] = budget_count
+
+    return result

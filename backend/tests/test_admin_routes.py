@@ -1,6 +1,7 @@
-"""admin 대시보드/연도 설정 현황/보고서 라우트 계약 테스트. (app/api/admin/dashboard,
+"""admin 대시보드/연도 설정 현황/보고서/실행·이력 라우트 계약 테스트. (app/api/admin/dashboard,
 app/api/admin/year-setup-status 컷오버 — D1;
-app/api/admin/budget-execution, cumulative-report, quarterly-report(+export) 컷오버 — D2)
+app/api/admin/budget-execution, cumulative-report, quarterly-report(+export) 컷오버 — D2;
+app/api/admin/hr-admin-execution, manager-exceptions, change-history 컷오버 — D3)
 """
 
 import io
@@ -25,10 +26,10 @@ from expense_api.core.models.budget import (
     Department,
     DepartmentBudgetDetail,
 )
-from expense_api.core.models.budget import BudgetSubcategory
+from expense_api.core.models.budget import BudgetDetailYearHistory, BudgetSubcategory
 from expense_api.core.models.expense import Expense, ExpenseItem
 from expense_api.core.models.tenant import Tenant
-from expense_api.core.models.user import User, UserYearRole
+from expense_api.core.models.user import User, UserYearRole, UserYearRoleHistory
 from expense_api.core.security.jwt import hash_password
 from expense_api.core.security.rate_limit import _reset_all
 from main import app
@@ -469,3 +470,272 @@ async def test_quarterly_report_export_requires_report_export_permission(client:
     r = await client.get(f"/api/admin/quarterly-report/export?year={YEAR}&quarter=3", headers=headers)
     assert r.status_code == 403
     assert r.json()["detail"] == "권한이 없습니다."
+
+
+# ── D3: 실행·이력 ──────────────────────────────────────────────────────
+
+
+async def _seed_hr_admin_tree(client: AsyncClient) -> dict:
+    """인사위/행정위 위원회 각 1 세목 + 지출 각 1건 시드."""
+    maker = client._maker  # type: ignore[attr-defined]
+    async with maker() as s:
+        from sqlalchemy import select
+
+        tid = (await s.execute(select(Tenant.id))).scalar_one()
+        admin_id = (await s.execute(select(User.id).where(User.userid == "admin"))).scalar_one()
+
+        comm_p = Committee(tenantId=tid, name="인사위원회", sortOrder=1)
+        comm_a = Committee(tenantId=tid, name="행정위원회", sortOrder=2)
+        s.add_all([comm_p, comm_a])
+        await s.flush()
+        dept_p = Department(tenantId=tid, committeeId=comm_p.id, name="인사팀", sortOrder=1)
+        dept_a = Department(tenantId=tid, committeeId=comm_a.id, name="총무팀", sortOrder=1)
+        cat = BudgetCategory(tenantId=tid, name="운영비", sortOrder=1)
+        s.add_all([dept_p, dept_a, cat])
+        await s.flush()
+        sub_p = BudgetSubcategory(tenantId=tid, categoryId=cat.id, name="인건비", sortOrder=1)
+        sub_a = BudgetSubcategory(tenantId=tid, categoryId=cat.id, name="사무비", sortOrder=2)
+        s.add_all([sub_p, sub_a])
+        await s.flush()
+        detail_p = BudgetDetail(tenantId=tid, subcategoryId=sub_p.id, name="급여", sortOrder=1)
+        detail_a = BudgetDetail(tenantId=tid, subcategoryId=sub_a.id, name="소모품비", sortOrder=1)
+        s.add_all([detail_p, detail_a])
+        await s.flush()
+        s.add_all(
+            [
+                BudgetDetailYear(tenantId=tid, budgetDetailId=detail_p.id, year=YEAR, budgetAmount=1_000_000),
+                BudgetDetailYear(tenantId=tid, budgetDetailId=detail_a.id, year=YEAR, budgetAmount=500_000),
+                DepartmentBudgetDetail(tenantId=tid, departmentId=dept_p.id, budgetDetailId=detail_p.id),
+                DepartmentBudgetDetail(tenantId=tid, departmentId=dept_a.id, budgetDetailId=detail_a.id),
+            ]
+        )
+
+        when = datetime(YEAR, 3, 1)
+        e_p = Expense(
+            tenantId=tid, userId=admin_id, committee="인사위원회", department="인사팀",
+            expenseDate=when, requestAmount=300_000, requestDate=when, applicantName="관리자",
+            bankName="은행", accountNumber="1-2-3", accountHolder="관리자",
+            status="APPROVED_FINAL", paymentStatus="COMPLETED",
+        )
+        e_a = Expense(
+            tenantId=tid, userId=admin_id, committee="행정위원회", department="총무팀",
+            expenseDate=when, requestAmount=100_000, requestDate=when, applicantName="관리자",
+            bankName="은행", accountNumber="1-2-3", accountHolder="관리자",
+            status="APPROVED_FINAL", paymentStatus="COMPLETED",
+        )
+        s.add_all([e_p, e_a])
+        await s.flush()
+        s.add_all(
+            [
+                ExpenseItem(
+                    tenantId=tid, expenseId=e_p.id, budgetCategory="운영비", budgetSubcategory="인건비",
+                    budgetDetail="급여", description="급여", unitPrice=300_000, quantity=1,
+                    amount=300_000, order=1,
+                ),
+                ExpenseItem(
+                    tenantId=tid, expenseId=e_a.id, budgetCategory="운영비", budgetSubcategory="사무비",
+                    budgetDetail="소모품비", description="소모품", unitPrice=100_000, quantity=1,
+                    amount=100_000, order=1,
+                ),
+            ]
+        )
+        await s.commit()
+    return {"tenantId": tid}
+
+
+async def test_hr_admin_execution_summary(client: AsyncClient):
+    headers = await _login(client)
+    await _seed_hr_admin_tree(client)
+
+    r = await client.get(f"/api/admin/hr-admin-execution?year={YEAR}", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["year"] == YEAR
+    assert body["personnel"]["total"] == {"budget": 1_000_000, "spent": 300_000, "executionRate": 30}
+    assert body["personnel"]["items"] == [
+        {"name": "인건비", "budget": 1_000_000, "spent": 300_000, "executionRate": 30}
+    ]
+    assert body["admin"]["total"] == {"budget": 500_000, "spent": 100_000, "executionRate": 20}
+    assert body["admin"]["groups"] == [
+        {
+            "name": "운영비",
+            "items": [{"name": "사무비", "budget": 500_000, "spent": 100_000, "executionRate": 20}],
+            "subtotal": {"budget": 500_000, "spent": 100_000, "executionRate": 20},
+        }
+    ]
+    assert body["combined"] == {"budget": 1_500_000, "spent": 400_000, "executionRate": 27}
+    assert body["overall"] == {"totalBudget": 1_500_000, "hrAdminBudget": 1_500_000, "hrAdminRatio": 100}
+
+
+async def test_hr_admin_execution_requires_permission(client: AsyncClient):
+    headers = await _login(client, "user1", "user123")
+    r = await client.get("/api/admin/hr-admin-execution", headers=headers)
+    assert r.status_code == 403
+
+
+async def _seed_manager_exceptions_tree(client: AsyncClient) -> dict:
+    """세목 2개(담당자=팀장 일치/불일치) 시드."""
+    maker = client._maker  # type: ignore[attr-defined]
+    async with maker() as s:
+        from sqlalchemy import select
+
+        tid = (await s.execute(select(Tenant.id))).scalar_one()
+
+        leader = User(tenantId=tid, userid="leader1", username="김팀장", role="team_leader")
+        manager2 = User(tenantId=tid, userid="mgr2", username="박담당", role="user")
+        s.add_all([leader, manager2])
+        await s.flush()
+
+        comm = Committee(tenantId=tid, name="선교위원회", sortOrder=1)
+        s.add(comm)
+        await s.flush()
+        dept = Department(tenantId=tid, committeeId=comm.id, name="선교팀", sortOrder=1)
+        cat = BudgetCategory(tenantId=tid, name="사업비", sortOrder=1)
+        s.add_all([dept, cat])
+        await s.flush()
+        sub = BudgetSubcategory(tenantId=tid, categoryId=cat.id, name="행사비", sortOrder=1)
+        s.add(sub)
+        await s.flush()
+        detail_ok = BudgetDetail(tenantId=tid, subcategoryId=sub.id, name="다과비", sortOrder=1)
+        detail_exc = BudgetDetail(tenantId=tid, subcategoryId=sub.id, name="교통비", sortOrder=2)
+        s.add_all([detail_ok, detail_exc])
+        await s.flush()
+
+        s.add(
+            UserYearRole(tenantId=tid, userId=leader.id, year=YEAR, role="team_leader", departmentId=dept.id)
+        )
+        s.add_all(
+            [
+                DepartmentBudgetDetail(tenantId=tid, departmentId=dept.id, budgetDetailId=detail_ok.id),
+                DepartmentBudgetDetail(tenantId=tid, departmentId=dept.id, budgetDetailId=detail_exc.id),
+            ]
+        )
+        bdy_exc = BudgetDetailYear(
+            tenantId=tid, budgetDetailId=detail_exc.id, year=YEAR, managerId=manager2.id, budgetAmount=50_000
+        )
+        s.add_all(
+            [
+                BudgetDetailYear(
+                    tenantId=tid, budgetDetailId=detail_ok.id, year=YEAR, managerId=leader.id, budgetAmount=100_000
+                ),
+                bdy_exc,
+            ]
+        )
+        await s.commit()
+
+    return {
+        "tenantId": tid,
+        "leaderId": leader.id,
+        "leaderName": leader.username,
+        "manager2Id": manager2.id,
+        "manager2Name": manager2.username,
+        "detailExcId": detail_exc.id,
+        "bdyExcId": bdy_exc.id,
+    }
+
+
+async def test_manager_exceptions_summary(client: AsyncClient):
+    headers = await _login(client)
+    seeded = await _seed_manager_exceptions_tree(client)
+
+    r = await client.get(f"/api/admin/manager-exceptions?year={YEAR}", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["year"] == YEAR
+    assert body["summary"] == {"totalDetails": 2, "exceptionCount": 1, "exceptionRate": 50.0}
+    assert body["exceptions"] == [
+        {
+            "budgetDetailId": seeded["detailExcId"],
+            "budgetDetailYearId": seeded["bdyExcId"],
+            "committee": "선교위원회",
+            "department": "선교팀",
+            "category": "사업비",
+            "subcategory": "행사비",
+            "detail": "교통비",
+            "teamLeader": {"id": seeded["leaderId"], "name": seeded["leaderName"]},
+            "manager": {"id": seeded["manager2Id"], "name": seeded["manager2Name"]},
+        }
+    ]
+
+
+async def test_manager_exceptions_requires_permission(client: AsyncClient):
+    headers = await _login(client, "user1", "user123")
+    r = await client.get("/api/admin/manager-exceptions", headers=headers)
+    assert r.status_code == 403
+
+
+async def _seed_change_history(client: AsyncClient) -> dict:
+    """역할 변경 이력 3건(연도 다름 1건 포함) + 예산 변경 이력 1건 시드."""
+    maker = client._maker  # type: ignore[attr-defined]
+    async with maker() as s:
+        from sqlalchemy import select
+
+        tid = (await s.execute(select(Tenant.id))).scalar_one()
+        user1_id = (await s.execute(select(User.id).where(User.userid == "user1"))).scalar_one()
+
+        s.add_all(
+            [
+                UserYearRoleHistory(
+                    tenantId=tid, userId=user1_id, year=YEAR, action="CREATE",
+                    changedBy="관리자", newRole="team_leader",
+                    changedAt=datetime(YEAR, 1, 1, 10, 0, 0),
+                ),
+                UserYearRoleHistory(
+                    tenantId=tid, userId=user1_id, year=YEAR, action="UPDATE",
+                    changedBy="관리자", previousRole="team_leader", newRole="accountant",
+                    changedAt=datetime(YEAR, 2, 1, 10, 0, 0),
+                ),
+                UserYearRoleHistory(
+                    tenantId=tid, userId="ghost-user-id", year=YEAR - 1, action="DELETE",
+                    changedBy="관리자", previousRole="user",
+                    changedAt=datetime(YEAR - 1, 12, 1, 9, 0, 0),
+                ),
+            ]
+        )
+        s.add(
+            BudgetDetailYearHistory(
+                tenantId=tid, budgetDetailId="bd-1", budgetDetailName="간식비", year=YEAR,
+                action="UPDATE", changedBy="관리자", previousBudgetAmt=100_000, newBudgetAmt=200_000,
+                changedAt=datetime(YEAR, 3, 1, 9, 0, 0),
+            )
+        )
+        await s.commit()
+    return {"tenantId": tid}
+
+
+async def test_change_history_roles_filtered_by_year(client: AsyncClient):
+    headers = await _login(client)
+    await _seed_change_history(client)
+
+    r = await client.get(f"/api/admin/change-history?type=roles&year={YEAR}", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total"] == {"roles": 2}
+    assert "budgetHistory" not in body
+    history = body["roleHistory"]
+    assert len(history) == 2
+    assert history[0]["action"] == "UPDATE"
+    assert history[0]["userName"] == "사용자1"
+    assert history[0]["userLoginId"] == "user1"
+    assert history[1]["action"] == "CREATE"
+
+
+async def test_change_history_all_default(client: AsyncClient):
+    headers = await _login(client)
+    await _seed_change_history(client)
+
+    r = await client.get("/api/admin/change-history", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total"] == {"roles": 3, "budgets": 1}
+    assert len(body["roleHistory"]) == 3
+    ghost_entry = next(h for h in body["roleHistory"] if h["userId"] == "ghost-user-id")
+    assert ghost_entry["userName"] == "ghost-user-id"
+    assert "userLoginId" not in ghost_entry
+    assert body["budgetHistory"][0]["budgetDetailName"] == "간식비"
+
+
+async def test_change_history_requires_permission(client: AsyncClient):
+    headers = await _login(client, "user1", "user123")
+    r = await client.get("/api/admin/change-history", headers=headers)
+    assert r.status_code == 403

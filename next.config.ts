@@ -385,6 +385,19 @@ const nextConfig: NextConfig = {
           source: "/api/admin/quarterly-report/export",
           destination: `${apiOrigin}/api/admin/quarterly-report/export`,
         },
+        // admin: 실행·이력 — 인사/행정비 집행, 담당자 예외, 변경 이력 (D3)
+        {
+          source: "/api/admin/hr-admin-execution",
+          destination: `${apiOrigin}/api/admin/hr-admin-execution`,
+        },
+        {
+          source: "/api/admin/manager-exceptions",
+          destination: `${apiOrigin}/api/admin/manager-exceptions`,
+        },
+        {
+          source: "/api/admin/change-history",
+          destination: `${apiOrigin}/api/admin/change-history`,
+        },
       ],
       afterFiles: [
         {

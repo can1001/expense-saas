@@ -193,3 +193,28 @@ class UserYearRole(SQLModel, table=True):
         default_factory=utcnow,
         sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
     )
+
+
+class UserYearRoleHistory(SQLModel, table=True):
+    __tablename__ = "UserYearRoleHistory"
+
+    id: str = Field(default_factory=new_id, primary_key=True)
+
+    tenantId: str | None = Field(default=None, index=True)  # 쿼리 최적화용
+
+    userYearRoleId: str | None = Field(default=None, index=True)  # 삭제된 경우 null 가능
+    userId: str = Field(index=True)
+    year: int = Field(index=True)
+
+    action: str = Field(index=True)  # CREATE, UPDATE, DELETE
+    changedBy: str
+    changedById: str | None = None
+
+    previousRole: str | None = None
+    previousDept: str | None = None
+    newRole: str | None = None
+    newDept: str | None = None
+
+    changedAt: datetime = Field(
+        default_factory=utcnow, index=True, sa_column_kwargs={"server_default": func.now()}
+    )
