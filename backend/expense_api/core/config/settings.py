@@ -71,6 +71,9 @@ class Settings(BaseSettings):
     VAPID_PRIVATE_KEY: str | None = None
     VAPID_SUBJECT: str = "mailto:admin@example.com"
 
+    # FCM (N2) — 미설정이면 fcm-test 가 503 으로 안내
+    FIREBASE_SERVICE_ACCOUNT_JSON: str | None = None
+
     @property
     def is_sqlite(self) -> bool:
         return self.DATABASE_URL.startswith("sqlite")

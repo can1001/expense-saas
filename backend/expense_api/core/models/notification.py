@@ -1,8 +1,7 @@
 """알림 모델 (Prisma NotificationPreference, NotificationLog, PushSubscription, WebPushLog,
-AdminNotification 이전).
+AdminNotification, FcmToken, FcmLog 이전).
 
 컬럼명 camelCase 보존, tenantId 스코프. (spec §4)
-FcmToken/FcmLog 는 후속(N2).
 """
 
 from datetime import datetime
@@ -93,6 +92,51 @@ class WebPushLog(SQLModel, table=True):
     expenseId: str | None = Field(default=None, index=True)
 
     eventType: str = Field(index=True)  # NotificationEventType 값 문자열
+    title: str
+    body: str = Field(sa_column=Column(Text))
+    url: str | None = None
+
+    status: str = Field(default=NotificationStatus.PENDING.value, index=True)
+    errorMessage: str | None = Field(default=None, sa_column=Column(Text))
+
+    sentAt: datetime | None = None
+    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()}, index=True)
+
+
+# FCM 토큰 (Capacitor 모바일 앱 푸시 알림용)
+class FcmToken(SQLModel, table=True):
+    __tablename__ = "FcmToken"
+
+    id: str = Field(default_factory=new_id, primary_key=True)
+    tenantId: str | None = Field(default=None, index=True)
+
+    userId: str = Field(foreign_key="User.id", index=True)
+
+    token: str = Field(sa_column=Column(Text, unique=True))  # FCM 등록 토큰
+    platform: str  # "android" | "ios"
+
+    deviceModel: str | None = Field(default=None, sa_column=Column(Text))
+    appVersion: str | None = None
+
+    isActive: bool = Field(default=True, index=True)
+    failedCount: int = 0
+    lastUsedAt: datetime | None = None
+
+    createdAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now()})
+    updatedAt: datetime = Field(default_factory=utcnow, sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()})
+
+
+# FCM 발송 로그
+class FcmLog(SQLModel, table=True):
+    __tablename__ = "FcmLog"
+
+    id: str = Field(default_factory=new_id, primary_key=True)
+    tenantId: str | None = Field(default=None, index=True)
+
+    userId: str | None = Field(default=None, index=True)
+    expenseId: str | None = Field(default=None, index=True)
+
+    eventType: str = Field(index=True)
     title: str
     body: str = Field(sa_column=Column(Text))
     url: str | None = None

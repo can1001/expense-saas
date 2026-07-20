@@ -316,3 +316,89 @@ async def test_history_only_returns_current_user_logs(client: AsyncClient):
 
     r = await client.get("/api/push/history", headers=headers)
     assert r.json()["total"] == 0
+
+
+# ── test (실발송, N2) ─────────────────────────────────────────────────
+
+
+async def test_push_test_unconfigured_returns_503(client: AsyncClient, monkeypatch):
+    from expense_api.core.service import push_provider
+
+    monkeypatch.setattr(push_provider, "is_web_push_configured", lambda: False)
+    headers = await _login(client)
+    r = await client.post("/api/push/test", headers=headers)
+    assert r.status_code == 503
+
+
+async def test_push_test_no_subscription_returns_404_with_code(client: AsyncClient, monkeypatch):
+    from expense_api.core.service import push_provider
+
+    monkeypatch.setattr(push_provider, "is_web_push_configured", lambda: True)
+    headers = await _login(client)
+    r = await client.post("/api/push/test", headers=headers)
+    assert r.status_code == 404
+    assert r.json()["code"] == "NO_SUBSCRIPTION"
+
+
+async def test_push_test_success_sends_and_logs(client: AsyncClient, monkeypatch):
+    from expense_api.core.service import push_provider
+
+    monkeypatch.setattr(push_provider, "is_web_push_configured", lambda: True)
+
+    async def _fake_send(endpoint, p256dh, auth, payload):
+        return None
+
+    monkeypatch.setattr(push_provider, "send_web_push", _fake_send)
+
+    headers = await _login(client)
+    await client.post(
+        "/api/push/subscribe",
+        headers=headers,
+        json={"subscription": {"endpoint": "https://push.example.com/t1", "keys": {"p256dh": "p", "auth": "a"}}},
+    )
+
+    r = await client.post("/api/push/test", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["success"] is True
+    assert "성공: 1" in body["message"]
+    assert body["results"] == [{"success": True, "subscriptionId": body["results"][0]["subscriptionId"]}]
+
+    maker = client._maker  # type: ignore[attr-defined]
+    async with maker() as s:
+        from sqlalchemy import select
+
+        log = (await s.execute(select(WebPushLog).where(WebPushLog.status == "SENT"))).scalars().first()
+        assert log is not None
+        assert log.title == "테스트 알림"
+
+
+async def test_push_test_send_failure_deactivates_expired_subscription(client: AsyncClient, monkeypatch):
+    from expense_api.core.service import push_provider
+
+    monkeypatch.setattr(push_provider, "is_web_push_configured", lambda: True)
+
+    async def _fake_send(endpoint, p256dh, auth, payload):
+        raise push_provider.WebPushSendError("Gone", expired=True)
+
+    monkeypatch.setattr(push_provider, "send_web_push", _fake_send)
+
+    headers = await _login(client)
+    await client.post(
+        "/api/push/subscribe",
+        headers=headers,
+        json={"subscription": {"endpoint": "https://push.example.com/t2", "keys": {"p256dh": "p", "auth": "a"}}},
+    )
+
+    r = await client.post("/api/push/test", headers=headers)
+    assert r.status_code == 500
+    assert r.json()["details"] == ["Gone"]
+
+    maker = client._maker  # type: ignore[attr-defined]
+    async with maker() as s:
+        from sqlalchemy import select
+
+        sub = (
+            await s.execute(select(PushSubscription).where(PushSubscription.endpoint == "https://push.example.com/t2"))
+        ).scalars().first()
+        assert sub.isActive is False

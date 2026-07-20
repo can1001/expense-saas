@@ -506,6 +506,19 @@ const nextConfig: NextConfig = {
           source: "/api/push/history",
           destination: `${apiOrigin}/api/push/history`,
         },
+        {
+          source: "/api/push/test",
+          destination: `${apiOrigin}/api/push/test`,
+        },
+        // push: FCM (N2) — 고정 세그먼트, 다른 push 항목과 충돌 없음
+        {
+          source: "/api/push/fcm-subscribe",
+          destination: `${apiOrigin}/api/push/fcm-subscribe`,
+        },
+        {
+          source: "/api/push/fcm-test",
+          destination: `${apiOrigin}/api/push/fcm-test`,
+        },
       ],
       afterFiles: [
         {

@@ -56,6 +56,17 @@ class PushUnsubscribeRequest(BaseModel):
     all: bool | None = None
 
 
+class FcmSubscribeRequest(BaseModel):
+    token: str | None = None
+    platform: str | None = None
+    deviceModel: str | None = None
+    appVersion: str | None = None
+
+
+class FcmUnsubscribeRequest(BaseModel):
+    token: str | None = None
+
+
 class PushHistoryExpenseOut(BaseModel):
     id: str
     applicantName: str
