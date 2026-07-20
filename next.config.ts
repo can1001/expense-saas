@@ -405,6 +405,20 @@ const nextConfig: NextConfig = {
           destination: `${apiOrigin}/api/admin/roles/:id`,
         },
         { source: "/api/admin/invitations", destination: `${apiOrigin}/api/admin/invitations` },
+        // admin: 헌금 관리 (D5) — "batch"/"template" 고정 세그먼트, :id(cuid) 보다 먼저 매칭
+        { source: "/api/admin/offerings", destination: `${apiOrigin}/api/admin/offerings` },
+        {
+          source: "/api/admin/offerings/batch",
+          destination: `${apiOrigin}/api/admin/offerings/batch`,
+        },
+        {
+          source: "/api/admin/offerings/template",
+          destination: `${apiOrigin}/api/admin/offerings/template`,
+        },
+        {
+          source: `/api/admin/offerings/:id(${cuid})`,
+          destination: `${apiOrigin}/api/admin/offerings/:id`,
+        },
       ],
       afterFiles: [
         {

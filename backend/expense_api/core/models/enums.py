@@ -80,6 +80,16 @@ class RecurringExpenseStatus(str, Enum):
     CANCELLED = "CANCELLED"  # 취소
 
 
+class OfferingType(str, Enum):
+    TITHE = "TITHE"  # 십일조
+    THANKSGIVING = "THANKSGIVING"  # 감사헌금
+    SPECIAL = "SPECIAL"  # 특별헌금
+    MISSION = "MISSION"  # 선교헌금
+    BUILDING = "BUILDING"  # 건축헌금
+    RELIEF = "RELIEF"  # 구제헌금
+    OTHER = "OTHER"  # 기타
+
+
 class ApprovalAction(str, Enum):
     SUBMIT = "SUBMIT"
     APPROVE = "APPROVE"

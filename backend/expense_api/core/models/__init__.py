@@ -30,6 +30,7 @@ from expense_api.core.models.notification import (  # noqa: F401
     NotificationPreference,
     PushSubscription,
 )
+from expense_api.core.models.offering import Offering  # noqa: F401
 from expense_api.core.models.recurring_expense import RecurringExpense  # noqa: F401
 from expense_api.core.models.schema_info import SchemaInfo  # noqa: F401
 from expense_api.core.models.system_setting import SystemSetting  # noqa: F401
@@ -72,4 +73,5 @@ __all__ = [
     "SavedBankAccount",
     "RecurringExpense",
     "SystemSetting",
+    "Offering",
 ]

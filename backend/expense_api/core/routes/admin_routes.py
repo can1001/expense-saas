@@ -1,16 +1,18 @@
-"""관리자 대시보드/연도 설정 현황/보고서/실행·이력/역할·초대 라우터.
+"""관리자 대시보드/연도 설정 현황/보고서/실행·이력/역할·초대/헌금 라우터.
 (app/api/admin/dashboard, app/api/admin/year-setup-status,
  app/api/admin/budget-execution, app/api/admin/cumulative-report,
  app/api/admin/quarterly-report(+export),
  app/api/admin/hr-admin-execution, app/api/admin/manager-exceptions,
  app/api/admin/change-history,
- app/api/admin/roles(+[id]), app/api/admin/invitations 이전)
+ app/api/admin/roles(+[id]), app/api/admin/invitations,
+ app/api/admin/offerings(+[id]/batch/template) 이전)
 mount prefix: /api/admin
 """
 
 import io
 import re
 import secrets
+from datetime import date as PyDate
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
@@ -18,7 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
 from openpyxl.workbook import Workbook
 from pydantic import BaseModel
-from sqlalchemy import and_, exists, func, or_, select
+from sqlalchemy import and_, delete, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -28,7 +30,7 @@ from expense_api.core.auth.permissions import (
     sanitize_permissions,
 )
 from expense_api.core.db.session import get_session
-from expense_api.core.dependencies.auth import CurrentUser
+from expense_api.core.dependencies.auth import CurrentUser, get_current_user
 from expense_api.core.dependencies.authz import effective_permissions, require_permission
 from expense_api.core.dependencies.tenant import require_tenant_id
 from expense_api.core.excel import THIN_BORDER, XLSX_CONTENT_TYPE, set_column_widths, style_header_row
@@ -42,7 +44,9 @@ from expense_api.core.models.budget import (
     Department,
     DepartmentBudgetDetail,
 )
+from expense_api.core.models.enums import OfferingType
 from expense_api.core.models.expense import Expense, ExpenseItem
+from expense_api.core.models.offering import Offering
 from expense_api.core.models.user import Invitation, Role, User, UserYearRole, UserYearRoleHistory
 
 router = APIRouter()
@@ -2303,3 +2307,358 @@ async def create_invitation(
     await session.commit()
     await session.refresh(invitation)
     return invitation.model_dump()
+
+
+# ── D5: 헌금 관리 (app/api/admin/offerings) ─────────────────────────────
+
+_OFFERING_KOREAN_TYPE_MAP: dict[str, str] = {
+    "십일조": OfferingType.TITHE.value,
+    "감사헌금": OfferingType.THANKSGIVING.value,
+    "특별헌금": OfferingType.SPECIAL.value,
+    "선교헌금": OfferingType.MISSION.value,
+    "건축헌금": OfferingType.BUILDING.value,
+    "구제헌금": OfferingType.RELIEF.value,
+    "기타": OfferingType.OTHER.value,
+}
+
+_OFFERING_TEMPLATE_CSV = """날짜,이름,헌금종류,금액,메모
+2024-03-31,홍길동,십일조,500000,
+2024-03-31,김철수,감사헌금,100000,감사합니다
+2024-03-31,이영희,특별헌금,200000,부활절 특별헌금
+2024-03-31,박지민,선교헌금,50000,단기선교 후원
+2024-03-31,최수현,건축헌금,300000,
+2024-03-31,정민준,구제헌금,30000,이웃돕기
+2024-03-31,강서연,기타,20000,"""
+
+
+async def _require_offering_permission(
+    user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> CurrentUser:
+    perms = await effective_permissions(user, session)
+    if PERMISSIONS.OFFERING_MANAGE not in perms:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "권한이 없습니다.")
+    return user
+
+
+def _resolve_offering_type(raw: str) -> str:
+    if raw in {t.value for t in OfferingType}:
+        return raw
+    return _OFFERING_KOREAN_TYPE_MAP.get(raw, OfferingType.OTHER.value)
+
+
+def _offering_dict(o: Offering) -> dict:
+    d = o.model_dump()
+    d["date"] = o.date.isoformat()
+    return d
+
+
+def _month_range(month: str) -> tuple[PyDate, PyDate]:
+    year_s, mon_s = month.split("-")
+    year, mon = int(year_s), int(mon_s)
+    start = PyDate(year, mon, 1)
+    end = PyDate(year + 1, 1, 1) if mon == 12 else PyDate(year, mon + 1, 1)
+    return start, end
+
+
+@router.get("/offerings")
+async def list_offerings(
+    search: str = "",
+    type: str = "",
+    month: str = "",
+    page: int = 1,
+    limit: int = 50,
+    user: CurrentUser = Depends(_require_offering_permission),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    where = [Offering.tenantId == tenant_id]
+    if search:
+        pattern = f"%{search}%"
+        where.append(or_(Offering.name.ilike(pattern), Offering.memo.ilike(pattern)))
+    if type and type != "전체":
+        where.append(Offering.type == type)
+    if month and month != "전체":
+        start, end = _month_range(month)
+        where.append(and_(Offering.date >= start, Offering.date < end))
+
+    skip = (page - 1) * limit
+    rows = (
+        await session.execute(
+            select(Offering).where(*where).order_by(Offering.date.desc()).offset(skip).limit(limit)
+        )
+    ).scalars().all()
+    total = (
+        await session.execute(select(func.count()).select_from(Offering).where(*where))
+    ).scalar_one()
+
+    sum_amount, count = (
+        await session.execute(select(func.sum(Offering.amount), func.count()).where(*where))
+    ).one()
+    unique_donors = (
+        await session.execute(select(func.count(func.distinct(Offering.name))).where(*where))
+    ).scalar_one()
+
+    by_type_rows = (
+        await session.execute(
+            select(Offering.type, func.count(), func.sum(Offering.amount))
+            .where(*where)
+            .group_by(Offering.type)
+        )
+    ).all()
+    by_type = {t: {"count": c, "amount": a or 0} for t, c, a in by_type_rows}
+
+    all_dates = (
+        await session.execute(select(Offering.date).where(Offering.tenantId == tenant_id).distinct())
+    ).scalars().all()
+    months = sorted({d.strftime("%Y-%m") for d in all_dates}, reverse=True)
+
+    return {
+        "offerings": [_offering_dict(o) for o in rows],
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "totalPages": -(-total // limit) if limit else 0,
+        },
+        "summary": {
+            "totalAmount": sum_amount or 0,
+            "count": count,
+            "uniqueDonors": unique_donors,
+            "byType": by_type,
+        },
+        "months": months,
+    }
+
+
+class OfferingItemBody(BaseModel):
+    date: str
+    name: str
+    type: str
+    amount: int
+    memo: str | None = None
+
+
+class OfferingCreateBody(BaseModel):
+    offerings: list[OfferingItemBody] | None = None
+    date: str | None = None
+    name: str | None = None
+    type: str | None = None
+    amount: int | None = None
+    memo: str | None = None
+
+
+@router.post("/offerings")
+async def create_offering(
+    body: OfferingCreateBody,
+    user: CurrentUser = Depends(_require_offering_permission),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if body.offerings is not None:
+        rows = [
+            Offering(
+                tenantId=tenant_id,
+                date=PyDate.fromisoformat(item.date),
+                name=item.name,
+                type=_resolve_offering_type(item.type),
+                amount=int(item.amount),
+                memo=item.memo or None,
+            )
+            for item in body.offerings
+        ]
+        session.add_all(rows)
+        await session.commit()
+        return {
+            "success": True,
+            "count": len(rows),
+            "message": f"{len(rows)}건의 헌금이 등록되었습니다.",
+        }
+
+    if not body.date or not body.name or not body.type or not body.amount:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "날짜, 이름, 헌금종류, 금액은 필수입니다."
+        )
+
+    offering = Offering(
+        tenantId=tenant_id,
+        date=PyDate.fromisoformat(body.date),
+        name=body.name,
+        type=_resolve_offering_type(body.type),
+        amount=int(body.amount),
+        memo=body.memo or None,
+    )
+    session.add(offering)
+    await session.commit()
+    await session.refresh(offering)
+    return {"success": True, "offering": _offering_dict(offering)}
+
+
+@router.get("/offerings/batch")
+async def list_offerings_batch(
+    month: str = "",
+    user: CurrentUser = Depends(_require_offering_permission),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    where = [Offering.tenantId == tenant_id]
+    if month and month != "전체":
+        start, end = _month_range(month)
+        where.append(and_(Offering.date >= start, Offering.date < end))
+
+    group_rows = (
+        await session.execute(
+            select(Offering.date, func.count(), func.sum(Offering.amount))
+            .where(*where)
+            .group_by(Offering.date)
+            .order_by(Offering.date.desc())
+        )
+    ).all()
+
+    batches = []
+    for d, cnt, amt in group_rows:
+        offerings = (
+            await session.execute(
+                select(Offering)
+                .where(Offering.tenantId == tenant_id, Offering.date == d)
+                .order_by(Offering.createdAt.desc())
+            )
+        ).scalars().all()
+        by_type: dict[str, dict[str, int]] = {}
+        for o in offerings:
+            entry = by_type.setdefault(o.type, {"count": 0, "amount": 0})
+            entry["count"] += 1
+            entry["amount"] += o.amount
+        batches.append(
+            {
+                "date": d.isoformat(),
+                "count": cnt,
+                "totalAmount": amt or 0,
+                "byType": by_type,
+                "offerings": [_offering_dict(o) for o in offerings],
+            }
+        )
+
+    total_amount = sum(b["totalAmount"] for b in batches)
+    summary = {
+        "totalBatches": len(batches),
+        "totalOfferings": sum(b["count"] for b in batches),
+        "totalAmount": total_amount,
+        "avgPerBatch": round(total_amount / len(batches)) if batches else 0,
+    }
+    return {"batches": batches, "summary": summary}
+
+
+class OfferingBatchDeleteBody(BaseModel):
+    date: str | None = None
+
+
+@router.delete("/offerings/batch")
+async def delete_offerings_batch(
+    body: OfferingBatchDeleteBody,
+    user: CurrentUser = Depends(_require_offering_permission),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if not body.date:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "삭제할 날짜를 지정해주세요.")
+
+    target = PyDate.fromisoformat(body.date)
+    count = (
+        await session.execute(
+            select(func.count())
+            .select_from(Offering)
+            .where(Offering.tenantId == tenant_id, Offering.date == target)
+        )
+    ).scalar_one()
+    if count == 0:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "해당 날짜에 삭제할 헌금이 없습니다.")
+
+    await session.execute(
+        delete(Offering).where(Offering.tenantId == tenant_id, Offering.date == target)
+    )
+    await session.commit()
+    return {
+        "success": True,
+        "deletedCount": count,
+        "message": f"{body.date} 헌금 {count}건이 삭제되었습니다.",
+    }
+
+
+@router.get("/offerings/template")
+async def offering_upload_template(
+    user: CurrentUser = Depends(_require_offering_permission),
+) -> Response:
+    content = ("﻿" + _OFFERING_TEMPLATE_CSV).encode("utf-8")
+    filename = "헌금_업로드_템플릿.csv"
+    return Response(
+        content=content,
+        media_type="text/csv;charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"},
+    )
+
+
+@router.get("/offerings/{offering_id}")
+async def get_offering(
+    offering_id: str,
+    user: CurrentUser = Depends(_require_offering_permission),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    offering = await session.get(Offering, offering_id)
+    if offering is None or offering.tenantId != tenant_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "헌금 정보를 찾을 수 없습니다.")
+    return _offering_dict(offering)
+
+
+class OfferingUpdateBody(BaseModel):
+    date: str | None = None
+    name: str | None = None
+    type: str | None = None
+    amount: int | None = None
+    memo: str | None = None
+
+
+@router.put("/offerings/{offering_id}")
+async def update_offering(
+    offering_id: str,
+    body: OfferingUpdateBody,
+    user: CurrentUser = Depends(_require_offering_permission),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    offering = await session.get(Offering, offering_id)
+    if offering is None or offering.tenantId != tenant_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "헌금 정보를 찾을 수 없습니다.")
+
+    fields = body.model_fields_set
+    if "date" in fields and body.date is not None:
+        offering.date = PyDate.fromisoformat(body.date)
+    if "name" in fields and body.name is not None:
+        offering.name = body.name
+    if "type" in fields and body.type is not None:
+        offering.type = _resolve_offering_type(body.type)
+    if "amount" in fields and body.amount is not None:
+        offering.amount = int(body.amount)
+    if "memo" in fields:
+        offering.memo = body.memo or None
+
+    await session.commit()
+    await session.refresh(offering)
+    return {"success": True, "offering": _offering_dict(offering)}
+
+
+@router.delete("/offerings/{offering_id}")
+async def delete_offering(
+    offering_id: str,
+    user: CurrentUser = Depends(_require_offering_permission),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    offering = await session.get(Offering, offering_id)
+    if offering is None or offering.tenantId != tenant_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "헌금 정보를 찾을 수 없습니다.")
+
+    await session.delete(offering)
+    await session.commit()
+    return {"success": True, "message": "헌금이 삭제되었습니다."}
