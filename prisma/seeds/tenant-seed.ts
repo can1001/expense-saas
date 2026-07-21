@@ -323,7 +323,7 @@ async function main() {
 
   console.log('테넌트 시드 완료!\n');
   console.log('접속 방법:');
-  console.log('  - 로컬: http://localhost:3000?tenant=chungyeon');
+  console.log('  - 로컬: http://localhost:3002?tenant=chungyeon');
   console.log('  - 프로덕션: https://chungyeon.expense-saas.com');
   console.log('');
   console.log('⚠️  중요: 첫 로그인 후 비밀번호를 반드시 변경하세요!');

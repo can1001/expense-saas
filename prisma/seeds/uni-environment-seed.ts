@@ -831,7 +831,7 @@ async function main() {
 
   console.log('\n유앤아이환경기술(주) 테넌트 시드 완료!');
   console.log('\n접속 방법:');
-  console.log(`  - 로컬: http://localhost:3000?tenant=${tenantInfo.subdomain}`);
+  console.log(`  - 로컬: http://localhost:3002?tenant=${tenantInfo.subdomain}`);
   console.log(`  - 프로덕션: https://${tenantInfo.subdomain}.expense-saas.com`);
   console.log('');
   console.log('⚠️  중요: 첫 로그인 후 비밀번호를 반드시 변경하세요!');

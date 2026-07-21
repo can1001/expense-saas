@@ -12,13 +12,13 @@
 ```bash
 cd backend
 uv sync                                    # 의존성 설치 (최초 1회)
-RUNNING_ZONE=local uv run uvicorn main:app --reload --port 8000
+RUNNING_ZONE=local uv run uvicorn main:app --reload --port 8002
 ```
 
 - `RUNNING_ZONE` 은 **반드시 프로세스 환경변수로** 지정한다 (미설정 시 부팅 거부 — `db/guard.py`).
 - 기동 시 `alembic upgrade head` 가 자동 실행되어 `dev.db` 가 생성된다.
-- 헬스체크: <http://localhost:8000/health>
-- API 문서: <http://localhost:8000/docs>
+- 헬스체크: <http://localhost:8002/health>
+- API 문서: <http://localhost:8002/docs>
 
 ### DB 초기화
 
@@ -51,7 +51,7 @@ RUNNING_ZONE=local uv run alembic downgrade -1
 프론트(Next.js)의 `next.config.ts` 에 프록시가 추가되어 있다:
 
 ```
-/api/py/:path*  →  ${API_ORIGIN:-http://localhost:8000}/api/:path*
+/api/py/:path*  →  ${API_ORIGIN:-http://localhost:8002}/api/:path*
 ```
 
 이전 완료된 도메인만 `/api/py/*` 로 호출한다.
@@ -102,10 +102,10 @@ backend/
 ### 데모 로그인 & 캐스케이드
 
 ```bash
-TOKEN=$(curl -s -X POST localhost:8000/api/auth/login -H 'Content-Type: application/json' \
+TOKEN=$(curl -s -X POST localhost:8002/api/auth/login -H 'Content-Type: application/json' \
   -d '{"userid":"admin","password":"admin123"}' | python3 -c "import sys,json;print(json.load(sys.stdin)['token'])")
 # 캐스케이드: 위원회 → 부서 → 항 → 목 → 세목
-curl -X POST localhost:8000/api/budget -H "Authorization: Bearer $TOKEN" \
+curl -X POST localhost:8002/api/budget -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' -d '{"committee":"기획본부","department":"재정팀"}'
 ```
 
@@ -123,7 +123,7 @@ curl -X POST localhost:8000/api/budget -H "Authorization: Bearer $TOKEN" \
 
 ```bash
 # 생성(DRAFT) → 제출(PENDING) → 승인(APPROVED_FINAL)
-curl -X POST localhost:8000/api/expenses/$EID/submit -H "Authorization: Bearer $TOKEN" \
+curl -X POST localhost:8002/api/expenses/$EID/submit -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"steps":[{"stepNumber":1,"stepName":"팀장","approverName":"관리자"}]}'
 ```

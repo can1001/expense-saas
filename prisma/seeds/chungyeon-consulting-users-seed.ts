@@ -157,7 +157,7 @@ async function main() {
 
   console.log('\n(주)청연컨설팅 초기 사용자 시드 완료!');
   console.log(`\n기본 비밀번호: ${DEFAULT_PASSWORD} (⚠️ 첫 로그인 후 변경 안내)`);
-  console.log(`접속: http://localhost:3000?tenant=${TENANT_SUBDOMAIN}`);
+  console.log(`접속: http://localhost:3002?tenant=${TENANT_SUBDOMAIN}`);
 }
 
 main()

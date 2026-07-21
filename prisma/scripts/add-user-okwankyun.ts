@@ -99,7 +99,7 @@ async function main() {
 
   console.log('\n사용자 추가 완료!');
   console.log(`기본 비밀번호: ${DEFAULT_PASSWORD} (⚠️ 첫 로그인 후 변경 안내)`);
-  console.log(`접속: http://localhost:3000?tenant=${TENANT_SUBDOMAIN}`);
+  console.log(`접속: http://localhost:3002?tenant=${TENANT_SUBDOMAIN}`);
 }
 
 main()

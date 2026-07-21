@@ -18,7 +18,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:3002',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -30,9 +30,9 @@ export default defineConfig({
   ],
   webServer: {
     command: 'pnpm dev',
-    url: 'http://localhost:3000',
+    url: 'http://localhost:3002',
     // 라이브 DB를 바라보는 기존 dev 서버를 재사용하면 안 되므로 항상 새로 띄운다
-    // (3000 포트가 사용 중이면 명시적으로 실패)
+    // (3002 포트가 사용 중이면 명시적으로 실패)
     reuseExistingServer: false,
     timeout: 120 * 1000,
     env: {
