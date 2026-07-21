@@ -8,6 +8,9 @@
 갱신(D7 완료 후 재확인): `admin/year-config/:year` GET·DELETE 를 `admin_routes.py` 에 포팅,
 rewrite 등록 완료 — 미이관 0건으로 확정.
 
+F3 최종 검증(main 병합 상태, `8850c89`): 백엔드 전체 **509 테스트 통과** + `ruff` 클린 +
+프론트 `pnpm run build` 통과. 컷오버 코드 레벨 완결 — 이후는 M 게이트(운영 활성화)만 남음.
+
 ## 요약
 
 - Next `app/api/**/route.ts` 파일: **132개** (=distinct 경로 132개)
