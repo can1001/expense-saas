@@ -48,8 +48,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # 플랫폼(SuperAdmin) JWT — 일반 사용자 세션과 분리된 별도 시크릿 (lib/auth/super-admin.ts 대응)
+    SUPER_ADMIN_JWT_SECRET: str = "dev-only-super-admin-secret-change-me"
+
     # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+    CORS_ORIGINS: list[str] = ["http://localhost:3002"]
 
     # 카카오 로그인 (A6) — 미설정이면 kakao_service 가 503 으로 안내
     KAKAO_REST_API_KEY: str | None = None
@@ -62,6 +65,14 @@ class Settings(BaseSettings):
 
     # 자동이체 크론잡 인증 시크릿 (B6) — /api/recurring-expenses/process
     CRON_SECRET: str | None = None
+
+    # 웹 푸시 (N1) — 미설정이면 vapid-public-key 가 503 으로 안내
+    VAPID_PUBLIC_KEY: str | None = None
+    VAPID_PRIVATE_KEY: str | None = None
+    VAPID_SUBJECT: str = "mailto:admin@example.com"
+
+    # FCM (N2) — 미설정이면 fcm-test 가 503 으로 안내
+    FIREBASE_SERVICE_ACCOUNT_JSON: str | None = None
 
     @property
     def is_sqlite(self) -> bool:

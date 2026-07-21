@@ -71,8 +71,8 @@ pnpm run dev
 
 | 환경 | URL |
 |------|-----|
-| 로컬 개발 | `http://localhost:3000?tenant=chungyeon` |
-| 플랫폼 관리 | `http://localhost:3000/platform/login` |
+| 로컬 개발 | `http://localhost:3002?tenant=chungyeon` |
+| 플랫폼 관리 | `http://localhost:3002/platform/login` |
 
 ---
 
@@ -204,7 +204,7 @@ pnpm run db:studio        # Prisma Studio
 DATABASE_URL="postgresql://..."
 
 # 앱 설정
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_URL="http://localhost:3002"
 
 # JWT 시크릿
 JWT_SECRET="your-secret-key"

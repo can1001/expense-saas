@@ -124,7 +124,7 @@ const nextConfig: NextConfig = {
   //   /api/py/*  →  <API_ORIGIN>/api/*
   // 이전 완료된 도메인만 이 경로로 호출하고, 미이전 도메인은 기존 /api/* (Next.js)를 쓴다.
   async rewrites() {
-    const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:8000";
+    const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:8002";
     // Expense id 는 cuid(v1)/cuid2 — 20자 이상 소문자 영숫자라서 bulk, export
     // 등 미이관 고정 세그먼트(짧거나 하이픈 포함)와 구분된다.
     const cuid = "[a-z0-9]{20,}";
@@ -176,6 +176,19 @@ const nextConfig: NextConfig = {
           source: "/api/expenses/bulk-payment-status",
           destination: `${apiOrigin}/api/expenses/bulk-payment-status`,
         },
+        // expenses Excel 계열 (C3) — 고정 세그먼트, :id(cuid) 보다 먼저 매칭되어야 함
+        {
+          source: "/api/expenses/export/excel",
+          destination: `${apiOrigin}/api/expenses/export/excel`,
+        },
+        {
+          source: "/api/expenses/bulk-upload",
+          destination: `${apiOrigin}/api/expenses/bulk-upload`,
+        },
+        {
+          source: "/api/expenses/bulk-upload-template",
+          destination: `${apiOrigin}/api/expenses/bulk-upload-template`,
+        },
         {
           source: `/api/expenses/:id(${cuid})`,
           destination: `${apiOrigin}/api/expenses/:id`,
@@ -195,9 +208,14 @@ const nextConfig: NextConfig = {
         // upload: Cloudinary 업로드/삭제 ("upload" 는 6자로 cuid 패턴과 충돌하지 않음)
         { source: "/api/upload", destination: `${apiOrigin}/api/upload` },
         { source: "/api/upload/delete", destination: `${apiOrigin}/api/upload/delete` },
-        // budget: 조회 계열 이관 — upload, hierarchy/export(Excel)만 Next 유지
+        // budget: 조회 계열 + upload(C2) 이관
         { source: "/api/budget", destination: `${apiOrigin}/api/budget` },
         { source: "/api/budget/hierarchy", destination: `${apiOrigin}/api/budget/hierarchy` },
+        {
+          source: "/api/budget/hierarchy/export",
+          destination: `${apiOrigin}/api/budget/hierarchy/export`,
+        },
+        { source: "/api/budget/upload", destination: `${apiOrigin}/api/budget/upload` },
         { source: "/api/budget/search", destination: `${apiOrigin}/api/budget/search` },
         { source: "/api/budget/simple", destination: `${apiOrigin}/api/budget/simple` },
         {
@@ -219,6 +237,11 @@ const nextConfig: NextConfig = {
           destination: `${apiOrigin}/api/committees/:id`,
         },
         { source: "/api/departments", destination: `${apiOrigin}/api/departments` },
+        // leaders-upload: 고정 세그먼트(하이픈 포함) — :id(cuid) 와 충돌 없음
+        {
+          source: "/api/departments/leaders-upload",
+          destination: `${apiOrigin}/api/departments/leaders-upload`,
+        },
         {
           source: `/api/departments/:id(${cuid})`,
           destination: `${apiOrigin}/api/departments/:id`,
@@ -237,9 +260,22 @@ const nextConfig: NextConfig = {
           destination: `${apiOrigin}/api/budget-subcategories/:id`,
         },
         { source: "/api/budget-details", destination: `${apiOrigin}/api/budget-details` },
+        // year/year auto-assign: 고정 세그먼트("year" 4자) — :id(cuid) 와 충돌 없음
+        {
+          source: "/api/budget-details/year",
+          destination: `${apiOrigin}/api/budget-details/year`,
+        },
+        {
+          source: "/api/budget-details/year/auto-assign",
+          destination: `${apiOrigin}/api/budget-details/year/auto-assign`,
+        },
         {
           source: `/api/budget-details/:id(${cuid})`,
           destination: `${apiOrigin}/api/budget-details/:id`,
+        },
+        {
+          source: `/api/budget-details/:id(${cuid})/description`,
+          destination: `${apiOrigin}/api/budget-details/:id/description`,
         },
         // 결재 목록·결재선 계산 (calculate 의 Next GET 은 앱에서 미사용 — POST 만 쓴다)
         { source: "/api/approvals", destination: `${apiOrigin}/api/approvals` },
@@ -270,6 +306,10 @@ const nextConfig: NextConfig = {
         {
           source: "/api/users/year-roles",
           destination: `${apiOrigin}/api/users/year-roles`,
+        },
+        {
+          source: "/api/users/upload",
+          destination: `${apiOrigin}/api/users/upload`,
         },
         {
           source: `/api/users/:id(${cuid})`,
@@ -322,6 +362,224 @@ const nextConfig: NextConfig = {
         },
         // settings: 시스템 설정 조회/저장 (관리자 전용 PUT)
         { source: "/api/settings", destination: `${apiOrigin}/api/settings` },
+        // admin: 대시보드 KPI + 연도 설정 완료율 (D1)
+        { source: "/api/admin/dashboard", destination: `${apiOrigin}/api/admin/dashboard` },
+        {
+          source: "/api/admin/year-setup-status",
+          destination: `${apiOrigin}/api/admin/year-setup-status`,
+        },
+        // admin: 보고서 — 사역비 집행/누적/분기별 회계보고(+Excel) (D2)
+        {
+          source: "/api/admin/budget-execution",
+          destination: `${apiOrigin}/api/admin/budget-execution`,
+        },
+        {
+          source: "/api/admin/cumulative-report",
+          destination: `${apiOrigin}/api/admin/cumulative-report`,
+        },
+        {
+          source: "/api/admin/quarterly-report",
+          destination: `${apiOrigin}/api/admin/quarterly-report`,
+        },
+        {
+          source: "/api/admin/quarterly-report/export",
+          destination: `${apiOrigin}/api/admin/quarterly-report/export`,
+        },
+        // admin: 실행·이력 — 인사/행정비 집행, 담당자 예외, 변경 이력 (D3)
+        {
+          source: "/api/admin/hr-admin-execution",
+          destination: `${apiOrigin}/api/admin/hr-admin-execution`,
+        },
+        {
+          source: "/api/admin/manager-exceptions",
+          destination: `${apiOrigin}/api/admin/manager-exceptions`,
+        },
+        {
+          source: "/api/admin/change-history",
+          destination: `${apiOrigin}/api/admin/change-history`,
+        },
+        // admin: 역할·초대 관리 (D4)
+        { source: "/api/admin/roles", destination: `${apiOrigin}/api/admin/roles` },
+        {
+          source: `/api/admin/roles/:id(${cuid})`,
+          destination: `${apiOrigin}/api/admin/roles/:id`,
+        },
+        { source: "/api/admin/invitations", destination: `${apiOrigin}/api/admin/invitations` },
+        // admin: 헌금 관리 (D5) — "batch"/"template" 고정 세그먼트, :id(cuid) 보다 먼저 매칭
+        { source: "/api/admin/offerings", destination: `${apiOrigin}/api/admin/offerings` },
+        {
+          source: "/api/admin/offerings/batch",
+          destination: `${apiOrigin}/api/admin/offerings/batch`,
+        },
+        {
+          source: "/api/admin/offerings/template",
+          destination: `${apiOrigin}/api/admin/offerings/template`,
+        },
+        {
+          source: `/api/admin/offerings/:id(${cuid})`,
+          destination: `${apiOrigin}/api/admin/offerings/:id`,
+        },
+        // admin: 알림 관리 (D6)
+        {
+          source: "/api/admin/notifications",
+          destination: `${apiOrigin}/api/admin/notifications`,
+        },
+        // admin: 연도 설정 초기화 (D7) — :year 는 4자리 숫자, year-setup-status 와 경로 충돌 없음
+        {
+          source: "/api/admin/year-config/:year(\\d+)",
+          destination: `${apiOrigin}/api/admin/year-config/:year`,
+        },
+        // platform: SuperAdmin 인증 (P1) — 일반 사용자 인증과 별도 세션 체계
+        {
+          source: "/api/platform/auth/login",
+          destination: `${apiOrigin}/api/platform/auth/login`,
+        },
+        {
+          source: "/api/platform/auth/logout",
+          destination: `${apiOrigin}/api/platform/auth/logout`,
+        },
+        {
+          source: "/api/platform/auth/me",
+          destination: `${apiOrigin}/api/platform/auth/me`,
+        },
+        // platform: 테넌트 관리 (P2) — :id(cuid) 보다 고정 세그먼트가 없어 충돌 없음
+        {
+          source: "/api/platform/tenants",
+          destination: `${apiOrigin}/api/platform/tenants`,
+        },
+        {
+          source: `/api/platform/tenants/:id(${cuid})`,
+          destination: `${apiOrigin}/api/platform/tenants/:id`,
+        },
+        {
+          source: `/api/platform/tenants/:id(${cuid})/settings`,
+          destination: `${apiOrigin}/api/platform/tenants/:id/settings`,
+        },
+        // platform: 테넌트 사용자·통계 (P3) — 2단계 동적 세그먼트, :userId(cuid) 도 고정 세그먼트와 충돌 없음
+        {
+          source: `/api/platform/tenants/:id(${cuid})/stats`,
+          destination: `${apiOrigin}/api/platform/tenants/:id/stats`,
+        },
+        {
+          source: `/api/platform/tenants/:id(${cuid})/users`,
+          destination: `${apiOrigin}/api/platform/tenants/:id/users`,
+        },
+        {
+          source: `/api/platform/tenants/:id(${cuid})/users/:userId(${cuid})`,
+          destination: `${apiOrigin}/api/platform/tenants/:id/users/:userId`,
+        },
+        // platform: 운영 (P4) — 고정 세그먼트, tenants/:id(cuid) 와 충돌 없음
+        {
+          source: "/api/platform/admins",
+          destination: `${apiOrigin}/api/platform/admins`,
+        },
+        {
+          source: `/api/platform/admins/:id(${cuid})`,
+          destination: `${apiOrigin}/api/platform/admins/:id`,
+        },
+        {
+          source: "/api/platform/activity-logs",
+          destination: `${apiOrigin}/api/platform/activity-logs`,
+        },
+        {
+          source: "/api/platform/settings",
+          destination: `${apiOrigin}/api/platform/settings`,
+        },
+        {
+          source: "/api/platform/stats",
+          destination: `${apiOrigin}/api/platform/stats`,
+        },
+        // platform: 내보내기 (P5) — 고정 세그먼트, 다른 platform 항목과 충돌 없음
+        {
+          source: "/api/platform/export",
+          destination: `${apiOrigin}/api/platform/export`,
+        },
+        // push: 웹 푸시 구독·이력 (N1) — 고정 세그먼트, 다른 항목과 충돌 없음
+        {
+          source: "/api/push/vapid-public-key",
+          destination: `${apiOrigin}/api/push/vapid-public-key`,
+        },
+        {
+          source: "/api/push/subscribe",
+          destination: `${apiOrigin}/api/push/subscribe`,
+        },
+        {
+          source: "/api/push/unsubscribe",
+          destination: `${apiOrigin}/api/push/unsubscribe`,
+        },
+        {
+          source: "/api/push/history",
+          destination: `${apiOrigin}/api/push/history`,
+        },
+        {
+          source: "/api/push/test",
+          destination: `${apiOrigin}/api/push/test`,
+        },
+        // push: FCM (N2) — 고정 세그먼트, 다른 push 항목과 충돌 없음
+        {
+          source: "/api/push/fcm-subscribe",
+          destination: `${apiOrigin}/api/push/fcm-subscribe`,
+        },
+        {
+          source: "/api/push/fcm-test",
+          destination: `${apiOrigin}/api/push/fcm-test`,
+        },
+        // youth-night: 출석·포인트 (Y1) — 고정 세그먼트, 다른 항목과 충돌 없음
+        {
+          source: "/api/youth-night/attendance",
+          destination: `${apiOrigin}/api/youth-night/attendance`,
+        },
+        {
+          source: "/api/youth-night/attendance/stats",
+          destination: `${apiOrigin}/api/youth-night/attendance/stats`,
+        },
+        {
+          source: "/api/youth-night/points",
+          destination: `${apiOrigin}/api/youth-night/points`,
+        },
+        // youth-night: 퀴즈·랭킹 (Y2) — 고정 세그먼트, 다른 항목과 충돌 없음
+        {
+          source: "/api/youth-night/quiz",
+          destination: `${apiOrigin}/api/youth-night/quiz`,
+        },
+        {
+          source: "/api/youth-night/quiz/stats",
+          destination: `${apiOrigin}/api/youth-night/quiz/stats`,
+        },
+        {
+          source: "/api/youth-night/ranking",
+          destination: `${apiOrigin}/api/youth-night/ranking`,
+        },
+        {
+          source: "/api/youth-night/stats",
+          destination: `${apiOrigin}/api/youth-night/stats`,
+        },
+        // youth-night: 암송 (Y3) — 고정 세그먼트, 다른 항목과 충돌 없음
+        {
+          source: "/api/youth-night/recitation",
+          destination: `${apiOrigin}/api/youth-night/recitation`,
+        },
+        {
+          source: "/api/youth-night/recitation/approve",
+          destination: `${apiOrigin}/api/youth-night/recitation/approve`,
+        },
+        // youth-night: 관리 (Y4) — 고정 세그먼트, 다른 항목과 충돌 없음
+        {
+          source: "/api/youth-night/admin/curriculum",
+          destination: `${apiOrigin}/api/youth-night/admin/curriculum`,
+        },
+        {
+          source: "/api/youth-night/admin/lesson",
+          destination: `${apiOrigin}/api/youth-night/admin/lesson`,
+        },
+        {
+          source: "/api/youth-night/admin/questions",
+          destination: `${apiOrigin}/api/youth-night/admin/questions`,
+        },
+        {
+          source: "/api/youth-night/admin/questions/reorder",
+          destination: `${apiOrigin}/api/youth-night/admin/questions/reorder`,
+        },
       ],
       afterFiles: [
         {

@@ -21,6 +21,11 @@ class PlanType(str, Enum):
     ENTERPRISE = "ENTERPRISE"
 
 
+class CategoryKind(str, Enum):
+    INCOME = "INCOME"  # 수입
+    EXPENSE = "EXPENSE"  # 지출
+
+
 # ── 결재 (Approval) ───────────────────────────────────────────
 class ApprovalStatus(str, Enum):
     DRAFT = "DRAFT"  # 작성중 (제출 전)
@@ -78,6 +83,16 @@ class RecurringExpenseStatus(str, Enum):
     PAUSED = "PAUSED"  # 일시 중지
     COMPLETED = "COMPLETED"  # 완료 (종료일 도달)
     CANCELLED = "CANCELLED"  # 취소
+
+
+class OfferingType(str, Enum):
+    TITHE = "TITHE"  # 십일조
+    THANKSGIVING = "THANKSGIVING"  # 감사헌금
+    SPECIAL = "SPECIAL"  # 특별헌금
+    MISSION = "MISSION"  # 선교헌금
+    BUILDING = "BUILDING"  # 건축헌금
+    RELIEF = "RELIEF"  # 구제헌금
+    OTHER = "OTHER"  # 기타
 
 
 class ApprovalAction(str, Enum):

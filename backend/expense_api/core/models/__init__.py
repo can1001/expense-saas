@@ -26,20 +26,43 @@ from expense_api.core.models.expense import (  # noqa: F401
 )
 from expense_api.core.models.misc import ExpenseTemplate, SavedBankAccount  # noqa: F401
 from expense_api.core.models.notification import (  # noqa: F401
+    AdminNotification,
+    FcmLog,
+    FcmToken,
     NotificationLog,
     NotificationPreference,
     PushSubscription,
 )
+from expense_api.core.models.offering import Offering  # noqa: F401
+from expense_api.core.models.provisioning import (  # noqa: F401
+    AccountCategory,
+    AccountCategoryTemplate,
+    ApprovalLineTemplate,
+    ApprovalStepTemplate,
+)
 from expense_api.core.models.recurring_expense import RecurringExpense  # noqa: F401
 from expense_api.core.models.schema_info import SchemaInfo  # noqa: F401
 from expense_api.core.models.system_setting import SystemSetting  # noqa: F401
-from expense_api.core.models.tenant import SuperAdmin, Tenant  # noqa: F401
+from expense_api.core.models.tenant import (  # noqa: F401
+    PlatformActivityLog,
+    SuperAdmin,
+    Tenant,
+)
 from expense_api.core.models.user import (  # noqa: F401
     Membership,
     Role,
     User,
     UserSignature,
     UserYearRole,
+)
+from expense_api.core.models.youth_night import (  # noqa: F401
+    Attendance,
+    Curriculum,
+    Lesson,
+    Question,
+    QuizResponse,
+    RecitationSubmission,
+    StudentPoints,
 )
 
 __all__ = [
@@ -68,8 +91,23 @@ __all__ = [
     "NotificationPreference",
     "NotificationLog",
     "PushSubscription",
+    "FcmToken",
+    "FcmLog",
     "ExpenseTemplate",
     "SavedBankAccount",
     "RecurringExpense",
     "SystemSetting",
+    "Offering",
+    "AccountCategoryTemplate",
+    "AccountCategory",
+    "ApprovalLineTemplate",
+    "ApprovalStepTemplate",
+    "PlatformActivityLog",
+    "Curriculum",
+    "Lesson",
+    "Question",
+    "Attendance",
+    "QuizResponse",
+    "StudentPoints",
+    "RecitationSubmission",
 ]

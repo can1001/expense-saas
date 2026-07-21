@@ -147,6 +147,35 @@ class BudgetDetailYear(SQLModel, table=True):
     )
 
 
+class BudgetDetailYearHistory(SQLModel, table=True):
+    __tablename__ = "BudgetDetailYearHistory"
+
+    id: str = Field(default_factory=new_id, primary_key=True)
+
+    tenantId: str | None = Field(default=None, index=True)  # 쿼리 최적화용
+
+    budgetDetailYearId: str | None = Field(default=None, index=True)  # 삭제된 경우 null 가능
+    budgetDetailId: str = Field(index=True)
+    budgetDetailName: str | None = None
+    year: int = Field(index=True)
+
+    action: str = Field(index=True)  # CREATE, UPDATE, DELETE
+    changedBy: str
+    changedById: str | None = None
+
+    previousManagerId: str | None = None
+    previousManagerName: str | None = None
+    previousBudgetAmt: int | None = None
+
+    newManagerId: str | None = None
+    newManagerName: str | None = None
+    newBudgetAmt: int | None = None
+
+    changedAt: datetime = Field(
+        default_factory=utcnow, index=True, sa_column_kwargs={"server_default": func.now()}
+    )
+
+
 class DepartmentBudgetDetail(SQLModel, table=True):
     __tablename__ = "DepartmentBudgetDetail"
     __table_args__ = (

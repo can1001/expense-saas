@@ -4,10 +4,12 @@
 레거시 Next.js 응답 형태와의 계약 정합을 검증한다.
 """
 
+import io
 from datetime import datetime
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from openpyxl import load_workbook
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
@@ -185,6 +187,35 @@ async def test_hierarchy_search_filters_out_nonmatching(client: AsyncClient):
     assert r.status_code == 200
     assert r.json()["committees"] == []
     assert r.json()["summary"]["totalDetails"] == 0
+
+
+# ── hierarchy/export ─────────────────────────────────────────────────
+async def test_hierarchy_export_returns_xlsx_with_data_row(client: AsyncClient):
+    headers = await _login(client)
+    await _seed_budget_tree(client)
+
+    r = await client.get(f"/api/budget/hierarchy/export?year={YEAR}", headers=headers)
+    assert r.status_code == 200
+    assert r.headers["content-type"] == (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    assert r.headers["content-disposition"] == f'attachment; filename="budget_{YEAR}.xlsx"'
+
+    wb = load_workbook(io.BytesIO(r.content))
+    ws = wb.active
+    assert ws.title == f"{YEAR}년 예산현황"
+    header = [cell.value for cell in ws[1]]
+    assert header == ["위원회", "사역팀", "예산(항)", "예산(목)", "예산(세목)", "담당자", "예산금액"]
+    data_row = [cell.value for cell in ws[2]]
+    assert data_row == ["기획본부", "재정팀", "사무행정비", "회의비", "간식비", "김담당", 1_000_000]
+    # 합계 행 (빈 행 다음)
+    total_row = [cell.value for cell in ws[4]]
+    assert total_row[4] == "합계"
+
+
+async def test_hierarchy_export_requires_auth(client: AsyncClient):
+    r = await client.get(f"/api/budget/hierarchy/export?year={YEAR}")
+    assert r.status_code == 401
 
 
 # ── search ────────────────────────────────────────────────────────────

@@ -2,19 +2,23 @@
 (app/api/users/route.ts, app/api/users/[id]/route.ts 이전)
 """
 
+import io
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import JSONResponse
+from openpyxl import Workbook, load_workbook
 from pydantic import BaseModel
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from expense_api.core.auth.permissions import ROLE_CODES, YEAR_ROLE_CODES, PERMISSIONS
+from expense_api.core.auth.permissions import ROLE_CODES, ROLE_NAMES, YEAR_ROLE_CODES, PERMISSIONS
 from expense_api.core.db.session import get_session
 from expense_api.core.dependencies.auth import CurrentUser, get_current_user
 from expense_api.core.dependencies.authz import effective_permissions, require_permission
 from expense_api.core.dependencies.tenant import require_tenant_id
+from expense_api.core.excel import set_column_widths, style_header_row, workbook_to_xlsx_response
 from expense_api.core.models.budget import Department
 from expense_api.core.models.user import Membership, Role, User, UserSignature, UserYearRole
 from expense_api.core.security.jwt import hash_password
@@ -237,6 +241,274 @@ async def create_user(
     await session.commit()
     await session.refresh(user)
     return user.model_dump()
+
+
+# ── 엑셀 업로드/템플릿 ────────────────────────────────────────────────
+# (app/api/users/upload/route.ts 이전 — lib/api/response-handler.ts 미사용,
+# {success, error:{type,message,fields}}/{success, message, data} 원형 그대로 유지)
+_USER_UPLOAD_HEADERS = [
+    "userid (아이디)", "username (이름)", "role (역할)", "department (부서)", "isActive (활성화)",
+]
+_USER_UPLOAD_WIDTHS = [25, 15, 15, 20, 12]
+_USER_UPLOAD_GUIDE_ROWS = [
+    ("userid (아이디)", "로그인 아이디 (필수, 중복불가)", "청연정혜종"),
+    ("username (이름)", "표시 이름 (필수)", "정혜종"),
+    ("role (역할)", "역할 (관리자/재정팀장/회계/팀장/행정간사/사용자)", "사용자"),
+    ("department (부서)", "소속 부서 (선택)", "재정팀"),
+    ("isActive (활성화)", "활성화 여부 (Y/N)", "Y"),
+    ("", "", ""),
+    ("※ 참고사항", "", ""),
+    ("- 새 사용자", "기본 비밀번호 chc2026 으로 생성됩니다", ""),
+    ("- 기존 사용자", "병합 모드에서 이름/역할/부서/활성화 상태가 업데이트됩니다", ""),
+    ("- 비밀번호", "엑셀로 변경할 수 없습니다 (보안)", ""),
+]
+# Next 원본 ROLE_MAP — 한글/영문 라벨 → 역할 코드
+_ROLE_UPLOAD_MAP: dict[str, str] = {name: code for code, name in ROLE_NAMES.items()}
+_ROLE_UPLOAD_MAP.update({code: code for code in ROLE_CODES})
+_ROLE_UPLOAD_MAP[""] = "user"
+
+
+def _upload_error(
+    message: str,
+    *,
+    error_type: str = "VALIDATION_ERROR",
+    status_code: int = 400,
+    fields: list[dict] | None = None,
+) -> JSONResponse:
+    error: dict = {"type": error_type, "message": message}
+    if fields:
+        error["fields"] = fields
+    return JSONResponse({"success": False, "error": error}, status_code=status_code)
+
+
+def _upload_success(message: str, data: dict) -> JSONResponse:
+    return JSONResponse({"success": True, "message": message, "data": data})
+
+
+@router.get("/users/upload")
+async def users_upload_template(
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+    _=Depends(require_permission(PERMISSIONS.USER_MANAGE)),
+):
+    users = (
+        await session.execute(
+            select(User).where(User.tenantId == tenant_id).order_by(User.role, User.username)
+        )
+    ).scalars().all()
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "사용자목록"
+    sheet.append(_USER_UPLOAD_HEADERS)
+    style_header_row(sheet)
+    set_column_widths(sheet, _USER_UPLOAD_WIDTHS)
+
+    if not users:
+        sheet.append(["", "", "사용자", "", "Y"])
+    else:
+        for u in users:
+            sheet.append(
+                [u.userid, u.username, ROLE_NAMES.get(u.role, u.role), u.department or "",
+                 "Y" if u.isActive else "N"]
+            )
+
+    guide = workbook.create_sheet("작성안내")
+    guide.append(["항목", "설명", "예시"])
+    style_header_row(guide)
+    set_column_widths(guide, [20, 50, 20])
+    for row in _USER_UPLOAD_GUIDE_ROWS:
+        guide.append(list(row))
+
+    date_str = datetime.now(timezone.utc).date().isoformat()
+    return workbook_to_xlsx_response(workbook, f"users_template_{date_str}.xlsx")
+
+
+@router.post("/users/upload")
+async def users_upload_post(
+    file: UploadFile | None = File(None),
+    mode: str = Form("merge"),
+    dryRun: str = Form("false"),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+    _=Depends(require_permission(PERMISSIONS.USER_MANAGE)),
+):
+    if file is None:
+        return _upload_error("파일이 필요합니다.")
+
+    try:
+        data = await file.read()
+        workbook = load_workbook(io.BytesIO(data), data_only=True)
+
+        if not workbook.worksheets:
+            return _upload_error("워크시트를 찾을 수 없습니다.")
+        sheet = workbook.worksheets[0]
+
+        headers: dict[int, str] = {}
+        for cell in sheet[1]:
+            headers[cell.column] = str(cell.value or "").lower()
+
+        raw_rows: list[dict[str, object]] = []
+        for row in sheet.iter_rows(min_row=2):
+            row_data: dict[str, object] = {}
+            for cell in row:
+                header = headers.get(cell.column)
+                if header:
+                    row_data[header] = cell.value
+            if any(v is not None and v != "" for v in row_data.values()):
+                raw_rows.append(row_data)
+
+        if not raw_rows:
+            return _upload_error("데이터가 없습니다.")
+
+        def _norm(value: object) -> str:
+            return str(value).strip() if value is not None else ""
+
+        rows: list[dict] = []
+        for raw in raw_rows:
+            normalized: dict = {
+                "userid": "", "username": "", "role": None, "department": None, "isActive": None,
+            }
+            for key, value in raw.items():
+                lowered = key.lower()
+                if "userid" in lowered or "아이디" in lowered:
+                    normalized["userid"] = _norm(value)
+                elif "username" in lowered or "이름" in lowered:
+                    normalized["username"] = _norm(value)
+                elif "role" in lowered or "역할" in lowered:
+                    normalized["role"] = _norm(value)
+                elif "department" in lowered or "부서" in lowered:
+                    normalized["department"] = _norm(value) or None
+                elif "isactive" in lowered or "활성" in lowered:
+                    normalized["isActive"] = _norm(value).upper() in ("Y", "TRUE", "1", "YES")
+            rows.append(normalized)
+
+        validation_errors: list[dict] = []
+        valid_rows: list[dict] = []
+        for index, row in enumerate(rows):
+            row_num = index + 2
+            if not row["userid"]:
+                validation_errors.append(
+                    {"fieldName": f"행 {row_num}", "message": "userid(아이디)가 비어있습니다."}
+                )
+                continue
+            if not row["username"]:
+                validation_errors.append(
+                    {"fieldName": f"행 {row_num}", "message": "username(이름)이 비어있습니다."}
+                )
+                continue
+            if row["role"]:
+                mapped = _ROLE_UPLOAD_MAP.get(row["role"])
+                if not mapped:
+                    validation_errors.append(
+                        {"fieldName": f"행 {row_num}", "message": f"유효하지 않은 역할: {row['role']}"}
+                    )
+                    continue
+                row["role"] = mapped
+            else:
+                row["role"] = "user"
+            if row["isActive"] is None:
+                row["isActive"] = True
+            valid_rows.append(row)
+
+        userid_counts: dict[str, int] = {}
+        for row in valid_rows:
+            userid_counts[row["userid"]] = userid_counts.get(row["userid"], 0) + 1
+        for userid, count in userid_counts.items():
+            if count > 1:
+                validation_errors.append(
+                    {"fieldName": userid, "message": f"파일 내 중복된 userid: {userid} ({count}회)"}
+                )
+
+        if validation_errors:
+            return _upload_error(
+                f"검증 오류 {len(validation_errors)}건", status_code=200, fields=validation_errors
+            )
+
+        existing_users = (
+            await session.execute(select(User.id, User.userid).where(User.tenantId == tenant_id))
+        ).all()
+        existing_map = {userid: uid for uid, userid in existing_users}
+
+        mode_value = mode or "merge"
+        to_create: list[dict] = []
+        to_update: list[dict] = []
+        for row in valid_rows:
+            existing_id = existing_map.get(row["userid"])
+            if existing_id:
+                if mode_value == "merge":
+                    to_update.append({**row, "existingId": existing_id})
+            else:
+                to_create.append(row)
+
+        summary = {
+            "totalRows": len(valid_rows),
+            "created": len(to_create),
+            "updated": len(to_update),
+            "skipped": len(valid_rows) - len(to_create) - len(to_update),
+            "errors": 0,
+        }
+
+        dry_run = dryRun == "true"
+        if dry_run:
+            return _upload_success(
+                "검증 완료 (미리보기)", {"summary": summary, "dryRun": True, "mode": mode_value}
+            )
+
+        hashed_password = hash_password(DEFAULT_PASSWORD)
+
+        if to_create:
+            role_rows = (
+                await session.execute(
+                    select(Role.code, Role.id).where(
+                        Role.tenantId == tenant_id, Role.isActive == True  # noqa: E712
+                    )
+                )
+            ).all()
+            roles_by_code = dict(role_rows)
+
+            for row in to_create:
+                user = User(
+                    tenantId=tenant_id,
+                    userid=row["userid"],
+                    username=row["username"],
+                    role=row["role"],
+                    roleId=roles_by_code.get(row["role"]),
+                    department=row["department"],
+                    isActive=bool(row["isActive"]),
+                    password=hashed_password,
+                    mustChangePassword=True,
+                )
+                session.add(user)
+                await session.flush()
+                session.add(
+                    Membership(
+                        userId=user.id,
+                        tenantId=tenant_id,
+                        role=_membership_role(row["role"]),
+                        isDefault=True,
+                    )
+                )
+
+        for row in to_update:
+            existing_user = await session.get(User, row["existingId"])
+            if existing_user is not None:
+                existing_user.username = row["username"]
+                existing_user.role = row["role"]
+                existing_user.department = row["department"]
+                existing_user.isActive = bool(row["isActive"])
+                session.add(existing_user)
+
+        await session.commit()
+
+        return _upload_success(
+            f"업로드 완료: {summary['created']}명 생성, {summary['updated']}명 업데이트",
+            {"summary": summary, "dryRun": False, "mode": mode_value},
+        )
+    except Exception as err:  # noqa: BLE001 — Next 원본과 동일하게 예상 밖 오류도 500 으로 응답
+        return _upload_error(
+            str(err) or "업로드 처리 중 오류 발생", error_type="SERVER_ERROR", status_code=500
+        )
 
 
 # ── 역할별 목록 ───────────────────────────────────────────────────────

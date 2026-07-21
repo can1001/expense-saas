@@ -3,15 +3,25 @@
 """
 
 import re
+from dataclasses import asdict
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import JSONResponse
+from openpyxl.styles import Alignment, Font
+from openpyxl.workbook import Workbook
 from pydantic import BaseModel
 from sqlalchemy import and_, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from expense_api.core.db.session import get_session
 from expense_api.core.dependencies.tenant import require_tenant_id
+from expense_api.core.excel import (
+    THIN_BORDER,
+    set_column_widths,
+    style_header_row,
+    workbook_to_xlsx_response,
+)
 from expense_api.core.models.budget import (
     BudgetCategory,
     BudgetDetail,
@@ -23,6 +33,11 @@ from expense_api.core.models.budget import (
 )
 from expense_api.core.models.expense import Expense, ExpenseItem
 from expense_api.core.models.user import User, UserYearRole
+from expense_api.core.service.budget_upload_service import (
+    export_budget_template,
+    parse_excel_file,
+    upload_budget_data,
+)
 
 router = APIRouter()
 
@@ -36,6 +51,68 @@ def _current_year() -> int:
 
 def _year_range(year: int) -> tuple[datetime, datetime]:
     return datetime(year, 1, 1), datetime(year + 1, 1, 1)
+
+
+async def _load_committees_and_links(
+    session: AsyncSession, tenant_id: str, year: int, committee_id: str = ""
+) -> tuple[list[Committee], list[Department], dict[str, list]]:
+    """위원회/사역팀 + 부서-세목 연결(세목/목/항/연도설정/담당자 조인) 로드.
+
+    `budget_hierarchy` 와 `budget_hierarchy_export` 가 공유하는 데이터 소스.
+    """
+    comm_stmt = (
+        select(Committee)
+        .where(Committee.tenantId == tenant_id, Committee.isActive.is_(True))
+        .order_by(Committee.sortOrder)
+    )
+    if committee_id:
+        comm_stmt = comm_stmt.where(Committee.id == committee_id)
+    committees = (await session.execute(comm_stmt)).scalars().all()
+
+    departments = (
+        (
+            await session.execute(
+                select(Department)
+                .where(Department.tenantId == tenant_id, Department.isActive.is_(True))
+                .order_by(Department.sortOrder)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    # 부서-세목 연결 + 세목/목/항 + 연도 설정 + 담당자 (일괄 조인)
+    link_rows = (
+        await session.execute(
+            select(DepartmentBudgetDetail, BudgetDetail, BudgetSubcategory, BudgetCategory,
+                   BudgetDetailYear, User)
+            .join(BudgetDetail, BudgetDetail.id == DepartmentBudgetDetail.budgetDetailId)
+            .join(BudgetSubcategory, BudgetSubcategory.id == BudgetDetail.subcategoryId,
+                  isouter=True)
+            .join(BudgetCategory, BudgetCategory.id == BudgetSubcategory.categoryId, isouter=True)
+            .join(
+                BudgetDetailYear,
+                and_(
+                    BudgetDetailYear.budgetDetailId == BudgetDetail.id,
+                    BudgetDetailYear.year == year,
+                    BudgetDetailYear.isActive.is_(True),
+                ),
+                isouter=True,
+            )
+            .join(User, User.id == BudgetDetailYear.managerId, isouter=True)
+            .where(
+                DepartmentBudgetDetail.tenantId == tenant_id,
+                DepartmentBudgetDetail.isActive.is_(True),
+                BudgetDetail.isActive.is_(True),
+            )
+        )
+    ).all()
+
+    links_by_dept: dict[str, list] = {}
+    for row in link_rows:
+        links_by_dept.setdefault(row[0].departmentId, []).append(row)
+
+    return committees, departments, links_by_dept
 
 
 # ── GET /api/budget/hierarchy — 조직별 예산 계층 조회 ─────────────────
@@ -66,57 +143,9 @@ async def budget_hierarchy(
     ).all()
     used_map = {name: total or 0 for name, total in used_rows}
 
-    comm_stmt = (
-        select(Committee)
-        .where(Committee.tenantId == tenant_id, Committee.isActive.is_(True))
-        .order_by(Committee.sortOrder)
+    committees, departments, links_by_dept = await _load_committees_and_links(
+        session, tenant_id, yr, committeeId
     )
-    if committeeId:
-        comm_stmt = comm_stmt.where(Committee.id == committeeId)
-    committees = (await session.execute(comm_stmt)).scalars().all()
-
-    departments = (
-        (
-            await session.execute(
-                select(Department)
-                .where(Department.tenantId == tenant_id, Department.isActive.is_(True))
-                .order_by(Department.sortOrder)
-            )
-        )
-        .scalars()
-        .all()
-    )
-
-    # 부서-세목 연결 + 세목/목/항 + 연도 설정 + 담당자 (일괄 조인)
-    link_rows = (
-        await session.execute(
-            select(DepartmentBudgetDetail, BudgetDetail, BudgetSubcategory, BudgetCategory,
-                   BudgetDetailYear, User)
-            .join(BudgetDetail, BudgetDetail.id == DepartmentBudgetDetail.budgetDetailId)
-            .join(BudgetSubcategory, BudgetSubcategory.id == BudgetDetail.subcategoryId,
-                  isouter=True)
-            .join(BudgetCategory, BudgetCategory.id == BudgetSubcategory.categoryId, isouter=True)
-            .join(
-                BudgetDetailYear,
-                and_(
-                    BudgetDetailYear.budgetDetailId == BudgetDetail.id,
-                    BudgetDetailYear.year == yr,
-                    BudgetDetailYear.isActive.is_(True),
-                ),
-                isouter=True,
-            )
-            .join(User, User.id == BudgetDetailYear.managerId, isouter=True)
-            .where(
-                DepartmentBudgetDetail.tenantId == tenant_id,
-                DepartmentBudgetDetail.isActive.is_(True),
-                BudgetDetail.isActive.is_(True),
-            )
-        )
-    ).all()
-
-    links_by_dept: dict[str, list] = {}
-    for row in link_rows:
-        links_by_dept.setdefault(row[0].departmentId, []).append(row)
 
     term = search.lower()
     total_details = 0
@@ -200,6 +229,75 @@ async def budget_hierarchy(
         "committees": formatted_committees,
         "allCommittees": [{"id": cid, "name": name} for cid, name in all_committees],
     }
+
+
+_EXPORT_COLUMN_WIDTHS = [15, 15, 15, 15, 20, 12, 15]
+_EXPORT_HEADERS = ["위원회", "사역팀", "예산(항)", "예산(목)", "예산(세목)", "담당자", "예산금액"]
+
+
+# ── GET /api/budget/hierarchy/export — 예산 현황 Excel 내보내기 ────────
+@router.get("/hierarchy/export")
+async def budget_hierarchy_export(
+    year: int | None = None,
+    committeeId: str = "",
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+):
+    yr = year or _current_year()
+    committees, departments, links_by_dept = await _load_committees_and_links(
+        session, tenant_id, yr, committeeId
+    )
+
+    rows: list[list] = []
+    for committee in committees:
+        for dept in departments:
+            if dept.committeeId != committee.id:
+                continue
+            for link, detail, sub, cat, year_setting, manager in links_by_dept.get(dept.id, []):
+                rows.append(
+                    [
+                        committee.name,
+                        dept.name,
+                        cat.name if cat else "",
+                        sub.name if sub else "",
+                        detail.name,
+                        manager.username if manager else "",
+                        year_setting.budgetAmount if year_setting else 0,
+                    ]
+                )
+
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = f"{yr}년 예산현황"
+
+    worksheet.append(_EXPORT_HEADERS)
+    style_header_row(worksheet)
+    set_column_widths(worksheet, _EXPORT_COLUMN_WIDTHS)
+
+    for row in rows:
+        worksheet.append(row)
+
+    last_data_row = worksheet.max_row
+    for excel_row in worksheet.iter_rows(min_row=2, max_row=last_data_row):
+        for cell in excel_row:
+            cell.border = THIN_BORDER
+        amount_cell = excel_row[6]
+        amount_cell.number_format = "#,##0"
+        amount_cell.alignment = Alignment(horizontal="right")
+
+    if rows:
+        worksheet.append([])
+        total_row_idx = worksheet.max_row + 1
+        worksheet.append(["", "", "", "", "합계", "", f"=SUM(G2:G{last_data_row})"])
+        for cell in worksheet[total_row_idx]:
+            cell.font = Font(bold=True)
+        total_amount_cell = worksheet.cell(row=total_row_idx, column=7)
+        total_amount_cell.number_format = "#,##0"
+        total_amount_cell.alignment = Alignment(horizontal="right")
+
+    worksheet.auto_filter.ref = "A1:G1"
+
+    return workbook_to_xlsx_response(workbook, f"budget_{yr}.xlsx")
 
 
 # ── GET /api/budget/search — 계정과목 검색 ────────────────────────────
@@ -609,3 +707,156 @@ async def budget_memo_examples(
         else []
     )
     return {"examples": examples, "budgetDetail": {"id": detail.id, "name": detail.name}}
+
+
+# ── GET/POST /api/budget/upload — 예산 마스터 업로드/템플릿 (lib/api/response-handler.ts 계약) ──
+_VALID_UPLOAD_MODES = {"replace", "merge", "append"}
+_VALID_UPLOAD_CONTENT_TYPES = {
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+}
+
+
+def _api_timestamp() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _api_success(data: dict, *, message: str | None = None, code: str = "SUCCESS") -> JSONResponse:
+    body: dict = {"success": True, "code": code, "data": data, "timestamp": _api_timestamp()}
+    if message:
+        body["message"] = message
+    return JSONResponse(body, status_code=200)
+
+
+def _api_error(
+    message: str,
+    *,
+    error_type: str = "UNKNOWN",
+    code: str = "ERROR",
+    status_code: int = 500,
+    details: object = None,
+    fields: list[dict] | None = None,
+) -> JSONResponse:
+    error: dict = {"type": error_type, "message": message}
+    if details is not None:
+        error["details"] = details
+    if fields:
+        error["fields"] = fields
+    body = {
+        "success": False,
+        "code": code,
+        "message": message,
+        "error": error,
+        "timestamp": _api_timestamp(),
+    }
+    return JSONResponse(body, status_code=status_code)
+
+
+def _api_validation_error(message: str, fields: list[dict] | None = None) -> JSONResponse:
+    return _api_error(
+        message, error_type="VALIDATION", code="VALIDATION_ERROR", status_code=400, fields=fields
+    )
+
+
+@router.get("/upload")
+async def budget_upload_template(
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        workbook = await export_budget_template(session, tenant_id)
+    except Exception as err:  # noqa: BLE001 — Next 원본과 동일하게 실패 메시지를 그대로 전달
+        return _api_error(
+            str(err) or "템플릿 생성 중 오류가 발생했습니다.",
+            error_type="SERVER_ERROR",
+            code="EXPORT_ERROR",
+        )
+
+    date_str = datetime.now(timezone.utc).date().isoformat()
+    return workbook_to_xlsx_response(workbook, f"budget_template_{date_str}.xlsx")
+
+
+@router.post("/upload")
+async def budget_upload_post(
+    file: UploadFile | None = File(None),
+    mode: str = Form("merge"),
+    dryRun: str = Form("false"),
+    tenant_id: str = Depends(require_tenant_id),
+    session: AsyncSession = Depends(get_session),
+):
+    if file is None:
+        return _api_validation_error(
+            "파일이 필요합니다.",
+            [{"fieldName": "file", "message": "업로드할 Excel 파일을 선택해주세요."}],
+        )
+
+    filename = file.filename or ""
+    if (
+        file.content_type not in _VALID_UPLOAD_CONTENT_TYPES
+        and not filename.endswith(".xlsx")
+        and not filename.endswith(".xls")
+    ):
+        return _api_validation_error(
+            "지원하지 않는 파일 형식입니다.",
+            [{"fieldName": "file", "message": "Excel 파일(.xlsx, .xls)만 업로드 가능합니다."}],
+        )
+
+    if mode not in _VALID_UPLOAD_MODES:
+        return _api_validation_error(
+            "잘못된 업로드 모드입니다.",
+            [{"fieldName": "mode", "message": "mode는 replace, merge, append 중 하나여야 합니다."}],
+        )
+
+    dry_run = dryRun == "true"
+
+    try:
+        buffer = await file.read()
+        rows, parse_errors = parse_excel_file(buffer)
+    except Exception as err:  # noqa: BLE001 — Next 원본과 동일하게 예상 밖 오류도 500 으로 응답
+        return _api_error(
+            str(err) or "알 수 없는 오류가 발생했습니다.",
+            error_type="SERVER_ERROR",
+            code="UPLOAD_ERROR",
+        )
+
+    if parse_errors:
+        return _api_validation_error(
+            f"파싱 오류: {len(parse_errors)}개의 행에서 문제가 발견되었습니다.",
+            [
+                {"fieldName": f"row_{e.row}_{e.field}", "message": f"행 {e.row}: {e.message}"}
+                for e in parse_errors
+            ],
+        )
+
+    if not rows:
+        return _api_validation_error(
+            "업로드할 데이터가 없습니다.",
+            [{"fieldName": "file", "message": "Excel 파일에 데이터가 없습니다."}],
+        )
+
+    result = await upload_budget_data(session, tenant_id, rows, mode, dry_run=dry_run)
+
+    if not result.success:
+        return _api_error(
+            "업로드 중 오류가 발생했습니다.",
+            error_type="SERVER_ERROR",
+            code="UPLOAD_ERROR",
+            details=[asdict(e) for e in result.validationErrors],
+        )
+
+    return _api_success(
+        {
+            "summary": asdict(result.summary),
+            "dryRun": dry_run,
+            "mode": mode,
+        },
+        message=(
+            "검증이 완료되었습니다. dryRun=false로 실제 업로드를 수행하세요."
+            if dry_run
+            else (
+                f"{result.summary.created}개 생성, {result.summary.updated}개 업데이트, "
+                f"{result.summary.skipped}개 건너뜀"
+            )
+        ),
+        code="UPLOAD_SUCCESS",
+    )

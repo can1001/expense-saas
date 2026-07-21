@@ -19,6 +19,9 @@ dependencies = [
     "cuid2>=2.0.0",              # Prisma cuid() 호환 ID 생성 (기존 데이터 ID 보존)
     "python-multipart>=0.0.9",
     "cloudinary>=1.45.0",
+    "openpyxl>=3.1.5",
+    "pywebpush>=2.3.0",
+    "firebase-admin>=7.5.0",
 ]
 
 [dependency-groups]

@@ -31,44 +31,45 @@
 
 ## Phase C — Excel 계열 (openpyxl 도입)
 
-- [ ] C1. openpyxl 도입 + 공용 Excel 유틸 + `budget/hierarchy/export`
-- [ ] C2. `budget/upload` (lib/budget-upload.ts 712L 포팅 — 정규화 테이블 대상)
-- [ ] C3. `expenses/export/excel`, `expenses/bulk-upload`, `expenses/bulk-upload-template`
-- [ ] C4. `users/upload`, `departments/leaders-upload`, `budget-details/year` 2종 + `budget-details/[id]/description`
+- [x] C1. openpyxl 도입 + 공용 Excel 유틸 + `budget/hierarchy/export`
+- [x] C2. `budget/upload` (lib/budget-upload.ts 712L 포팅 — 정규화 테이블 대상)
+- [x] C3. `expenses/export/excel`, `expenses/bulk-upload`, `expenses/bulk-upload-template`
+- [x] C4. `users/upload`, `departments/leaders-upload`, `budget-details/year` 2종 + `budget-details/[id]/description`
 
 ## Phase D — admin
 
-- [ ] D1. 대시보드 (`admin/dashboard`, `admin/year-setup-status`)
-- [ ] D2. 보고서 (`admin/budget-execution`, `admin/cumulative-report`, `admin/quarterly-report` + `export`)
-- [ ] D3. 실행·이력 (`admin/hr-admin-execution`, `admin/manager-exceptions`, `admin/change-history`)
-- [ ] D4. 역할·초대 (`admin/roles` 2종, `admin/invitations`)
-- [ ] D5. 헌금 (`admin/offerings` 4종 — template 은 C1 의존)
-- [ ] D6. 알림 관리 (`admin/notifications`)
+- [x] D1. 대시보드 (`admin/dashboard`, `admin/year-setup-status`)
+- [x] D2. 보고서 (`admin/budget-execution`, `admin/cumulative-report`, `admin/quarterly-report` + `export`)
+- [x] D3. 실행·이력 (`admin/hr-admin-execution`, `admin/manager-exceptions`, `admin/change-history`)
+- [x] D4. 역할·초대 (`admin/roles` 2종, `admin/invitations`)
+- [x] D5. 헌금 (`admin/offerings` 4종 — template 은 C1 의존)
+- [x] D6. 알림 관리 (`admin/notifications`)
+- [x] D7. 연도 설정 초기화 (`admin/year-config/[year]`) — F2 감사에서 발견된 누락 라우트, `admin/year-setup-status` 페이지의 초기화 버튼이 실사용 중
 
 ## Phase P — platform (플랫폼 관리자)
 
-- [ ] P1. 인증 (`platform/auth` 3종 — 별도 세션 체계, lib 원본 확인 필수)
-- [ ] P2. 테넌트 (`platform/tenants`, `platform/tenants/[id]`, `[id]/settings`)
-- [ ] P3. 테넌트 사용자·통계 (`[id]/users` 2종, `[id]/stats`)
-- [ ] P4. 운영 (`platform/admins` 2종, `platform/activity-logs`, `platform/settings`, `platform/stats`)
-- [ ] P5. 내보내기 (`platform/export` — C1 의존)
+- [x] P1. 인증 (`platform/auth` 3종 — 별도 세션 체계, lib 원본 확인 필수)
+- [x] P2. 테넌트 (`platform/tenants`, `platform/tenants/[id]`, `[id]/settings`)
+- [x] P3. 테넌트 사용자·통계 (`[id]/users` 2종, `[id]/stats`)
+- [x] P4. 운영 (`platform/admins` 2종, `platform/activity-logs`, `platform/settings`, `platform/stats`)
+- [x] P5. 내보내기 (`platform/export` — C1 의존)
 
 ## Phase N — push
 
-- [ ] N1. WebPush (`push/vapid-public-key`, `push/subscribe`, `push/unsubscribe`, `push/history`) — pywebpush, 발송 모킹
-- [ ] N2. FCM·테스트 (`push/fcm-subscribe`, `push/fcm-test`, `push/test`) — 외부 발송 전부 모킹
+- [x] N1. WebPush (`push/vapid-public-key`, `push/subscribe`, `push/unsubscribe`, `push/history`) — pywebpush, 발송 모킹
+- [x] N2. FCM·테스트 (`push/fcm-subscribe`, `push/fcm-test`, `push/test`) — 외부 발송 전부 모킹
 
 ## Phase Y — youth-night
 
-- [ ] Y1. 출석·포인트 (`youth-night/attendance` 2종, `youth-night/points`)
-- [ ] Y2. 퀴즈·랭킹 (`youth-night/quiz` 2종, `youth-night/ranking`, `youth-night/stats`)
-- [ ] Y3. 암송 (`youth-night/recitation` 2종)
-- [ ] Y4. 관리 (`youth-night/admin` 4종)
+- [x] Y1. 출석·포인트 (`youth-night/attendance` 2종, `youth-night/points`)
+- [x] Y2. 퀴즈·랭킹 (`youth-night/quiz` 2종, `youth-night/ranking`, `youth-night/stats`)
+- [x] Y3. 암송 (`youth-night/recitation` 2종)
+- [x] Y4. 관리 (`youth-night/admin` 4종)
 
 ## 최종 검증
 
-- [ ] F1. 백엔드 전체 `RUNNING_ZONE=local uv run pytest` + `uv run ruff check` 통과
-- [ ] F2. rewrite 전수 대조 — `app/api/**` 라우트별 메서드 목록 vs FastAPI 라우트 vs beforeFiles 항목표를 만들어 docs/ 에 기록, 누락·메서드 갭 0 확인
+- [x] F1. 백엔드 전체 `RUNNING_ZONE=local uv run pytest` + `uv run ruff check` 통과
+- [x] F2. rewrite 전수 대조 — `app/api/**` 라우트별 메서드 목록 vs FastAPI 라우트 vs beforeFiles 항목표를 만들어 docs/ 에 기록, 누락·메서드 갭 0 확인
 - [ ] F3. `pnpm run build` 통과 + `BACKEND_SEPARATION_STATUS.md` 갱신
 
 ## 수동 게이트 (사용자 전용 — 루프는 건드리지 않음)
