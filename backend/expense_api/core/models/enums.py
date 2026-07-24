@@ -18,8 +18,15 @@ def pg_enum(name: str) -> String:
     (`create_type=False` — Prisma 가 이미 생성)하여 바인드 파라미터가 enum 으로
     캐스팅되게 하고, SQLite(테스트)에서는 String 으로 폴백한다.
     (`Role.permissions` 의 `with_variant` 패턴과 동일.)
+
+    `name` 은 이 모듈에 정의된 Python Enum 클래스명과 동일해야 한다. 값 목록을 함께
+    넘겨야 asyncpg 가 **읽기 시** 반환값을 검증 통과시킨다(값 없이 이름만 주면
+    `LookupError: ... Possible values: None`). 값은 클래스에서 파생한다.
     """
-    return String().with_variant(_PGEnum(name=name, create_type=False), "postgresql")
+    values = [e.value for e in globals()[name]]
+    return String().with_variant(
+        _PGEnum(*values, name=name, create_type=False), "postgresql"
+    )
 
 
 class OrgType(str, Enum):
@@ -125,6 +132,20 @@ class ApprovalAction(str, Enum):
     PAYMENT_HOLD = "PAYMENT_HOLD"
     PAYMENT_CANCEL = "PAYMENT_CANCEL"
     BULK_EXPENSE_DATE_UPDATE = "BULK_EXPENSE_DATE_UPDATE"
+
+
+# ── youth-night (Curriculum) ─────────────────────────────────
+class CurriculumType(str, Enum):
+    FAMILY_WORSHIP = "FAMILY_WORSHIP"
+    YOUTH_NIGHT = "YOUTH_NIGHT"
+
+
+class AgeGroup(str, Enum):
+    KIDS = "KIDS"
+    ELEMENTARY = "ELEMENTARY"
+    MIDDLE = "MIDDLE"
+    HIGH = "HIGH"
+    YOUNG_ADULT = "YOUNG_ADULT"
 
 
 # ─────────────────────────────────────────────────────────────
