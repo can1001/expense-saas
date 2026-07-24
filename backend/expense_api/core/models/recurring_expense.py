@@ -8,7 +8,7 @@ from datetime import datetime
 from sqlalchemy import func
 from sqlmodel import Field, SQLModel
 
-from expense_api.core.models.enums import RecurringExpenseStatus, RecurringFrequency
+from expense_api.core.models.enums import RecurringExpenseStatus, RecurringFrequency, pg_enum
 from expense_api.core.models.ids import new_id, utcnow
 
 
@@ -36,14 +36,20 @@ class RecurringExpense(SQLModel, table=True):
 
     baseAmount: int
 
-    frequency: str = RecurringFrequency.MONTHLY.value
+    frequency: str = Field(
+        default=RecurringFrequency.MONTHLY.value, sa_type=pg_enum("RecurringFrequency")
+    )
     dayOfMonth: int
     startDate: datetime
     endDate: datetime | None = None
 
     advanceDays: int = 7
 
-    status: str = Field(default=RecurringExpenseStatus.ACTIVE.value, index=True)
+    status: str = Field(
+        default=RecurringExpenseStatus.ACTIVE.value,
+        index=True,
+        sa_type=pg_enum("RecurringExpenseStatus"),
+    )
 
     lastGeneratedDate: datetime | None = None
     nextGenerationDate: datetime | None = Field(default=None, index=True)

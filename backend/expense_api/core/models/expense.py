@@ -8,7 +8,7 @@ from datetime import datetime
 from sqlalchemy import Column, Text, func
 from sqlmodel import Field, SQLModel
 
-from expense_api.core.models.enums import ApprovalStatus, PaymentStatus
+from expense_api.core.models.enums import ApprovalStatus, PaymentStatus, pg_enum
 from expense_api.core.models.ids import new_id, utcnow
 
 
@@ -38,12 +38,16 @@ class Expense(SQLModel, table=True):
     accountNumber: str
     accountHolder: str
 
-    status: str = Field(default=ApprovalStatus.DRAFT.value, index=True)
+    status: str = Field(
+        default=ApprovalStatus.DRAFT.value, index=True, sa_type=pg_enum("ApprovalStatus")
+    )
     submittedAt: datetime | None = None
     approvedAt: datetime | None = None
     rejectedAt: datetime | None = None
 
-    paymentStatus: str = Field(default=PaymentStatus.PENDING.value, index=True)
+    paymentStatus: str = Field(
+        default=PaymentStatus.PENDING.value, index=True, sa_type=pg_enum("PaymentStatus")
+    )
     paymentCompletedAt: datetime | None = None
     paymentCompletedBy: str | None = None
     paymentNote: str | None = None

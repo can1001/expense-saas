@@ -10,6 +10,7 @@ from datetime import datetime
 from sqlalchemy import UniqueConstraint, func
 from sqlmodel import Field, SQLModel
 
+from expense_api.core.models.enums import pg_enum
 from expense_api.core.models.ids import new_id, utcnow
 
 
@@ -22,8 +23,8 @@ class Curriculum(SQLModel, table=True):
 
     title: str
     description: str | None = None
-    type: str
-    ageGroup: str
+    type: str = Field(sa_type=pg_enum("CurriculumType"))
+    ageGroup: str = Field(sa_type=pg_enum("AgeGroup"))
 
     startDate: datetime | None = None
     endDate: datetime | None = None

@@ -11,7 +11,7 @@ from datetime import datetime
 from sqlalchemy import UniqueConstraint, func
 from sqlmodel import Field, SQLModel
 
-from expense_api.core.models.enums import CategoryKind
+from expense_api.core.models.enums import CategoryKind, pg_enum
 from expense_api.core.models.ids import new_id, utcnow
 
 
@@ -25,11 +25,11 @@ class AccountCategoryTemplate(SQLModel, table=True):
 
     id: str = Field(default_factory=new_id, primary_key=True)
 
-    orgType: str
+    orgType: str = Field(sa_type=pg_enum("OrgType"))
     code: str  # 계정과목 코드 (예: "1001", "5101")
     name: str
     group: str  # 코드대 그룹명 (예: "헌금수입", "인건비")
-    kind: str = Field(default=CategoryKind.EXPENSE.value)
+    kind: str = Field(default=CategoryKind.EXPENSE.value, sa_type=pg_enum("CategoryKind"))
     sortOrder: int
     isActive: bool = Field(default=True)
 
@@ -54,7 +54,7 @@ class AccountCategory(SQLModel, table=True):
     code: str
     name: str
     group: str
-    kind: str = Field(default=CategoryKind.EXPENSE.value)
+    kind: str = Field(default=CategoryKind.EXPENSE.value, sa_type=pg_enum("CategoryKind"))
     sortOrder: int
     isActive: bool = Field(default=True)
 
@@ -76,7 +76,7 @@ class ApprovalLineTemplate(SQLModel, table=True):
     __tablename__ = "ApprovalLineTemplate"
 
     id: str = Field(default_factory=new_id, primary_key=True)
-    orgType: str = Field(index=True)
+    orgType: str = Field(index=True, sa_type=pg_enum("OrgType"))
     name: str
     description: str | None = None
     isDefault: bool = Field(default=False)

@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import JSON, Column, func
 from sqlmodel import Field, SQLModel
 
-from expense_api.core.models.enums import StepStatus
+from expense_api.core.models.enums import StepStatus, pg_enum
 from expense_api.core.models.ids import new_id, utcnow
 
 
@@ -46,7 +46,9 @@ class ApprovalStep(SQLModel, table=True):
     delegatedTo: str | None = None
     delegationReason: str | None = None
 
-    status: str = Field(default=StepStatus.PENDING.value, index=True)
+    status: str = Field(
+        default=StepStatus.PENDING.value, index=True, sa_type=pg_enum("StepStatus")
+    )
     approvedAt: datetime | None = None
     rejectedAt: datetime | None = None
     comment: str | None = None
@@ -74,7 +76,7 @@ class ApprovalLog(SQLModel, table=True):
 
     expenseId: str = Field(index=True)
 
-    action: str = Field(index=True)  # ApprovalAction
+    action: str = Field(index=True, sa_type=pg_enum("ApprovalAction"))  # ApprovalAction
     actorName: str = Field(index=True)
     actorEmail: str | None = None
     actorRole: str | None = None

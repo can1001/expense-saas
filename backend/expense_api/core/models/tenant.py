@@ -5,10 +5,10 @@
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Column, String, func
+from sqlalchemy import JSON, Column, func
 from sqlmodel import Field, SQLModel
 
-from expense_api.core.models.enums import OrgType, PlanType
+from expense_api.core.models.enums import OrgType, PlanType, pg_enum
 from expense_api.core.models.ids import new_id, utcnow
 
 
@@ -25,7 +25,7 @@ class Tenant(SQLModel, table=True):
     # 조직 정보 (enum → String 저장, spec §4.3)
     orgType: str = Field(
         default=OrgType.CHURCH.value,
-        sa_column=Column(String, nullable=False, server_default=OrgType.CHURCH.value),
+        sa_column=Column(pg_enum("OrgType"), nullable=False, server_default=OrgType.CHURCH.value),
     )
     description: str | None = None
     logoUrl: str | None = None
@@ -33,7 +33,7 @@ class Tenant(SQLModel, table=True):
     # 요금제
     plan: str = Field(
         default=PlanType.FREE.value,
-        sa_column=Column(String, nullable=False, server_default=PlanType.FREE.value),
+        sa_column=Column(pg_enum("PlanType"), nullable=False, server_default=PlanType.FREE.value),
     )
     planStartAt: datetime | None = None
     planEndAt: datetime | None = None

@@ -5,6 +5,22 @@
 
 from enum import Enum
 
+from sqlalchemy import String
+from sqlalchemy.dialects.postgresql import ENUM as _PGEnum
+
+
+def pg_enum(name: str) -> String:
+    """Prisma 네이티브 PG enum 컬럼용 dialect-variant 컬럼 타입.
+
+    공유 Neon(dual-run)에서 Prisma 가 만든 컬럼은 네이티브 PG enum 이다. 이를 String
+    으로만 매핑하면 `WHERE status = $1(text)` 바인드 비교가 `operator does not exist:
+    enum = text` 로 실패한다. PostgreSQL 에서는 기존 enum 타입을 이름으로 참조
+    (`create_type=False` — Prisma 가 이미 생성)하여 바인드 파라미터가 enum 으로
+    캐스팅되게 하고, SQLite(테스트)에서는 String 으로 폴백한다.
+    (`Role.permissions` 의 `with_variant` 패턴과 동일.)
+    """
+    return String().with_variant(_PGEnum(name=name, create_type=False), "postgresql")
+
 
 class OrgType(str, Enum):
     CHURCH = "CHURCH"

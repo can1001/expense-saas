@@ -10,7 +10,7 @@ from datetime import datetime
 from sqlalchemy import Date, func
 from sqlmodel import Field, SQLModel
 
-from expense_api.core.models.enums import OfferingType
+from expense_api.core.models.enums import OfferingType, pg_enum
 from expense_api.core.models.ids import new_id, utcnow
 
 
@@ -23,7 +23,7 @@ class Offering(SQLModel, table=True):
 
     date: PyDate = Field(sa_type=Date, index=True)
     name: str = Field(index=True)
-    type: str = Field(default=OfferingType.OTHER.value, index=True)
+    type: str = Field(default=OfferingType.OTHER.value, index=True, sa_type=pg_enum("OfferingType"))
     amount: int
     memo: str | None = None
 

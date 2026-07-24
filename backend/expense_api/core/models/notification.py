@@ -9,7 +9,7 @@ from datetime import datetime
 from sqlalchemy import Column, Text, UniqueConstraint, func
 from sqlmodel import Field, SQLModel
 
-from expense_api.core.models.enums import NotificationStatus
+from expense_api.core.models.enums import NotificationStatus, pg_enum
 from expense_api.core.models.ids import new_id, utcnow
 
 
@@ -47,11 +47,13 @@ class NotificationLog(SQLModel, table=True):
 
     expenseId: str | None = Field(default=None, index=True)
 
-    channel: str  # NotificationChannel
-    eventType: str = Field(index=True)  # NotificationEventType
+    channel: str = Field(sa_type=pg_enum("NotificationChannel"))  # NotificationChannel
+    eventType: str = Field(index=True, sa_type=pg_enum("NotificationEventType"))
     message: str
 
-    status: str = Field(default=NotificationStatus.PENDING.value, index=True)
+    status: str = Field(
+        default=NotificationStatus.PENDING.value, index=True, sa_type=pg_enum("NotificationStatus")
+    )
     providerMessageId: str | None = None
     errorMessage: str | None = None
     sentAt: datetime | None = None
@@ -91,12 +93,16 @@ class WebPushLog(SQLModel, table=True):
     userId: str | None = Field(default=None, index=True)
     expenseId: str | None = Field(default=None, index=True)
 
-    eventType: str = Field(index=True)  # NotificationEventType 값 문자열
+    eventType: str = Field(
+        index=True, sa_type=pg_enum("NotificationEventType")
+    )  # NotificationEventType 값 문자열
     title: str
     body: str = Field(sa_column=Column(Text))
     url: str | None = None
 
-    status: str = Field(default=NotificationStatus.PENDING.value, index=True)
+    status: str = Field(
+        default=NotificationStatus.PENDING.value, index=True, sa_type=pg_enum("NotificationStatus")
+    )
     errorMessage: str | None = Field(default=None, sa_column=Column(Text))
 
     sentAt: datetime | None = None
@@ -136,12 +142,14 @@ class FcmLog(SQLModel, table=True):
     userId: str | None = Field(default=None, index=True)
     expenseId: str | None = Field(default=None, index=True)
 
-    eventType: str = Field(index=True)
+    eventType: str = Field(index=True, sa_type=pg_enum("NotificationEventType"))
     title: str
     body: str = Field(sa_column=Column(Text))
     url: str | None = None
 
-    status: str = Field(default=NotificationStatus.PENDING.value, index=True)
+    status: str = Field(
+        default=NotificationStatus.PENDING.value, index=True, sa_type=pg_enum("NotificationStatus")
+    )
     errorMessage: str | None = Field(default=None, sa_column=Column(Text))
 
     sentAt: datetime | None = None
