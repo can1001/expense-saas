@@ -74,7 +74,12 @@
 
 ## 수동 게이트 (사용자 전용 — 루프는 건드리지 않음)
 
-- [ ] M1. Render Next 서비스에 `API_ORIGIN` 설정 → 컷오버 활성화
+- [x] M1. Render Next 서비스에 `API_ORIGIN` 설정 → 컷오버 활성화
+  - 2026-07-24 활성화·검증 완료. `API_ORIGIN=https://expense-api-jyfa.onrender.com`, 캐시 클리어 재배포.
+  - 프리플라이트: FastAPI `/health` 200, 대상 라우트 8종 401(존재), openapi 138경로.
+  - 프록시 확증: Next `/api/auth/login {}` 응답이 FastAPI pydantic `{"detail":[{"type":"missing",...}]}` 422와
+    바이트 동일 → FastAPI 처리 확인. 대조군 `/api/receipts`는 Next 네이티브 `{"error":"로그인이 필요합니다."}`
+    유지(FastAPI엔 404) → 선택적 프록시 정상.
 - [ ] M2. 프로덕션 스모크 (로그인·지출 작성·결재·업로드)
 - [ ] M3. 베이크 후 컷오버된 Next `app/api` 라우트 삭제 (별도 PR)
 - [ ] M4. (선택) Vite 전환 검토 — API 라우트 0개가 된 후
